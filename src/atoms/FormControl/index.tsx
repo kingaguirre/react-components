@@ -73,8 +73,21 @@ export const FormControl = forwardRef<HTMLInputElement | HTMLTextAreaElement, Fo
                   color={color}
                   size={size}
                   disabled={disabled}
-                  onChange={onChange}
-                  {...rest}
+                  required={required}
+                  aria-required={required} // Ensures accessibility and validation support
+                  onInvalid={() => setIsInvalid(true)} // Trigger invalid styling if required
+                  onChange={(e) => {
+                    setIsInvalid(!e.target.checked && required);
+                    if (onChange) onChange(e);
+                  }}
+                  ref={(node) => {
+                    inputRef.current = node;
+                    if (typeof ref === 'function') {
+                      ref(node);
+                    } else if (ref) {
+                      (ref as any).current = node;
+                    }
+                  }}
                 />
               ) : (
                 <CustomCheckboxRadio

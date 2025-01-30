@@ -1,5 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { FormControl } from './index';
+import { useRef } from 'react';
+import { StoryWrapper, Title } from '@components/StoryWrapper';
+import { Grid, GridItem } from '@atoms/Grid';
 
 const meta = {
   title: 'Atoms/FormControl',
@@ -50,12 +53,8 @@ export const Default: StoryObj<typeof meta> = {
   tags: ['!dev'],
 };
 
-import { useRef } from 'react';
-import { StoryWrapper, Title } from '@components/StoryWrapper';
-import { Grid, GridItem } from '@atoms/Grid';
-
 const COLORS = ['primary', 'info', 'success', 'warning', 'danger', 'default'];
-const VARIANTS = ['filled', 'outlined'];
+const VARIANTS = ['default', 'outlined'];
 const SIZES = ['xs', 'sm', 'md', 'lg', 'xl'];
 
 const generateColorStories = (type: string) => (
@@ -167,10 +166,10 @@ const generateFormPropsStories = (type: string) => {
             </div>
           </GridItem>
         )}
-        {(type === 'checkbox' || type === 'radio') && (
+        {(type === 'checkbox' || type === 'radio' || type === 'switch') && (
           <GridItem xs={12} sm={6} md={4}>
-            {type === 'checkbox' ? (
-              <FormControl type="checkbox" label="Checkbox with Text" helpText="This checkbox has a text prop" text="Check this box" />
+            {(type === 'checkbox' || type === 'switch') ? (
+              <FormControl type={type} label={`${type} with text`} helpText={`This ${type} has a text prop`} text="Click me!" />
             ) : (
               <FormControl type="radio" label="Radio with Text" helpText="This radio button has a text prop" text="Select this option" />
             )}
@@ -237,4 +236,17 @@ const Radio: StoryObj = {
   ),
 };
 
-export { Text, TextArea, Checkbox, Radio };
+const Switch: StoryObj = {
+  tags: ['!autodocs'],
+  render: () => (
+    <StoryWrapper title="switch">
+      <Title>Colors</Title>
+      {generateColorStories('switch')}
+      <Title>Sizes</Title>
+      {generateSizeStories('switch')}
+      {generateFormPropsStories('switch')}
+    </StoryWrapper>
+  ),
+};
+
+export { Text, TextArea, Checkbox, Radio, Switch };

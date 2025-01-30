@@ -352,6 +352,42 @@ export const Switch = styled(CustomCheckboxRadio)`
     }
   }
 
+  &.is-invalid,
+  &:invalid {
+    background-color: ${theme.colors.danger.pale};
+    border-color: ${theme.colors.danger.pale};
+
+    &:before {
+      border: 1px solid ${theme.colors.danger.light};
+    }
+
+    &:hover:not(:disabled) {
+      &:before {
+        opacity: 1!important;
+        box-shadow: ${`0 0 0 2px ${theme.colors.danger.pale}, 0 0 1px 3px ${theme.colors.danger.lighter}`};
+      }
+    }
+
+    &:focus:not(:disabled) {
+      &:before {
+        box-shadow: ${`0 0 0 4px ${theme.colors.danger.pale}, 0 0 1px 5px ${theme.colors.danger.lighter}`};
+      }
+    }
+
+    &:disabled {
+      &:before {
+        border: 1px solid ${theme.colors.danger.lighter};
+      }
+      &:checked {
+        background-color: ${theme.colors.default.lighter};
+        &:before {
+          border-color: white;
+          background-color: ${theme.colors.danger.light};
+        }
+      }
+    }
+  }
+
 `;
 
 export const TextContainer = styled.label<{
