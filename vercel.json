@@ -1,4 +1,8 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/storybook-static/$1" }],
-  "redirects": [{ "source": "/", "destination": "/storybook-static/index.html", "statusCode": 302 }]
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run build-storybook",
+  "devCommand": "npm run storybook",
+  "installCommand": "npm install",
+  "framework": null,
+  "outputDirectory": "./storybook-static"
 }
