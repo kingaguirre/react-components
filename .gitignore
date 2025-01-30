@@ -10,6 +10,8 @@ lerna-debug.log*
 node_modules
 dist
 storybook-static/
+# Coverage reports
+coverage/
 dist-ssr
 *.local
 
