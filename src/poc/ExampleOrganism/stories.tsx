@@ -1,13 +1,13 @@
-import { ExampleMolecule } from "./index";
+import { ExamplePOC } from "./index";
 import { StoryWrapper } from '@components/StoryWrapper';
 
 export default {
-  title: "Molecules/ExampleMolecule",
-  component: ExampleMolecule,
+  title: "POC/ExamplePOC",
+  component: ExamplePOC,
 };
 
 export const Default = () => (
   <StoryWrapper title="Example">
-    <ExampleMolecule label="Example Label" />
+    <ExamplePOC />
   </StoryWrapper>
 );
