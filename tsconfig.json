@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ESNext", // Latest ECMAScript version
+    "module": "ESNext", // Use ESNext module system
+    "lib": ["DOM", "DOM.Iterable", "ESNext"], // Include DOM and ESNext libraries
+    "jsx": "react-jsx", // Use React JSX runtime
+    "strict": true, // Enable all strict type-checking options
+    "moduleResolution": "node", // Resolve modules using Node.js rules
+    "esModuleInterop": true, // Support CommonJS and ES modules
+    "skipLibCheck": true, // Skip type-checking for libraries
+    "forceConsistentCasingInFileNames": true, // Enforce consistent file casing
+    "baseUrl": ".", // Base path for resolving non-relative module names
+    "paths": {
+      "@components/*": ["src/components/*"],
+      "@atoms/*": ["src/atoms/*"],
+      "@molecules/*": ["src/molecules/*"],
+      "@organisms/*": ["src/organisms/*"]
+    }
+  },
+  "include": ["src"], // Include files in the src directory
+  "exclude": ["node_modules", "dist"] // Exclude node_modules and dist folders
+}
