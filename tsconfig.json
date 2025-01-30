@@ -1,22 +1,27 @@
 {
   "compilerOptions": {
-    "target": "ESNext", // Latest ECMAScript version
-    "module": "ESNext", // Use ESNext module system
-    "lib": ["DOM", "DOM.Iterable", "ESNext"], // Include DOM and ESNext libraries
-    "jsx": "react-jsx", // Use React JSX runtime
-    "strict": true, // Enable all strict type-checking options
-    "moduleResolution": "node", // Resolve modules using Node.js rules
-    "esModuleInterop": true, // Support CommonJS and ES modules
-    "skipLibCheck": true, // Skip type-checking for libraries
-    "forceConsistentCasingInFileNames": true, // Enforce consistent file casing
-    "baseUrl": ".", // Base path for resolving non-relative module names
+    "target": "ESNext",
+    "module": "ESNext",
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "jsx": "react-jsx",
+    "strict": true,
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
     "paths": {
       "@components/*": ["src/components/*"],
       "@atoms/*": ["src/atoms/*"],
       "@molecules/*": ["src/molecules/*"],
       "@organisms/*": ["src/organisms/*"]
-    }
+    },
+
+    "rootDir": "src",        // Ensure source files stay inside "src/"
+    "outDir": "dist",        // Output compiled files into "dist/"
+    "noEmit": false,         // Ensure TypeScript actually emits files
+    "allowJs": false         // Prevents JS files from being copied to "dist/"
   },
-  "include": ["src"], // Include files in the src directory
-  "exclude": ["node_modules", "dist"] // Exclude node_modules and dist folders
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
 }

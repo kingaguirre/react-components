@@ -32,6 +32,8 @@ export interface FormControlProps {
   disabled?: boolean;
   /** Read-only state */
   readOnly?: boolean;
+  /** Text only available in checkbox or radio */
+  text?: string;
   /** Any additional attributes */
   /* eslint-disable @typescript-eslint/no-explicit-any */
   [key: string]: any;
