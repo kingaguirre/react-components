@@ -10,6 +10,10 @@ const __dirname = path.dirname(__filename);
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  build: {
+    outDir: 'dist', // Ensure the output directory is explicitly set
+    emptyOutDir: true, // Ensure it clears previous builds
+  },
   resolve: {
     alias: {
       '@components': path.resolve(__dirname, 'src/components'),
