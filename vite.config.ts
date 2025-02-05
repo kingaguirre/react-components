@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react-swc';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -7,7 +7,6 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
   build: {
@@ -20,6 +19,15 @@ export default defineConfig({
       '@atoms': path.resolve(__dirname, 'src/atoms'),
       '@molecules': path.resolve(__dirname, 'src/molecules'),
       '@organisms': path.resolve(__dirname, 'src/organisms'),
+    },
+  },
+  test: {
+    globals: true, // enables global test APIs (like describe, it, expect)
+    environment: 'jsdom', // simulates a browser environment for testing components
+    setupFiles: './src/setupTests.ts', // run common setup before tests
+    include: ['src/**/*_test.{ts,tsx}', 'src/**/*.{test,spec}.{ts,tsx}'],
+    coverage: {
+      reporter: ['text', 'lcov'], // lcov report is recognized by SonarQube
     },
   },
 });
