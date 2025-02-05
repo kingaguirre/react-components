@@ -1,8 +1,26 @@
 {
-  "name": "react-components",
+  "name": "react-components-lib",
   "private": true,
   "version": "0.0.0",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
   "type": "module",
+  "exports": {
+    "./atoms/*": "./dist/atoms/*",
+    "./molecules/*": "./dist/molecules/*",
+    "./organisms/*": "./dist/organisms/*",
+    "./styles/GlobalStyles": "./dist/styles/GlobalStyles/index.js",
+    "./styles/theme": "./dist/styles/theme/index.js"
+  },
+  "peerDependencies": {
+    "react": "^17.0.0 || ^18.0.0",
+    "react-dom": "^17.0.0 || ^18.0.0",
+    "styled-components": "^5.0.0"
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc -b && vite build",
     "preview": "vite preview",
@@ -14,10 +32,11 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "fs": "^0.0.1-security",
     "path": "^0.12.7",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "styled-components": "^6.1.14"
+    "react": "^17.0.0 || ^18.0.0",
+    "react-dom": "^17.0.0 || ^18.0.0",
+    "styled-components": "^5.0.0"
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^3.2.4",
