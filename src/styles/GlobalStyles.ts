@@ -1,7 +1,9 @@
+// src/styles/GlobalStyles.ts
 import { createGlobalStyle } from "styled-components";
 import { theme } from "./theme";
 
-export const GlobalStyles = createGlobalStyle`
+// Create the global style component
+const GlobalStyles = createGlobalStyle`
   :root {
     /* Primary Colors */
     --color-primary-base: ${theme.colors.primary.base};
@@ -52,3 +54,7 @@ export const GlobalStyles = createGlobalStyle`
     --color-default-darker: ${theme.colors.default.darker};
   }
 `;
+
+// Export as both a named and default export
+export { GlobalStyles };
+export default GlobalStyles;
