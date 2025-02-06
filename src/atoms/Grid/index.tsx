@@ -18,6 +18,14 @@ export const GridItem: React.FC<GridItemProps> = ({
 }) => {
   return (
     <StyledGridItem
+      data-testid="grid-item"
+      data-xs={xs} // Add data-* attributes for testing
+      data-sm={sm}
+      data-md={md}
+      data-lg={lg}
+      data-xl={xl}
+      data-offset={offset}
+      data-order={order}
       $xs={xs}
       $sm={sm}
       $md={md}
