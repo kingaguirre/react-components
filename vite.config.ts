@@ -68,6 +68,13 @@ export default defineConfig({
     ],
     coverage: {
       reporter: ['text', 'lcov'],
+      exclude: [
+        'src/poc/**/stories.tsx',         // Ignore story files in POC
+        'src/organisms/**/stories.tsx',   // Ignore story files in Organisms
+        'src/molecules/**/stories.tsx',   // Ignore story files in Molecules
+        'src/atoms/**/stories.tsx',       // Ignore story files in Atoms
+        'src/components/**',              // Ignore everything inside src/components/
+      ],
     },
   },
 });
