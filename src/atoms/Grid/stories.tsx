@@ -1,3 +1,4 @@
+import React from 'react';
 import type { Meta } from '@storybook/react';
 import { Grid, GridItem } from './index';
 import { StoryWrapper, Title } from '@components/StoryWrapper';
@@ -27,7 +28,7 @@ export default meta;
 
 // Combined Story
 /* eslint-disable @typescript-eslint/no-explicit-any */
-export const Default: any = {
+export const Defaults: any = {
   tags: ['!autodocs'],
   render: () => (
     <StoryWrapper title="Grid">

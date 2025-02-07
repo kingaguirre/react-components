@@ -4,12 +4,20 @@ import styled from 'styled-components';
 const Wrapper = styled.div`
   max-width: 1000px;
   margin: 3rem auto;
-  .form-control-input-container + .form-control-input-container {
-    margin-top: 20px;
+
+  .grid-item {
+    .button + .button,
+    .form-control-input-container + .form-control-input-container {
+      margin-top: 16px;
+    }
+    .button {
+      margin-right: 16px;
+    }
   }
 `;
 
 const Container = styled.div`
+  min-height: 65vh;
   position: relative;
   overflow: hidden;
   margin: 20px 0 20px;
@@ -21,7 +29,6 @@ const Container = styled.div`
 `;
 
 const StoryTitle = styled.div`
-  font-family: "Nunito Sans", -apple-system, ".SFNSText-Regular", "San Francisco", BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-size: 32px;
   line-height: 36px;
   margin: 0 0 8px;

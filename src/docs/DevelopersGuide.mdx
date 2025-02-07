@@ -35,6 +35,159 @@ export const RightArrow = () => <svg
 
 <div className="sb-container">
   <div className='sb-section-title'>
+    # How to Determine if a Component is an Atom, Molecule, or Organism
+  </div>
+  <p>In the Atomic Design methodology, components are categorized into Atoms, Molecules, and Organisms based on their complexity and reusability.</p>
+  
+  <table className="atomic-table">
+    <thead>
+      <tr>
+        <th className="text-left">Question</th>
+        <th>Atom</th>
+        <th>Molecule</th>
+        <th>Organism</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Is it a single UI element?</td>
+        <td className="text-center">✅</td>
+        <td className="text-center">❌</td>
+        <td className="text-center">❌</td>
+      </tr>
+      <tr>
+        <td>Does it only add style or minor behavior?</td>
+        <td className="text-center">✅</td>
+        <td className="text-center">❌</td>
+        <td className="text-center">❌</td>
+      </tr>
+      <tr>
+        <td>Does it combine multiple atoms?</td>
+        <td className="text-center">❌</td>
+        <td className="text-center">✅</td>
+        <td className="text-center">❌</td>
+      </tr>
+      <tr>
+        <td>Does it serve a single purpose but is reusable?</td>
+        <td className="text-center">❌</td>
+        <td className="text-center">✅</td>
+        <td className="text-center">❌</td>
+      </tr>
+      <tr>
+        <td>Does it combine multiple molecules?</td>
+        <td className="text-center">❌</td>
+        <td className="text-center">❌</td>
+        <td className="text-center">✅</td>
+      </tr>
+      <tr>
+        <td>Is it a full UI section?</td>
+        <td className="text-center">❌</td>
+        <td className="text-center">❌</td>
+        <td className="text-center">✅</td>
+      </tr>
+      <tr>
+        <td>Is it a complete feature rather than just a part?</td>
+        <td className="text-center">❌</td>
+        <td className="text-center">❌</td>
+        <td className="text-center">✅</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>Use this guide to categorize your components correctly within your project structure.</p>
+</div>
+
+
+<div className="sb-container">
+  <div className='sb-section-title'>
+    # React Component Library: Development & Usage Guide
+  </div>
+  
+  <p>This guide provides step-by-step instructions for setting up, developing, and publishing components within the <strong>react-component-lib</strong> project.</p>
+
+  ## Step 1: Clone the Repository
+  Clone the repository using the following command:
+  ```bash
+  git clone <git_repository_url>
+  ```
+  If the repository is hosted on Azure DevOps, use an authentication token:
+  ```bash
+  git clone https://<username>:<token>@dev.azure.com/<organization>/<project>/_git/<repository>
+  ```
+
+  ## Step 2: Create a Sub-branch
+  ```bash
+  git checkout -b feature/your-component-name
+  ```
+  Follow the naming convention: `feature/your-component-name` for features, `bugfix/your-bugfix-name` for bug fixes.
+
+  ## Step 3: Install Dependencies
+  ```bash
+  npm install
+  ```
+
+  ## Step 4: Create a New Component
+  Inside the `src/atoms/` folder, create a new folder for your component:
+  ```bash
+  /Button/
+    - index.tsx      // Main component logic
+    - styled.tsx     // Component styles
+    - utils.tsx      // Utility functions
+    - stories.tsx    // Storybook example
+    - interface.ts   // Props interface
+  ```
+  Example of a simple button component:
+  ```tsx
+  import React from 'react';
+  import { ButtonStyled } from './styled';
+  import { ButtonProps } from './interface';
+
+  export const Button: React.FC<ButtonProps> = ({ label, onClick }) => {
+    return <ButtonStyled onClick={onClick}>{label}</ButtonStyled>;
+  };
+  ```
+
+  ## Step 5: Versioning Guide
+  Before committing, follow the versioning convention: `MAJOR.MINOR.PATCH`.
+  - **MAJOR**: Breaking changes
+  - **MINOR**: New components/features
+  - **PATCH**: Bug fixes
+
+  Update `package.json` before committing.
+
+  ## Step 6: Commit and Push Changes
+  ```bash
+  git commit -m ".#WORK_ITEM_NUMBER Added Button component"
+  git push origin feature/your-component-name
+  ```
+
+  ## Step 7: Create a Pull Request (PR)
+  Head to Azure DevOps, create a PR, and provide a meaningful description.
+
+  ## Step 8: Publish
+  ```bash
+  npm publish
+  ```
+
+  ## Takeaways
+  - Follow `MAJOR.MINOR.PATCH` versioning.
+  - Maintain consistent file structure.
+  - Use existing components as references.
+
+  ## How to Use the Package in Another Repository
+  Install the package:
+  ```bash
+  npm install react-component-lib
+  ```
+  Import and use a component:
+  ```tsx
+  import { Button } from 'react-component-lib/dist/atoms/Button';
+  <Button onClick={handleSubmit}>Submit</Button>
+  ```
+</div>
+
+<div className="sb-container">
+  <div className='sb-section-title'>
     # Configure your project
 
     Because Storybook works separately from your app, you'll need to configure it for your specific stack and setup. Below, explore guides for configuring Storybook with popular frameworks and tools. If you get stuck, learn how you can ask for help from our community.
@@ -207,6 +360,18 @@ export const RightArrow = () => <svg
 
 <style>
   {`
+  .atomic-table {
+    width: 100%;
+  }
+
+  .text-left {
+    text-align: left;
+  }
+
+  .text-center {
+    text-align: center;
+  }
+
   .sb-container {
     margin-bottom: 48px;
   }
