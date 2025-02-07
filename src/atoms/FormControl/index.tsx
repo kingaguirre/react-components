@@ -167,3 +167,5 @@ export const FormControl = forwardRef<HTMLInputElement | HTMLTextAreaElement, Fo
 );
 
 FormControl.displayName = 'FormControl';
+
+export default FormControl;

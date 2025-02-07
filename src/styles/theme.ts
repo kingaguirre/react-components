@@ -57,20 +57,27 @@ export const theme = {
       lg: 14,
       xl: 16,
     },
-    inputFontSize: {
+    fontSize: {
       xs: 12,
       sm: 12,
       md: 14,
       lg: 16,
       xl: 16,
     },
-    inputBoxSize: {
+    boxSize: {
       xs: 18,
       sm: 24,
       md: 32,
       lg: 40,
       xl: 48,
     },
+    buttonPadding: {
+      xs: '3px 12px',
+      sm: '6px 14px',
+      md: '9px 16px',
+      lg: '12px 18px',
+      xl: '16px 20px',
+    }
   },
   fontFamily: '"Nunito Sans", -apple-system, ".SFNSText-Regular", "San Francisco", BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;',
 };

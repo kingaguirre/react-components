@@ -14,13 +14,13 @@ export const InputContainer = styled.div`
 `;
 export const InputWrapper = styled.div<{
   $type?: string;
-  $size: keyof typeof theme.sizes.inputBoxSize;
+  $size: keyof typeof theme.sizes.boxSize;
 }>`
   position: relative;
   ${({ $type, $size }) => ($type === 'checkbox' || $type === 'radio') ? `
     border-bottom: 1px solid ${theme.colors.default.pale};
     padding: 4px 0;
-    min-height: ${theme.sizes.inputBoxSize[$size]}px;
+    min-height: ${theme.sizes.boxSize[$size]}px;
   ` : ''}
 `;
 
@@ -49,13 +49,13 @@ export const Label = styled.label<{
  */
 const sharedInputStyles = css<{
   color: keyof typeof theme.colors;
-  size: keyof typeof theme.sizes.inputBoxSize;
+  size: keyof typeof theme.sizes.boxSize;
   $variant?: 'outlined';
 }>`
   display: block;
   width: 100%;
   padding: 8px;
-  font-size: ${({ size }) => `${theme.sizes.inputFontSize[size]}px`};
+  font-size: ${({ size }) => `${theme.sizes.fontSize[size]}px`};
   font-family: ${theme.fontFamily};
   border-radius: 2px;
   background-color: white;
@@ -93,7 +93,7 @@ const sharedInputStyles = css<{
       inset -1px 0 0 ${theme.colors[color].light}, 
       inset 0 -1px 0 ${theme.colors[color].light}, 
       inset 1px 0 0 ${theme.colors[color].light},
-      0 0 0 4px ${theme.colors[color].pale}
+      0 0 0 4px ${theme.colors[color].lighter}
     `}
   }
 
@@ -175,16 +175,16 @@ const sharedInputStyles = css<{
 
 export const Input = styled.input<{
   color: keyof typeof theme.colors;
-  size: keyof typeof theme.sizes.inputBoxSize;
+  size: keyof typeof theme.sizes.boxSize;
   $variant?: 'outlined';
 }>`
   ${sharedInputStyles};
-  height: ${({ size }) => `${theme.sizes.inputBoxSize[size]}px`};
+  height: ${({ size }) => `${theme.sizes.boxSize[size]}px`};
 `;
 
 export const TextArea = styled.textarea<{
   color: keyof typeof theme.colors;
-  size: keyof typeof theme.sizes.inputBoxSize;
+  size: keyof typeof theme.sizes.boxSize;
   $variant?: 'outlined';
 }>`
   ${sharedInputStyles};
@@ -403,10 +403,10 @@ export const TextContainer = styled.label<{
 `;
 
 export const Text = styled.span<{
-  size: keyof typeof theme.sizes.inputFontSize;
+  size: keyof typeof theme.sizes.fontSize;
   disabled?: boolean;
 }>`
-  font-size: ${({ size }) => `${theme.sizes.inputFontSize[size]}px`};
+  font-size: ${({ size }) => `${theme.sizes.fontSize[size]}px`};
   font-family: ${theme.fontFamily};
   color: ${({ disabled }) => `${theme.colors.default[disabled ? 'base' : 'dark']}`};
   line-height: 1.2;

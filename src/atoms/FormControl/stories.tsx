@@ -49,6 +49,7 @@ export const Default: StoryObj<typeof meta> = {
     required: false,
     variant: undefined,
     text: "",
+    placeholder: "Enter text here..."
   },
   tags: ['!dev'],
 };
@@ -239,7 +240,7 @@ const Radio: StoryObj = {
 const Switch: StoryObj = {
   tags: ['!autodocs'],
   render: () => (
-    <StoryWrapper title="switch">
+    <StoryWrapper title="Switch">
       <Title>Colors</Title>
       {generateColorStories('switch')}
       <Title>Sizes</Title>
