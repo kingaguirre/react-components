@@ -1,3 +1,4 @@
+// src/atoms/FormControl/index.tsx
 import { render, fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
@@ -27,7 +28,7 @@ describe('FormControl Component', () => {
     expect(input).toHaveClass('form-control-text');
 
     // Because the input is required and empty, the effect should mark it invalid.
-    await waitFor(() => expect(input).toHaveClass('is-invalid'));
+    await waitFor(() => expect(input).toHaveClass('invalid'));
   });
 
   test('updates invalid state when text input value changes', async () => {
@@ -39,11 +40,11 @@ describe('FormControl Component', () => {
     );
 
     const input = screen.getByRole('textbox') as HTMLInputElement;
-    await waitFor(() => expect(input).toHaveClass('is-invalid'));
+    await waitFor(() => expect(input).toHaveClass('invalid'));
 
     // Simulate entering a valid value using fireEvent.change works fine for state changes
     fireEvent.change(input, { target: { value: 'hello@example.com' } });
-    await waitFor(() => expect(input).not.toHaveClass('is-invalid'));
+    await waitFor(() => expect(input).not.toHaveClass('invalid'));
   });
 
   test('calls onChange callback when text input changes', async () => {
@@ -75,7 +76,7 @@ describe('FormControl Component', () => {
     expect(textarea).toBeInTheDocument();
     expect(textarea.tagName).toBe('TEXTAREA');
 
-    await waitFor(() => expect(textarea).toHaveClass('is-invalid'));
+    await waitFor(() => expect(textarea).toHaveClass('invalid'));
   });
 
   test('renders a custom checkbox control and validates required state', () => {
@@ -91,7 +92,7 @@ describe('FormControl Component', () => {
 
     const checkbox = screen.getByRole('checkbox') as HTMLInputElement;
     expect(checkbox).toBeInTheDocument();
-    expect(checkbox).toHaveClass('is-invalid');
+    expect(checkbox).toHaveClass('invalid');
 
     // For checkboxes, use click to simulate the change.
     fireEvent.click(checkbox);
@@ -112,7 +113,7 @@ describe('FormControl Component', () => {
     const switchControl = screen.getByRole('checkbox') as HTMLInputElement;
     expect(switchControl).toBeInTheDocument();
     expect(switchControl).toHaveClass('form-control-switch');
-    expect(switchControl).toHaveClass('is-invalid');
+    expect(switchControl).toHaveClass('invalid');
 
     // Use click for switch controls as well.
     fireEvent.click(switchControl);

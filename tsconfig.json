@@ -17,7 +17,10 @@
       "@components/*": ["src/components/*"],
       "@atoms/*": ["src/atoms/*"],
       "@molecules/*": ["src/molecules/*"],
-      "@organisms/*": ["src/organisms/*"]
+      "@organisms/*": ["src/organisms/*"],
+      "@utils/*": ["src/utils/*"],
+      "@common/*": ["src/common/*"],
+      "@styles/*": ["src/styles/*"]
     },
 
     "rootDir": "src",        // Ensure source files stay inside "src/"

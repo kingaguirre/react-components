@@ -28,10 +28,10 @@ export default meta;
 
 // Combined Story
 /* eslint-disable @typescript-eslint/no-explicit-any */
-export const Defaults: any = {
+export const Examples: any = {
   tags: ['!autodocs'],
   render: () => (
-    <StoryWrapper title="Grid">
+    <StoryWrapper title="Grid Examples">
       <Title>Basic Example</Title>
       <Wrapper>
         <Grid spacing={16}>

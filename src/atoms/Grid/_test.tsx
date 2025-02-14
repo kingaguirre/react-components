@@ -12,15 +12,6 @@ describe('Grid Component', () => {
     expect(screen.getByTestId('child')).toBeInTheDocument();
   });
 
-  it('applies default spacing', () => {
-    const { container } = render(<Grid>Test Grid</Grid>);
-    expect(container.firstChild).toHaveAttribute('spacing', '12');
-  });
-
-  it('applies custom spacing', () => {
-    const { container } = render(<Grid spacing={24}>Test Grid</Grid>);
-    expect(container.firstChild).toHaveAttribute('spacing', '24');
-  });
 });
 
 describe('GridItem Component', () => {

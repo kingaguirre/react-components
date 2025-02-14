@@ -1,3 +1,4 @@
+// src/atoms/Button/stories.tsx
 import type { Meta, StoryObj } from "@storybook/react";
 import { Button } from "./index";
 import { StoryWrapper, Title } from "@components/StoryWrapper";
@@ -40,9 +41,9 @@ export const Default: StoryObj<typeof meta> = {
   tags: ["!dev"],
 };
 
-const COLORS = ["primary", "success", "warning", "danger", "info", "default"];
-const VARIANTS = ["default", "outlined", "link"];
-const SIZES = ["xs", "sm", "md", "lg", "xl"];
+const COLORS = ["primary", "success", "warning", "danger", "info", "default"] as const;
+const VARIANTS = ["default", "outlined", "link"] as const;
+const SIZES = ["xs", "sm", "md", "lg", "xl"] as const;
 
 const generateColorStories = () => (
   <Grid>
@@ -99,10 +100,10 @@ const generateFullWidthStories = () => (
   </Grid>
 );
 
-export const Defaults = {
+export const Examples = {
   tags: ["!autodocs"],
   render: () => (
-    <StoryWrapper title="Button">
+    <StoryWrapper title="Button Examples">
       <Title>Colors</Title>
       {generateColorStories()}
       <Title>Variants</Title>

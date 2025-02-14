@@ -1,21 +1,26 @@
 // src/atoms/Button/interface.ts
+import { ColorType, SizeType } from '@common/interfaces';
+
 export interface ButtonProps {
   /** Button label or children */
   children: React.ReactNode;
   /** Button color theme */
-  color?: "primary" | "success" | "warning" | "danger" | "info" | "default";
+  color?: ColorType;
   /** Variant style */
   variant?: "default" | "outlined" | "link";
   /** Button size */
-  size?: "xs" | "sm" | "md" | "lg" | "xl";
+  size?: SizeType;
   /** Whether the button has rounded edges */
   rounded?: boolean;
   /** Whether the button is disabled */
   disabled?: boolean;
+  /** Whether the button is active state */
+  active?: boolean;
   /** Whether the button is full width */
   fullWidth?: boolean;
   /** Additional class names */
   className?: string;
-  /** Additional attributes */
+  /** Any additional attributes */
+  /* eslint-disable @typescript-eslint/no-explicit-any */
   [key: string]: any;
 }

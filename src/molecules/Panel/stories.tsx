@@ -29,7 +29,7 @@ export const Default: StoryObj<typeof meta> = {
   tags: ["!dev"],
 };
 
-const COLORS = ["primary", "success", "warning", "danger", "info", "default"];
+const COLORS = ["primary", "success", "warning", "danger", "info", "default"] as const;
 
 const generateColorStories = () => (
   <Grid>
@@ -50,6 +50,7 @@ const generateIconStories = () => (
         title="Panel with Left Icon"
         color="primary"
         leftIcon={{
+          color: 'grey',
           icon: "home",
           onClick: () => alert("Left icon clicked"),
         }}
@@ -62,8 +63,8 @@ const generateIconStories = () => (
         title="Panel with Right Icons"
         color="info"
         rightIcons={[
-          { icon: "folder", onClick: () => alert("Folder clicked") },
-          { icon: "folder-plus", onClick: () => alert("Add Folder clicked") },
+          { icon: "folder", onClick: () => alert("Folder clicked"), color: 'grey', hoverColor: 'red' },
+          { icon: "folder_special", onClick: () => alert("Add Folder clicked"), text: 'New Folder' },
         ]}
       >
         <p>This panel has right icons.</p>
@@ -100,10 +101,10 @@ const generateFormPropsStories = () => (
   </Grid>
 );
 
-export const Defaults = {
+export const Examples = {
   tags: ["!autodocs"],
   render: () => (
-    <StoryWrapper title="Panel">
+    <StoryWrapper title="Panel Examples">
       <Title>Colors</Title>
       {generateColorStories()}
       <Title>Icons</Title>
