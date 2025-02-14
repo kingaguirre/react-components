@@ -1,17 +1,21 @@
 // src/molecules/Dropdown/styled.tsx
-import styled from "styled-components";
-import { theme } from "../../styles/theme";
-import { scrollStyle } from "../../styles/GlobalStyles";
+import styled from "styled-components"
+import { theme } from "../../styles/theme"
+import { scrollStyle } from "../../styles/GlobalStyles"
 
 export const DropdownContainer = styled.div`
   position: relative;
   width: 100%;
 `;
 
-export const DropdownList = styled.ul<{ $size: keyof typeof theme.sizes.boxSize; $position: string }>`
+export const DropdownList = styled.ul<{
+  $size: keyof typeof theme.sizes.boxSize
+  $position: string
+  $dropdownHeight?: number
+}>`
   background-color: white;
   position: fixed;
-  max-height: ${({ $size }) => theme.sizes.boxSize[$size] * 5}px;
+  max-height: ${({ $size, $dropdownHeight }) => $dropdownHeight ?? theme.sizes.boxSize[$size] * 5}px;
   overflow-y: auto;
   box-shadow: 0 ${({ $position }) => $position === 'bottom' ? 2 : -1}px 4px rgba(173, 173, 173, 0.5);
   z-index: 1000;
@@ -24,14 +28,14 @@ export const DropdownList = styled.ul<{ $size: keyof typeof theme.sizes.boxSize;
 `;
 
 export const DropdownItem = styled.li<{
-  disabled?: boolean;
-  $size: keyof typeof theme.sizes.boxSize;
+  disabled?: boolean
+  $size: keyof typeof theme.sizes.boxSize
 }>`
   display: flex;
   align-items: flex-start;
   justify-content: flex-start;
   line-height: 1.2;
-  padding: 6px 8px;
+  padding: ${({ $size }) => $size === 'sm' ? 4 : 6}px 8px;
   cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
   color: ${({ disabled }) => (disabled ? theme.colors.default.light : theme.colors.default.dark)};
   background-color: ${({ disabled }) => (disabled ? theme.colors.default.pale : 'white')};

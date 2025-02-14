@@ -22,4 +22,7 @@ export interface DropdownProps {
   required?: boolean;
   color?: string;
   helpText?: string;
+  clearable?: boolean
+  dropdownHeight?: number;
+  dropdownWidth?: number;
 }

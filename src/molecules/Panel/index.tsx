@@ -1,6 +1,6 @@
 // src/components/Panel/index.tsx
 import React from "react";
-import { PanelContainer, PanelHeader, PanelContent, IconWrapper } from "./styled";
+import { PanelContainer, PanelHeader, PanelContent, IconWrapper, Text } from "./styled";
 import { PanelProps } from "./interface";
 import Icon from "@atoms/Icon";
 
@@ -28,8 +28,8 @@ export const Panel: React.FC<PanelProps> = ({
             <IconWrapper
               className="left-header-icon"
               onClick={!disabled && leftIcon.onClick ? leftIcon.onClick : undefined}
-              $color="white"
               $clickable={!disabled && !!leftIcon.onClick}
+              title={leftIcon.title}
             >
               <Icon icon={leftIcon.icon} />
             </IconWrapper>
@@ -41,9 +41,9 @@ export const Panel: React.FC<PanelProps> = ({
                 <IconWrapper
                   key={`key-${icon.icon}-${icon.color}`}
                   onClick={!disabled && icon.onClick ? icon.onClick : undefined}
-                  $color="white"
                   $clickable={!disabled && !!icon.onClick}
                 >
+                  {icon.text && <Text>{icon.text}</Text>}
                   <Icon icon={icon.icon} />
                 </IconWrapper>
               ))}

@@ -4,7 +4,7 @@ import styled from 'styled-components';
 const Wrapper = styled.div`
   max-width: 1000px;
   margin: 3rem auto;
-  .form-control-input-container + .button,
+
   .button + .alert,
   .alert + .alert {
     margin-top: 12px;
@@ -36,6 +36,7 @@ const Container = styled.div`
   box-shadow: rgba(0, 0, 0, 0.10) 0 1px 3px 0;
   border: 1px solid hsla(203, 50%, 30%, 0.15);
 
+  > .form-control-input-container + .button,
   > .button {
     margin-bottom: 12px;
   }

@@ -48,6 +48,7 @@ export const theme = {
       dark: '#6d6e71',
       darker: '#202020',
     },
+    lightA: "#f2f2f2"
   },
   sizes: {
     label: {
@@ -80,6 +81,7 @@ export const theme = {
     }
   },
   fontFamily: '"Nunito Sans", -apple-system, ".SFNSText-Regular", "San Francisco", BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif',
+  transition: 'all .3s ease',
 };
 
 export default theme;

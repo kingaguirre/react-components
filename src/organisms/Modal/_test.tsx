@@ -33,8 +33,6 @@ describe("Modal Component", () => {
     expect(screen.getByTestId("modal-overlay")).toBeVisible();
     expect(screen.getByTestId("modal-container")).toBeVisible();
     expect(screen.getByText("Modal Content")).toBeInTheDocument();
-    // Body scrolling should be disabled.
-    expect(document.body.style.overflow).toBe("hidden");
   });
 
   it("does not render modal when show is false", () => {

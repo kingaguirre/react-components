@@ -50,6 +50,7 @@ const generateIconStories = () => (
         title="Panel with Left Icon"
         color="primary"
         leftIcon={{
+          color: 'grey',
           icon: "home",
           onClick: () => alert("Left icon clicked"),
         }}
@@ -62,8 +63,8 @@ const generateIconStories = () => (
         title="Panel with Right Icons"
         color="info"
         rightIcons={[
-          { icon: "folder", onClick: () => alert("Folder clicked") },
-          { icon: "folder_special", onClick: () => alert("Add Folder clicked") },
+          { icon: "folder", onClick: () => alert("Folder clicked"), color: 'grey', hoverColor: 'red' },
+          { icon: "folder_special", onClick: () => alert("Add Folder clicked"), text: 'New Folder' },
         ]}
       >
         <p>This panel has right icons.</p>
