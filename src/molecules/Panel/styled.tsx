@@ -12,6 +12,7 @@ export const PanelContainer = styled.div<{
   opacity: ${({ $disabled }) => ($disabled ? 0.6 : 1)};
   pointer-events: ${({ $disabled }) => ($disabled ? "none" : "auto")};
   overflow: hidden;
+  font-family: ${theme.fontFamily};
 `;
 
 export const PanelHeader = styled.div<{
@@ -67,7 +68,7 @@ export const IconWrapper = styled.div<{
   justify-content: center;
   color: ${({ $color }) => ($color ? $color : "inherit")};
   transition: all .3s ease;
-  font-size: 14px;
+  font-size: 16px;
 
   ${({ $clickable }) => ($clickable ? `
     cursor: pointer;

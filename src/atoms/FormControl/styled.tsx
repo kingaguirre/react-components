@@ -1,8 +1,9 @@
+// src/atoms/FormControl/styled.tsx
 import styled, { css } from 'styled-components';
 import { FormControlProps } from './interface';
 import { theme } from '../../styles/theme';
 
-export const InputContainer = styled.div`
+export const FormControInputContainer = styled.div`
   box-sizing: border-box;
   position: relative;
   display: block;
@@ -12,20 +13,55 @@ export const InputContainer = styled.div`
     box-sizing: border-box;
   }
 `;
-export const InputWrapper = styled.div<{
+
+export const FormControlWrapper = styled.div<{
   $type?: string;
   $size: keyof typeof theme.sizes.boxSize;
+  $iconRight?: any;
+  $simple?: boolean;
 }>`
   position: relative;
-  ${({ $type, $size }) => ($type === 'checkbox' || $type === 'radio') ? `
-    border-bottom: 1px solid ${theme.colors.default.pale};
-    padding: 4px 0;
-    min-height: ${theme.sizes.boxSize[$size]}px;
-  ` : ''}
+
+  ${({ $type, $size, $iconRight, $simple }) => {
+    if (
+      $type === 'checkbox' ||
+      $type === 'radio' ||
+      $type === 'switch' ||
+      $type === 'checkbox-group' ||
+      $type === 'radio-group' ||
+      $type === 'switch-group'
+    ) {
+      return !$simple ? `
+        border-bottom: 1px solid ${theme.colors.default.pale};
+        padding: 4px 0;
+        min-height: ${theme.sizes.boxSize[$size]}px;
+      ` : '';
+    } else {
+      const iconCount = Array.isArray($iconRight) ? $iconRight.length : 0;
+      let paddingRight = '';
+
+      if (iconCount === 1) {
+        paddingRight = `> *:not(.icon-wrapper) { padding-right: 32px!important; }`;
+      } else if (iconCount > 1) {
+        paddingRight = `> *:not(.icon-wrapper) { padding-right: 60px!important; }`;
+      }
+
+      return `
+        &.invalid {
+          .icon-wrapper > .icon-container {
+            color: ${theme.colors.danger.base};
+            &:hover {
+              color: ${theme.colors.danger.light};
+            }
+          }
+        }
+        ${paddingRight}
+      `;
+    }
+  }}
 `;
 
-export const Label = styled.label<{
-  color: FormControlProps['color']; // Reuse the type for color
+export const Label = styled.span<{
   size: FormControlProps['size'];  // Reuse the type for size
 }>`
   display: block;
@@ -48,25 +84,25 @@ export const Label = styled.label<{
  * Shared styles for Input and TextArea
  */
 const sharedInputStyles = css<{
-  color: keyof typeof theme.colors;
-  size: keyof typeof theme.sizes.boxSize;
+  color?: keyof typeof theme.colors;
+  size?: keyof typeof theme.sizes.boxSize;
   $variant?: 'outlined';
 }>`
   display: block;
   width: 100%;
   padding: 8px;
-  font-size: ${({ size }) => `${theme.sizes.fontSize[size]}px`};
+  font-size: ${({ size = 'md' }) => `${theme.sizes.fontSize[size]}px`};
   font-family: ${theme.fontFamily};
   border-radius: 2px;
   background-color: white;
   border: none;
   transition: all 0.3s ease;
   color: ${theme.colors.default.darker};
+  text-overflow: ellipsis;
   box-sizing: border-box;
-  * {
-    box-sizing: border-box;
-  }
-  box-shadow: ${({ $variant: variant, color }) =>
+  * { box-sizing: border-box; }
+
+  box-shadow: ${({ $variant: variant, color = 'primary' }) =>
     variant === 'outlined'
       ? `inset 0 1px 0 ${theme.colors[color].base}, 
         inset -1px 0 0 ${theme.colors[color].base}, 
@@ -78,7 +114,7 @@ const sharedInputStyles = css<{
          inset 1px 0 0 ${theme.colors[color].pale}`};
 
   &:hover:not(:disabled) {
-    box-shadow: ${({ color }) => `
+    box-shadow: ${({ color = 'primary' }) => `
       inset 0 1px 0 ${theme.colors[color].light}, 
       inset -1px 0 0 ${theme.colors[color].light}, 
       inset 0 -1px 0 ${theme.colors[color].light}, 
@@ -88,7 +124,7 @@ const sharedInputStyles = css<{
 
   &:focus:not(:disabled) {
     outline: none;
-    box-shadow: ${({ color }) => `
+    box-shadow: ${({ color = 'primary' }) => `
       inset 0 1px 0 ${theme.colors[color].light}, 
       inset -1px 0 0 ${theme.colors[color].light}, 
       inset 0 -1px 0 ${theme.colors[color].light}, 
@@ -97,11 +133,16 @@ const sharedInputStyles = css<{
     `}
   }
 
+  &:read-only {
+    background-color: transparent;
+    color: ${theme.colors.default.darker};
+  }
+
   &:disabled {
     background-color: ${theme.colors.default.lighter};
     cursor: not-allowed;
     color: ${theme.colors.default.darker};
-    box-shadow: ${({ $variant: variant, color }) =>
+    box-shadow: ${({ $variant: variant, color = 'primary' }) =>
     variant === 'outlined'
       ? `inset 0 1px 0 ${theme.colors[color].lighter}, 
         inset -1px 0 0 ${theme.colors[color].lighter}, 
@@ -113,12 +154,7 @@ const sharedInputStyles = css<{
          inset 1px 0 0 ${theme.colors[color].pale}`};
   }
 
-  &:read-only {
-    background-color: ${theme.colors.default.lighter};
-    color: ${theme.colors.default.darker};
-  }
-
-  &.is-invalid,
+  &.invalid,
   &:invalid {
     box-shadow: ${({ $variant: variant }) =>
     variant === 'outlined'
@@ -132,40 +168,40 @@ const sharedInputStyles = css<{
          inset 1px 0 0 ${theme.colors.danger.pale}`};
 
     &:hover:not(:disabled) {
-    box-shadow: ${`
-      inset 0 1px 0 ${theme.colors.danger.light}, 
-      inset -1px 0 0 ${theme.colors.danger.light}, 
-      inset 0 -1px 0 ${theme.colors.danger.light}, 
-      inset 1px 0 0 ${theme.colors.danger.light}
-    `}
-  }
+      box-shadow: ${`
+        inset 0 1px 0 ${theme.colors.danger.light}, 
+        inset -1px 0 0 ${theme.colors.danger.light}, 
+        inset 0 -1px 0 ${theme.colors.danger.light}, 
+        inset 1px 0 0 ${theme.colors.danger.light}
+      `};
+    }
 
-  &:focus:not(:disabled) {
-    outline: none;
-    box-shadow: ${`
-      inset 0 1px 0 ${theme.colors.danger.light}, 
-      inset -1px 0 0 ${theme.colors.danger.light}, 
-      inset 0 -1px 0 ${theme.colors.danger.light}, 
-      inset 1px 0 0 ${theme.colors.danger.light},
-      0 0 0 4px ${theme.colors.danger.pale}
-    `}
-  }
+    &:focus:not(:disabled) {
+      outline: none;
+      box-shadow: ${`
+        inset 0 1px 0 ${theme.colors.danger.light}, 
+        inset -1px 0 0 ${theme.colors.danger.light}, 
+        inset 0 -1px 0 ${theme.colors.danger.light}, 
+        inset 1px 0 0 ${theme.colors.danger.light},
+        0 0 0 4px ${theme.colors.danger.pale}
+      `};
+    }
 
-  &:disabled {
-    background-color: ${theme.colors.default.lighter};
-    cursor: not-allowed;
-    color: ${theme.colors.default.darker};
-    box-shadow: ${({ $variant: variant }) =>
-    variant === 'outlined'
-      ? `inset 0 1px 0 ${theme.colors.danger.lighter}, 
-        inset -1px 0 0 ${theme.colors.danger.lighter}, 
-        inset 0 -1px 0 ${theme.colors.danger.lighter}, 
-        inset 1px 0 0 ${theme.colors.danger.lighter}`
-      : `inset 0 1px 0 ${theme.colors.danger.pale}, 
-          inset -1px 0 0 ${theme.colors.danger.pale}, 
-          inset 0 -1px 0 ${theme.colors.danger.light}, 
-          inset 1px 0 0 ${theme.colors.danger.pale}`};
-  }
+    &:disabled {
+      background-color: ${theme.colors.default.lighter};
+      cursor: not-allowed;
+      color: ${theme.colors.default.darker};
+      box-shadow: ${({ $variant: variant }) =>
+      variant === 'outlined'
+        ? `inset 0 1px 0 ${theme.colors.danger.lighter}, 
+          inset -1px 0 0 ${theme.colors.danger.lighter}, 
+          inset 0 -1px 0 ${theme.colors.danger.lighter}, 
+          inset 1px 0 0 ${theme.colors.danger.lighter}`
+        : `inset 0 1px 0 ${theme.colors.danger.pale}, 
+            inset -1px 0 0 ${theme.colors.danger.pale}, 
+            inset 0 -1px 0 ${theme.colors.danger.light}, 
+            inset 1px 0 0 ${theme.colors.danger.pale}`};
+    }
   }
 
   &:placeholder {
@@ -174,17 +210,17 @@ const sharedInputStyles = css<{
 `;
 
 export const Input = styled.input<{
-  color: keyof typeof theme.colors;
-  size: keyof typeof theme.sizes.boxSize;
+  color?: keyof typeof theme.colors;
+  size?: keyof typeof theme.sizes.boxSize;
   $variant?: 'outlined';
 }>`
   ${sharedInputStyles};
-  height: ${({ size }) => `${theme.sizes.boxSize[size]}px`};
+  height: ${({ size = 'md' }) => `${theme.sizes.boxSize[size]}px`};
 `;
 
 export const TextArea = styled.textarea<{
-  color: keyof typeof theme.colors;
-  size: keyof typeof theme.sizes.boxSize;
+  color?: keyof typeof theme.colors;
+  size?: keyof typeof theme.sizes.boxSize;
   $variant?: 'outlined';
 }>`
   ${sharedInputStyles};
@@ -193,14 +229,14 @@ export const TextArea = styled.textarea<{
 `;
 
 export const CustomCheckboxRadio = styled.input<{
-  color: keyof typeof theme.colors;
-  size: FormControlProps['size'];
+  color?: keyof typeof theme.colors;
+  size?: keyof typeof theme.sizes.boxSize;
 }>`
   appearance: none;
   min-width: ${({ size }) => (size === 'xs' || size === 'sm' ? 12 : 16)}px;
   min-height: ${({ size }) => (size === 'xs' || size === 'sm' ? 12 : 16)}px;
   background-color: white;
-  border: 1px solid ${({ color }) => theme.colors[color].light};
+  border: 1px solid ${({ color = 'primary' }) => theme.colors[color].light};
   border-radius: ${({ type }) => (type === 'radio' ? '50%' : '0')};
   cursor: pointer;
   position: relative;
@@ -215,34 +251,48 @@ export const CustomCheckboxRadio = styled.input<{
     pointer-events: none;
     position: relative;
     transform: scale(0) rotate(45deg);
-    ${({ type, color }) => (type === 'radio' ? `
-      width: 8px;
-      height: 8px;
+    ${({ type, color = 'primary', size }) => (type === 'radio' ? `
+      ${(size === 'xs' || size === 'sm') ? `
+        width: 6px;
+        height: 6px;
+        top: 2px;
+        left: 2px;
+      ` : `
+        width: 8px;
+        height: 8px;
+        top: 3px;
+        left: 3px;
+      `}
       border: none;
-      top: 3px;
-      left: 3px;
       border-radius: 50%;
       background-color: ${theme.colors[color].base};
     ` : `
-      width: 6px;
-      height: 12px;
+      ${(size === 'xs' || size === 'sm') ? `
+        width: 4px;
+        height: 8px;
+        top: 0;
+        left: 3px;
+      ` : `
+        width: 6px;
+        height: 12px;
+        top: -1px;
+        left: 4px;
+      `}
       border: solid white;
       border-width: 0 2px 2px 0;
       position: absolute;
-      top: -1px;
-      left: 4px;
     `)};
   }
 
   &:focus:not(:disabled) {
     outline: none;
-    box-shadow: ${({ color }) => `0 0 0 4px ${theme.colors[color].pale}, 0 0 1px 5px ${theme.colors[color].lighter}`};
+    box-shadow: ${({ color = 'primary' }) => `0 0 0 4px ${theme.colors[color].pale}, 0 0 1px 5px ${theme.colors[color].lighter}`};
   }
 
   &:hover:not(:checked):not(:disabled) {
     &:before {
       opacity: 0.4;
-      border-color: ${({ color }) => theme.colors[color].base};
+      border-color: ${({ color = 'primary' }) => theme.colors[color].base};
       transform: scale(1) rotate(45deg);
     }
   }
@@ -250,16 +300,16 @@ export const CustomCheckboxRadio = styled.input<{
   &:disabled:checked,
   &:disabled {
     cursor: not-allowed;
-    border-color: ${({ color }) => theme.colors[color].lighter};
+    border-color: ${({ color = 'primary' }) => theme.colors[color].lighter};
     background-color: ${theme.colors.default.lighter};
     &:before {
-      border-color: ${({ color }) => theme.colors[color].light};
+      border-color: ${({ color = 'primary' }) => theme.colors[color].light};
     }
   }
 
   &:checked {
-    border-color: ${({ color }) => theme.colors[color].base};
-    ${({ type, color }) => (type === 'radio' ? `` : `
+    border-color: ${({ color = 'primary' }) => theme.colors[color].base};
+    ${({ type, color = 'primary' }) => (type === 'radio' ? `` : `
       background-color: ${theme.colors[color].base};
     `)};
 
@@ -268,7 +318,7 @@ export const CustomCheckboxRadio = styled.input<{
     }
   }
 
-  &.is-invalid,
+  &.invalid,
   &:invalid {
     border-color: ${theme.colors.danger.base};
     &:hover:not(:checked):not(:disabled) {
@@ -280,6 +330,11 @@ export const CustomCheckboxRadio = styled.input<{
           background-color: ${theme.colors.danger.base};
         ` : ``)};
       }
+    }
+
+    &:focus:not(:disabled) {
+      outline: none;
+      box-shadow: ${`0 0 0 4px ${theme.colors.danger.pale}, 0 0 1px 5px ${theme.colors.danger.lighter}`};
     }
 
     &:disabled {
@@ -297,8 +352,8 @@ export const Switch = styled(CustomCheckboxRadio)`
   min-width: ${({ size }) => (size === 'xs' || size === 'sm' ? 24 : 32)}px;
   min-height: ${({ size }) => (size === 'xs' || size === 'sm' ? 12 : 16)}px;
   border-radius: 16px;
-  background-color: ${({ color }) => theme.colors[color].pale};
-  border-color: ${({ color }) => theme.colors[color].pale};
+  background-color: ${({ color = 'primary' }) => theme.colors[color].pale};
+  border-color: ${({ color = 'primary' }) => theme.colors[color].pale};
   position: relative;
 
   &:before {
@@ -306,7 +361,7 @@ export const Switch = styled(CustomCheckboxRadio)`
     min-width: ${({ size }) => (size === 'xs' || size === 'sm' ? 12 : 16)}px;
     min-height: ${({ size }) => (size === 'xs' || size === 'sm' ? 12 : 16)}px;
     border-radius: 50%;
-    border: 1px solid ${({ color }) => theme.colors[color].light};
+    border: 1px solid ${({ color = 'primary' }) => theme.colors[color].light};
     background: white;
     position: absolute;
     top: -1px;
@@ -318,41 +373,41 @@ export const Switch = styled(CustomCheckboxRadio)`
   &:hover:not(:disabled) {
     &:before {
       opacity: 1!important;
-      box-shadow: ${({ color }) => `0 0 0 2px ${theme.colors[color].pale}, 0 0 1px 3px ${theme.colors[color].lighter}`};
+      box-shadow: ${({ color = 'primary' }) => `0 0 0 2px ${theme.colors[color].pale}, 0 0 1px 3px ${theme.colors[color].lighter}`};
     }
   }
 
   &:focus:not(:disabled) {
     box-shadow: none;
     &:before {
-      box-shadow: ${({ color }) => `0 0 0 4px ${theme.colors[color].pale}, 0 0 1px 5px ${theme.colors[color].lighter}`};
+      box-shadow: ${({ color = 'primary' }) => `0 0 0 4px ${theme.colors[color].pale}, 0 0 1px 5px ${theme.colors[color].lighter}`};
     }
   }
 
   &:disabled {
     &:before {
-      border: 1px solid ${({ color }) => theme.colors[color].lighter};
+      border: 1px solid ${({ color = 'primary' }) => theme.colors[color].lighter};
     }
     &:checked {
       background-color: ${theme.colors.default.lighter};
       &:before {
         border-color: white;
-        background-color: ${({ color }) => theme.colors[color].light};
+        background-color: ${({ color = 'primary' }) => theme.colors[color].light};
       }
     }
   }
 
   &:checked {
-    background-color: ${({ color }) => theme.colors[color].pale};
-    border-color: ${({ color }) => theme.colors[color].pale};
+    background-color: ${({ color = 'primary' }) => theme.colors[color].pale};
+    border-color: ${({ color = 'primary' }) => theme.colors[color].pale};
     &:before {
       transform: translateX(100%);
-      background-color: ${({ color }) => theme.colors[color].base};
+      background-color: ${({ color = 'primary' }) => theme.colors[color].base};
       border-color: white;
     }
   }
 
-  &.is-invalid,
+  &.invalid,
   &:invalid {
     background-color: ${theme.colors.danger.pale};
     border-color: ${theme.colors.danger.pale};
@@ -369,6 +424,7 @@ export const Switch = styled(CustomCheckboxRadio)`
     }
 
     &:focus:not(:disabled) {
+      box-shadow: none;
       &:before {
         box-shadow: ${`0 0 0 4px ${theme.colors.danger.pale}, 0 0 1px 5px ${theme.colors.danger.lighter}`};
       }
@@ -387,7 +443,23 @@ export const Switch = styled(CustomCheckboxRadio)`
       }
     }
   }
+`;
 
+export const RadioButtonContainer = styled.label<{
+  disabled?: boolean;
+}>`
+  display: block;
+  flex: 1;
+  cursor: ${({ disabled }) => (disabled ? 'not-allowed' : 'pointer')};
+  .button {
+    pointer-events: none;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+`;
+
+export const RadioButton = styled(CustomCheckboxRadio)`
+  display: none;
 `;
 
 export const TextContainer = styled.label<{
@@ -403,10 +475,10 @@ export const TextContainer = styled.label<{
 `;
 
 export const Text = styled.span<{
-  size: keyof typeof theme.sizes.fontSize;
+  size?: FormControlProps["size"];
   disabled?: boolean;
 }>`
-  font-size: ${({ size }) => `${theme.sizes.fontSize[size]}px`};
+  font-size: ${({ size = 'md' }) => `${theme.sizes.fontSize[size]}px`};
   font-family: ${theme.fontFamily};
   color: ${({ disabled }) => `${theme.colors.default[disabled ? 'base' : 'dark']}`};
   line-height: 1.2;
@@ -418,4 +490,77 @@ export const HelpText = styled.span<{ color: keyof typeof theme.colors }>`
   padding: 4px 0;
   font-size: 12px;
   color: ${({ color }) => theme.colors[color].base};
+`;
+
+export const GroupControlContainer = styled.div<{
+  $isVerticalOptions?: boolean;
+  $gap?: number;
+}>`
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: ${({ $gap = 12 }) => $gap}px;
+  ${({ $isVerticalOptions }) => $isVerticalOptions ? 'flex-direction: column;' : ''}
+`;
+
+export const IconWrapper = styled.div<{
+  $size: keyof typeof theme.sizes.boxSize;
+  $color: keyof typeof theme.colors;
+  $disabled?: boolean;
+}>`
+  display: flex;
+  align-items: center;
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: ${({ $size }) => theme.sizes.boxSize[$size]}px;
+  padding: 6px; 0;
+  ${({ $disabled }) => $disabled ? `
+    pointer-events: none;
+    * {
+      pointer-events: none;
+    }
+  ` : ''}
+`;
+
+export const IconContainer = styled.span<{
+  $size: keyof typeof theme.sizes.boxSize;
+  $color: keyof typeof theme.colors;
+  $hoverColor: keyof typeof theme.colors;
+  $disabled?: boolean;
+}>`
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: ${({ $color }) => theme.colors[$color].base};
+  cursor: pointer;
+  height: ${({ $size }) => theme.sizes.boxSize[$size] - 16}px;
+  width: ${({ $size }) => theme.sizes.boxSize[$size] - 6}px;
+
+  &:last-child {
+    border-left: 1px solid ${({ $color }) => theme.colors[$color].lighter};
+  }
+
+  &:hover {
+    color: ${({ $hoverColor }) => theme.colors[$hoverColor].light};
+  }
+
+  ${({ $disabled }) => $disabled ? `
+    pointer-events: none;
+    cursor: not-allowed;
+    color: ${theme.colors.default.base};
+    * {
+      pointer-events: none;
+    }
+  ` : ''}
+`;
+
+export const NoOptionsContainer = styled.div`
+  font-size: 12px;
+  width: 100%;
+  color: ${theme.colors.default.base};
+  font-style: italic;
+  pointer-events: none;
 `;

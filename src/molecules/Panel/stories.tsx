@@ -33,7 +33,7 @@ const COLORS = ["primary", "success", "warning", "danger", "info", "default"];
 
 const generateColorStories = () => (
   <Grid>
-    {COLORS.map((color) => (
+    {COLORS.map((color: any) => (
       <GridItem xs={12} sm={6} md={4} key={color}>
         <Panel title={`${color.charAt(0).toUpperCase() + color.slice(1)} Panel`} color={color}>
           <p>This is a {color} panel content.</p>
@@ -63,7 +63,7 @@ const generateIconStories = () => (
         color="info"
         rightIcons={[
           { icon: "folder", onClick: () => alert("Folder clicked") },
-          { icon: "folder-plus", onClick: () => alert("Add Folder clicked") },
+          { icon: "folder_special", onClick: () => alert("Add Folder clicked") },
         ]}
       >
         <p>This panel has right icons.</p>
@@ -100,10 +100,10 @@ const generateFormPropsStories = () => (
   </Grid>
 );
 
-export const Defaults = {
+export const Examples = {
   tags: ["!autodocs"],
   render: () => (
-    <StoryWrapper title="Panel">
+    <StoryWrapper title="Panel Examples">
       <Title>Colors</Title>
       {generateColorStories()}
       <Title>Icons</Title>

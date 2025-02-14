@@ -1,0 +1,182 @@
+import React, { useState, useRef, useEffect } from "react";
+import { 
+  TabsContainer, TabItem, NavButton, TabWrapper, ScrollButton, 
+  TabContentWrapper, TabContent 
+} from "./styled";
+import { TabsProps } from "./interface";
+import Icon from "@atoms/Icon";
+import Badge from "@atoms/Badge";
+
+export const Tabs: React.FC<TabsProps> = ({
+  tabs,
+  onTabChange,
+  activeTab,
+  firstLastNavControl = false,
+  fullHeader = false,
+}) => {
+  const [selectedTab, setSelectedTab] = useState<number>(
+    activeTab !== undefined ? activeTab : tabs.findIndex((tab) => !tab.disabled)
+  );
+  const [focusedTab, setFocusedTab] = useState<number>(selectedTab);
+  const [isScrollable, setIsScrollable] = useState(false);
+  const tabListRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (activeTab !== undefined) {
+      setSelectedTab(activeTab);
+      setFocusedTab(activeTab);
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    const checkScrollable = () => {
+      if (tabListRef.current) {
+        setIsScrollable(tabListRef.current.scrollWidth > tabListRef.current.clientWidth);
+      }
+    };
+
+    checkScrollable();
+    window.addEventListener("resize", checkScrollable);
+    return () => window.removeEventListener("resize", checkScrollable);
+  }, [tabs]);
+
+  const handleTabChange = (index: number) => {
+    if (!tabs[index].disabled && selectedTab !== index) {
+      setSelectedTab(index);
+      setFocusedTab(index);
+      onTabChange?.(index);
+      ensureTabVisible(index);
+    }
+  };
+
+  const ensureTabVisible = (index: number) => {
+    if (tabListRef.current) {
+      const tabElement = tabListRef.current.children[index] as HTMLElement;
+      if (tabElement && typeof tabElement.scrollIntoView === "function") {
+        tabElement.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+      }
+    }
+  };
+
+  const moveFocus = (direction: "left" | "right") => {
+    let newFocus = focusedTab;
+    if (direction === "left") {
+      do {
+        newFocus--;
+      } while (newFocus >= 0 && tabs[newFocus].disabled);
+    } else {
+      do {
+        newFocus++;
+      } while (newFocus < tabs.length && tabs[newFocus].disabled);
+    }
+
+    if (newFocus >= 0 && newFocus < tabs.length) {
+      setFocusedTab(newFocus);
+      ensureTabVisible(newFocus);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    const isInputField = ["INPUT", "TEXTAREA", "SELECT", "BUTTON"].includes(
+      (e.target as HTMLElement).tagName
+    );
+
+    if (isInputField) return;
+
+    if (e.key === "ArrowLeft") {
+      moveFocus("left");
+    } else if (e.key === "ArrowRight") {
+      moveFocus("right");
+    } else if (e.key === "Enter") {
+      handleTabChange(focusedTab);
+      wrapperRef.current?.focus();
+    }
+  };
+
+  return (
+    <div ref={wrapperRef} onKeyDown={handleKeyDown} tabIndex={0} style={{ outline: "none" }}>
+      <TabWrapper className="tab-wrapper" role="tablist">
+        {firstLastNavControl && (
+          <NavButton
+            className="nav-button-first"
+            onClick={() => {
+              handleTabChange(0);
+              wrapperRef.current?.focus();
+            }}
+          >
+            <Icon icon="arrow_back"/>
+          </NavButton>
+        )}
+        {isScrollable && (
+          <ScrollButton
+            className="scroll-button-left"
+            onClick={() => {
+              moveFocus("left");
+              wrapperRef.current?.focus();
+            }}
+            $position={firstLastNavControl ? "left-adjusted" : "left"}
+          >
+            <Icon icon="keyboard_arrow_left"/>
+          </ScrollButton>
+        )}
+        <TabsContainer ref={tabListRef} className="tabs-container" $fullHeader={fullHeader}>
+          {tabs.map((tab, index) => (
+            <TabItem
+              key={index}
+              className="tab-item"
+              $active={selectedTab === index}
+              $focused={focusedTab === index}
+              $disabled={tab.disabled as any}
+              $color={tab.color || "primary"}
+              $fullHeader={fullHeader}
+              tabIndex={-1}
+              onFocus={() => !tab.disabled && setFocusedTab(index)}
+              onClick={() => {
+                handleTabChange(index);
+                setFocusedTab(index);
+                wrapperRef.current?.focus();
+              }}
+            >
+              {tab.icon && <Icon icon={tab.icon} color={tab.iconColor} />}
+              <span className="title">{tab.title}</span>
+              {tab.badgeValue !== undefined && (
+                <Badge color={tab.badgeColor || "danger"}>{tab.badgeValue}</Badge>
+              )}
+            </TabItem>
+          ))}
+        </TabsContainer>
+        {isScrollable && (
+          <ScrollButton
+            className="scroll-button-right"
+            onClick={() => {
+              moveFocus("right");
+              wrapperRef.current?.focus();
+            }}
+            $position={firstLastNavControl ? "right-adjusted" : "right"}
+          >
+            <Icon icon="keyboard_arrow_right"/>
+          </ScrollButton>
+        )}
+        {firstLastNavControl && (
+          <NavButton
+            className="nav-button-last"
+            onClick={() => {
+              handleTabChange(tabs.length - 1);
+              wrapperRef.current?.focus();
+            }}
+          >
+            <Icon icon="arrow_forward"/>
+          </NavButton>
+        )}
+      </TabWrapper>
+      <TabContentWrapper $color={tabs[selectedTab]?.color as any}>
+        <TabContent key={selectedTab} className="fade-in">
+          {tabs[selectedTab]?.content}
+        </TabContent>
+      </TabContentWrapper>
+    </div>
+  );
+};
+
+export default Tabs;

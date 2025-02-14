@@ -4,14 +4,23 @@ import styled from 'styled-components';
 const Wrapper = styled.div`
   max-width: 1000px;
   margin: 3rem auto;
+  .form-control-input-container + .button,
+  .button + .alert,
+  .alert + .alert {
+    margin-top: 12px;
+  }
 
   .grid-item {
-    .button + .button,
-    .form-control-input-container + .form-control-input-container {
-      margin-top: 16px;
+    > .button {
+      margin-bottom: 12px;
     }
-    .button {
-      margin-right: 16px;
+  
+    > .button + .button,
+    > .form-control-input-container + .form-control-input-container {
+      margin-top: 12px;
+    }
+    > .button {
+      margin-right: 12px;
     }
   }
 `;
@@ -26,6 +35,11 @@ const Container = styled.div`
   background: #FFFFFF;
   box-shadow: rgba(0, 0, 0, 0.10) 0 1px 3px 0;
   border: 1px solid hsla(203, 50%, 30%, 0.15);
+
+  > .button {
+    margin-bottom: 12px;
+  }
+
 `;
 
 const StoryTitle = styled.div`
@@ -57,6 +71,7 @@ export const StoryWrapper: React.FC<StoryWrapperProps> = ({ title, children }) =
 
 
 const TitleContainer = styled(StoryTitle)`
+  position: relative;
   padding-bottom: 4px;
   border-bottom: 1px solid hsla(203, 50%, 30%, 0.15);
   font-size: 13px;

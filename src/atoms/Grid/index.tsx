@@ -2,8 +2,8 @@ import React from 'react';
 import { StyledGrid, StyledGridItem } from './styled';
 import { GridProps, GridItemProps } from './interface';
 
-export const Grid: React.FC<GridProps> = ({ children, spacing = 16 }) => {
-  return <StyledGrid className="grid" spacing={spacing}>{children}</StyledGrid>;
+export const Grid: React.FC<GridProps> = ({ children, spacing = 16, style }) => {
+  return <StyledGrid className="grid" spacing={spacing} style={style}>{children}</StyledGrid>;
 };
 
 export const GridItem: React.FC<GridItemProps> = ({

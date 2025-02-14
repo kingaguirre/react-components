@@ -22,7 +22,7 @@ export const ButtonContainer = styled.button<{
   width: ${({ $fullWidth }) => ($fullWidth ? "100%" : "auto")};
   cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
   transition: all 0.3s ease;
-  border: none;
+  border: 1px solid ${({ $color }) => theme.colors[$color].base};
   text-align: center;
   box-sizing: border-box;
   line-height: 1;
@@ -40,7 +40,6 @@ export const ButtonContainer = styled.button<{
     $variant === "outlined"
       ? `
         background: transparent;
-        border: 1px solid ${theme.colors[$color].base};
         > span {
           color: ${theme.colors[$color].base};
         }
@@ -54,6 +53,7 @@ export const ButtonContainer = styled.button<{
       : $variant === "link"
       ? `
         background: transparent;
+        border-color: transparent;
         > span {
           color: ${theme.colors[$color].base};
           text-decoration: underline;
@@ -66,6 +66,9 @@ export const ButtonContainer = styled.button<{
       `
       : `
         background: ${theme.colors[$color].base};
+        &.active {
+          background: ${theme.colors[$color].dark};
+        }
         > span {
           color: white;
         }
