@@ -15,7 +15,7 @@ export const Tabs: React.FC<TabsProps> = ({
   fullHeader = false,
 }) => {
   const [selectedTab, setSelectedTab] = useState<number>(
-    activeTab !== undefined ? activeTab : tabs.findIndex((tab) => !tab.disabled)
+    activeTab !== undefined ? activeTab : tabs?.findIndex((tab) => !tab.disabled)
   );
   const [focusedTab, setFocusedTab] = useState<number>(selectedTab);
   const [isScrollable, setIsScrollable] = useState(false);
@@ -40,6 +40,8 @@ export const Tabs: React.FC<TabsProps> = ({
     window.addEventListener("resize", checkScrollable);
     return () => window.removeEventListener("resize", checkScrollable);
   }, [tabs]);
+
+  if (!tabs || tabs.length === 0) return null;
 
   const handleTabChange = (index: number) => {
     if (!tabs[index].disabled && selectedTab !== index) {
@@ -121,7 +123,7 @@ export const Tabs: React.FC<TabsProps> = ({
           </ScrollButton>
         )}
         <TabsContainer ref={tabListRef} className="tabs-container" $fullHeader={fullHeader}>
-          {tabs.map((tab, index) => (
+          {tabs?.map((tab, index) => (
             <TabItem
               key={index}
               className="tab-item"
@@ -170,9 +172,9 @@ export const Tabs: React.FC<TabsProps> = ({
           </NavButton>
         )}
       </TabWrapper>
-      <TabContentWrapper $color={tabs[selectedTab]?.color as any}>
+      <TabContentWrapper $color={tabs?.[selectedTab]?.color as any}>
         <TabContent key={selectedTab} className="fade-in">
-          {tabs[selectedTab]?.content}
+          {tabs?.[selectedTab]?.content}
         </TabContent>
       </TabContentWrapper>
     </div>
