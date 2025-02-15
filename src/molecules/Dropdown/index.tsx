@@ -181,7 +181,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
 
   // Update lastFocusedValueRef whenever focusedIndex is valid.
   useEffect(() => {
-    if (isOpen && focusedIndex >= 0 && focusedIndex < filteredOptions.length) {
+    if (isOpen && focusedIndex >= 0 && focusedIndex < filteredOptions?.length) {
       lastFocusedValueRef.current = filteredOptions[focusedIndex].value;
     }
   }, [focusedIndex, filteredOptions, isOpen]);
@@ -208,14 +208,14 @@ export const Dropdown: React.FC<DropdownProps> = ({
   // set focus to index 0 or revert to the previously focused item if available.
   useEffect(() => {
     if (!isOpen) return;
-    if (filteredOptions.length === 0) {
+    if (filteredOptions?.length === 0) {
       setFocusedIndex(-1);
       return;
     }
     if (
       focusedIndex < 0 ||
-      focusedIndex >= filteredOptions.length ||
-      (filteredOptions[focusedIndex] && filteredOptions[focusedIndex].disabled)
+      focusedIndex >= filteredOptions?.length ||
+      (filteredOptions?.[focusedIndex] && filteredOptions?.[focusedIndex]?.disabled)
     ) {
       setFocusedIndex(0);
       return;
@@ -240,21 +240,21 @@ export const Dropdown: React.FC<DropdownProps> = ({
     direction: "up" | "down",
     optionsArray: DropdownOption[] = filteredOptions
   ): number => {
-    if (optionsArray.length === 0) return -1;
+    if (optionsArray?.length === 0) return -1;
     if (direction === "down") {
       if (currentIndex < 0) {
-        for (let i = 0; i < optionsArray.length; i++) {
+        for (let i = 0; i < optionsArray?.length; i++) {
           if (!optionsArray[i]?.disabled) return i;
         }
         return -1;
       }
-      for (let i = currentIndex + 1; i < optionsArray.length; i++) {
+      for (let i = currentIndex + 1; i < optionsArray?.length; i++) {
         if (!optionsArray[i]?.disabled) return i;
       }
       return currentIndex;
     } else {
       if (currentIndex < 0) {
-        for (let i = optionsArray.length - 1; i >= 0; i--) {
+        for (let i = optionsArray?.length - 1; i >= 0; i--) {
           if (!optionsArray[i]?.disabled) return i;
         }
         return -1;
@@ -403,7 +403,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
     const spaceAbove = rect.top;
     let position =
       spaceBelow < dropdownHeight && spaceAbove > dropdownHeight ? "top" : "bottom";
-    if (filteredOptions.length <= 1) {
+    if (filteredOptions?.length <= 1) {
       position = "bottom";
     }
     setDropdownPosition({
@@ -469,7 +469,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
           />
         </DropdownFilterContainer>
       )}
-      {filteredOptions.length > 0 ? (
+      {filteredOptions?.length > 0 ? (
         filteredOptions.map(({ value, text, disabled }, index) => (
           <DropdownItem
             $size={size}

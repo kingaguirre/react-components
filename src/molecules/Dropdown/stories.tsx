@@ -1,16 +1,9 @@
 import { useState } from "react";
-import { Meta } from "@storybook/react";
+import { Meta, StoryObj } from "@storybook/react";
 import Dropdown from "./index";
 import { StoryWrapper, Title } from "@components/StoryWrapper";
 import { Grid, GridItem } from "@atoms/Grid";
 import { Button } from "@atoms/Button";
-
-const meta: Meta<typeof Dropdown> = {
-  title: "Molecules/Dropdown",
-  component: Dropdown,
-};
-
-export default meta;
 
 const DEFAULT_OPTIONS = [
   { value: "option1", text: "Option 1" },
@@ -25,6 +18,22 @@ const DEFAULT_OPTIONS = [
   { value: "option7", text: "Option 7" },
   { value: "option8", text: "Option 8" },
 ];
+
+const meta: Meta<typeof Dropdown> = {
+  title: "Molecules/Dropdown",
+  component: Dropdown,
+};
+
+export default meta;
+
+/** ✅ Default DatePicker */
+export const Default: StoryObj<typeof meta> = {
+  args: {
+    label: "This is a dropdown",
+    options: DEFAULT_OPTIONS
+  },
+  tags: ["!dev"],
+};
 
 export const Examples = () => {
   // Examples that use constant options.
