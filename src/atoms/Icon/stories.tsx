@@ -3,6 +3,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import styled from "styled-components";
 import { Icon } from "./index";
 import { StoryWrapper, Title } from "@components/StoryWrapper";
+import { ICONS } from './data';
 
 const meta = {
   title: "Atoms/Icon",
@@ -10,7 +11,7 @@ const meta = {
   argTypes: {
     icon: {
       control: "text",
-      description: "IcoMoon class name for the icon",
+      description: "Icon class name for the icon",
     },
     size: {
       control: "text",
@@ -36,57 +37,26 @@ export const Default: StoryObj<typeof meta> = {
   tags: ["!dev"],
 };
 
-// List of available icons
-const ICONS = [
-  "home",
-  "home2",
-  "home3",
-  "office",
-  "newspaper",
-  "pencil",
-  "pencil2",
-  "quill",
-  "pen",
-  "blog",
-  "eyedropper",
-  "droplet",
-  "paint-format",
-  "image",
-  "camera",
-  "headphones",
-  "music",
-  "play",
-  "film",
-  "video-camera",
-  "pacman",
-  "clubs",
-  "spades",
-  "diamonds",
-  "bullhorn",
-  "connection",
-  "file-text",
-  "file-picture",
-  "file-music",
-  "file-video",
-  "folder",
-  "folder-plus",
-  "folder-minus",
-  "folder-download",
-  "folder-upload",
-  "price-tag",
-  "barcode",
-];
+// Styled Components
+const SearchBox = styled.input`
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 16px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 14px;
+  box-sizing: border-box;
+`;
 
-// Styled Components for better structure and maintainability
 const IconGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
   gap: 12px;
 `;
 
-const IconItem = styled.div<{ isCopied: boolean }>`
-  width: 72px;
-  height: 72px;
+const IconItem = styled.div<{ $isCopied: boolean }>`
+  width: 50px;
+  height: 50px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -94,7 +64,7 @@ const IconItem = styled.div<{ isCopied: boolean }>`
   border-radius: 5px;
   transition: all 0.3s ease-in-out;
   color: #444;
-  ${({ isCopied }) => (isCopied ? `
+  ${({ $isCopied }) => ($isCopied ? `
     box-shadow: inset 0 0 0 .1875em #ffbb4d;
     background-color: white;
   ` : `
@@ -104,34 +74,58 @@ const IconItem = styled.div<{ isCopied: boolean }>`
 `;
 
 const CopiedMessage = styled.div`
-  margin-top: 12px;
+  margin-bottom: 12px;
   color: green;
   font-weight: bold;
+  text-align: center;
+  position: absolute;
+  right: 0;
+  top: 0;
+  text-transform: none;
+  letter-spacing: 1px;
 `;
 
-// Story for displaying all icons
+// 📌 Updated Story with Search Functionality
 export const IconGallery = {
   tags: ["!autodocs"],
   render: () => {
     const [copiedIcon, setCopiedIcon] = useState<string | null>(null);
+    const [search, setSearch] = useState("");
 
     const handleIconClick = (icon: string) => {
       navigator.clipboard.writeText(icon).then(() => {
         setCopiedIcon(icon);
+        // setTimeout(() => setCopiedIcon(null), 2000); // Auto-hide after 2s
       });
     };
 
+    const filteredIcons = ICONS.filter((icon) =>
+      icon.toLowerCase().includes(search.toLowerCase())
+    );
+
     return (
       <StoryWrapper title="Icon Gallery">
-        <Title>Click an Icon to Copy its Name</Title>
+        <SearchBox
+          type="text"
+          placeholder="Search icons..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <Title>
+          Click an Icon to Copy its Name
+          {copiedIcon && <CopiedMessage>Copied: {copiedIcon}</CopiedMessage>}
+        </Title>
         <IconGrid>
-          {ICONS.map((icon) => (
-            <IconItem key={icon} isCopied={copiedIcon === icon} onClick={() => handleIconClick(icon)}>
-              <Icon icon={icon} size="34px" />
-            </IconItem>
-          ))}
+          {filteredIcons.length > 0 ? (
+            filteredIcons.map((icon) => (
+              <IconItem key={icon} $isCopied={copiedIcon === icon} onClick={() => handleIconClick(icon)}>
+                <Icon icon={icon} size="30px" />
+              </IconItem>
+            ))
+          ) : (
+            <p style={{whiteSpace: 'nowrap'}}>No icons found</p>
+          )}
         </IconGrid>
-        {copiedIcon && <CopiedMessage>Copied: {copiedIcon}</CopiedMessage>}
       </StoryWrapper>
     );
   },

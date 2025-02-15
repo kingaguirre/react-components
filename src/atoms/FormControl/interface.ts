@@ -1,29 +1,37 @@
+export type FormControlType =
+  | "text"
+  | "password"
+  | "email"
+  | "number"
+  | "checkbox"
+  | "radio"
+  | "checkbox-group"
+  | "radio-group"
+  | "switch-group"
+  | "switch"
+  | "textarea";
+
+export type FormControlColor = 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'default';
+
+export type FormControlSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+
 export interface FormControlProps {
   /** Label for the input */
   label?: string;
   /** Help text displayed below the input */
   helpText?: string;
   /** Color theme for the input */
-  color?: 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'default';
+  color?: FormControlColor;
   /** Variant style of the input */
   variant?: 'outlined';
   /** Size of the input */
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
-  /** Input type (text, radio, checkbox, etc.) */
-  type?: "text"
-  | "password"
-  | "email"
-  | "number"
-  | "checkbox"
-  | "radio"
-  | "date"
-  | "date-range"
-  | "dropdown"
-  | "checkbox-group"
-  | "radio-group"
-  | "switch-group"
-  | "switch"
-  | "textarea";
+  size?: FormControlSize;
+  /** Input type */
+  type?: FormControlType;
+  /** Options for group inputs (checkbox-group, radio-group, switch-group) */
+  options?: { value: string; text: string; disabled?: boolean }[];
+  /** Options for group inputs to set to align vertically */
+  isVerticalOptions?: boolean;
   /** Required attribute */
   required?: boolean;
   /** Pattern for input validation */
@@ -34,6 +42,12 @@ export interface FormControlProps {
   readOnly?: boolean;
   /** Text only available in checkbox or radio */
   text?: string;
+  /** Input name value */
+  name?: string;
+  /** Prop to remove undeline and extra padding and height for radio, checkbox, switch, radio-group, checkbox-group, switch-group */
+  simple?: boolean;
+  /** Right icon with max of 2 */
+  iconRight?: { icon: string; color?: string; hoverColor?: string; onClick?: () => void, className?: string, disabled?: boolean }[];
   /** Any additional attributes */
   /* eslint-disable @typescript-eslint/no-explicit-any */
   [key: string]: any;

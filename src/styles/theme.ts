@@ -72,14 +72,14 @@ export const theme = {
       xl: 48,
     },
     buttonPadding: {
-      xs: '3px 12px',
-      sm: '6px 14px',
-      md: '9px 16px',
+      xs: '3px 8px',
+      sm: '6px 10px',
+      md: '9px 14px',
       lg: '12px 18px',
       xl: '16px 20px',
     }
   },
-  fontFamily: '"Nunito Sans", -apple-system, ".SFNSText-Regular", "San Francisco", BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;',
+  fontFamily: '"Nunito Sans", -apple-system, ".SFNSText-Regular", "San Francisco", BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif',
 };
 
 export default theme;

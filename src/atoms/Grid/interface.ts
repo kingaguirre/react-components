@@ -1,6 +1,7 @@
 export interface GridProps {
   children: React.ReactNode;
   spacing?: number;
+  style?: React.CSSProperties
 }
 
 export interface GridItemProps {

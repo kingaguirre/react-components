@@ -1,169 +1,192 @@
 import React, { forwardRef, useState, useRef, useEffect } from 'react';
-import {
-  InputContainer,
-  InputWrapper,
-  Label,
-  Input,
-  TextArea,
-  HelpText,
-  CustomCheckboxRadio,
-  Switch,
-  TextContainer,
-  Text
-} from './styled';
+import { FormControInputContainer, FormControlWrapper, Label, HelpText, IconWrapper, IconContainer } from './styled';
 import { FormControlProps } from './interface';
+import { 
+  TextInput, TextAreaInput, CheckboxRadioInput, SwitchInput, 
+  CheckboxGroup, RadioGroup, SwitchGroup , RadioButtonGroup
+} from './controls';
+import { getInvalidForCustomGroupControl } from './utils';
+import Icon from '@atoms/Icon';
 
-export const FormControl = forwardRef<HTMLInputElement | HTMLTextAreaElement, FormControlProps>(
-  (
-    {
-      label,
-      helpText,
-      color = 'primary',
-      variant,
-      size = 'md',
-      type = 'text',
-      required,
-      pattern,
-      disabled,
-      readOnly,
-      text,
-      onChange,
-      ...rest
-    },
-    ref // This is the forwarded ref
-  ) => {
-    const [isInvalid, setIsInvalid] = useState(false);
-    const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
-    const isCustomControl = type === 'checkbox' || type === 'radio' || type === 'switch';
+export const FormControl = forwardRef<HTMLInputElement | HTMLTextAreaElement, FormControlProps>(({
+  label,
+  helpText,
+  color = 'primary',
+  variant,
+  size = 'md',
+  type = 'text',
+  required,
+  pattern,
+  disabled,
+  readOnly,
+  text,
+  options,
+  onChange,
+  isVerticalOptions,
+  value,
+  iconRight,
+  simple,
+  ...rest
+}, ref) => {
 
-    useEffect(() => {
-      if (inputRef.current) {
-        /** Check any invalid */
-        const isInvalid = !inputRef.current.validity.valid;
-        /** If boolean control check if unchecked */
-        const isInvalidBool = isCustomControl && required && !(inputRef.current as HTMLInputElement).checked;
-        /** If regular control check if empty value */
-        const isInvalidText = !isCustomControl && required && !(inputRef.current as HTMLInputElement).value;
+  const [isInvalid, setIsInvalid] = useState(false);
+  const [selectedValues, setSelectedValues] = useState<string[]>([]);
+  const [selectedValue, setSelectedValue] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+  const prevValue = useRef(value);
+  const isCustomControl = type === 'checkbox' || type === 'radio' || type === 'switch';
+  const isGroupCustomControl = type === 'checkbox-group' || type === 'radio-group' || type === 'switch-group' || type === 'radio-button-group';
+  const isFirstRender = useRef(true); // Track initial mount
 
-        setIsInvalid(isInvalid || isInvalidBool || isInvalidText)
+  useEffect(() => {
+    if (inputRef.current) {
+      const element = inputRef.current as HTMLInputElement;
+      const isInvalidBool = isCustomControl && required && !element.checked;
+      const isInvalidText = !isCustomControl && required && !element.value;
+
+      // Always validate on first render OR when value changes
+      if (isFirstRender.current || prevValue.current !== value) {
+        setIsInvalid(!element.validity.valid || isInvalidBool || isInvalidText);
+        prevValue.current = value;
+        isFirstRender.current = false; // Mark first render as done
       }
-    }, [required, isCustomControl]);
+    }
+  }, [required, isCustomControl, value]);
 
-    const handleValidation = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      const { value, validity } = event.target as HTMLInputElement;
-      setIsInvalid(!validity.valid || (!value && required))
-
-      if (onChange) {
-        onChange(event);
+  useEffect(() => {
+    if (isGroupCustomControl) {
+      if (type === 'radio-group' || type === 'radio-button-group') {
+        const selectedValues = typeof value === 'string' ? value.split(',') : value || [];
+        const processedValue = selectedValues.length > 0 ? selectedValues[0] : null;
+    
+        setSelectedValue(processedValue);
+        setIsInvalid(selectedValues.length === 0 && required);
+      } else {
+        const initialValues = typeof value === 'string' ? value.split(',').filter(v => v) : value || [];
+        setSelectedValues(initialValues);
+        setIsInvalid(getInvalidForCustomGroupControl(initialValues, required));
       }
-    };
+    }
+  }, [value]);
 
-    return (
-      <InputContainer className="form-control-input-container">
-        {label && <Label color={color} size={size}>
-          {required && <span>*</span>}{label}
-        </Label>}
-        <InputWrapper $size={size} $type={type} className="form-control-input-wrapper">
-          {isCustomControl ? (
-            <TextContainer disabled={disabled}>
-              {type === 'switch' ? (
-                <Switch
-                  className={`form-control-switch ${isInvalid ? 'is-invalid' : ''}`}
-                  type="checkbox"
-                  color={color}
-                  size={size}
-                  disabled={disabled}
-                  required={required}
-                  aria-required={required} // Ensures accessibility and validation support
-                  onInvalid={() => setIsInvalid(true)} // Trigger invalid styling if required
-                  onChange={(e) => {
-                    setIsInvalid(!e.target.checked && required);
-                    if (onChange) onChange(e);
-                  }}
-                  ref={(node) => {
-                    inputRef.current = node;
-                    if (typeof ref === 'function') {
-                      ref(node);
-                    } else if (ref) {
-                      (ref as any).current = node;
-                    }
-                  }}
-                />
-              ) : (
-                <CustomCheckboxRadio
-                  className={`form-control-${type} ${isInvalid ? 'is-invalid' : ''}`}
-                  type={type}
-                  color={color}
-                  size={size}
-                  disabled={disabled}
-                  required={required}
-                  aria-required={required} // Ensures accessibility and validation support
-                  onInvalid={() => setIsInvalid(true)} // Trigger invalid styling if required
-                  onChange={(e) => {
-                    setIsInvalid(!e.target.checked && required);
-                    if (onChange) onChange(e);
-                  }}
-                  ref={(node) => {
-                    inputRef.current = node;
-                    if (typeof ref === 'function') {
-                      ref(node);
-                    } else if (ref) {
-                      (ref as any).current = node;
-                    }
-                  }}
-                  {...rest}
-                />
-              )}
-              {text && <Text size={size} disabled={disabled}>{text}</Text>}
-            </TextContainer>
-          ) : type === 'textarea' ? (
-            <TextArea
-              className={`form-control-textarea ${isInvalid ? 'is-invalid' : ''}`}
-              color={color}
-              $variant={variant}
-              size={size}
-              required={required}
-              disabled={disabled}
-              readOnly={readOnly}
-              onChange={handleValidation}
-              ref={(node) => {
-                inputRef.current = node;
-                if (typeof ref === 'function') {
-                  ref(node);
-                } else if (ref) {
-                  (ref as any).current = node;
-                }
-              }}
-              {...rest}
-            />
-          ) : (
-            <Input
-              className={`form-control-${type} ${isInvalid ? 'is-invalid' : ''}`}
-              type={type}
-              color={color}
-              $variant={variant}
-              size={size}
-              required={required}
-              pattern={pattern}
-              disabled={disabled}
-              readOnly={readOnly}
-              onChange={handleValidation}
-              ref={(node) => {
-                inputRef.current = node;
-                if (typeof ref === 'function') {
-                  ref(node);
-                } else if (ref) {
-                  (ref as any).current = node;
-                }
-              }}
-              {...rest}
-            />
-          )}
-        </InputWrapper>
-        {helpText && <HelpText color={isInvalid ? 'danger' : color}>{helpText}</HelpText>}
-      </InputContainer>
-    );
+  const handleCheckboxChange = (optionValue: string) => {
+    const updatedValues = selectedValues.includes(optionValue)
+      ? selectedValues.filter((v) => v && v !== optionValue) // Ensures no empty values
+      : [...selectedValues, optionValue]; // Adds new value ensuring no empty strings
+
+    setIsInvalid(getInvalidForCustomGroupControl(updatedValues, required));
+    setSelectedValues(updatedValues);
+    onChange?.(updatedValues.join(','));
+  };
+
+  const handleRadioChange = (optionValue: string) => {
+    setIsInvalid(false);
+    setSelectedValue(optionValue);
+    onChange?.(optionValue);
+  };
+
+  const handleValidation = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { value, validity } = event.target as HTMLInputElement;
+    setIsInvalid(!validity.valid || (!value && required));
+    if (onChange) onChange(event);
+  };
+
+  const handleBooleanValidation = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setIsInvalid(!event.target.checked && required);
+    if (onChange) onChange(event);
   }
+
+  const getRef = (node: any) => {
+    inputRef.current = node;
+    if (typeof ref === 'function') {
+      ref(node);
+    } else if (ref) {
+      (ref as any).current = node;
+    }
+  };
+
+  return (
+    <FormControInputContainer className={`form-control-input-container ${disabled ? 'disabled' : ''} ${isInvalid ? 'invalid' : ''}`}>
+      {label && <Label color={color} size={size}>{required && <span>*</span>}{label}</Label>}
+      <FormControlWrapper
+        $simple={simple}
+        $iconRight={iconRight}
+        $size={size}
+        $type={type}
+        className={`form-control-wrapper ${disabled ? 'disabled' : ''} ${isInvalid ? 'invalid' : ''}`}
+      >
+        {(() => {
+          const defaultProps = {
+            color,
+            size,
+            type,
+            disabled,
+            readOnly,
+            value,
+            ref: getRef,
+            name: `form-control-${type}`,
+            className: `form-control-${type} ${isInvalid ? 'invalid' : ''} ${disabled ? 'disabled' : ''}`,
+            ...rest
+          }
+
+          const customCheckboxGroupProps = { ...defaultProps, options, onChange: handleCheckboxChange, selectedValues, isVerticalOptions };
+          const customRadioGroupProps = { ...defaultProps, options, onChange: handleRadioChange, selectedValue, isVerticalOptions, isInvalid };
+
+          switch (type) {
+            case 'text':
+            case 'password':
+            case 'email':
+            case 'number':
+              return <TextInput {...{ ...defaultProps, ...rest, pattern, onChange: handleValidation }} />;
+            case 'textarea':
+              return <TextAreaInput {...{ ...defaultProps, ...rest, onChange: handleValidation }} />;
+            case 'checkbox':
+            case 'radio': 
+              return <CheckboxRadioInput {...{ ...defaultProps, ...rest, text, onChange: handleBooleanValidation }} />;
+            case 'switch': 
+              return <SwitchInput {...{ ...defaultProps, ...rest, text, onChange: handleBooleanValidation }} />;
+            case 'checkbox-group': 
+              return <CheckboxGroup {...customCheckboxGroupProps} />;
+            case 'radio-group': 
+              return <RadioGroup {...customRadioGroupProps} />;
+            case 'radio-button-group': 
+              return <RadioButtonGroup {...customRadioGroupProps} />;
+            case 'switch-group': 
+              return <SwitchGroup {...customCheckboxGroupProps} />;
+            default: 
+              return null;
+          }
+        })()}
+      {(iconRight?.length > 0 && !isCustomControl && !isGroupCustomControl) && (
+        <IconWrapper
+          className="icon-wrapper"
+          $size={size}
+          $color={color}
+          $disabled={disabled}
+        >
+          {iconRight
+            .filter((obj: any) => Object.keys(obj).length)
+            .slice(0, 2)
+            .map((icon: any, index: number) => (
+            <IconContainer
+              key={index}
+              onClick={icon.onClick}
+              data-testid={icon.className}
+              className={`icon-container ${icon.className || ''}`}
+              $disabled={icon.disabled}
+              $size={size}
+              $color={icon.color || color}
+              $hoverColor={icon.hoverColor || color}
+            >
+              <Icon icon={icon.icon} />
+            </IconContainer>
+          ))}
+        </IconWrapper>
+      )}
+      </FormControlWrapper>
+      {helpText && <HelpText color={isInvalid ? 'danger' : color}>{helpText}</HelpText>}
+    </FormControInputContainer>
+  )}
 );
 
 FormControl.displayName = 'FormControl';

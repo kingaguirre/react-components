@@ -1,3 +1,4 @@
+// src/atoms/Button/stories.tsx
 import type { Meta, StoryObj } from "@storybook/react";
 import { Button } from "./index";
 import { StoryWrapper, Title } from "@components/StoryWrapper";
@@ -46,7 +47,7 @@ const SIZES = ["xs", "sm", "md", "lg", "xl"];
 
 const generateColorStories = () => (
   <Grid>
-    {COLORS.map((color) => (
+    {COLORS.map((color: any) => (
       <GridItem xs={12} sm={6} md={4} key={color}>
         <Button color={color}>{color.charAt(0).toUpperCase() + color.slice(1)}</Button>
         <Button color={color} disabled>
@@ -59,7 +60,7 @@ const generateColorStories = () => (
 
 const generateVariantStories = () => (
   <Grid>
-    {VARIANTS.map((variant) => (
+    {VARIANTS.map((variant: any) => (
       <GridItem xs={12} sm={6} md={4} key={variant}>
         <Button variant={variant}>{variant.charAt(0).toUpperCase() + variant.slice(1)} Variant</Button>
       </GridItem>
@@ -69,7 +70,7 @@ const generateVariantStories = () => (
 
 const generateSizeStories = () => (
   <Grid>
-    {SIZES.map((size) => (
+    {SIZES.map((size: any) => (
       <GridItem xs={12} sm={6} md={4} key={size}>
         <Button size={size}>{size.charAt(0).toUpperCase() + size.slice(1)} Size</Button>
       </GridItem>
@@ -99,10 +100,10 @@ const generateFullWidthStories = () => (
   </Grid>
 );
 
-export const Defaults = {
+export const Examples = {
   tags: ["!autodocs"],
   render: () => (
-    <StoryWrapper title="Button">
+    <StoryWrapper title="Button Examples">
       <Title>Colors</Title>
       {generateColorStories()}
       <Title>Variants</Title>

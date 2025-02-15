@@ -10,4 +10,6 @@ export interface IconProps {
   disabled?: boolean;
   /** Additional class names */
   className?: string;
+  /** Additional attributes */
+  [key: string]: any;
 }
