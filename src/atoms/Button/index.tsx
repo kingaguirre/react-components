@@ -11,10 +11,11 @@ export const Button = ({
   disabled = false,
   className = "",
   active = undefined,
-  onClick
+  ...rest
 }: ButtonProps) => {
   return (
     <ButtonContainer
+      {...rest}
       data-color={color}
       data-variant={variant}
       data-size={size}
@@ -27,7 +28,6 @@ export const Button = ({
       $fullWidth={fullWidth}
       disabled={disabled}
       className={`button ${className} ${disabled ? "disabled" : ""} ${active ? "active" : ""}`.trim()}
-      onClick={onClick}
     >
       <span>{children}</span>
     </ButtonContainer>

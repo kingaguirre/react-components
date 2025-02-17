@@ -261,7 +261,7 @@ export const DatePickerGlobalStyles = createGlobalStyle`
   }
 `;
 
-export const CustomInputWrapper = styled.div<{ $value: unknown }>`
+export const CustomInputWrapper = styled.div<{ $value?: string }>`
   position: relative;
   box-sizing: border-box;
   * {

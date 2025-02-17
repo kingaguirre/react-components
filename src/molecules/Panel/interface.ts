@@ -15,7 +15,7 @@ export interface PanelProps {
   /** Array of right icons */
   rightIcons?: IconObject[];
   /** Panel theme color */
-  color?: "primary" | "success" | "info" | "warning" | "danger" | "default" | string;
+  color?: "primary" | "success" | "info" | "warning" | "danger" | "default";
   /** Disable panel interaction */
   disabled?: boolean;
 }

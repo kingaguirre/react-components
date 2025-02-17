@@ -1,5 +1,5 @@
 // src/molecules/Dropdown/Dropdown.test.tsx
-import React from "react";
+import React, { useState } from "react";
 import {
   render,
   screen,
@@ -192,24 +192,42 @@ describe("Dropdown Component", () => {
 
   it("clears selection on clear icon click in single select mode", async () => {
     const onChange = vi.fn();
-    // Render with an initial value.
-    render(
-      <Dropdown
-        options={options}
-        placeholder="Select an option"
-        onChange={onChange}
-        value="1"
-      />
-    );
+    
+    // A wrapper component that controls the value
+    const ControlledDropdown = () => {
+      const [value, setValue] = useState<string | string[]>("1");
+      return (
+        <Dropdown
+          options={options}
+          placeholder="Select an option"
+          onChange={(newVal: string | string[]) => {
+            setValue(newVal);
+            onChange(newVal);
+          }}
+          value={value}
+        />
+      );
+    };
+  
+    render(<ControlledDropdown />);
+    
     const input = screen.getByPlaceholderText("Select an option");
+    // Initially, the input displays Option 1.
     expect(input).toHaveValue("Option 1");
-    // Open dropdown so that the clear icon is rendered.
+  
+    // Open the dropdown so the clear icon is rendered.
     fireEvent.click(input);
-    // Assume the clear icon is rendered with a test id "clear-icon".
+    // Assume the clear icon has a test id "clear-icon".
     const clearIcon = await waitFor(() => screen.getByTestId("clear-icon"));
     expect(clearIcon).toBeVisible();
+  
     fireEvent.click(clearIcon);
+    // onChange should have been called with an empty string.
     expect(onChange).toHaveBeenCalledWith("");
-    expect(input).toHaveValue("");
+    // Wait for the component to re-render with an empty value.
+    await waitFor(() => {
+      expect(input).toHaveValue("");
+    });
   });
+  
 });

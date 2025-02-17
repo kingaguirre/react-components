@@ -18,5 +18,7 @@ export interface ButtonProps {
   fullWidth?: boolean;
   /** Additional class names */
   className?: string;
-  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void
+  /** Any additional attributes */
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  [key: string]: any;
 }
