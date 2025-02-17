@@ -66,7 +66,7 @@ export const IconWrapper = styled.div<{
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: ${({ $color }) => ($color ? $color : "inherit")};
+  color: ${({ $color }) => ($color ?? "inherit")};
   transition: all .3s ease;
   font-size: 16px;
 

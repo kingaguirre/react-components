@@ -1,4 +1,6 @@
 // src/molecules/Dropdown/interface.ts
+import { SizeType } from '@common/interfaces';
+
 export interface DropdownOption {
   value: string;
   text: string;
@@ -13,7 +15,7 @@ export interface DropdownProps {
   filter?: boolean;
   filterAtBeginning?: boolean;
   placeholder?: string;
-  size?: "xs" | "sm" | "md" | "lg" | "xl";
+  size?: SizeType;
   disabled?: boolean;
   multiselect?: boolean;
   label?: string;

@@ -10,9 +10,10 @@
   font-display: block;
 }
 
+/* stylelint-disable-next-line font-family-no-missing-generic-family-keyword */
 [class^="icon-"], [class*=" icon-"] {
   /* use !important to prevent issues with browser extensions that change fonts */
-  font-family: 'sc' !important;
+  font-family: 'sc', sans-serif !important;
   speak: never;
   font-style: normal;
   font-weight: normal;

@@ -1,6 +1,7 @@
 // src/components/Tabs/styled.tsx
 import styled, { keyframes } from "styled-components";
 import { theme } from "../../styles/theme";
+import { ifElse } from "@utils/index";
 
 export const TabWrapper = styled.div`
   display: flex;
@@ -41,7 +42,7 @@ export const TabItem = styled.button<{
   border-top-right-radius: 4px;
   border: 2px solid transparent;
   transition: all .3s ease;
-  cursor: ${({ $disabled, $active }) => ($disabled ? "not-allowed" : $active ? "default" : "pointer")};
+  cursor: ${({ $disabled, $active }) => ($disabled ? "not-allowed" : ifElse($active, "default", "pointer"))};
   background-color: ${({ $active, $color }) =>
     $active ? theme.colors[$color].pale : 'transparent'};
   border-color: ${({ $active, $color }) =>
@@ -78,6 +79,18 @@ export const TabItem = styled.button<{
   `}
 `;
 
+const getPosition = (position: string) => {
+  switch(true) {
+    case position === "left":
+      return "left: 0;";
+    case position === "left-adjusted":
+      return "left: 35px;";
+    case position === "right":
+      return "right: 0;";
+    default: return "right: 35px;";
+  }
+};
+
 export const ScrollButton = styled.button<{ $position: "left" | "left-adjusted" | "right" | "right-adjusted" }>`
   background: transparent;
   display: flex;
@@ -98,14 +111,7 @@ export const ScrollButton = styled.button<{ $position: "left" | "left-adjusted" 
     color: ${theme.colors.primary.base};
   }
 
-  ${({ $position }) =>
-    $position === "left"
-      ? `left: 0;`
-      : $position === "left-adjusted"
-      ? `left: 35px;`
-      : $position === "right"
-      ? `right: 0;`
-      : `right: 35px;`}
+  ${({ $position }) => getPosition($position)}
 `;
 
 export const TabContentWrapper = styled.div<{$color: keyof typeof theme.colors;}>`

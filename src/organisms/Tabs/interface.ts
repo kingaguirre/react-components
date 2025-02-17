@@ -1,3 +1,5 @@
+import { ColorType } from '@common/interfaces';
+
 export interface TabItemProps {
   title: string;
   content: React.ReactNode;
@@ -5,8 +7,8 @@ export interface TabItemProps {
   icon?: string;
   iconColor?: string;
   badgeValue?: number;
-  badgeColor?: "primary" | "success" | "warning" | "danger" | "info" | "default";
-  color?: "primary" | "success" | "info" | "warning" | "danger" | "default";
+  badgeColor?: ColorType;
+  color?: ColorType;
 }
 
 export interface TabsProps {

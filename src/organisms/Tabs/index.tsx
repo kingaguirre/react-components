@@ -97,7 +97,14 @@ export const Tabs: React.FC<TabsProps> = ({
   };
 
   return (
-    <div ref={wrapperRef} onKeyDown={handleKeyDown} tabIndex={0} style={{ outline: "none" }}>
+    <div
+      ref={wrapperRef}
+      onKeyDown={handleKeyDown}
+      tabIndex={0}
+      style={{ outline: "none" }}
+      role="button"
+      aria-pressed="false"
+    >
       <TabWrapper className="tab-wrapper" role="tablist">
         {firstLastNavControl && (
           <NavButton
@@ -125,12 +132,12 @@ export const Tabs: React.FC<TabsProps> = ({
         <TabsContainer ref={tabListRef} className="tabs-container" $fullHeader={fullHeader}>
           {tabs?.map((tab, index) => (
             <TabItem
-              key={index}
+              key={`key-${tab.title}-${tab.color}`}
               className="tab-item"
               $active={selectedTab === index}
               $focused={focusedTab === index}
               $disabled={tab.disabled || false}
-              $color={tab.color || "primary"}
+              $color={tab.color ?? "primary"}
               $fullHeader={fullHeader}
               tabIndex={-1}
               onFocus={() => !tab.disabled && setFocusedTab(index)}
@@ -143,7 +150,7 @@ export const Tabs: React.FC<TabsProps> = ({
               {tab.icon && <Icon icon={tab.icon} color={tab.iconColor} />}
               <span className="title">{tab.title}</span>
               {tab.badgeValue !== undefined && (
-                <Badge color={tab.badgeColor || "danger"}>{tab.badgeValue}</Badge>
+                <Badge color={tab.badgeColor ?? "danger"}>{tab.badgeValue}</Badge>
               )}
             </TabItem>
           ))}
@@ -172,7 +179,7 @@ export const Tabs: React.FC<TabsProps> = ({
           </NavButton>
         )}
       </TabWrapper>
-      <TabContentWrapper $color={tabs?.[selectedTab]?.color || 'primary'}>
+      <TabContentWrapper $color={tabs?.[selectedTab]?.color ?? 'primary'}>
         <TabContent key={selectedTab} className="fade-in">
           {tabs?.[selectedTab]?.content}
         </TabContent>

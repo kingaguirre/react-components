@@ -1,6 +1,8 @@
 // src/atoms/Badge/interface.ts
+import { ColorType } from '@common/interfaces';
+
 export interface BadgeProps {
-  color?: "primary" | "success" | "warning" | "danger" | "info" | "default";
+  color?: ColorType;
   size?: "sm" | "md" | "lg";
   borderRadius?: string;
   disabled?: boolean;

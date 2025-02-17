@@ -6,6 +6,6 @@ export interface ModalProps extends Omit<PanelProps, "className"> {
   closeable?: boolean;
   showCloseIcon?: boolean;
   onClose?: () => void;
-  modalWidth?: "sm" | "md" | "lg" | "auto" | string;
+  modalWidth?: "sm" | "md" | "lg" | "auto";
   zIndex?: number;
 }

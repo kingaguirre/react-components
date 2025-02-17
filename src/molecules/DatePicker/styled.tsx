@@ -218,6 +218,10 @@ export const DatePickerGlobalStyles = createGlobalStyle`
             }
           }
 
+          &.react-datepicker__day--keyboard-selected:not([aria-disabled=true]):hover {
+            color: white!important;
+          }
+
           &.react-datepicker__day--in-selecting-range,
           &.react-datepicker__day--in-range {
             background-color: ${theme.colors.primary.pale};

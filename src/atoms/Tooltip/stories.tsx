@@ -60,7 +60,7 @@ export const Examples: StoryObj<typeof Tooltip> = {
             <Tooltip
               key={color}
               content={`Tooltip in ${color}`}
-              color={color as "default" | "primary" | "info" | "danger" | "success" | "warning"}
+              color={color}
               placement="top"
             >
               <Button size="sm" color={color}>

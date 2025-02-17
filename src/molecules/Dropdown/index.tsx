@@ -11,6 +11,7 @@ import {
 } from "./styled";
 import { DropdownProps, DropdownOption } from "./interface";
 import FormControl from "@atoms/FormControl";
+import { ifElse } from "@utils/index";
 
 export const Dropdown: React.FC<DropdownProps> = ({
   options,
@@ -66,57 +67,64 @@ export const Dropdown: React.FC<DropdownProps> = ({
   // --- SYNC EXTERNAL VALUE CHANGES ---
   useEffect(() => {
     if (isMulti) {
-      if (Array.isArray(value)) {
-        setSelectedValues(value);
-        setDisplayValue(
-          value.length > 0
-            ? `${value.length} selected ${value.length === 1 ? "item" : "items"}`
-            : ""
-        );
-      }
-    } else {
-      // Use the external value if defined (even if empty), otherwise fall back to our internal selectedValue.
-      const currentVal =
-        value !== undefined && value !== null
-          ? (value as string)
-          : selectedValue;
-      if (currentVal) {
-        const selectedOption = options.find(opt => opt.value === currentVal);
-        if (selectedOption) {
-          setDisplayValue(selectedOption.text);
-          previousDisplayRef.current = selectedOption.text;
-        } else {
-          // If not found in new options, preserve previous display.
-          setDisplayValue(previousDisplayRef.current);
-        }
-        setSelectedValue(currentVal);
-      } else {
-        setDisplayValue("");
-        setSelectedValue(undefined);
-        previousDisplayRef.current = "";
-      }
+      if (!Array.isArray(value)) return;
+      setSelectedValues(value);
+      const text =
+        value.length > 0
+          ? `${value.length} selected ${ifElse(value.length === 1, "item", "items")}`
+          : "";
+      setDisplayValue(text);
+      return;
     }
+  
+    // Use the external value if defined (even if empty), otherwise fall back to our internal selectedValue.
+    const currentVal = value != null ? (value as string) : selectedValue;
+  
+    if (!currentVal) {
+      setDisplayValue("");
+      setSelectedValue(undefined);
+      previousDisplayRef.current = "";
+      return;
+    }
+  
+    const selectedOption = options.find((opt) => opt.value === currentVal);
+    if (selectedOption) {
+      setDisplayValue(selectedOption.text);
+      previousDisplayRef.current = selectedOption.text;
+    } else {
+      setDisplayValue(previousDisplayRef.current);
+    }
+    setSelectedValue(currentVal);
   }, [value, options, isMulti, selectedValue]);
   // --- END SYNC EFFECT ---
 
   // Filtering effect.
   useEffect(() => {
-    if (filter) {
+    // Filter methods:
+    const startsWithFilter = (text: string, filterText: string) =>
+      text.toLowerCase().startsWith(filterText.toLowerCase());
+  
+    const includesFilter = (text: string, filterText: string) =>
+      text.toLowerCase().includes(filterText.toLowerCase());
+  
+    // Returns the filtered options based on whether the user has typed:
+    const getFilteredOptions = () => {
       if (!hasTyped) {
-        setFilteredOptions(options);
-      } else {
-        setFilteredOptions(
-          options.filter(({ text }) =>
-            filterAtBeginning
-              ? text.toLowerCase().startsWith(filterText.toLowerCase())
-              : text.toLowerCase().includes(filterText.toLowerCase())
-          )
-        );
+        return options;
       }
+      return options.filter(({ text }) =>
+        filterAtBeginning ? startsWithFilter(text, filterText) : includesFilter(text, filterText)
+      );
+    };
+  
+    // Set filtered options depending on the filter flag:
+    if (filter) {
+      setFilteredOptions(getFilteredOptions());
     } else {
       setFilteredOptions(options);
     }
   }, [filterText, hasTyped, filterAtBeginning, filter, options]);
+  
 
   // Recalculate dropdown position.
   useEffect(() => {
@@ -127,7 +135,19 @@ export const Dropdown: React.FC<DropdownProps> = ({
 
   // When opening the dropdown, preset filter text (for single-select) and set focus.
   useEffect(() => {
-    if (isOpen) {
+    const attachEventListeners = () => {
+      document.addEventListener("mousedown", handleClickOutside);
+      window.addEventListener("scroll", updateDropdownPosition);
+      window.addEventListener("resize", updateDropdownPosition);
+    };
+  
+    const detachEventListeners = () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("scroll", updateDropdownPosition);
+      window.removeEventListener("resize", updateDropdownPosition);
+    };
+  
+    const updateFilterText = () => {
       if (filter && !isMulti && !hasTyped) {
         if (selectedValue) {
           const selOpt = options.find(opt => opt.value === selectedValue);
@@ -136,49 +156,49 @@ export const Dropdown: React.FC<DropdownProps> = ({
           setFilterText("");
         }
       }
-      let selectedIndex = -1;
+    };
+  
+    const computeSelectedIndex = () => {
       if (isMulti) {
         if (lastMultiToggledRef.current) {
           const idx = filteredOptions.findIndex(
             opt => opt.value === lastMultiToggledRef.current
           );
           if (idx !== -1) {
-            selectedIndex = idx;
+            return idx;
           }
         }
-        if (selectedIndex === -1 && selectedValues.length > 0) {
-          selectedIndex = filteredOptions.findIndex(opt =>
+        if (selectedValues.length > 0) {
+          const idx = filteredOptions.findIndex(opt =>
             selectedValues.includes(opt.value)
           );
+          if (idx !== -1) {
+            return idx;
+          }
         }
-      } else {
-        if (selectedValue) {
-          selectedIndex = filteredOptions.findIndex(opt => opt.value === selectedValue);
+      } else if (selectedValue) {
+        const idx = filteredOptions.findIndex(opt => opt.value === selectedValue);
+        if (idx !== -1) {
+          return idx;
         }
       }
-      if (selectedIndex === -1) {
-        selectedIndex = findNextFocusableIndex(-1, "down", filteredOptions);
-      }
+      return findNextFocusableIndex(-1, "down", filteredOptions);
+    };
+  
+    if (isOpen) {
+      updateFilterText();
+      const selectedIndex = computeSelectedIndex();
       setFocusedIndex(selectedIndex);
       updateDropdownPosition();
-      document.addEventListener("mousedown", handleClickOutside);
-      window.addEventListener("scroll", updateDropdownPosition);
-      window.addEventListener("resize", updateDropdownPosition);
-      setTimeout(() => {
-        scrollToFocusedItem();
-      }, 30);
+      attachEventListeners();
+      setTimeout(scrollToFocusedItem, 30);
     } else {
-      document.removeEventListener("mousedown", handleClickOutside);
-      window.removeEventListener("scroll", updateDropdownPosition);
-      window.removeEventListener("resize", updateDropdownPosition);
+      detachEventListeners();
     }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      window.removeEventListener("scroll", updateDropdownPosition);
-      window.removeEventListener("resize", updateDropdownPosition);
-    };
+  
+    return detachEventListeners;
   }, [isOpen, options, filter, selectedValue, selectedValues, isMulti, filteredOptions]);
-
+  
   // Update lastFocusedValueRef whenever focusedIndex is valid.
   useEffect(() => {
     if (isOpen && focusedIndex >= 0 && focusedIndex < filteredOptions?.length) {
@@ -215,7 +235,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
     if (
       focusedIndex < 0 ||
       focusedIndex >= filteredOptions?.length ||
-      (filteredOptions?.[focusedIndex] && filteredOptions?.[focusedIndex]?.disabled)
+      (filteredOptions?.[focusedIndex]?.disabled)
     ) {
       setFocusedIndex(0);
       return;
@@ -240,30 +260,22 @@ export const Dropdown: React.FC<DropdownProps> = ({
     direction: "up" | "down",
     optionsArray: DropdownOption[] = filteredOptions
   ): number => {
-    if (optionsArray?.length === 0) return -1;
-    if (direction === "down") {
-      if (currentIndex < 0) {
-        for (let i = 0; i < optionsArray?.length; i++) {
-          if (!optionsArray[i]?.disabled) return i;
-        }
-        return -1;
-      }
-      for (let i = currentIndex + 1; i < optionsArray?.length; i++) {
-        if (!optionsArray[i]?.disabled) return i;
-      }
-      return currentIndex;
-    } else {
-      if (currentIndex < 0) {
-        for (let i = optionsArray?.length - 1; i >= 0; i--) {
-          if (!optionsArray[i]?.disabled) return i;
-        }
-        return -1;
-      }
-      for (let i = currentIndex - 1; i >= 0; i--) {
-        if (!optionsArray[i]?.disabled) return i;
-      }
-      return currentIndex;
+    if (!optionsArray?.length) return -1;
+  
+    // Check if we're starting fresh (currentIndex < 0)
+    const isInitial = currentIndex < 0;
+    const step = direction === "down" ? 1 : -1;
+    const start = isInitial ? ifElse(direction === "down", 0, optionsArray.length - 1) : currentIndex + step;
+    // For "down" we go until optionsArray.length, for "up" until -1 (exclusive)
+    const end = direction === "down" ? optionsArray.length : -1;
+  
+    for (let i = start; direction === "down" ? i < end : i > end; i += step) {
+      if (!optionsArray[i]?.disabled) return i;
     }
+  
+    // If no eligible option found, mimic original behavior:
+    // Return -1 if starting fresh, else return the original currentIndex.
+    return isInitial ? -1 : currentIndex;
   };
 
   const handleSelect = (selectedVal: string) => {
@@ -277,7 +289,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
         }
         setDisplayValue(
           newSelected.length > 0
-            ? `${newSelected.length} selected ${newSelected.length === 1 ? "item" : "items"}`
+            ? `${newSelected.length} selected ${ifElse(newSelected.length === 1, "item", "items")}`
             : ""
         );
         if (filter) {
@@ -433,13 +445,58 @@ export const Dropdown: React.FC<DropdownProps> = ({
     }
     // Otherwise highlight all occurrences.
     const regex = new RegExp(`(${filterText})`, "gi");
-    return text.split(regex).map((part, index) =>
+    return text.split(regex).map((part) =>
       part.toLowerCase() === filterText.toLowerCase() ? (
-        <HighlightedText key={index}>{part}</HighlightedText>
+        <HighlightedText key={`key-${part}`}>{part}</HighlightedText>
       ) : (
         part
       )
     );
+  };
+
+  const getSelectedClass = (index: number, value: string) => {
+    let focusClass = "";
+    let selectedClass = "";
+
+    if (index === focusedIndex) {
+      focusClass = "focused";
+    }
+
+    if ((isMulti && selectedValues.includes(value)) || (!isMulti && value === selectedValue)) {
+      selectedClass = "selected";
+    }
+
+    return `${focusClass} ${selectedClass}`;
+  };
+
+  const getValue = () => {
+    if (isMulti) {
+      return displayValue;
+    }
+
+    if (isOpen && filter) {
+      if (hasTyped) {
+        return filterText;
+      } else {
+        return displayValue;
+      }
+    } else {
+      return displayValue;
+    }
+  };
+
+  const getClearIcon = () => {
+    const shouldShowClear = (isMulti ? selectedValues.length > 0 : selectedValue);
+
+    return shouldShowClear ? [
+      {
+        icon: "clear",
+        onClick: handleClear,
+        color: "default",
+        hoverColor: "danger",
+        className: "clear-icon"
+      },
+    ] : [];
   };
 
   const dropdownContent = (
@@ -476,15 +533,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
             $size={size}
             key={value}
             disabled={disabled}
-            className={`${index === focusedIndex ? "focused" : ""} ${
-              isMulti
-                ? selectedValues.includes(value)
-                  ? "selected"
-                  : ""
-                : value === selectedValue
-                ? "selected"
-                : ""
-            }`}
+            className={getSelectedClass(index, value)}
             onClick={() => !disabled && handleSelect(value)}
           >
             {isMulti && (
@@ -509,15 +558,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
         {...rest}
         ref={formControlRef}
         type="text"
-        value={
-          isMulti
-            ? displayValue
-            : isOpen && filter
-            ? hasTyped
-              ? filterText
-              : displayValue
-            : displayValue
-        }
+        value={getValue()}
         placeholder={placeholder}
         readOnly={isMulti || !filter || !isOpen}
         disabled={disabled}
@@ -533,17 +574,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
         }
         onKeyDown={handleKeyDown}
         iconRight={[
-          ...((isMulti ? selectedValues.length > 0 : selectedValue)
-            ? [
-                {
-                  icon: "clear",
-                  onClick: handleClear,
-                  color: "default",
-                  hoverColor: "danger",
-                  className: "clear-icon"
-                },
-              ]
-            : []),
+          ...(getClearIcon()),
           { icon: "keyboard_arrow_down", onClick: () => setIsOpen(prev => !prev) },
         ]}
       />

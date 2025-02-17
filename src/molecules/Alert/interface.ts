@@ -1,9 +1,10 @@
 // Alert/Molecules/interface.ts
 import { ReactNode } from 'react';
+import { ColorType } from '@common/interfaces';
 
 export interface AlertProps {
   /** The alert’s color variant (keys should match your theme colors) */
-  color?: "primary" | "success" | "warning" | "danger" | "info" | "default";
+  color?: ColorType;
   /** Whether the alert is visible */
   show?: boolean;
   /** Left-side icon (as a string, e.g. an emoji or icon class) */

@@ -1,14 +1,15 @@
 // src/molecules/Accordion/interface.ts
 import { ReactNode } from 'react';
+import { ColorType } from '@common/interfaces';
 
 export interface AccordionItemDetail {
   value?: string;
   icon?: string;
   text?: string;
-  color?: "primary" | "success" | "warning" | "danger" | "info" | "default";
-  iconColor?: "primary" | "success" | "warning" | "danger" | "info" | "default";
-  valueColor?: "primary" | "success" | "warning" | "danger" | "info" | "default";
-  textColor?: "primary" | "success" | "warning" | "danger" | "info" | "default";
+  color?: ColorType;
+  iconColor?: ColorType;
+  valueColor?: ColorType;
+  textColor?: ColorType;
   onClick?: () => void;
 }
 
@@ -16,7 +17,7 @@ export interface AccordionItemProps {
   id?: string;
   title: string;
   children: ReactNode;
-  color?: "primary" | "success" | "warning" | "danger" | "info" | "default";
+  color?: ColorType;
   rightContent?: ReactNode;
   rightDetails?: AccordionItemDetail[];
   open?: boolean;

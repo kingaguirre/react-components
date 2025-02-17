@@ -31,7 +31,7 @@ export const BadgeContainer = styled.span<{
     $outlined ? `1px solid ${theme.colors[$color].base}` : "none"};
   padding: 4px;
   border-radius: ${({ $borderRadius, $size }) =>
-    $borderRadius || sizeMapping[$size].dimension};
+    $borderRadius ?? sizeMapping[$size].dimension};
   opacity: ${({ $disabled }) => ($disabled ? 0.5 : 1)};
   pointer-events: ${({ $disabled }) => ($disabled ? "none" : "auto")};
   font-weight: bold;

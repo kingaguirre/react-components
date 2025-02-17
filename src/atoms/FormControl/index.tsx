@@ -166,16 +166,16 @@ export const FormControl = forwardRef<HTMLInputElement | HTMLTextAreaElement, Fo
           {iconRight
             .filter((obj: IconRight) => Object.keys(obj).length)
             .slice(0, 2)
-            .map((icon: IconRight, index: number) => (
+            .map((icon: IconRight, idx: number) => (
             <IconContainer
-              key={index}
+              key={`${icon.icon}-${idx}`}
               onClick={icon?.onClick}
               data-testid={icon.className}
-              className={`icon-container ${icon.className || ''}`}
+              className={`icon-container ${icon.className ?? ''}`}
               $disabled={icon.disabled}
               $size={size}
-              $color={icon.color || color}
-              $hoverColor={icon.hoverColor || color}
+              $color={icon.color ?? color}
+              $hoverColor={icon.hoverColor ?? color}
             >
               <Icon icon={icon.icon} />
             </IconContainer>

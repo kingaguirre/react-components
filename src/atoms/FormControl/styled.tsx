@@ -68,7 +68,7 @@ export const Label = styled.span<{
   position: relative;
   margin-bottom: 8px;
   line-height: 1;
-  font-size: ${({ size }) => `${theme.sizes.label[size || 'md']}px`};
+  font-size: ${({ size }) => `${theme.sizes.label[size ?? 'md']}px`};
   font-family: ${theme.fontFamily};
   color: ${theme.colors.default.dark};
   > span {
@@ -228,6 +228,60 @@ export const TextArea = styled.textarea<{
   min-height: 80px; /* Default height for TextArea */
 `;
 
+const getCustomCheckboxRadio = ({
+  type,
+  color,
+  size,
+  _theme,
+}: {
+  type?: string;
+  color: string;
+  size?: string;
+  _theme: any;
+}) => {
+  if (type === 'radio' && (size === 'xs' || size === 'sm')) {
+    return css`
+      width: 6px;
+      height: 6px;
+      top: 2px;
+      left: 2px;
+      border: none;
+      border-radius: 50%;
+      background-color: ${_theme.colors[color].base};
+    `;
+  } else if (type === 'radio') {
+    return css`
+      width: 8px;
+      height: 8px;
+      top: 3px;
+      left: 3px;
+      border: none;
+      border-radius: 50%;
+      background-color: ${_theme.colors[color].base};
+    `;
+  } else if (size === 'xs' || size === 'sm') {
+    return css`
+      width: 4px;
+      height: 8px;
+      top: 0;
+      left: 3px;
+      border: solid white;
+      border-width: 0 2px 2px 0;
+      position: absolute;
+    `;
+  } else {
+    return css`
+      width: 6px;
+      height: 12px;
+      top: -1px;
+      left: 4px;
+      border: solid white;
+      border-width: 0 2px 2px 0;
+      position: absolute;
+    `;
+  }
+};
+
 export const CustomCheckboxRadio = styled.input<{
   color?: keyof typeof theme.colors;
   size?: keyof typeof theme.sizes.boxSize;
@@ -251,37 +305,7 @@ export const CustomCheckboxRadio = styled.input<{
     pointer-events: none;
     position: relative;
     transform: scale(0) rotate(45deg);
-    ${({ type, color = 'primary', size }) => (type === 'radio' ? `
-      ${(size === 'xs' || size === 'sm') ? `
-        width: 6px;
-        height: 6px;
-        top: 2px;
-        left: 2px;
-      ` : `
-        width: 8px;
-        height: 8px;
-        top: 3px;
-        left: 3px;
-      `}
-      border: none;
-      border-radius: 50%;
-      background-color: ${theme.colors[color].base};
-    ` : `
-      ${(size === 'xs' || size === 'sm') ? `
-        width: 4px;
-        height: 8px;
-        top: 0;
-        left: 3px;
-      ` : `
-        width: 6px;
-        height: 12px;
-        top: -1px;
-        left: 4px;
-      `}
-      border: solid white;
-      border-width: 0 2px 2px 0;
-      position: absolute;
-    `)};
+    ${({ type, color = 'primary', size }) => getCustomCheckboxRadio({ type, color, size, _theme: theme })}
   }
 
   &:focus:not(:disabled) {

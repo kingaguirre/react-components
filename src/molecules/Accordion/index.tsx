@@ -12,7 +12,6 @@ import {
 } from './styled';
 import Icon from '@atoms/Icon';
 import Badge from '@atoms/Badge';
-import Icons from '@atoms/Icon';
 
 export const Accordion: React.FC<AccordionProps> = ({ items, allowMultiple = false }) => {
   // openItems maps each item index to its open state.
@@ -44,8 +43,7 @@ export const Accordion: React.FC<AccordionProps> = ({ items, allowMultiple = fal
     <AccordionContainer>
       {items.map((item, idx) => (
         <AccordionItem
-          key={item.id ?? idx}
-          index={idx}
+          key={`${item.id}-${idx}`}
           {...item} // Spread item props first
           open={!!openItems[idx]} // Then override open and toggle
           toggle={() => toggleItem(idx)}
@@ -56,7 +54,6 @@ export const Accordion: React.FC<AccordionProps> = ({ items, allowMultiple = fal
 };
 
 interface AccordionItemInternalProps extends AccordionItemProps {
-  index: number;
   open: boolean;
   toggle: () => void;
 }
@@ -98,19 +95,17 @@ const AccordionItem: React.FC<AccordionItemInternalProps> = ({
         <Icon icon={open ? 'remove' : 'add'} />
         <AccordionTitle className="accordion-title" $color={color}>{title}</AccordionTitle>
         {rightContent && <AccordionRightContent className="accordion-right-content">{rightContent}</AccordionRightContent>}
-        {rightDetails &&
-          rightDetails.map((detail: AccordionItemDetail, idx: number) => {
+        {rightDetails?.map((detail: AccordionItemDetail, idx: number) => {
             // Only render if at least one property is defined.
             if (!detail.icon && !detail.value && !detail.text) return null;
+
             return (
               <AccordionDetailContainer
-                key={idx}
+                key={`${detail?.icon}-${idx}`}
                 className="accordion-detail-container"
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (detail.onClick) {
-                    detail.onClick();
-                  }
+                  detail.onClick?.();
                 }}
               >
                 {detail.value && (
@@ -119,7 +114,7 @@ const AccordionItem: React.FC<AccordionItemInternalProps> = ({
                   </Badge>
                 )}
                 {detail.icon && (
-                  <Icons icon={detail.icon} color={detail.iconColor ?? detail.color ?? color} />
+                  <Icon icon={detail.icon} color={detail.iconColor ?? detail.color ?? color} />
                 )}
                 {detail.text && (
                   <span style={{ color: detail.textColor ?? detail.color ?? color }}>

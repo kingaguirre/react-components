@@ -1,7 +1,60 @@
 // src/atoms/Button/styled.tsx
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 import { ButtonProps } from "./interface";
 import { theme } from "../../styles/theme";
+import { ifElse } from "@utils/index";
+
+const getVariantStyles = ({
+  $variant,
+  $color,
+  _theme,
+}: {
+  $variant?: string;
+  $color: string;
+  _theme: any
+}) => {
+  if ($variant === 'outlined') {
+    return css`
+      background: transparent;
+      > span {
+        color: ${_theme.colors[$color].base};
+      }
+      &:hover {
+        background: ${_theme.colors[$color].base};
+        > span {
+          color: white;
+        }
+      }
+    `
+  } else if ($variant === 'link') {
+    return css`
+      background: transparent;
+      border-color: transparent;
+      > span {
+        color: ${_theme.colors[$color].base};
+        text-decoration: underline;
+      }
+      &:hover {
+        > span {
+          color: ${_theme.colors[$color].dark};
+        }
+      }
+    `
+  } else {
+    return css`
+      background: ${_theme.colors[$color].base};
+      &.active {
+        background: ${_theme.colors[$color].dark};
+      }
+      > span {
+        color: white;
+      }
+      &:hover {
+        background: ${_theme.colors[$color].dark};
+      }
+    `
+  }
+}
 
 export const ButtonContainer = styled.button<{
   $color: NonNullable<ButtonProps["color"]>;
@@ -36,46 +89,7 @@ export const ButtonContainer = styled.button<{
     color: white;
   }
 
-  ${({ $variant, $color }) =>
-    $variant === "outlined"
-      ? `
-        background: transparent;
-        > span {
-          color: ${theme.colors[$color].base};
-        }
-        &:hover {
-          background: ${theme.colors[$color].base};
-          > span {
-            color: white;
-          }
-        }
-      `
-      : $variant === "link"
-      ? `
-        background: transparent;
-        border-color: transparent;
-        > span {
-          color: ${theme.colors[$color].base};
-          text-decoration: underline;
-        }
-        &:hover {
-          > span {
-            color: ${theme.colors[$color].dark};
-          }
-        }
-      `
-      : `
-        background: ${theme.colors[$color].base};
-        &.active {
-          background: ${theme.colors[$color].dark};
-        }
-        > span {
-          color: white;
-        }
-        &:hover {
-          background: ${theme.colors[$color].dark};
-        }
-      `}
+  ${({ $variant, $color }) => getVariantStyles({ $variant, $color, _theme: theme })}
 
   &:focus {
     outline: none;
@@ -108,7 +122,7 @@ export const ButtonContainer = styled.button<{
         color: ${theme.colors[$color].light};
       }
     ` : `
-      background: ${$variant === "outlined" ? 'transparent' : theme.colors[$color].pale};
+      background: ${ifElse($variant === "outlined", 'transparent', theme.colors[$color].pale)};
       border: 1px solid ${theme.colors[$color].lighter};
       > span {
         color: ${theme.colors.default.dark};

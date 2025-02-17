@@ -42,7 +42,9 @@
           ["@components", "./src/components"],
           ["@atoms", "./src/atoms"],
           ["@molecules", "./src/molecules"],
-          ["@organisms", "./src/organisms"]
+          ["@organisms", "./src/organisms"],
+          ["@utils", "./src/utils"],
+          ["@common", "./src/common"]
         ],
         "extensions": [".ts", ".tsx", ".js", ".jsx"]
       }
