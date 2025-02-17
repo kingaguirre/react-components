@@ -330,7 +330,8 @@ export const Dropdown: React.FC<DropdownProps> = ({
         }, 0);
       }
     } else {
-      setSelectedValue(undefined);
+      // For single-select, reset the value to an empty string.
+      setSelectedValue("");
       onChange?.("");
       // For single-select, open the dropdown and focus the FormControl.
       setIsOpen(true);

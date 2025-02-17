@@ -1,6 +1,7 @@
 import { DatePickerProps } from './interface';
 
-export const formatDate = (input: Date | [Date | null, Date | null] | null): string | null => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const formatDate = (input: any): string | null => {
   if (!input) return null;
 
   const format = (date: Date | null): string | null => {

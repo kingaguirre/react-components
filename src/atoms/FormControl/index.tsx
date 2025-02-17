@@ -95,12 +95,12 @@ export const FormControl = forwardRef<HTMLInputElement | HTMLTextAreaElement, Fo
     if (onChange) onChange(event);
   }
 
-  const getRef = (node) => {
+  const getRef = (node: HTMLInputElement | null): void => {
     inputRef.current = node;
-    if (typeof ref === 'function') {
+    if (typeof ref === "function") {
       ref(node);
     } else if (ref) {
-      (ref).current = node;
+      (ref as React.MutableRefObject<HTMLInputElement | null>).current = node;
     }
   };
 

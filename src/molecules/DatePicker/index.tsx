@@ -42,7 +42,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     setDate(parseDateRange(selectedDate));
   }, [selectedDate]);
 
-  const handleChange = (newDate: Date | [Date | null, Date | null] | null) => {
+  const handleChange = (newDate: DatePickerProps["selectedDate"]) => {
     if (range) {
       if (Array.isArray(newDate)) {
         const [start, end] = newDate;
@@ -116,10 +116,8 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         minDate={minDate}
         maxDate={maxDate}
         customInput={<CustomInput />}
-        {...(range ? {
-          selectsRange: true,
-          selectsMultiple: false
-        } : {})}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        selectsRange={range as any}
       />
     </DatePickerContainer>
   );

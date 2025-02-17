@@ -2,9 +2,10 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import Tabs from "./index";
+import { TabItemProps } from "./interface";
 
 // Original tabsData where Tab 3 is disabled
-const tabsData: unknown = [
+const tabsData: TabItemProps[] = [
   {
     title: "Tab 1",
     content: <div>Content 1</div>,
@@ -26,7 +27,7 @@ const tabsData: unknown = [
 ];
 
 // New test data with all tabs enabled for nav control testing
-const enabledTabsData: unknown = [
+const enabledTabsData: TabItemProps[] = [
   {
     title: "Tab 1",
     content: <div>Content 1</div>,

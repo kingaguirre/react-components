@@ -1,4 +1,4 @@
-// src/atoms/Tooltip/Tooltip.test.tsx
+// src/atoms/Tooltip/_test.tsx
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import Tooltip from "./index";
