@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { AccordionProps, AccordionItemProps } from './interface';
+import { AccordionProps, AccordionItemProps, AccordionItemDetail } from './interface';
 import {
   AccordionContainer,
   AccordionItemWrapper,
@@ -99,7 +99,7 @@ const AccordionItem: React.FC<AccordionItemInternalProps> = ({
         <AccordionTitle className="accordion-title" $color={color}>{title}</AccordionTitle>
         {rightContent && <AccordionRightContent className="accordion-right-content">{rightContent}</AccordionRightContent>}
         {rightDetails &&
-          rightDetails.map((detail, idx) => {
+          rightDetails.map((detail: AccordionItemDetail, idx: number) => {
             // Only render if at least one property is defined.
             if (!detail.icon && !detail.value && !detail.text) return null;
             return (
@@ -108,7 +108,9 @@ const AccordionItem: React.FC<AccordionItemInternalProps> = ({
                 className="accordion-detail-container"
                 onClick={(e) => {
                   e.stopPropagation();
-                  detail.onClick && detail.onClick();
+                  if (detail.onClick) {
+                    detail.onClick();
+                  }
                 }}
               >
                 {detail.value && (

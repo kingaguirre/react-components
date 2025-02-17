@@ -37,8 +37,8 @@ export const Default: StoryObj<typeof meta> = {
 
 export const Examples = () => {
   // Examples that use constant options.
-  const [selected, setSelected] = useState<any>("option1");
-  const [selectedMulti, setSelectedMulti] = useState<any>(["option1", "option2"]);
+  const [selected, setSelected] = useState<string>("option1");
+  const [selectedMulti, setSelectedMulti] = useState<string[]>(["option1", "option2"]);
   const [disabled, setDisabled] = useState(false);
 
   // State for toggling filterAtBeginning in single-select example.
@@ -77,7 +77,7 @@ export const Examples = () => {
 
       <Title>Sizes (Multi-Select)</Title>
       <Grid>
-        {["xs", "sm", "md", "lg", "xl"].map((size: any) => (
+        {(["xs", "sm", "md", "lg", "xl"] as const).map((size) => (
           <GridItem xs={12} sm={6} md={4} key={size}>
             <Dropdown
               multiselect
@@ -116,7 +116,10 @@ export const Examples = () => {
             label="Pre-selected"
             options={DEFAULT_OPTIONS}
             value={selected}
-            onChange={setSelected}
+            onChange={(value: string | string[]) => {
+              const newValue = Array.isArray(value) ? value[0] : value;
+              setSelected(newValue);
+            }}
             helpText="Pre-selected value example."
           />
           <Button size="sm" onClick={() => setSelected("option2")}>
@@ -147,7 +150,11 @@ export const Examples = () => {
             options={DEFAULT_OPTIONS}
             multiselect
             value={selectedMulti}
-            onChange={setSelectedMulti}
+            onChange={(value: string | string[]) => {
+              // If a single string is passed, wrap it in an array
+              const newValue = typeof value === "string" ? [value] : value;
+              setSelectedMulti(newValue);
+            }}
             filter
             helpText="Multi-select dropdown example."
           />

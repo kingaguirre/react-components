@@ -6,9 +6,9 @@ export interface AccordionItemDetail {
   icon?: string;
   text?: string;
   color?: "primary" | "success" | "warning" | "danger" | "info" | "default";
-  iconColor?: "primary" | "success" | "warning" | "danger" | "info" | "default" | string;
-  valueColor?: "primary" | "success" | "warning" | "danger" | "info" | "default" | string;
-  textColor?: "primary" | "success" | "warning" | "danger" | "info" | "default" | string;
+  iconColor?: "primary" | "success" | "warning" | "danger" | "info" | "default";
+  valueColor?: "primary" | "success" | "warning" | "danger" | "info" | "default";
+  textColor?: "primary" | "success" | "warning" | "danger" | "info" | "default";
   onClick?: () => void;
 }
 

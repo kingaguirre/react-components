@@ -8,7 +8,7 @@ export const DropdownContainer = styled.div`
   width: 100%;
 `;
 
-export const DropdownList = styled.ul<{ $size: keyof typeof theme.sizes.boxSize; $position: any }>`
+export const DropdownList = styled.ul<{ $size: keyof typeof theme.sizes.boxSize; $position: string }>`
   background-color: white;
   position: fixed;
   max-height: ${({ $size }) => theme.sizes.boxSize[$size] * 5}px;

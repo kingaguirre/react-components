@@ -96,7 +96,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
         previousDisplayRef.current = "";
       }
     }
-  }, [value, options, isMulti]);
+  }, [value, options, isMulti, selectedValue]);
   // --- END SYNC EFFECT ---
 
   // Filtering effect.
@@ -461,7 +461,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
             placeholder="Filter options..."
             value={filterText}
             size="sm"
-            onChange={(e: any) => {
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
               setFilterText(e.target.value);
               setHasTyped(true);
             }}
@@ -508,7 +508,6 @@ export const Dropdown: React.FC<DropdownProps> = ({
         {...rest}
         ref={formControlRef}
         type="text"
-        autoComplete="off"
         value={
           isMulti
             ? displayValue

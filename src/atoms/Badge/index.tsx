@@ -15,7 +15,7 @@ export const Badge: React.FC<BadgeProps> = ({
   return (
     <BadgeContainer
       className="badge"
-      $color={color as any}
+      $color={color}
       $size={size}
       $borderRadius={borderRadius}
       $disabled={disabled}

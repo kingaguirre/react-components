@@ -1,4 +1,3 @@
-import React, { forwardRef } from "react";
 import { ButtonContainer } from "./styled";
 import { ButtonProps } from "./interface";
 
@@ -12,7 +11,7 @@ export const Button = ({
   disabled = false,
   className = "",
   active = undefined,
-  ...rest
+  onClick
 }: ButtonProps) => {
   return (
     <ButtonContainer
@@ -28,7 +27,7 @@ export const Button = ({
       $fullWidth={fullWidth}
       disabled={disabled}
       className={`button ${className} ${disabled ? "disabled" : ""} ${active ? "active" : ""}`.trim()}
-      {...rest}
+      onClick={onClick}
     >
       <span>{children}</span>
     </ButtonContainer>

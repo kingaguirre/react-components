@@ -1,3 +1,5 @@
+import { DatePickerProps } from './interface';
+
 export const formatDate = (input: Date | [Date | null, Date | null] | null): string | null => {
   if (!input) return null;
 
@@ -17,7 +19,7 @@ export const formatDate = (input: Date | [Date | null, Date | null] | null): str
 };
 
 export const parseDateRange = (
-  input?: string | Date | [string, string] | [Date | null, Date | null]
+  input?: DatePickerProps["selectedDate"]
 ): string | [string, string] | null => {
   if (!input) return null;
 
@@ -65,7 +67,7 @@ const parseCustomDate = (date: string | Date): Date | null => {
   ];
 
   for (const format of formats) {
-    const parsedDate = tryParseDate(date as any, format);
+    const parsedDate = tryParseDate(date as string, format);
     if (parsedDate) return parsedDate;
   }
 

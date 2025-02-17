@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react";
 import styled from "styled-components";
 import { Icon } from "./index";
 import { StoryWrapper, Title } from "@components/StoryWrapper";
-import { ICONS } from './data';
+import { ICONS } from "./data";
 
 const meta = {
   title: "Atoms/Icon",
@@ -64,13 +64,16 @@ const IconItem = styled.div<{ $isCopied: boolean }>`
   border-radius: 5px;
   transition: all 0.3s ease-in-out;
   color: #444;
-  ${({ $isCopied }) => ($isCopied ? `
+  ${({ $isCopied }) =>
+    $isCopied
+      ? `
     box-shadow: inset 0 0 0 .1875em #ffbb4d;
     background-color: white;
-  ` : `
+  `
+      : `
     box-shadow: none;
     background-color: #ddd;
-  `)};
+  `};
 `;
 
 const CopiedMessage = styled.div`
@@ -85,48 +88,55 @@ const CopiedMessage = styled.div`
   letter-spacing: 1px;
 `;
 
-// 📌 Updated Story with Search Functionality
+// Create a proper React component to use hooks
+const IconGalleryComponent = () => {
+  const [copiedIcon, setCopiedIcon] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+
+  const handleIconClick = (icon: string) => {
+    navigator.clipboard.writeText(icon).then(() => {
+      setCopiedIcon(icon);
+      // Uncomment below to auto-hide the copied message after 2 seconds
+      // setTimeout(() => setCopiedIcon(null), 2000);
+    });
+  };
+
+  const filteredIcons = ICONS.filter((icon) =>
+    icon.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <StoryWrapper title="Icon Gallery">
+      <SearchBox
+        type="text"
+        placeholder="Search icons..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+      />
+      <Title>
+        Click an Icon to Copy its Name
+        {copiedIcon && <CopiedMessage>Copied: {copiedIcon}</CopiedMessage>}
+      </Title>
+      <IconGrid>
+        {filteredIcons.length > 0 ? (
+          filteredIcons.map((icon) => (
+            <IconItem
+              key={icon}
+              $isCopied={copiedIcon === icon}
+              onClick={() => handleIconClick(icon)}
+            >
+              <Icon icon={icon} size="30px" />
+            </IconItem>
+          ))
+        ) : (
+          <p style={{ whiteSpace: "nowrap" }}>No icons found</p>
+        )}
+      </IconGrid>
+    </StoryWrapper>
+  );
+};
+
 export const IconGallery = {
   tags: ["!autodocs"],
-  render: () => {
-    const [copiedIcon, setCopiedIcon] = useState<string | null>(null);
-    const [search, setSearch] = useState("");
-
-    const handleIconClick = (icon: string) => {
-      navigator.clipboard.writeText(icon).then(() => {
-        setCopiedIcon(icon);
-        // setTimeout(() => setCopiedIcon(null), 2000); // Auto-hide after 2s
-      });
-    };
-
-    const filteredIcons = ICONS.filter((icon) =>
-      icon.toLowerCase().includes(search.toLowerCase())
-    );
-
-    return (
-      <StoryWrapper title="Icon Gallery">
-        <SearchBox
-          type="text"
-          placeholder="Search icons..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <Title>
-          Click an Icon to Copy its Name
-          {copiedIcon && <CopiedMessage>Copied: {copiedIcon}</CopiedMessage>}
-        </Title>
-        <IconGrid>
-          {filteredIcons.length > 0 ? (
-            filteredIcons.map((icon) => (
-              <IconItem key={icon} $isCopied={copiedIcon === icon} onClick={() => handleIconClick(icon)}>
-                <Icon icon={icon} size="30px" />
-              </IconItem>
-            ))
-          ) : (
-            <p style={{whiteSpace: 'nowrap'}}>No icons found</p>
-          )}
-        </IconGrid>
-      </StoryWrapper>
-    );
-  },
+  render: () => <IconGalleryComponent />,
 };

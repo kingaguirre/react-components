@@ -1,7 +1,7 @@
 // src/molecules/Accordion/Accordion.test.tsx
-import React from 'react';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen} from '@testing-library/react';
 import Accordion from './index';
+import { AccordionItemProps } from './interface';
 import { vi } from 'vitest';
 import '@testing-library/jest-dom';
 
@@ -13,7 +13,7 @@ class ResizeObserver {
 }
 global.ResizeObserver = ResizeObserver;
 
-const items: any = [
+const items: AccordionItemProps[] = [
   { title: 'Item 1', children: <div>Content 1</div>, color: 'primary' },
   { title: 'Item 2', children: <div>Content 2</div>, color: 'success' },
 ];

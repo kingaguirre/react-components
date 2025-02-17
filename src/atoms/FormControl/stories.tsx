@@ -1,8 +1,8 @@
-// src/atoms/FormControl/stories.tsx
-import { useState } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+
+import { useState, useRef } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { FormControl } from './index';
-import { useRef } from 'react';
 import { StoryWrapper, Title } from '@components/StoryWrapper';
 import { Grid, GridItem } from '@atoms/Grid';
 import { Button } from '@atoms/Button';
@@ -14,17 +14,17 @@ const meta = {
     type: {
       control: 'select',
       options: [
-        "text",
-        "password",
-        "email",
-        "number",
-        "checkbox",
-        "radio",
-        "checkbox-group",
-        "radio-group",
-        "switch-group",
-        "switch",
-        "textarea",
+        'text',
+        'password',
+        'email',
+        'number',
+        'checkbox',
+        'radio',
+        'checkbox-group',
+        'radio-group',
+        'switch-group',
+        'switch',
+        'textarea',
       ],
     },
     variant: {
@@ -36,7 +36,7 @@ const meta = {
 
 export default meta;
 
-// Default story
+/** ✅ Default story */
 export const Default: StoryObj<typeof meta> = {
   args: {
     label: 'Primary Label',
@@ -48,22 +48,24 @@ export const Default: StoryObj<typeof meta> = {
     readOnly: false,
     required: false,
     variant: undefined,
-    text: "",
-    placeholder: "Enter text here...",
+    text: '',
+    placeholder: 'Enter text here...',
     isVerticalOptions: false,
   },
   tags: ['!dev'],
 };
 
-const COLORS = ['primary', 'info', 'success', 'warning', 'danger', 'default'];
-const VARIANTS = ['default', 'outlined'];
-const SIZES = ['xs', 'sm', 'md', 'lg', 'xl'];
+// --- Constants & helper functions ---
+const COLORS = ['primary', 'info', 'success', 'warning', 'danger', 'default'] as const;
+const VARIANTS = ['default', 'outlined'] as const;
+const SIZES = ['xs', 'sm', 'md', 'lg', 'xl'] as const;
 const SAMPLE_OPTIONS = [
   { value: 'option1', text: 'Option 1' },
   { value: 'option2', text: 'Option 2', disabled: true },
   { value: 'option3', text: 'Option 3' },
 ];
 
+// These helpers don't use hooks so we can keep them as functions.
 const generateColorStories = (type: string, md = 4) => (
   <Grid>
     {COLORS.map((color) => (
@@ -77,7 +79,6 @@ const generateColorStories = (type: string, md = 4) => (
           options={SAMPLE_OPTIONS}
           name={`name-${color}`}
           text="Click Me!"
-          // iconRight={[{ icon: "clear" }, { icon: "calendar_today", disabled: true}, { icon: "calendar_today", disabled: true}]}
         />
         <FormControl
           type={type}
@@ -89,7 +90,6 @@ const generateColorStories = (type: string, md = 4) => (
           options={SAMPLE_OPTIONS}
           name={`name-${color}-disabled`}
           text="Click Me!"
-          // iconRight={[{ icon: "clear" }, { icon: "calendar_today"}]}
         />
       </GridItem>
     ))}
@@ -132,7 +132,10 @@ const generateSizeStories = (type: string, md = 4) => (
   </Grid>
 );
 
-const generateFormPropsStories = (type: string) => {
+// --- Components that use hooks must be proper React components ---
+
+// Renamed from generateFormPropsStories -> FormPropsStories
+const FormPropsStories: React.FC<{ type: string }> = ({ type }) => {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const handleFocus = () => {
     if (inputRef.current) {
@@ -142,7 +145,7 @@ const generateFormPropsStories = (type: string) => {
 
   const handleCheckValidity = () => {
     if (inputRef.current) {
-      console.log(inputRef.current.validity)
+      console.log(inputRef.current.validity);
       alert(inputRef.current.validity.valid ? 'Valid input!' : 'Invalid input!');
     }
   };
@@ -152,12 +155,31 @@ const generateFormPropsStories = (type: string) => {
       <Title>Form Props</Title>
       <Grid>
         <GridItem xs={12} sm={6} md={4}>
-          <FormControl type={type} label="Required" helpText="This input is required" required placeholder="Must not be null" />
-          <FormControl type={type} disabled label="Required" helpText="This input is required and disabled" required placeholder="Must not be null" />
+          <FormControl
+            type={type}
+            label="Required"
+            helpText="This input is required"
+            required
+            placeholder="Must not be null"
+          />
+          <FormControl
+            type={type}
+            disabled
+            label="Required"
+            helpText="This input is required and disabled"
+            required
+            placeholder="Must not be null"
+          />
         </GridItem>
         {type === 'text' && (
           <GridItem xs={12} sm={6} md={4}>
-            <FormControl type={type} label="Format: XXX-XX-XXXX (Alphanumeric)" helpText="This input has a pattern (ABC-12-XYZ9)" pattern="[A-Za-z0-9]{3}-[A-Za-z0-9]{2}-[A-Za-z0-9]{4}" placeholder="ABC-12-XYZ9" />
+            <FormControl
+              type={type}
+              label="Format: XXX-XX-XXXX (Alphanumeric)"
+              helpText="This input has a pattern (ABC-12-XYZ9)"
+              pattern="[A-Za-z0-9]{3}-[A-Za-z0-9]{2}-[A-Za-z0-9]{4}"
+              placeholder="ABC-12-XYZ9"
+            />
           </GridItem>
         )}
         {(type === 'text' || type === 'textarea') && (
@@ -171,11 +193,11 @@ const generateFormPropsStories = (type: string) => {
         {type === 'text' && (
           <GridItem xs={12}>
             <FormControl
-              ref={inputRef} // Pass the ref to the FormControl
+              ref={inputRef}
               label="Username"
               helpText="Enter your username (alphanumeric only)"
               required
-              pattern="^[a-zA-Z0-9]+$" // Only alphanumeric characters are allowed
+              pattern="^[a-zA-Z0-9]+$"
               placeholder="Enter username"
             />
             <div style={{ marginTop: '1rem' }}>
@@ -188,7 +210,7 @@ const generateFormPropsStories = (type: string) => {
         )}
         {(type === 'checkbox' || type === 'radio' || type === 'switch') && (
           <GridItem xs={12} sm={6} md={4}>
-            {(type === 'checkbox' || type === 'switch') ? (
+            {type === 'checkbox' || type === 'switch' ? (
               <FormControl type={type} label={`${type} with text`} helpText={`This ${type} has a text prop`} text="Click me!" />
             ) : (
               <FormControl type="radio" label="Radio with Text" helpText="This radio button has a text prop" text="Select this option" />
@@ -200,76 +222,8 @@ const generateFormPropsStories = (type: string) => {
   );
 };
 
-const Text: StoryObj = {
-  tags: ['!autodocs'],
-  render: () => (
-    <StoryWrapper title="Text Input">
-      <Title>Colors</Title>
-      {generateColorStories('text')}
-      <Title>Variants</Title>
-      {generateVariantStories('text')}
-      <Title>Sizes</Title>
-      {generateSizeStories('text')}
-      {generateFormPropsStories('text')}
-    </StoryWrapper>
-  ),
-};
-
-const TextArea: StoryObj = {
-  tags: ['!autodocs'],
-  render: () => (
-    <StoryWrapper title="Textarea">
-      <Title>Colors</Title>
-      {generateColorStories('textarea')}
-      <Title>Variants</Title>
-      {generateVariantStories('textarea')}
-      <Title>Sizes</Title>
-      {generateSizeStories('textarea')}
-      {generateFormPropsStories('textarea')}
-    </StoryWrapper>
-  ),
-};
-
-const Checkbox: StoryObj = {
-  tags: ['!autodocs'],
-  render: () => (
-    <StoryWrapper title="Checkbox">
-      <Title>Colors</Title>
-      {generateColorStories('checkbox')}
-      <Title>Sizes</Title>
-      {generateSizeStories('checkbox')}
-      {generateFormPropsStories('checkbox')}
-    </StoryWrapper>
-  ),
-};
-
-const Radio: StoryObj = {
-  tags: ['!autodocs'],
-  render: () => (
-    <StoryWrapper title="Radio">
-      <Title>Colors</Title>
-      {generateColorStories('radio')}
-      <Title>Sizes</Title>
-      {generateSizeStories('radio')}
-      {generateFormPropsStories('radio')}
-    </StoryWrapper>
-  ),
-};
-
-const Switch: StoryObj = {
-  tags: ['!autodocs'],
-  render: () => (
-    <StoryWrapper title="Switch">
-      <Title>Colors</Title>
-      {generateColorStories('switch')}
-      <Title>Sizes</Title>
-      {generateSizeStories('switch')}
-      {generateFormPropsStories('switch')}
-    </StoryWrapper>
-  ),
-};
-
-const generateGroupStories = (type: string) => {
+// Renamed from generateGroupStories -> GroupStories
+const GroupStories: React.FC<{ type: string }> = ({ type }) => {
   const [selectedValue, setSelectedValue] = useState<string>('option2,option3');
   const [options, setOptions] = useState(SAMPLE_OPTIONS);
   const [disabled, setDisabled] = useState(false);
@@ -285,9 +239,8 @@ const generateGroupStories = (type: string) => {
     if (options.length > 1) setOptions(options.slice(0, -1));
   };
   const handleToggleDisabled = () => setDisabled(!disabled);
-  
   const handleToggleVertical = () => setIsVerticalOptions(!isVerticalOptions);
-  const handleChange = (value: string) => setSelectedValue(value); // Updates value dynamically
+  const handleChange = (value: string) => setSelectedValue(value);
 
   return (
     <StoryWrapper title={`${type.charAt(0).toUpperCase() + type.slice(1)}`}>
@@ -296,58 +249,135 @@ const generateGroupStories = (type: string) => {
       <Title>Sizes</Title>
       {generateSizeStories(type)}
       <Title>Form Props</Title>
-
-        <Grid>
+      <Grid>
         <GridItem xs={12} sm={6}>
-          <FormControl name="form-control-1" type={type} label="Required" required options={options} helpText={`This is required ${type}`}/>
+          <FormControl name="form-control-1" type={type} label="Required" required options={options} helpText={`This is required ${type}`} />
         </GridItem>
         <GridItem xs={12} sm={6}>
-          <FormControl name="form-control-2" type={type} label="Pre-Selected" value={selectedValue} options={options} onChange={handleChange}/>
-          <div style={{ marginTop: '1rem' }}>
-            <Button size="sm" onClick={handleSetValue} style={{ marginRight: '0.5rem' }}>Set Value</Button>
+          <FormControl name="form-control-2" type={type} label="Pre-Selected" value={selectedValue} options={options} onChange={handleChange} />
+          <div style={{ display: 'flex', gap: '6px', marginTop: '1rem' }}>
+            <Button size="sm" onClick={handleSetValue}>Set Value</Button>
             <Button size="sm" onClick={handleClearValue} color="danger">Clear Value</Button>
           </div>
-          <p>Current Value: <strong>{selectedValue.toString()}</strong></p>
+          <p>
+            Current Value: <strong>{selectedValue.toString()}</strong>
+          </p>
         </GridItem>
         <GridItem xs={12} sm={6}>
-          <FormControl name="form-control-3" type={type} label="Disabled" disabled={disabled} options={options}/>
+          <FormControl name="form-control-3" type={type} label="Disabled" disabled={disabled} options={options} />
           <div style={{ marginTop: '1rem' }}>
-            <Button size="sm" onClick={handleToggleDisabled} color="warning">Toggle Disabled</Button>
+            <Button size="sm" onClick={handleToggleDisabled} color="warning">
+              Toggle Disabled
+            </Button>
           </div>
-          <p>Status: <strong>{disabled ? 'Disabled' : 'Enabled'}</strong></p>
+          <p>
+            Status: <strong>{disabled ? 'Disabled' : 'Enabled'}</strong>
+          </p>
         </GridItem>
         <GridItem xs={12} sm={6}>
-          <FormControl name="form-control-4" type={type} label="Dynamic Options" options={options} isVerticalOptions={isVerticalOptions}/>
+          <FormControl name="form-control-4" type={type} label="Dynamic Options" options={options} isVerticalOptions={isVerticalOptions} />
           <div style={{ marginTop: '1rem', gap: 8, display: 'flex', flexWrap: 'wrap' }}>
             <Button size="sm" onClick={handleAddOption}>Add Option</Button>
             <Button size="sm" onClick={handleRemoveOption} color="danger">Remove Option</Button>
             <Button size="sm" onClick={handleToggleVertical}>Toggle vertical align</Button>
           </div>
-          <p>Options Count: <strong>{options.length}</strong></p>
+          <p>
+            Options Count: <strong>{options.length}</strong>
+          </p>
         </GridItem>
       </Grid>
     </StoryWrapper>
-  )
+  );
+};
+
+// --- Story Definitions ---
+const Text: StoryObj = {
+  tags: ['!autodocs'],
+  render: () => (
+    <StoryWrapper title="Text Input">
+      <Title>Colors</Title>
+      {generateColorStories('text')}
+      <Title>Variants</Title>
+      {generateVariantStories('text')}
+      <Title>Sizes</Title>
+      {generateSizeStories('text')}
+      <FormPropsStories type="text" />
+    </StoryWrapper>
+  ),
+};
+
+const TextArea: StoryObj = {
+  tags: ['!autodocs'],
+  render: () => (
+    <StoryWrapper title="Textarea">
+      <Title>Colors</Title>
+      {generateColorStories('textarea')}
+      <Title>Variants</Title>
+      {generateVariantStories('textarea')}
+      <Title>Sizes</Title>
+      {generateSizeStories('textarea')}
+      <FormPropsStories type="textarea" />
+    </StoryWrapper>
+  ),
+};
+
+const Checkbox: StoryObj = {
+  tags: ['!autodocs'],
+  render: () => (
+    <StoryWrapper title="Checkbox">
+      <Title>Colors</Title>
+      {generateColorStories('checkbox')}
+      <Title>Sizes</Title>
+      {generateSizeStories('checkbox')}
+      <FormPropsStories type="checkbox" />
+    </StoryWrapper>
+  ),
+};
+
+const Radio: StoryObj = {
+  tags: ['!autodocs'],
+  render: () => (
+    <StoryWrapper title="Radio">
+      <Title>Colors</Title>
+      {generateColorStories('radio')}
+      <Title>Sizes</Title>
+      {generateSizeStories('radio')}
+      <FormPropsStories type="radio" />
+    </StoryWrapper>
+  ),
+};
+
+const Switch: StoryObj = {
+  tags: ['!autodocs'],
+  render: () => (
+    <StoryWrapper title="Switch">
+      <Title>Colors</Title>
+      {generateColorStories('switch')}
+      <Title>Sizes</Title>
+      {generateSizeStories('switch')}
+      <FormPropsStories type="switch" />
+    </StoryWrapper>
+  ),
 };
 
 const CheckboxGroup: StoryObj = {
   tags: ['!autodocs'],
-  render: () => generateGroupStories('checkbox-group'),
+  render: () => <GroupStories type="checkbox-group" />,
 };
 
 const RadioGroup: StoryObj = {
   tags: ['!autodocs'],
-  render: () => generateGroupStories('radio-group'),
+  render: () => <GroupStories type="radio-group" />,
 };
 
 const SwitchGroup: StoryObj = {
   tags: ['!autodocs'],
-  render: () => generateGroupStories('switch-group'),
+  render: () => <GroupStories type="switch-group" />,
 };
 
 const RadioButtonGroup: StoryObj = {
   tags: ['!autodocs'],
-  render: () => generateGroupStories('radio-button-group'),
+  render: () => <GroupStories type="radio-button-group" />,
 };
 
 export { Text, TextArea, Checkbox, Radio, Switch, CheckboxGroup, RadioGroup, SwitchGroup, RadioButtonGroup };

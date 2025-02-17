@@ -29,7 +29,7 @@ export const Default: StoryObj<typeof meta> = {
     children: "!",
     color: "primary",
     size: "md",
-    borderRadius: "",
+    borderRadius: undefined,
     width: "",
     disabled: false,
   },
@@ -45,8 +45,8 @@ export const Examples = {
       {/* ✅ Color Variants */}
       <Title>Color Variants</Title>
       <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-        {["primary", "success", "warning", "danger", "info", "default"].map((color) => (
-          <Badge key={color} color={color as any}>
+        {(["primary", "success", "warning", "danger", "info", "default"] as const).map((color) => (
+          <Badge key={color} color={color}>
             {color.charAt(0).toUpperCase() + color.slice(1)}
           </Badge>
         ))}
@@ -55,8 +55,8 @@ export const Examples = {
       {/* ✅ Outlined Badges */}
       <Title>Outlined Badges</Title>
       <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-        {["primary", "success", "warning", "danger", "info", "default"].map((color) => (
-          <Badge key={color} color={color as any} outlined>
+        {(["primary", "success", "warning", "danger", "info", "default"] as const).map((color) => (
+          <Badge key={color} color={color} outlined>
             {color.charAt(0).toUpperCase() + color.slice(1)}
           </Badge>
         ))}
@@ -65,8 +65,8 @@ export const Examples = {
       {/* ✅ Disabled Badges */}
       <Title>Disabled Badges</Title>
       <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-        {["primary", "success", "warning", "danger", "info", "default"].map((color) => (
-          <Badge key={color} color={color as any} disabled>
+        {(["primary", "success", "warning", "danger", "info", "default"] as const).map((color) => (
+          <Badge key={color} color={color} disabled>
             {color.charAt(0).toUpperCase() + color.slice(1)} (Disabled)
           </Badge>
         ))}

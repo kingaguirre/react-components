@@ -4,7 +4,7 @@ import ReactDatePicker from "react-datepicker";
 import { formatDate, parseDateRange } from './utils';
 import "react-datepicker/dist/react-datepicker.css";
 import { DatePickerContainer, CustomInputWrapper, DatePickerGlobalStyles } from "./styled";
-import { DatePickerProps } from "./interface";
+import { DatePickerProps, CustomInputProps } from "./interface";
 import FormControl from "@atoms/FormControl";
 
 let globalStylesInjected = false; // Singleton flag
@@ -22,7 +22,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   maxDate,
   helpText
 }) => {
-  const [date, setDate] = useState<any>(selectedDate || null);
+  const [date, setDate] = useState<DatePickerProps["selectedDate"]>(selectedDate || null);
   const [hasInjected, setHasInjected] = useState(false);
 
   useEffect(() => {
@@ -58,7 +58,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     }
   };
   
-  const handleClear = (e: React.MouseEvent, onClick: any) => {
+  const handleClear = (e: React.MouseEvent, onClick?: () => void) => {
     e.stopPropagation(); // Prevents opening the date picker
     setDate(null);
     onChange?.(null);
@@ -66,7 +66,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   };
 
   // Custom Input using FormControl
-  const CustomInput = ({ value, onClick }: any) => (
+  const CustomInput: React.FC<CustomInputProps> = ({ value, onClick = () => {} }) => (
     <CustomInputWrapper $value={value}>
       <FormControl
         label={label}
@@ -80,17 +80,19 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         helpText={helpText}
         onClick={onClick} // Opens the DatePicker on click
         iconRight={[
-          {...(value ? {
-            icon: "clear",
-            onClick: (e: React.MouseEvent) => handleClear(e, onClick),
-            color: 'default',
-            hoverColor: 'danger',
-            className: 'clear-icon'
-          } : {})},
+          value
+            ? {
+                icon: "clear",
+                onClick: (e: React.MouseEvent<HTMLElement>) => handleClear(e, onClick),
+                color: "default",
+                hoverColor: "danger",
+                className: "clear-icon",
+              }
+            : {},
           {
             icon: "calendar_today",
             onClick,
-          }
+          },
         ]}
       />
     </CustomInputWrapper>
@@ -100,11 +102,10 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     <DatePickerContainer className={`date-picker ${color}`}>
       {hasInjected && <DatePickerGlobalStyles />} {/* Only inject once */}
       <ReactDatePicker
-        selected={range ? (Array.isArray(date) ? date[0] : null) : (date as Date)}
-        startDate={range ? (Array.isArray(date) ? date[0] : null) : undefined}
-        endDate={range ? (Array.isArray(date) ? date[1] : null) : undefined}
+        selected={(range ? Array.isArray(date) ? date[0] : null : date) as Date}
+        startDate={(range ? Array.isArray(date) ? date[0] : null : undefined) as Date}
+        endDate={(range ? Array.isArray(date) ? date[1] : null : undefined) as Date}
         onChange={handleChange}
-        selectsRange={range as any}
         disabled={disabled}
         portalId="root"
         showMonthDropdown
@@ -115,6 +116,10 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         minDate={minDate}
         maxDate={maxDate}
         customInput={<CustomInput />}
+        {...(range ? {
+          selectsRange: true,
+          selectsMultiple: false
+        } : {})}
       />
     </DatePickerContainer>
   );

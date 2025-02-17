@@ -19,6 +19,5 @@ export interface DropdownProps {
   label?: string;
   required?: boolean;
   color?: string;
-  // Additional props to pass to the FormControl
-  [key: string]: any;
+  helpText?: string;
 }

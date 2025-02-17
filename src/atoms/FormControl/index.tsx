@@ -1,6 +1,6 @@
 import React, { forwardRef, useState, useRef, useEffect } from 'react';
 import { FormControInputContainer, FormControlWrapper, Label, HelpText, IconWrapper, IconContainer } from './styled';
-import { FormControlProps } from './interface';
+import { FormControlProps, IconRight } from './interface';
 import { 
   TextInput, TextAreaInput, CheckboxRadioInput, SwitchInput, 
   CheckboxGroup, RadioGroup, SwitchGroup , RadioButtonGroup
@@ -12,7 +12,6 @@ export const FormControl = forwardRef<HTMLInputElement | HTMLTextAreaElement, Fo
   label,
   helpText,
   color = 'primary',
-  variant,
   size = 'md',
   type = 'text',
   required,
@@ -67,7 +66,7 @@ export const FormControl = forwardRef<HTMLInputElement | HTMLTextAreaElement, Fo
         setIsInvalid(getInvalidForCustomGroupControl(initialValues, required));
       }
     }
-  }, [value]);
+  }, [value, isGroupCustomControl, required, type]);
 
   const handleCheckboxChange = (optionValue: string) => {
     const updatedValues = selectedValues.includes(optionValue)
@@ -96,12 +95,12 @@ export const FormControl = forwardRef<HTMLInputElement | HTMLTextAreaElement, Fo
     if (onChange) onChange(event);
   }
 
-  const getRef = (node: any) => {
+  const getRef = (node) => {
     inputRef.current = node;
     if (typeof ref === 'function') {
       ref(node);
     } else if (ref) {
-      (ref as any).current = node;
+      (ref).current = node;
     }
   };
 
@@ -165,12 +164,12 @@ export const FormControl = forwardRef<HTMLInputElement | HTMLTextAreaElement, Fo
           $disabled={disabled}
         >
           {iconRight
-            .filter((obj: any) => Object.keys(obj).length)
+            .filter((obj: IconRight) => Object.keys(obj).length)
             .slice(0, 2)
-            .map((icon: any, index: number) => (
+            .map((icon: IconRight, index: number) => (
             <IconContainer
               key={index}
-              onClick={icon.onClick}
+              onClick={icon?.onClick}
               data-testid={icon.className}
               className={`icon-container ${icon.className || ''}`}
               $disabled={icon.disabled}

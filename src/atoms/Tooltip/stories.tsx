@@ -44,7 +44,7 @@ export const Default: StoryObj<typeof meta> = {
 
 export const Examples: StoryObj<typeof Tooltip> = {
   render: () => {
-    const COLORS = ["primary", "info", "danger", "success", "warning", "default"];
+    const COLORS = ["primary", "info", "danger", "success", "warning", "default"] as const;
     return (
       <StoryWrapper title="Tooltip Examples">
         <Title>Color Variations</Title>
@@ -56,7 +56,7 @@ export const Examples: StoryObj<typeof Tooltip> = {
             marginBottom: "40px",
           }}
         >
-          {COLORS.map((color: any) => (
+          {COLORS.map((color) => (
             <Tooltip
               key={color}
               content={`Tooltip in ${color}`}

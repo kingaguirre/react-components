@@ -1,18 +1,15 @@
 // src/components/Modal/Modal.test.tsx
-import React from "react";
 import {
   render,
   screen,
   fireEvent,
-  waitFor,
-  act,
 } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import Modal from "./index";
 import ReactDOM from "react-dom";
 
 // Override createPortal so that the portal content is rendered inline.
-vi.spyOn(ReactDOM, "createPortal").mockImplementation((node: any) => node);
+vi.spyOn(ReactDOM, "createPortal").mockImplementation((node) => node as React.ReactPortal);
 
 beforeEach(() => {
   // Use fake timers so we can control the 300ms closing delay.

@@ -1,11 +1,10 @@
 // src/organisms/Tabs/_test.tsx
-import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import Tabs from "./index";
 
 // Original tabsData where Tab 3 is disabled
-const tabsData: any = [
+const tabsData: unknown = [
   {
     title: "Tab 1",
     content: <div>Content 1</div>,
@@ -27,7 +26,7 @@ const tabsData: any = [
 ];
 
 // New test data with all tabs enabled for nav control testing
-const enabledTabsData: any = [
+const enabledTabsData: unknown = [
   {
     title: "Tab 1",
     content: <div>Content 1</div>,

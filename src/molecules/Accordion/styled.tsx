@@ -7,10 +7,10 @@ const lighten = (hex: string, percent: number) => {
   // Remove the hash if present
   hex = hex.replace(/^#/, '');
   // Parse the r, g, b values
-  let num = parseInt(hex, 16),
-    r = (num >> 16) + Math.round(255 * percent),
-    g = ((num >> 8) & 0x00ff) + Math.round(255 * percent),
-    b = (num & 0x0000ff) + Math.round(255 * percent);
+  const num = parseInt(hex, 16);
+  let r = (num >> 16) + Math.round(255 * percent);
+  let g = ((num >> 8) & 0x00ff) + Math.round(255 * percent);
+  let b = (num & 0x0000ff) + Math.round(255 * percent);
 
   // Ensure values are within 0-255
   r = r > 255 ? 255 : r;

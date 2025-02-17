@@ -14,7 +14,8 @@ const meta = {
 export default meta;
 
 /** ✅ Tab Data */
-const basicTabs: any = [
+// @typescript-eslint/no-explicit-any
+const basicTabs: unknown = [
   { title: "Inbox", icon: "mail_outline", badgeValue: 5, badgeColor: "primary", content: <p>Inbox Content</p> },
   { title: "Messages", icon: "chat", badgeValue: 12, badgeColor: "success", content: <p>Messages Content</p> },
   { title: "Warnings", icon: "warning", badgeValue: 3, badgeColor: "warning", content: <p>Warnings Content</p>, disabled: true },
@@ -26,7 +27,8 @@ const manyTabs = Array.from({ length: 12 }, (_, i) => ({
   content: <p>Content for Tab {i + 1}</p>,
 }));
 
-const coloredTabs: any = [
+// @typescript-eslint/no-explicit-any
+const coloredTabs: unknown = [
   { title: "Primary", color: "primary", content: <p>Primary Content</p> },
   { title: "Success", color: "success", content: <p>Success Content</p> },
   { title: "Warning", color: "warning", content: <p>Warning Content</p> },

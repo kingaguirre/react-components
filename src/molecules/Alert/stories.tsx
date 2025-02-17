@@ -1,3 +1,5 @@
+/* eslint-disable react-refresh/only-export-components */
+
 import type { Meta, StoryObj } from '@storybook/react';
 import React, { useState, useRef } from 'react';
 import Alert from './index';
@@ -28,25 +30,31 @@ const meta = {
 
 export default meta;
 
-/** ✅ Default DatePicker */
+/** ✅ Default Alert Example Component */
+const DefaultAlertExample: React.FC<React.ComponentProps<typeof Alert>> = (args) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Button color="primary" onClick={() => setOpen(!open)}>
+        Toggle Alert
+      </Button>
+      <Alert {...args} show={open} onClose={() => setOpen(false)} />
+    </>
+  );
+};
+
 export const Default: StoryObj<typeof meta> = {
   args: {
-    title: "Alert",
-    children: "This is alert",
+    title: 'Alert',
+    children: 'This is alert',
     show: true,
-    toast: false
+    toast: false,
   },
-  tags: ["!dev"],
-  render: (args) => {
-    const [open, setOpen] = useState(false);
-    return (
-      <>
-        <Button color="primary" onClick={() => setOpen(!open)}>Toggle Alert</Button>
-        <Alert {...args} show={open} onClose={() => setOpen(false)} />
-      </>
-    );
-  },
+  tags: ['!dev'],
+  render: (args) => <DefaultAlertExample {...args} />,
 };
+
+const alertColors = ['primary', 'success', 'warning', 'danger', 'info', 'default'] as const;
 
 export const Examples: StoryObj<typeof Alert> = {
   render: () => (
@@ -54,10 +62,10 @@ export const Examples: StoryObj<typeof Alert> = {
       {/* Different Colors */}
       <Title>Different Colors</Title>
       <Grid>
-        {['primary', 'success', 'warning', 'danger', 'info', 'default'].map((color) => (
+        {alertColors.map((color) => (
           <GridItem xs={12} sm={6} key={color}>
             <Alert
-              color={color as any}
+              color={color}
               title={`${color.charAt(0).toUpperCase() + color.slice(1)} Alert`}
               icon="check"
               toast={false}
@@ -94,7 +102,7 @@ export const Examples: StoryObj<typeof Alert> = {
       <CloseDelayExample />
 
       <Title>Inline Alert Example</Title>
-      <InlineAlertExample/>
+      <InlineAlertExample />
 
       {/* Alert with Icon */}
       <Title>Alert with Icon</Title>
@@ -114,20 +122,20 @@ export const Examples: StoryObj<typeof Alert> = {
 /** ------------------ Interactive Examples ------------------ **/
 
 // Toast Placements Example
+const placements = ['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const;
 const PlacementExample = () => {
-  const placements = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
-  const [active, setActive] = useState<Record<string, boolean>>({
+  const [active, setActive] = useState<Record<typeof placements[number], boolean>>({
     'top-left': false,
     'top-right': false,
     'bottom-left': false,
     'bottom-right': false,
   });
 
-  const showToast = (placement: string) => {
+  const showToast = (placement: typeof placements[number]) => {
     setActive((prev) => ({ ...prev, [placement]: true }));
   };
 
-  const handleClose = (placement: string) => {
+  const handleClose = (placement: typeof placements[number]) => {
     setActive((prev) => ({ ...prev, [placement]: false }));
   };
 
@@ -143,7 +151,7 @@ const PlacementExample = () => {
             title={`Toast ${placement}`}
             show={active[placement]}
             toast={true}
-            placement={placement as 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'}
+            placement={placement}
             animation="grow"
             onClose={() => handleClose(placement)}
           >
@@ -156,19 +164,19 @@ const PlacementExample = () => {
 };
 
 // Different Animations Example (Toast)
+const animations = ['grow', 'slide', 'fade'] as const;
 const AnimationExample = () => {
-  const animations = ['grow', 'slide', 'fade'];
-  const [active, setActive] = useState<Record<string, boolean>>({
+  const [active, setActive] = useState<Record<typeof animations[number], boolean>>({
     grow: false,
     slide: false,
     fade: false,
   });
 
-  const showAnimationToast = (anim: string) => {
+  const showAnimationToast = (anim: typeof animations[number]) => {
     setActive((prev) => ({ ...prev, [anim]: true }));
   };
 
-  const handleClose = (anim: string) => {
+  const handleClose = (anim: typeof animations[number]) => {
     setActive((prev) => ({ ...prev, [anim]: false }));
   };
 
@@ -185,7 +193,7 @@ const AnimationExample = () => {
             show={active[anim]}
             toast={true}
             placement="top-right"
-            animation={anim as 'grow' | 'slide' | 'fade'}
+            animation={anim}
             onClose={() => handleClose(anim)}
           >
             This toast uses {anim} animation.
@@ -197,7 +205,6 @@ const AnimationExample = () => {
 };
 
 // Non-Closeable Toast Example (Manual Close)
-// When closeable is true, the toast will show the clear icon and will NOT auto-close.
 const NonCloseableToastExample = () => {
   const [showToast, setShowToast] = useState(false);
 
@@ -227,14 +234,14 @@ const NonCloseableToastExample = () => {
 
 // Multiple Toasts Example with different colors
 const MultipleToastsExample = () => {
-  const colors = ['primary', 'success', 'warning', 'danger', 'info', 'default'];
-  const [toasts, setToasts] = useState<{ id: number; color: string }[]>([]);
+  const colors = ['primary', 'success', 'warning', 'danger', 'info', 'default'] as const;
+  const [toasts, setToasts] = useState<{ id: number; color: typeof colors[number] }[]>([]);
   const toastIdRef = useRef(0);
 
   const addToasts = () => {
     const newToasts = [0, 1, 2].map(() => {
       const id = toastIdRef.current;
-      const color = colors[id % colors.length];
+      const color = colors[toastIdRef.current % colors.length];
       toastIdRef.current += 1;
       return { id, color };
     });
@@ -247,13 +254,14 @@ const MultipleToastsExample = () => {
 
   return (
     <div>
-      <Button size="sm" onClick={addToasts}>Show 3 Toasts</Button>
+      <Button size="sm" onClick={addToasts}>
+        Show 3 Toasts
+      </Button>
       {toasts.map((toast) => (
         <Alert
           key={toast.id}
-          color={toast.color as any}
+          color={toast.color}
           title={`Toast ${toast.id}`}
-          
           toast={true}
           placement="top-right"
           animation="grow"
@@ -289,7 +297,9 @@ const LongContentExample = () => {
       </Alert>
 
       <Title>Toast Long Content</Title>
-      <Button size="sm" onClick={() => setShowToast(true)}>Show Toast Long Content</Button>
+      <Button size="sm" onClick={() => setShowToast(true)}>
+        Show Toast Long Content
+      </Button>
       <Alert
         color="info"
         title="Long Content Toast"
@@ -314,7 +324,9 @@ const CloseDelayExample = () => {
 
   return (
     <>
-      <Button size="sm" onClick={handleShow}>Show 1-Second Toast</Button>
+      <Button size="sm" onClick={handleShow}>
+        Show 1-Second Toast
+      </Button>
       <Alert
         color="primary"
         title="1-Second Toast"
@@ -336,7 +348,9 @@ const InlineAlertExample = () => {
 
   return (
     <>
-      <Button size="sm" onClick={() => setShow(true)}>Show Inline Alert</Button>
+      <Button size="sm" onClick={() => setShow(true)}>
+        Show Inline Alert
+      </Button>
       <Alert
         color="primary"
         title="Inline Alert"
