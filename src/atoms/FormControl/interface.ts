@@ -1,3 +1,5 @@
+import { ColorType, SizeType } from '@common/interfaces';
+
 export type FormControlType =
   | "text"
   | "password"
@@ -11,10 +13,6 @@ export type FormControlType =
   | "switch"
   | "textarea";
 
-export type FormControlColor = 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'default';
-
-export type FormControlSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
-
 export type IconRight = { icon: string; color?: string; hoverColor?: string; onClick?: () => void, className?: string, disabled?: boolean };
 
 export interface FormControlProps {
@@ -23,11 +21,11 @@ export interface FormControlProps {
   /** Help text displayed below the input */
   helpText?: string;
   /** Color theme for the input */
-  color?: FormControlColor;
+  color?: ColorType;
   /** Variant style of the input */
   variant?: 'outlined';
   /** Size of the input */
-  size?: FormControlSize;
+  size?: SizeType;
   /** Input type */
   type?: FormControlType;
   /** Options for group inputs (checkbox-group, radio-group, switch-group) */

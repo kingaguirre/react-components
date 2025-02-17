@@ -22,20 +22,52 @@ export const Modal: React.FC<ModalProps> = ({
   const [isVisible, setIsVisible] = useState(show);
   const [isClosing, setIsClosing] = useState(false);
 
+  // Function to open the modal
+  const openModal = () => {
+    // Calculate scrollbar width if the body is scrollable.
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    if (scrollbarWidth > 0) {
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+    }
+    document.body.style.overflow = "hidden";
+    setIsVisible(true);
+    setIsClosing(false);
+  };
+
+  // Function to close the modal
+  const closeModal = () => {
+    setIsClosing(true);
+    document.body.style.overflow = "";
+    document.body.style.paddingRight = "";
+    setTimeout(() => {
+      setIsVisible(false);
+      setIsClosing(false);
+    }, 300);
+  };
+
   useEffect(() => {
     if (show) {
-      document.body.style.overflow = "hidden";
-      setIsVisible(true);
-      setIsClosing(false);
-    } else if (isVisible) {
-      setIsClosing(true);
-      setTimeout(() => {
-        setIsVisible(false);
-        setIsClosing(false);
-      }, 300);
-      document.body.style.overflow = "";
+      openModal();
+    }
+
+    if (isVisible) {
+      closeModal();
     }
   }, [show]);
+
+  // Add escape key listener for closing the modal if closeable is true
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && closeable) {
+        onClose?.();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [closeable, onClose]);
 
   const handleOverlayClick = () => {
     if (closeable) {

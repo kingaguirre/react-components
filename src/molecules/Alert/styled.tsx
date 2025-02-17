@@ -1,5 +1,5 @@
 // src/molecules/Alert/styled.tsx
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 import { theme } from '../../styles/theme';
 
 // --- Opening animations ---
@@ -30,6 +30,16 @@ const fadeOut = keyframes`
   to { opacity: 0; }
 `;
 
+const getAnimation = ($animation: 'grow' | 'slide' | 'fade', closing = false) => {
+  if ($animation === 'grow') {
+    return closing ? growOut : growIn;
+  } else if ($animation === 'slide') {
+    return closing ? slideOut : slideIn;
+  } else {
+    return closing ? fadeOut : fadeIn;
+  }
+};
+
 export const AlertWrapper = styled.div<{
   $color: keyof typeof theme.colors;
   $animation: "grow" | "slide" | "fade";
@@ -51,22 +61,16 @@ export const AlertWrapper = styled.div<{
   * {
     box-sizing: border-box;
   }
-  animation: ${({ $animation }) =>
-      $animation === 'grow'
-        ? growIn
-        : $animation === 'slide'
-        ? slideIn
-        : fadeIn}
-    0.3s ease-out forwards;
+  animation: ${({ $animation }) => css`
+    ${getAnimation($animation)}
+    0.3s ease-out forwards
+  `};
 
   &.closing {
-    animation: ${({ $animation }) =>
-        $animation === 'grow'
-          ? growOut
-          : $animation === 'slide'
-          ? slideOut
-          : fadeOut}
-      0.3s ease-out forwards;
+    animation: ${({ $animation }) => css`
+      ${getAnimation($animation, true)}
+      0.3s ease-out forwards
+    `};
   }
 `;
 

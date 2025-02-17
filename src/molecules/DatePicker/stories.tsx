@@ -58,6 +58,7 @@ const ExamplesComponent: React.FC = () => {
               label={`${color.charAt(0).toUpperCase() + color.slice(1)} Color`}
               color={color}
               helpText="This is a help text"
+              placeholder="Select Date..."
             />
           </GridItem>
         ))}

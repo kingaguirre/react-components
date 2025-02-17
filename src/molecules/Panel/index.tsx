@@ -37,9 +37,9 @@ export const Panel: React.FC<PanelProps> = ({
           <div className="title">{title}</div>
           {rightIcons.length > 0 && (
             <div className="right-header-icons-container">
-              {rightIcons.map((icon, index) => (
+              {rightIcons.map((icon) => (
                 <IconWrapper
-                  key={index}
+                  key={`key-${icon.icon}-${icon.color}`}
                   onClick={!disabled && icon.onClick ? icon.onClick : undefined}
                   $color="white"
                   $clickable={!disabled && !!icon.onClick}

@@ -1,4 +1,6 @@
 // src/components/Panel/interface.ts
+import { ColorType } from '@common/interfaces';
+
 export interface IconObject {
   icon: string;
   color?: string;
@@ -15,7 +17,7 @@ export interface PanelProps {
   /** Array of right icons */
   rightIcons?: IconObject[];
   /** Panel theme color */
-  color?: "primary" | "success" | "info" | "warning" | "danger" | "default";
+  color?: ColorType;
   /** Disable panel interaction */
   disabled?: boolean;
 }

@@ -1424,4 +1424,4 @@ export const ICONS = [
   'qr_code_2',
   'update_disabled',
   'vertical_distribute',
-].sort();
+].sort((a, b) => a.localeCompare(b));

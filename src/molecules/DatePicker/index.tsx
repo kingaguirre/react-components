@@ -1,11 +1,12 @@
 // src/atoms/DatePicker/index.tsx
 import React, { useState, useEffect } from "react";
 import ReactDatePicker from "react-datepicker";
-import { formatDate, parseDateRange } from './utils';
+import { formatDate, parseDateRange } from "./utils";
 import "react-datepicker/dist/react-datepicker.css";
-import { DatePickerContainer, CustomInputWrapper, DatePickerGlobalStyles } from "./styled";
-import { DatePickerProps, CustomInputProps } from "./interface";
-import FormControl from "@atoms/FormControl";
+import { DatePickerContainer, DatePickerGlobalStyles } from "./styled";
+import { DatePickerProps } from "./interface";
+import { CustomInput } from "./CustomInput";
+import { ifElse } from "@utils/index";
 
 let globalStylesInjected = false; // Singleton flag
 
@@ -20,7 +21,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   color = "primary",
   minDate,
   maxDate,
-  helpText
+  helpText,
 }) => {
   const [date, setDate] = useState<DatePickerProps["selectedDate"]>(selectedDate || null);
   const [hasInjected, setHasInjected] = useState(false);
@@ -43,21 +44,19 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   }, [selectedDate]);
 
   const handleChange = (newDate: DatePickerProps["selectedDate"]) => {
-    if (range) {
-      if (Array.isArray(newDate)) {
-        const [start, end] = newDate;
-        setDate(newDate); // Keep partial selections in state
-  
-        if (start && end) {
-          onChange?.(formatDate(newDate)); // Only call onChange when both dates are selected
-        }
+    if (!!range && Array.isArray(newDate)) {
+      const [start, end] = newDate;
+      setDate(newDate); // Keep partial selections in state
+
+      if (start && end) {
+        onChange?.(formatDate(newDate)); // Only call onChange when both dates are selected
       }
     } else {
       setDate(newDate);
       onChange?.(formatDate(newDate));
     }
   };
-  
+
   const handleClear = (e: React.MouseEvent, onClick?: () => void) => {
     e.stopPropagation(); // Prevents opening the date picker
     setDate(null);
@@ -65,46 +64,20 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     onClick?.();
   };
 
-  // Custom Input using FormControl
-  const CustomInput: React.FC<CustomInputProps> = ({ value, onClick = () => {} }) => (
-    <CustomInputWrapper $value={value}>
-      <FormControl
-        label={label}
-        required={required}
-        disabled={disabled}
-        type="text"
-        color={color}
-        value={value || ""}
-        placeholder={placeholder}
-        readOnly
-        helpText={helpText}
-        onClick={onClick} // Opens the DatePicker on click
-        iconRight={[
-          value
-            ? {
-                icon: "clear",
-                onClick: (e: React.MouseEvent<HTMLElement>) => handleClear(e, onClick),
-                color: "default",
-                hoverColor: "danger",
-                className: "clear-icon",
-              }
-            : {},
-          {
-            icon: "calendar_today",
-            onClick,
-          },
-        ]}
-      />
-    </CustomInputWrapper>
-  );
+  // Inside your DatePicker component, before the return statement:
+  const selectedDateValue = ifElse(range, Array.isArray(date) ? date[0] : null, date);
+
+  const startDateValue = ifElse(range, Array.isArray(date) ? date[0] : null, undefined);
+
+  const endDateValue = ifElse(range, Array.isArray(date) ? date[1] : null, undefined);
 
   return (
     <DatePickerContainer className={`date-picker ${color}`}>
       {hasInjected && <DatePickerGlobalStyles />} {/* Only inject once */}
       <ReactDatePicker
-        selected={(range ? Array.isArray(date) ? date[0] : null : date) as Date}
-        startDate={(range ? Array.isArray(date) ? date[0] : null : undefined) as Date}
-        endDate={(range ? Array.isArray(date) ? date[1] : null : undefined) as Date}
+        selected={selectedDateValue as Date}
+        startDate={startDateValue as Date}
+        endDate={endDateValue as Date}
         onChange={handleChange}
         disabled={disabled}
         portalId="root"
@@ -115,7 +88,18 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         useWeekdaysShort
         minDate={minDate}
         maxDate={maxDate}
-        customInput={<CustomInput />}
+        placeholderText={placeholder}
+        required={required}
+        customInput={
+          <CustomInput
+            label={label}
+            disabled={disabled}
+            color={color}
+            helpText={helpText}
+            handleClear={handleClear}
+          />
+        }
+        
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         selectsRange={range as any}
       />

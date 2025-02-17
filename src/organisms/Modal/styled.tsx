@@ -1,6 +1,7 @@
 // src/components/Modal/styled.tsx
 import styled, { keyframes, css } from "styled-components";
 import { scrollStyle } from "../../styles/GlobalStyles";
+import { ModalProps } from "./interface";
 
 const fadeIn = keyframes`
   from { opacity: 0; }
@@ -58,18 +59,23 @@ export const ModalOverlay = styled.div<{ $zIndex: number; $show: boolean; $close
     `}
 `;
 
+const getModalWidth = (width: ModalProps["modalWidth"]) => {
+  switch(true) {
+    case width === "sm":
+      return "300px";
+    case width === "md":
+      return "500px";
+    case width === "lg":
+      return "800px";
+    default: return "auto";
+  }
+};
+
 export const ModalContainer = styled.div<{
-  $modalWidth: "sm" | "md" | "lg" | "auto" | string;
+  $modalWidth: ModalProps["modalWidth"];
   $show: boolean;
 }>`
-  width: ${({ $modalWidth }) =>
-    $modalWidth === "sm"
-      ? "300px"
-      : $modalWidth === "md"
-      ? "500px"
-      : $modalWidth === "lg"
-      ? "800px"
-      : "auto"};
+  width: ${({ $modalWidth }) => getModalWidth($modalWidth)};
   max-width: 90%;
   animation: ${({ $show }) => ($show ? slideUp : slideDown)} 0.3s ease-in-out;
   ${({ $show }) => !$show && css`pointer-events: none;`}

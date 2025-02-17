@@ -61,7 +61,7 @@ const ModalExamples = () => {
   const [openLong, setOpenLong] = useState(false);
   const [openFooter, setOpenFooter] = useState(false);
   const [alignment, setAlignment] = useState<"left" | "center" | "right">("center");
-  const [size, setSize] = useState<string>("md");
+  const [size, setSize] = useState<ModalProps["modalWidth"]>("md");
   const [openSize, setOpenSize] = useState(false);
   const [color, setColor] = useState<"primary" | "success" | "warning" | "danger" | "info" | "default">("primary");
   const [openColor, setOpenColor] = useState(false);
@@ -86,7 +86,7 @@ const ModalExamples = () => {
         <p>
           <Icon icon="info" /> Example modal with <strong>long scrollable content</strong>.
         </p>
-        {[...Array(50)].map((_, i) => (
+        {[...Array(50)].map((i) => (
           <p key={i}>This is long content line {i + 1}. Lorem ipsum dolor sit amet...</p>
         ))}
       </Modal>
@@ -137,9 +137,9 @@ const ModalExamples = () => {
       {/* ✅ Size Variants */}
       <Title>Size Variants</Title>
       <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
-        {(["sm", "md", "lg", "auto"] as const).map((s, key) => (
+        {(["sm", "md", "lg", "auto"] as const).map((s) => (
           <Button
-            key={key}
+            key={s}
             color="default"
             onClick={() => {
               setSize(s);
@@ -150,7 +150,7 @@ const ModalExamples = () => {
           </Button>
         ))}
       </div>
-      <Modal show={openSize} onClose={() => setOpenSize(false)} modalWidth={size} title={`Modal - ${size.toUpperCase()} Size`}>
+      <Modal show={openSize} onClose={() => setOpenSize(false)} modalWidth={size} title={`Modal - ${size?.toUpperCase()} Size`}>
         <p>This modal demonstrates different sizes.</p>
       </Modal>
 

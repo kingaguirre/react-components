@@ -24,34 +24,49 @@ export const parseDateRange = (
 ): string | [string, string] | null => {
   if (!input) return null;
 
+  // Helper: Process a value (string or Date) and return a formatted date or null.
+  const processValue = (val: string | Date | null): string | null => {
+    if (!val) return null;
+    if (typeof val === "string") {
+      const trimmed = val.trim();
+      const parsed = parseCustomDate(trimmed);
+      return parsed ? formatToYYYYMMDD(parsed) : null;
+    }
+    if (val instanceof Date) {
+      return isValidDate(val) ? formatToYYYYMMDD(val) : null;
+    }
+    return null;
+  };
+
   let start: string | undefined;
   let end: string | undefined;
 
   if (typeof input === "string") {
     const parts = input.split(",");
     if (parts.length === 1) {
-      const parsedDate = parseCustomDate(parts[0].trim());
-      return parsedDate ? formatToYYYYMMDD(parsedDate) : null;
+      // Single date string: parse and return a single date.
+      return processValue(parts[0]) ?? null;
     } else if (parts.length === 2) {
-      start = parseCustomDate(parts[0].trim()) ? formatToYYYYMMDD(parseCustomDate(parts[0].trim())!) : undefined;
-      end = parseCustomDate(parts[1].trim()) ? formatToYYYYMMDD(parseCustomDate(parts[1].trim())!) : undefined;
+      // Two comma-separated values: parse both.
+      start = processValue(parts[0]) ?? undefined;
+      end = processValue(parts[1]) ?? undefined;
+    } else {
+      return null;
     }
   } else if (input instanceof Date) {
     return isValidDate(input) ? formatToYYYYMMDD(input) : null;
   } else if (Array.isArray(input) && input.length === 2) {
-    const parsedStart = input[0] ? parseCustomDate(input[0]) : null;
-    const parsedEnd = input[1] ? parseCustomDate(input[1]) : null;
-
-    start = parsedStart ? formatToYYYYMMDD(parsedStart) : undefined;
-    end = parsedEnd ? formatToYYYYMMDD(parsedEnd) : undefined;
+    // In this branch, each element can be a string or Date (or null).
+    start = processValue(input[0]) ?? undefined;
+    end = processValue(input[1]) ?? undefined;
   } else {
     return null;
   }
 
-  if (!start || !end) return null; // Ensure both dates exist
-
-  return [start, end];
+  // Ensure both dates exist before returning a tuple.
+  return start && end ? [start, end] : null;
 };
+
 
 // Helper function to parse various date formats
 const parseCustomDate = (date: string | Date): Date | null => {
