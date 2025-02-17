@@ -12,10 +12,11 @@ export interface ButtonProps {
   rounded?: boolean;
   /** Whether the button is disabled */
   disabled?: boolean;
+  /** Whether the button is active state */
+  active?: boolean;
   /** Whether the button is full width */
   fullWidth?: boolean;
   /** Additional class names */
   className?: string;
-  /** Additional attributes */
-  [key: string]: any;
+  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void
 }

@@ -129,7 +129,7 @@ export const Tabs: React.FC<TabsProps> = ({
               className="tab-item"
               $active={selectedTab === index}
               $focused={focusedTab === index}
-              $disabled={tab.disabled as any}
+              $disabled={tab.disabled || false}
               $color={tab.color || "primary"}
               $fullHeader={fullHeader}
               tabIndex={-1}
@@ -172,7 +172,7 @@ export const Tabs: React.FC<TabsProps> = ({
           </NavButton>
         )}
       </TabWrapper>
-      <TabContentWrapper $color={tabs?.[selectedTab]?.color as any}>
+      <TabContentWrapper $color={tabs?.[selectedTab]?.color || 'primary'}>
         <TabContent key={selectedTab} className="fade-in">
           {tabs?.[selectedTab]?.content}
         </TabContent>

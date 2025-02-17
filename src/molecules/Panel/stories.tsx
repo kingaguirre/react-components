@@ -33,7 +33,7 @@ const COLORS = ["primary", "success", "warning", "danger", "info", "default"];
 
 const generateColorStories = () => (
   <Grid>
-    {COLORS.map((color: any) => (
+    {COLORS.map((color: string) => (
       <GridItem xs={12} sm={6} md={4} key={color}>
         <Panel title={`${color.charAt(0).toUpperCase() + color.slice(1)} Panel`} color={color}>
           <p>This is a {color} panel content.</p>

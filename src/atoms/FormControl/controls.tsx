@@ -14,7 +14,7 @@ import {
 import { FormControlProps } from './interface';
 import Button from '@atoms/Button';
 
-export const TextInput: React.FC<FormControlProps> = ({ ...rest }) => <Input {...rest} />;
+export const TextInput: React.FC<FormControlProps> = ({ ...rest }) => <Input autoComplete="off" {...rest} />;
 
 export const TextAreaInput: React.FC<FormControlProps> = ({ ...rest }) => <TextArea {...rest} />;
 
@@ -33,12 +33,11 @@ export const SwitchInput: React.FC<FormControlProps> = ({ disabled, text,size,  
 );
 
 export const CheckboxGroup: React.FC<FormControlProps> = ({ 
-  options = [], 
-  disabled, 
-  size, 
-  value, 
-  onChange, 
-  isVerticalOptions, 
+  options = [],
+  disabled,
+  size,
+  onChange,
+  isVerticalOptions,
   selectedValues,
   ...rest 
 }) => (
@@ -65,7 +64,6 @@ export const RadioGroup: React.FC<FormControlProps> = ({
   options = [],
   disabled,
   size,
-  value,
   onChange,
   isVerticalOptions,
   selectedValue,
@@ -94,7 +92,6 @@ export const SwitchGroup: React.FC<FormControlProps> = ({
   options = [],
   disabled,
   size,
-  value,
   onChange,
   isVerticalOptions,
   selectedValues,
@@ -122,7 +119,6 @@ export const RadioButtonGroup: React.FC<FormControlProps> = ({
   options = [],
   disabled,
   size,
-  value,
   onChange,
   isVerticalOptions,
   selectedValue,

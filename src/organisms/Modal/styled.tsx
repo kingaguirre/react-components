@@ -59,7 +59,7 @@ export const ModalOverlay = styled.div<{ $zIndex: number; $show: boolean; $close
 `;
 
 export const ModalContainer = styled.div<{
-  $modalWidth: "sm" | "md" | "lg" | "auto";
+  $modalWidth: "sm" | "md" | "lg" | "auto" | string;
   $show: boolean;
 }>`
   width: ${({ $modalWidth }) =>

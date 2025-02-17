@@ -13,7 +13,7 @@ export const Icon = ({
   color,
   disabled = false,
   className = "",
-  ...rest
+  onClick
 }: IconProps) => {
   const iconExists = ICON_SET.has(icon); // ✅ O(1) lookup time
 
@@ -25,7 +25,7 @@ export const Icon = ({
       $color={color}
       $disabled={disabled}
       aria-disabled={disabled}
-      {...rest}
+      onClick={onClick}
     />
   ) : (
     <FallbackBox data-testid="icon" $size={size}>?</FallbackBox> // ✅ Show fallback if the icon is missing

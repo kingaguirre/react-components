@@ -1,6 +1,6 @@
 // src/atoms/FormControl/styled.tsx
 import styled, { css } from 'styled-components';
-import { FormControlProps } from './interface';
+import { FormControlProps, IconRight } from './interface';
 import { theme } from '../../styles/theme';
 
 export const FormControInputContainer = styled.div`
@@ -17,7 +17,7 @@ export const FormControInputContainer = styled.div`
 export const FormControlWrapper = styled.div<{
   $type?: string;
   $size: keyof typeof theme.sizes.boxSize;
-  $iconRight?: any;
+  $iconRight?: IconRight;
   $simple?: boolean;
 }>`
   position: relative;

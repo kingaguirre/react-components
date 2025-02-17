@@ -1,7 +1,6 @@
 // src/atoms/Badge/styled.tsx
 import styled from "styled-components";
 import { theme } from "../../styles/theme";
-import { BadgeProps } from './interface';
 
 const sizeMapping = {
   sm: { dimension: "10px", fontSize: "0px" },
@@ -44,7 +43,7 @@ export const BadgeContainer = styled.span<{
   cursor: default;
 
   ${({ children, $size }) => {
-    const text = children?.toString() || "";
+    const text = children?.toString() ?? "";
     if (text.length <= 2) {
       return `
         width: ${sizeMapping[$size].dimension};

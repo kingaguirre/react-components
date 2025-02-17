@@ -12,7 +12,7 @@ import Dropdown from "./index";
 import ReactDOM from "react-dom";
 
 // Override createPortal to render inline for testing.
-vi.spyOn(ReactDOM, "createPortal").mockImplementation((node: any) => node);
+vi.spyOn(ReactDOM, "createPortal").mockImplementation((node) => node as React.ReactPortal);
 
 beforeEach(() => {
   // Reset any DOM changes between tests.

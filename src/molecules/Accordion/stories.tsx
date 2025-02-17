@@ -54,96 +54,97 @@ export const Default: StoryObj<typeof Accordion> = {
   },
 };
 
+const AccordionExamples: React.FC = () => {
+  const [dynamicContent, setDynamicContent] = useState(
+    'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.'
+  );
+  const [allowMultiple, setAllowMultiple] = useState(false);
+
+  // Colors Accordion: one item per allowed color.
+  const colors: AccordionItemProps[] = ['primary', 'info', 'success', 'warning', 'danger', 'default'].map(
+    (col) => ({
+      title: `Accordion ${col.charAt(0).toUpperCase() + col.slice(1)}`,
+      children: <div>This is a {col} accordion item.</div>,
+      color: col as AccordionItemProps['color'],
+    })
+  );
+
+  // RightDetails Examples: various configurations.
+  const detailExamples: AccordionItemProps[] = [
+    {
+      title: 'Icon + Text',
+      children: <div>Item with detail: icon + text</div>,
+      color: 'primary',
+      rightDetails: [{ icon: 'check', iconColor: 'success', text: 'Icon+Text', onClick: () => alert('Icon+Text clicked') }],
+      open: true,
+    },
+    {
+      title: 'Value + Text',
+      children: <div>Item with detail: value + text</div>,
+      color: 'success',
+      rightDetails: [{ value: '3', text: 'Value+Text', onClick: () => alert('Value+Text clicked') }],
+    },
+    {
+      title: 'Icon Only',
+      children: <div>Item with detail: icon only</div>,
+      color: 'warning',
+      rightDetails: [{ icon: 'check', onClick: () => alert('Icon only clicked') }],
+    },
+    {
+      title: 'Value Only',
+      children: <div>Item with detail: value only</div>,
+      color: 'danger',
+      rightDetails: [{ value: '7', onClick: () => alert('Value only clicked') }],
+    },
+    {
+      title: 'Right Content as Button',
+      children: <div>Item with right content as a react element.</div>,
+      color: 'info',
+      rightContent: <Button size="xs">Extra</Button>,
+    },
+  ];
+
+  return (
+    <StoryWrapper title="Accordion Examples">
+      <Title>Colors Accordion</Title>
+      <Accordion items={colors} />
+
+      <Title>Dynamic Content Accordion</Title>
+      <Button
+        size="sm"
+        onClick={() =>
+          setDynamicContent(
+            dynamicContent +
+              ' Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque volutpat condimentum velit.'
+          )
+        }
+      >
+        Add More Content
+      </Button>
+      <Accordion
+        items={[
+          {
+            title: 'Dynamic Item',
+            children: <div>{dynamicContent}</div>,
+            color: 'danger',
+            open: true,
+          },
+        ]}
+        allowMultiple={true}
+      />
+
+      <Title>Toggle Behavior Accordion</Title>
+      <Button size="sm" onClick={() => setAllowMultiple(!allowMultiple)}>
+        Toggle Allow Multiple (Currently {allowMultiple ? 'Multiple' : 'Single'})
+      </Button>
+      <Accordion items={sampleItems} allowMultiple={allowMultiple} />
+
+      <Title>RightDetails Accordion</Title>
+      <Accordion items={detailExamples} allowMultiple={true} />
+    </StoryWrapper>
+  );
+};
+
 export const Examples: StoryObj<typeof Accordion> = {
-  render: () => {
-    const [dynamicContent, setDynamicContent] = useState(
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.'
-    );
-    const [allowMultiple, setAllowMultiple] = useState(false);
-
-    // Colors Accordion: one item per allowed color.
-    const colors: AccordionItemProps[] = ['primary', 'info', 'success', 'warning', 'danger', 'default'].map(
-      (col) => ({
-        title: `Accordion ${col.charAt(0).toUpperCase() + col.slice(1)}`,
-        children: <div>This is a {col} accordion item.</div>,
-        color: col as AccordionItemProps['color'],
-      
-      })
-    );
-
-    // RightDetails Examples: various configurations.
-    const detailExamples: AccordionItemProps[] = [
-      {
-        title: 'Icon + Text',
-        children: <div>Item with detail: icon + text</div>,
-        color: 'primary',
-        rightDetails: [{ icon: 'check', iconColor: "green", text: 'Icon+Text', onClick: () => alert('Icon+Text clicked') }],
-        open: true,
-      },
-      {
-        title: 'Value + Text',
-        children: <div>Item with detail: value + text</div>,
-        color: 'success',
-        rightDetails: [{ value: '3', text: 'Value+Text', onClick: () => alert('Value+Text clicked') }],
-      },
-      {
-        title: 'Icon Only',
-        children: <div>Item with detail: icon only</div>,
-        color: 'warning',
-        rightDetails: [{ icon: 'check', onClick: () => alert('Icon only clicked') }],
-      },
-      {
-        title: 'Value Only',
-        children: <div>Item with detail: value only</div>,
-        color: 'danger',
-        rightDetails: [{ value: '7', onClick: () => alert('Value only clicked') }],
-      },
-      {
-        title: 'Right Content as Button',
-        children: <div>Item with right content as a react element.</div>,
-        color: 'info',
-        rightContent: <Button size="xs">Extra</Button>,
-      },
-    ];
-
-    return (
-      <StoryWrapper title="Accordion Examples">
-        <Title>Colors Accordion</Title>
-        <Accordion items={colors}/>
-
-        <Title>Dynamic Content Accordion</Title>
-        <Button
-          size="sm"
-          onClick={() =>
-            setDynamicContent(
-              dynamicContent +
-                ' Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque volutpat condimentum velit.'
-            )
-          }
-        >
-          Add More Content
-        </Button>
-        <Accordion
-          items={[
-            {
-              title: 'Dynamic Item',
-              children: <div>{dynamicContent}</div>,
-              color: 'danger',
-              open: true,
-            },
-          ]}
-          allowMultiple={true}
-        />
-
-        <Title>Toggle Behavior Accordion</Title>
-        <Button size="sm" onClick={() => setAllowMultiple(!allowMultiple)}>
-          Toggle Allow Multiple (Currently {allowMultiple ? 'Multiple' : 'Single'})
-        </Button>
-        <Accordion items={sampleItems} allowMultiple={allowMultiple} />
-
-        <Title>RightDetails Accordion</Title>
-        <Accordion items={detailExamples} allowMultiple={true} />
-      </StoryWrapper>
-    );
-  },
+  render: () => <AccordionExamples />,
 };

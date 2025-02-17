@@ -41,13 +41,13 @@ export const Default: StoryObj<typeof meta> = {
   tags: ["!dev"],
 };
 
-const COLORS = ["primary", "success", "warning", "danger", "info", "default"];
-const VARIANTS = ["default", "outlined", "link"];
-const SIZES = ["xs", "sm", "md", "lg", "xl"];
+const COLORS = ["primary", "success", "warning", "danger", "info", "default"] as const;
+const VARIANTS = ["default", "outlined", "link"] as const;
+const SIZES = ["xs", "sm", "md", "lg", "xl"] as const;
 
 const generateColorStories = () => (
   <Grid>
-    {COLORS.map((color: any) => (
+    {COLORS.map((color) => (
       <GridItem xs={12} sm={6} md={4} key={color}>
         <Button color={color}>{color.charAt(0).toUpperCase() + color.slice(1)}</Button>
         <Button color={color} disabled>
@@ -60,7 +60,7 @@ const generateColorStories = () => (
 
 const generateVariantStories = () => (
   <Grid>
-    {VARIANTS.map((variant: any) => (
+    {VARIANTS.map((variant) => (
       <GridItem xs={12} sm={6} md={4} key={variant}>
         <Button variant={variant}>{variant.charAt(0).toUpperCase() + variant.slice(1)} Variant</Button>
       </GridItem>
@@ -70,7 +70,7 @@ const generateVariantStories = () => (
 
 const generateSizeStories = () => (
   <Grid>
-    {SIZES.map((size: any) => (
+    {SIZES.map((size) => (
       <GridItem xs={12} sm={6} md={4} key={size}>
         <Button size={size}>{size.charAt(0).toUpperCase() + size.slice(1)} Size</Button>
       </GridItem>
