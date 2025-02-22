@@ -1,6 +1,7 @@
 // src/molecules/Alert/styled.tsx
 import styled, { keyframes, css } from 'styled-components';
 import { theme } from '../../styles/theme';
+import { ColorType } from '@common/interfaces';
 
 // --- Opening animations ---
 const growIn = keyframes`
@@ -41,7 +42,7 @@ const getAnimation = ($animation: 'grow' | 'slide' | 'fade', closing = false) =>
 };
 
 export const AlertWrapper = styled.div<{
-  $color: keyof typeof theme.colors;
+  $color: ColorType;
   $animation: "grow" | "slide" | "fade";
 }>`
   display: flex;
@@ -75,7 +76,7 @@ export const AlertWrapper = styled.div<{
 `;
 
 
-export const Title = styled.div<{ $color: keyof typeof theme.colors; }>`
+export const Title = styled.div<{ $color: ColorType }>`
   font-weight: bold;
   margin-bottom: 4px;
   color: ${({ $color }) => theme.colors[$color].base};
@@ -86,7 +87,7 @@ export const Content = styled.span`
   color: ${theme.colors.default.dark};
 `;
 
-export const IconWrapper = styled.div<{ $color: keyof typeof theme.colors; }>`
+export const IconWrapper = styled.div<{ $color: ColorType }>`
   display: flex;
   align-items: center;
   justify-content: center;

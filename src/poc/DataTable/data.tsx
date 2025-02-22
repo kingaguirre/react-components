@@ -173,4 +173,4 @@ export const COLUMN_SETTINGS = [
       },
     ],
   },
-]
+] as ColumnDef<unknown, any>[]

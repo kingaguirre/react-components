@@ -53,7 +53,7 @@ export const Modal: React.FC<ModalProps> = ({
     if (isVisible) {
       closeModal();
     }
-  }, [show]);
+  }, [show, isVisible]);
 
   // Add escape key listener for closing the modal if closeable is true
   useEffect(() => {

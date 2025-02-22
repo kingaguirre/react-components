@@ -1,6 +1,7 @@
 // src/molecules/Accordion/styled.ts
 import styled from 'styled-components';
 import { theme } from '../../styles/theme'; // Adjust path as needed
+import { ColorType } from '@common/interfaces';
 
 // Simple helper to lighten a hex color
 const lighten = (hex: string, percent: number) => {
@@ -36,7 +37,7 @@ export const AccordionItemWrapper = styled.div`
   }
 `;
 
-export const AccordionHeader = styled.div<{ $open: boolean; $color: keyof typeof theme.colors }>`
+export const AccordionHeader = styled.div<{ $open: boolean; $color: ColorType }>`
   display: flex;
   align-items: center;
   padding: 8px 12px;
@@ -56,7 +57,7 @@ export const AccordionHeader = styled.div<{ $open: boolean; $color: keyof typeof
   ` : ''}
 `;
 
-export const AccordionTitle = styled.div<{ $color: keyof typeof theme.colors }>`
+export const AccordionTitle = styled.div<{ $color: ColorType }>`
   flex-grow: 1;
   font-weight: bold;
   color: ${({ $color }) => theme.colors[$color].base};

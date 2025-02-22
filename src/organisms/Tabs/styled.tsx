@@ -2,6 +2,7 @@
 import styled, { keyframes } from "styled-components";
 import { theme } from "../../styles/theme";
 import { ifElse } from "@utils/index";
+import { ColorType } from "@common/interfaces";
 
 export const TabWrapper = styled.div`
   display: flex;
@@ -28,7 +29,7 @@ export const TabItem = styled.button<{
   $active: boolean;
   $focused: boolean;
   $disabled: boolean;
-  $color: keyof typeof theme.colors;
+  $color: ColorType;
   $fullHeader: boolean;
 }>`
   display: flex;
@@ -114,7 +115,7 @@ export const ScrollButton = styled.button<{ $position: "left" | "left-adjusted" 
   ${({ $position }) => getPosition($position)}
 `;
 
-export const TabContentWrapper = styled.div<{$color: keyof typeof theme.colors;}>`
+export const TabContentWrapper = styled.div<{$color: ColorType }>`
   padding: 12px;
   border-top: 2px solid ${({ $color }) => theme.colors[$color || "primary"].base};
   font-size: 14px;
