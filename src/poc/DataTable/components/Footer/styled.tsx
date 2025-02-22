@@ -9,7 +9,7 @@ export const SelectRowContainer = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 8px;
+  padding: 4px 7px;
   border-bottom: 1px solid ${theme.colors.default.pale};
   border-top: 1px solid ${theme.colors.default.pale};
   flex-wrap: wrap;
