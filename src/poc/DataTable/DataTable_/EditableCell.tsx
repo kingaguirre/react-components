@@ -8,16 +8,42 @@ import React, {
   KeyboardEvent,
 } from 'react';
 import styled from 'styled-components';
-import { useOnClickOutside } from '@utils/index'; // adjust import as needed
+import { useOnClickOutside } from '@utils/index';
+import { z, ZodSchema } from 'zod';
+import { getValidationError, jsonSchemaToZod, ValidatorHelper } from './validationutils'
 
-const InputStyled = styled.input`
+const InputStyled = styled.input<{ hasError?: boolean }>`
   width: 100%;
   padding: 4px;
+  border: ${({ hasError }) => (hasError ? '1px solid red' : '1px solid #ccc')};
+  outline: none;
+
+  &:invalid,
+  &.invalid {
+    border: 1px solid red;
+  }
 `;
 
-const SelectStyled = styled.select`
+const TextAreaStyled = styled.textarea<{ hasError?: boolean }>`
   width: 100%;
   padding: 4px;
+  border: ${({ hasError }) => (hasError ? '1px solid red' : '1px solid #ccc')};
+  outline: none;
+
+  &:invalid,
+  &.invalid {
+    border: 1px solid red;
+  }
+`;
+
+const SelectStyled = styled.select<{ hasError?: boolean }>`
+  width: 100%;
+  padding: 4px;
+  border: ${({ hasError }) => (hasError ? '1px solid red' : '1px solid #ccc')};
+
+  &.invalid {
+    border: 1px solid red;
+  }
 `;
 
 const GroupContainer = styled.div`
@@ -26,114 +52,137 @@ const GroupContainer = styled.div`
   outline: none;
 `;
 
+const ErrorMessage = styled.div`
+  color: red;
+  font-size: 0.8em;
+  margin-top: 2px;
+`;
+
+export type EditorType = | 'text'
+| 'textarea'
+| 'date'
+| 'date-range'
+| 'select'
+| 'number'
+| 'number-range'
+| 'checkbox'
+| 'radio'
+| 'switch'
+| 'checkbox-group'
+| 'radio-group'
+| 'switch-group';
+
 interface EditableCellProps {
   value: any;
-  editorType:
-    | 'text'
-    | 'date'
-    | 'date-range'
-    | 'select'
-    | 'number'
-    | 'number-range'
-    | 'checkbox'
-    | 'radio'
-    | 'switch'
-    | 'checkbox-group'
-    | 'radio-group'
-    | 'switch-group';
+  editorType: EditorType;
   onChange: (value: any) => void;
   onBlur?: (e: FocusEvent<HTMLInputElement | HTMLSelectElement>) => void;
   onKeyDown?: (e: KeyboardEvent<HTMLInputElement | HTMLSelectElement>) => void;
   onCancel?: () => void;
   autoFocus?: boolean;
+  // Now validation receives our custom validator helper which has a schema() method.
+  validation?: (v: ValidatorHelper) => ZodSchema<any>;
 }
 
 export const EditableCell = forwardRef<HTMLInputElement | HTMLSelectElement, EditableCellProps>(
   (props, ref) => {
-    const { value, editorType, onChange, onBlur, onKeyDown, onCancel, autoFocus } = props;
+    const {
+      value,
+      editorType,
+      onChange,
+      onBlur,
+      onKeyDown,
+      onCancel,
+      autoFocus,
+      validation,
+    } = props;
 
-    // --- Basic editors: text, number, date, checkbox, radio, switch ---
-    if (
-      editorType === 'text' ||
-      editorType === 'number' ||
-      editorType === 'date' ||
-      editorType === 'checkbox' ||
-      editorType === 'radio' ||
-      editorType === 'switch'
-    ) {
+    // Create our helper that merges zod with our jsonSchemaToZod converter.
+    const validatorHelper = React.useMemo(() => ({ schema: jsonSchemaToZod, ...z }), []);
+    const schema = validation ? validation(validatorHelper) : null;
+
+    // --------- Branch 1: Text-like editors (text, textarea, number, date) ---------
+    if (['text', 'textarea', 'number', 'date'].includes(editorType)) {
       const [localValue, setLocalValue] = useState(value);
-      const committedRef = useRef(false);
+      const [localError, setLocalError] = useState<string | null>(null);
       const inputRef = useRef<HTMLInputElement>(null);
+
+      // Re-validate whenever the localValue changes.
+      useEffect(() => {
+        if (schema) {
+          const result = schema.safeParse(localValue);
+          setLocalError(result.success ? null : result.error.issues[0].message);
+        }
+      }, [localValue, schema]);
 
       useEffect(() => {
         setLocalValue(value);
-        committedRef.current = false;
       }, [value]);
 
-      useEffect(() => {
-        if (typeof ref === 'function') {
-          ref(inputRef.current);
-        } else if (ref) {
-          (ref as React.MutableRefObject<HTMLInputElement | null>).current = inputRef.current;
-        }
-      }, [ref]);
-
-      // For date editors, commit immediately on change.
-      const handleChangeImmediate = (e: ChangeEvent<HTMLInputElement>) => {
+      const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const newVal = e.currentTarget.value;
         setLocalValue(newVal);
-        onChange(newVal);
+        if (editorType === 'date') {
+          // For date, commit immediately.
+          onChange(newVal);
+        }
       };
 
-      const handleCommit = () => {
-        if (!committedRef.current) {
-          committedRef.current = true;
+      // Helper to trim the value before committing.
+      const commitValue = () => {
+        if (typeof localValue === 'string') {
+          const trimmed = localValue.trim();
+          if (trimmed !== localValue) {
+            setLocalValue(trimmed);
+          }
+          onChange(trimmed);
+        } else {
           onChange(localValue);
         }
       };
 
-      const handleBlur = (e: FocusEvent<HTMLInputElement>) => {
+      const handleBlurInternal = (e: FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         if (editorType !== 'date') {
-          handleCommit();
+          commitValue();
         }
         if (onBlur) onBlur(e);
       };
 
-      const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+      const handleKeyDownInternal = (e: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         if (e.key === 'Enter') {
           inputRef.current?.blur();
-        } else if (e.key === 'Escape') {
-          if (onCancel) onCancel();
+        } else if (e.key === 'Escape' && onCancel) {
+          onCancel();
         }
+        if (onKeyDown) onKeyDown(e);
       };
 
-      if (editorType === 'number') {
-        return (
-          <InputStyled
-            type="number"
+      // Choose the correct component based on editorType.
+      const Component = editorType === 'textarea' ? TextAreaStyled : InputStyled;
+
+      return (
+        <>
+          <Component
+            {...(editorType !== 'textarea' ? { type: editorType } : {})}
             value={localValue}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setLocalValue(e.currentTarget.value)}
-            onBlur={handleBlur}
-            onKeyDown={handleKeyDown}
+            onChange={handleChange}
+            onBlur={handleBlurInternal}
+            onKeyDown={handleKeyDownInternal}
             autoFocus={autoFocus}
+            hasError={!!localError}
+            className={localError ? 'invalid' : ''}
             ref={inputRef}
           />
-        );
-      }
-      if (editorType === 'date') {
-        return (
-          <InputStyled
-            type="date"
-            value={localValue}
-            onChange={handleChangeImmediate}
-            onKeyDown={handleKeyDown}
-            autoFocus={autoFocus}
-            ref={inputRef}
-          />
-        );
-      }
-      if (editorType === 'checkbox' || editorType === 'radio' || editorType === 'switch') {
-        return (
+          {localError && <ErrorMessage>{localError}</ErrorMessage>}
+        </>
+      );
+    }
+
+    // --------- Branch 2: Boolean-like editors (checkbox, radio, switch) ---------
+    if (['checkbox', 'radio', 'switch'].includes(editorType)) {
+      const computedError = getValidationError(value);
+      return (
+        <>
           <input
             type={editorType === 'switch' ? 'checkbox' : editorType}
             checked={Boolean(value)}
@@ -141,108 +190,128 @@ export const EditableCell = forwardRef<HTMLInputElement | HTMLSelectElement, Edi
             onBlur={onBlur}
             onKeyDown={onKeyDown}
             ref={ref as React.RefObject<HTMLInputElement>}
+            className={computedError ? 'invalid' : ''}
           />
-        );
-      }
-      return (
-        <InputStyled
-          type="text"
-          value={localValue}
-          onChange={(e: ChangeEvent<HTMLInputElement>) => setLocalValue(e.currentTarget.value)}
-          onBlur={handleBlur}
-          onKeyDown={handleKeyDown}
-          autoFocus={autoFocus}
-          ref={inputRef}
-        />
+          {computedError && <ErrorMessage>{computedError}</ErrorMessage>}
+        </>
       );
     }
 
-    // --- Range editors: date-range, number-range ---
-    if (editorType === 'date-range' || editorType === 'number-range') {
+    // --------- Branch 3: Range editors (date-range, number-range) ---------
+    if (['date-range', 'number-range'].includes(editorType)) {
       const [localValue, setLocalValue] = useState<[string, string]>(
         Array.isArray(value) ? value : ['', '']
       );
+      const [localError, setLocalError] = useState<string | null>(null);
       const containerRef = useRef<HTMLDivElement>(null);
-      const type = editorType === 'date-range' ? 'date' : 'number';
+      const inputType = editorType === 'date-range' ? 'date' : 'number';
 
       useEffect(() => {
         setLocalValue(Array.isArray(value) ? value : ['', '']);
       }, [value]);
 
-      // Commit when clicking outside.
-      useOnClickOutside(containerRef, () => onChange(localValue));
+      useEffect(() => {
+        if (schema) {
+          const result = schema.safeParse(localValue);
+          setLocalError(result.success ? null : result.error.issues[0].message);
+        }
+      }, [localValue, schema]);
 
-      const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
+      // Helper to trim each element of the range.
+      const commitRangeValue = () => {
+        if (Array.isArray(localValue)) {
+          const trimmedArray = localValue.map(v =>
+            typeof v === 'string' ? v.trim() : v
+          );
+          if (JSON.stringify(trimmedArray) !== JSON.stringify(localValue)) {
+            setLocalValue(trimmedArray);
+          }
+          onChange(trimmedArray);
+        } else {
           onChange(localValue);
         }
       };
 
+      useOnClickOutside(containerRef, () => commitRangeValue());
+
+      const handleKeyDownInternal = (e: KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+          commitRangeValue();
+        }
+      };
+
       return (
-        <div ref={containerRef} style={{ display: 'flex', gap: '4px' }}>
-          <InputStyled
-            type={type}
-            value={localValue[0]}
-            onChange={(e: ChangeEvent<HTMLInputElement>) =>
-              setLocalValue([e.currentTarget.value, localValue[1]])
-            }
-            onKeyDown={handleKeyDown}
-            autoFocus={autoFocus}
-          />
-          <span>-</span>
-          <InputStyled
-            type={type}
-            value={localValue[1]}
-            onChange={(e: ChangeEvent<HTMLInputElement>) =>
-              setLocalValue([localValue[0], e.currentTarget.value])
-            }
-            onKeyDown={handleKeyDown}
-          />
+        <div ref={containerRef} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <div style={{ display: 'flex', gap: '4px' }}>
+            <InputStyled
+              type={inputType}
+              value={localValue[0]}
+              onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                setLocalValue([e.currentTarget.value, localValue[1]])
+              }
+              onKeyDown={handleKeyDownInternal}
+              autoFocus={autoFocus}
+              hasError={!!localError}
+              className={localError ? 'invalid' : ''}
+            />
+            <span>-</span>
+            <InputStyled
+              type={inputType}
+              value={localValue[1]}
+              onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                setLocalValue([localValue[0], e.currentTarget.value])
+              }
+              onKeyDown={handleKeyDownInternal}
+              hasError={!!localError}
+              className={localError ? 'invalid' : ''}
+            />
+          </div>
+          {localError && <ErrorMessage>{localError}</ErrorMessage>}
         </div>
       );
     }
 
-    // --- Select editor ---
+    // --------- Branch 4: Select editor ---------
     if (editorType === 'select') {
-      // Updated options to match sample data (for "Department" column).
+      const computedError = getValidationError(value);
       return (
-        <SelectStyled
-          value={value}
-          onChange={(e: ChangeEvent<HTMLSelectElement>) => onChange(e.currentTarget.value)}
-          ref={ref as React.RefObject<HTMLSelectElement>}
-          autoFocus={autoFocus}
-        >
-          <option value="">Select a department</option>
-          <option value="HR">HR</option>
-          <option value="Engineering">Engineering</option>
-          <option value="Sales">Sales</option>
-        </SelectStyled>
+        <>
+          <SelectStyled
+            value={value}
+            onChange={(e: ChangeEvent<HTMLSelectElement>) => onChange(e.currentTarget.value)}
+            ref={ref as React.RefObject<HTMLSelectElement>}
+            autoFocus={autoFocus}
+            hasError={!!computedError}
+            className={computedError ? 'invalid' : ''}
+          >
+            <option value="">Select a department</option>
+            <option value="HR">HR</option>
+            <option value="Engineering">Engineering</option>
+            <option value="Sales">Sales</option>
+          </SelectStyled>
+          {computedError && <ErrorMessage>{computedError}</ErrorMessage>}
+        </>
       );
     }
 
-    // --- Group editors: checkbox-group & switch-group ---
-    if (editorType === 'checkbox-group' || editorType === 'switch-group') {
+    // --------- Branch 5: Group editors (checkbox-group, switch-group) ---------
+    if (['checkbox-group', 'switch-group'].includes(editorType)) {
       const options = ['Option1', 'Option2', 'Option3'];
       const [localValue, setLocalValue] = useState<any[]>(Array.isArray(value) ? value : []);
+      const [localError, setLocalError] = useState<string | null>(null);
       const containerRef = useRef<HTMLDivElement>(null);
 
       useEffect(() => {
         setLocalValue(Array.isArray(value) ? value : []);
       }, [value]);
 
-      const handleChangeOption = (option: string, checked: boolean) => {
-        let newValue;
-        if (checked) {
-          newValue = Array.isArray(localValue) ? [...localValue, option] : [option];
-        } else {
-          newValue = Array.isArray(localValue)
-            ? localValue.filter((v: string) => v !== option)
-            : [];
+      useEffect(() => {
+        if (schema) {
+          const result = schema.safeParse(localValue);
+          setLocalError(result.success ? null : result.error.issues[0].message);
         }
-        setLocalValue(newValue);
-      };
+      }, [localValue, schema]);
 
-      // Commit the value when clicking outside.
       useOnClickOutside(containerRef, () => onChange(localValue));
 
       return (
@@ -251,22 +320,27 @@ export const EditableCell = forwardRef<HTMLInputElement | HTMLSelectElement, Edi
             <label key={option}>
               <input
                 type="checkbox"
-                checked={Array.isArray(localValue) ? localValue.includes(option) : false}
-                onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                  handleChangeOption(option, e.currentTarget.checked)
-                }
+                checked={localValue.includes(option)}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                  const checked = e.currentTarget.checked;
+                  const newValue = checked
+                    ? [...localValue, option]
+                    : localValue.filter((v) => v !== option);
+                  setLocalValue(newValue);
+                }}
               />
               {option}
             </label>
           ))}
+          {localError && <ErrorMessage>{localError}</ErrorMessage>}
         </GroupContainer>
       );
     }
 
-    // --- Radio-group editor ---
+    // --------- Branch 6: Radio-group editor ---------
     if (editorType === 'radio-group') {
       const options = ['Option1', 'Option2', 'Option3'];
-      // Generate a unique name for this radio group
+      const computedError = getValidationError(value);
       const groupNameRef = useRef(`radio-group-${Math.random().toString(36).substr(2, 9)}`);
       return (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -277,10 +351,12 @@ export const EditableCell = forwardRef<HTMLInputElement | HTMLSelectElement, Edi
                 name={groupNameRef.current}
                 checked={value === option}
                 onChange={() => onChange(option)}
+                className={computedError ? 'invalid' : ''}
               />
               {option}
             </label>
           ))}
+          {computedError && <ErrorMessage>{computedError}</ErrorMessage>}
         </div>
       );
     }

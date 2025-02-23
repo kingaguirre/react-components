@@ -1,76 +1,91 @@
-import styled from 'styled-components';
+import { CSSProperties } from 'react';
+import styled, { css } from 'styled-components';
+import { Column } from '@tanstack/react-table';
 
 export const TableWrapper = styled.div`
   width: 100%;
-  overflow-x: auto;
-  max-height: 500px; /* vertical scrolling if needed */
-  border: 1px solid #ddd;
+  overflow: auto;
 `;
 
-export const TableStyled = styled.table`
+export const TableStyled = styled.div`
   border-collapse: collapse;
   width: 100%;
-  thead {
-    position: sticky;
-    top: 0;
-    background: #fff;
-    z-index: 2;
-  }
 `;
 
-export const ThStyled = styled.th`
+export const ThStyled = styled.div`
   border: 1px solid #ccc;
   padding: 8px;
   background: #f4f4f4;
-  text-align: left;
-  position: relative;
   user-select: none;
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  flex-direction: column;
 `;
 
-export const TdStyled = styled.td`
+export const TdStyled = styled.div<{ isFocused?: boolean; hasError?: boolean }>`
   border: 1px solid #ccc;
   padding: 8px;
-  vertical-align: top;
-`;
-
-export const ActionButton = styled.button`
-  margin: 0 4px;
-  padding: 4px 8px;
   cursor: pointer;
+  background-color: ${(props) => (props.isFocused ? 'lightblue' : 'inherit')};
+
+  ${({ hasError }) =>
+    hasError &&
+    css`
+      border: 1px solid red;
+    `}
 `;
 
-export const FooterWrapper = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 0;
-  font-size: 0.9rem;
-`;
-
-export const PaginationButton = styled.button`
-  margin: 0 4px;
-  padding: 4px 8px;
-  cursor: pointer;
-`;
-
-export const PaginationSelect = styled.select`
-  margin: 0 8px;
-  padding: 4px;
-`;
-
-export const HeaderCellWrapper = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 4px;
-`;
-
-export const ResizeHandle = styled.div`
+export const Resizer = styled.div`
+  display: inline-block;
   width: 5px;
-  cursor: col-resize;
-  user-select: none;
   height: 100%;
   position: absolute;
   right: 0;
   top: 0;
-  z-index: 1;
+  transform: translateX(50%);
+  cursor: col-resize;
+  user-select: none;
+  touch-action: none;
+  background-color: grey;
 `;
+
+export const ActionButton = styled.button`
+  margin: 0 4px;
+`;
+
+// Helper styled components for pin/sort icons.
+export const LeftIconContainer = styled.div`
+  display: flex;
+  align-items: center;
+`;
+
+export const IconContainer = styled.div`
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  margin-right: 4px;
+`;
+
+export const getCommonPinningStyles = (column: Column<any>): CSSProperties => {
+  const isPinned = column.getIsPinned()
+  const isLastLeftPinnedColumn =
+    isPinned === 'left' && column.getIsLastColumn('left')
+  const isFirstRightPinnedColumn =
+    isPinned === 'right' && column.getIsFirstColumn('right')
+
+  return {
+    boxShadow: isLastLeftPinnedColumn
+      ? '-4px 0 4px -4px gray inset'
+      : isFirstRightPinnedColumn
+        ? '4px 0 4px -4px gray inset'
+        : undefined,
+    left: isPinned === 'left' ? `${column.getStart('left')}px` : undefined,
+    right: isPinned === 'right' ? `${column.getAfter('right')}px` : undefined,
+    opacity: isPinned ? 0.95 : 1,
+    position: isPinned ? 'sticky' : 'relative',
+    width: column.getSize(),
+    zIndex: isPinned ? 1 : 0,
+  }
+}

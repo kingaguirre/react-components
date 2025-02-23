@@ -31,8 +31,8 @@ export const ColumnVisibilityPanel: React.FC<ColumnVisibilityPanelProps> = ({
     <PanelWrapper>
       <strong>Columns</strong>
       <div>
-        {columnSettings.map(col => (
-          <div key={col.accessor}>
+        {columnSettings.map((col, ci) => (
+          <div key={`${col.column}-${ci}`}>
             <label>
               <input
                 type="checkbox"

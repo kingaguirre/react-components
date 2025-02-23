@@ -1,5 +1,4 @@
-import React, { useMemo, useState, useEffect, useRef, CSSProperties } from 'react';
-import styled from 'styled-components';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -8,119 +7,28 @@ import {
   getPaginationRowModel,
   flexRender,
   ColumnDef,
-  Column
 } from '@tanstack/react-table';
 import { EditableCell } from './EditableCell';
 import { ColumnVisibilityPanel } from './ColumnVisibilityPanel';
 import { ExcelActions } from './ExcelActions';
-import { Icon } from '@atoms/Icon';
 import { useOnClickOutside } from '@utils/index';
-
-export interface ColumnSetting {
-  title: string;
-  accessor: string;
-  pinned?: 'left' | 'right';
-  sortable?: boolean;
-  editor:
-    | 'text'
-    | 'date'
-    | 'date-range'
-    | 'select'
-    | 'number'
-    | 'number-range'
-    | 'checkbox'
-    | 'radio'
-    | 'switch'
-    | 'checkbox-group'
-    | 'radio-group'
-    | 'switch-group';
-  width?: number;
-}
+import { ColumnSetting, transformColumnSettings } from './ColumnSettings';
+import { Filter } from '../components/ColumnHeader/Filter'
+import {
+  TableWrapper,
+  TableStyled,
+  ThStyled,
+  TdStyled,
+  ActionButton,
+  getCommonPinningStyles
+} from './styled'
+import { ColumnPinAndResize } from './ColumnPinAndResize'
+import { getValidationError } from './validationutils'; // or from wherever you centralize this
 
 interface DataTableProps<T extends object> {
   dataSource: T[];
   columnSettings: ColumnSetting[];
   onChange?: (updatedData: T[]) => void;
-}
-
-const TableWrapper = styled.div`
-  width: 100%;
-  overflow: auto;
-`;
-
-const TableStyled = styled.div`
-  border-collapse: collapse;
-  width: 100%;
-`;
-
-const ThStyled = styled.div`
-  border: 1px solid #ccc;
-  padding: 8px;
-  background: #f4f4f4;
-  user-select: none;
-  position: relative;
-  display: flex;
-  align-items: center;
-`;
-
-const TdStyled = styled.div<{ isFocused?: boolean }>`
-  border: 1px solid #ccc;
-  padding: 8px;
-  cursor: pointer;
-  background-color: ${(props) => (props.isFocused ? 'lightblue' : 'inherit')};
-`;
-
-const Resizer = styled.div`
-  display: inline-block;
-  width: 5px;
-  height: 100%;
-  position: absolute;
-  right: 0;
-  top: 0;
-  transform: translateX(50%);
-  cursor: col-resize;
-  user-select: none;
-  touch-action: none;
-  background-color: grey;
-`;
-
-const ActionButton = styled.button`
-  margin: 0 4px;
-`;
-
-// Helper styled components for pin/sort icons.
-const LeftIconContainer = styled.div`
-  display: flex;
-  align-items: center;
-`;
-
-const IconContainer = styled.div`
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  margin-right: 4px;
-`;
-
-const getCommonPinningStyles = (column: Column<any>): CSSProperties => {
-  const isPinned = column.getIsPinned()
-  const isLastLeftPinnedColumn =
-    isPinned === 'left' && column.getIsLastColumn('left')
-  const isFirstRightPinnedColumn =
-    isPinned === 'right' && column.getIsFirstColumn('right')
-
-  return {
-    boxShadow: isLastLeftPinnedColumn
-      ? '-4px 0 4px -4px gray inset'
-      : isFirstRightPinnedColumn
-        ? '4px 0 4px -4px gray inset'
-        : undefined,
-    left: isPinned === 'left' ? `${column.getStart('left')}px` : undefined,
-    right: isPinned === 'right' ? `${column.getAfter('right')}px` : undefined,
-    opacity: isPinned ? 0.95 : 1,
-    position: isPinned ? 'sticky' : 'relative',
-    width: column.getSize(),
-    zIndex: isPinned ? 1 : 0,
-  }
 }
 
 export function DataTable<T extends object>({ dataSource, columnSettings, onChange }: DataTableProps<T>) {
@@ -131,7 +39,6 @@ export function DataTable<T extends object>({ dataSource, columnSettings, onChan
     );
 
   const [data, setData] = useState<T[]>(() => initializeData(dataSource));
-  const [originalData, setOriginalData] = useState<T[]>(() => initializeData(dataSource));
   const [editingCell, setEditingCell] = useState<{ rowId: string; columnId: string } | null>(null);
   const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({});
   const [rowSelection, setRowSelection] = useState({});
@@ -250,148 +157,159 @@ export function DataTable<T extends object>({ dataSource, columnSettings, onChan
       newRow[col.accessor] = '';
     });
     setData((old) => [newRow, ...old]);
-    setOriginalData((old) => [newRow, ...old]);
     if (columnSettings.length > 0) {
       setTimeout(() => {
-        setEditingCell({ rowId: (newRow as any).__internalId, columnId: columnSettings[0].accessor });
+        setEditingCell({ rowId: (newRow as any).__internalId, columnId: columnSettings[0].column });
       }, 0);
     }
   };
 
-  // In DataTable.tsx, inside your useMemo for columns:
+  // Transform new column settings into TanStack Table column definitions.
+  const transformedColumns = transformColumnSettings<T>(columnSettings);
+  // Prepend selection and row action columns.
   const columns = useMemo<ColumnDef<T, any>[]>(() => {
-    const cols: ColumnDef<T, any>[] = [];
-    // Selection column...
-    cols.push({
-      id: 'select',
-      header: ({ table }) => (
-        <input
-          type="checkbox"
-          checked={table.getIsAllRowsSelected()}
-          onChange={table.getToggleAllRowsSelectedHandler()}
-        />
-      ),
-      cell: ({ row }) => (
-        <input
-          type="checkbox"
-          checked={row.getIsSelected()}
-          onChange={row.getToggleSelectedHandler()}
-        />
-      ),
-      size: 50,
-      enableSorting: false,
-      enableResizing: false,
-      enablePinning: false,
-    });
-    // Row actions column...
-    cols.push({
-      id: 'rowActions',
-      header: 'Actions',
-      cell: ({ row }) => {
-        const rowData = row.original as any;
-        if (rowData.__isNew) {
-          return (
-            <>
-              <ActionButton onClick={() => handleSaveRow(rowData.__internalId)}>Save</ActionButton>
-              <ActionButton onClick={() => handleCancelRow(rowData.__internalId)}>Cancel</ActionButton>
-            </>
-          );
-        }
-        return (
-          <ActionButton onClick={() => handleDelete(rowData.__internalId)}>Delete</ActionButton>
-        );
+    return [
+      {
+        id: 'select',
+        header: ({ table }) => (
+          <input
+            type="checkbox"
+            checked={table.getIsAllRowsSelected()}
+            onChange={table.getToggleAllRowsSelectedHandler()}
+          />
+        ),
+        cell: ({ row }) => (
+          <input
+            type="checkbox"
+            checked={row.getIsSelected()}
+            onChange={row.getToggleSelectedHandler()}
+          />
+        ),
+        size: 50,
+        enableSorting: false,
       },
-      size: 100,
-      enableSorting: false,
-      enableResizing: false,
-      enablePinning: false,
-    });
-    // Data columns.
-    // In DataTable.tsx, inside your useMemo for columns:
-    columnSettings.forEach((setting) => {
-      cols.push({
-        accessorKey: setting.accessor,
-        header: setting.title,
-        cell: ({ row, getValue }) => {
-          const rawValue = getValue();
-          const editorType = setting.editor;
-          let cellValue;
-          if (
-            editorType === 'date-range' ||
-            editorType === 'number-range' ||
-            editorType === 'checkbox-group' ||
-            editorType === 'switch-group' ||
-            editorType === 'radio-group'
-          ) {
-            if (editorType === 'radio-group') {
-              cellValue = rawValue
-            } else {
-              cellValue = Array.isArray(rawValue) ? rawValue : [];
-            }
-          } else if (
-              editorType === 'checkbox' || editorType === 'radio'
-            ) {
-            cellValue = Boolean(rawValue);
-          } else {
-            cellValue = rawValue != null ? String(rawValue) : '';
-          }
-          if (
-            editingCell &&
-            editingCell.rowId === (row.original as any).__internalId &&
-            editingCell.columnId === setting.accessor
-          ) {
+      {
+        id: 'rowActions',
+        header: 'Actions',
+        cell: ({ row }) => {
+          const rowData = row.original as any;
+          if (rowData.__isNew) {
+            const hasError = columnSettings.some(
+              (col) => col.validation && getValidationError(rowData[col.column], col.validation)
+            );
             return (
-              <EditableCell
-                ref={currentEditorRef}
-                editorType={editorType}
-                value={cellValue}
-                onChange={(val) => handleCellCommit((row.original as any).__internalId, setting.accessor, val)}
-                autoFocus
-                onCancel={() => setEditingCell(null)}
-              />
+              <>
+                <ActionButton onClick={() => handleSaveRow(rowData.__internalId)} disabled={hasError}>Save</ActionButton>
+                <ActionButton onClick={() => handleCancelRow(rowData.__internalId)}>Cancel</ActionButton>
+              </>
             );
           }
-          // For array-based editors, join the array with a comma.
-          if (
-            editorType === 'date-range' ||
-            editorType === 'number-range' ||
-            editorType === 'checkbox-group' ||
-            editorType === 'switch-group' ||
-            editorType === 'radio-group'
-          ) {
-            return <>{Array.isArray(cellValue) ? cellValue.join(', ') : cellValue.toString()}</>;
-          }
-          return <>{cellValue.toString()}</>;
+          return (
+            <ActionButton onClick={() => handleDelete(rowData.__internalId)}>Delete</ActionButton>
+          );
         },
-        enableSorting: setting.sortable,
-        size: setting.width || 150,
-        meta: { pinned: setting.pinned },
-      });
-    });
+        size: 100,
+        enableSorting: false,
+      },
+      ...transformedColumns?.map((colDef) => {
+        if ('columns' in colDef) return colDef;
+        const { editor, cell: customCell } = colDef as any;
+        return {
+          ...colDef,
+          cell: ({ row, getValue, column }) => {
+            if (
+              editingCell &&
+              editingCell.rowId === (row.original as any).__internalId &&
+              editingCell.columnId === column.id &&
+              editor !== false
+            ) {
+              const rawValue = getValue();
+              let cellValue;
+              if (editor === 'date-range' || editor === 'number-range') {
+                cellValue = Array.isArray(rawValue) ? rawValue : ['', ''];
+              } else if (
+                editor === 'checkbox-group' ||
+                editor === 'switch-group' ||
+                editor === 'radio-group'
+              ) {
+                cellValue = editor === 'radio-group' ? rawValue : Array.isArray(rawValue) ? rawValue : [];
+              } else if (editor === 'checkbox') {
+                cellValue = Boolean(rawValue);
+              } else {
+                cellValue = rawValue != null ? rawValue : '';
+              }
+              return (
+                <EditableCell
+                  ref={currentEditorRef}
+                  editorType={editor || 'text'}
+                  value={cellValue}
+                  validation={column.columnDef.meta?.validation}
+                  onChange={(val) =>
+                    handleCellCommit((row.original as any).__internalId, column.id, val)
+                  }
+                  autoFocus
+                  onCancel={() => setEditingCell(null)}
+                />
+              );
+            }
 
-    return cols;
-  }, [columnSettings, editingCell, onChange]);
+            if (customCell) {
+              return customCell({ rowValue: row.original, index: row.index });
+            }
+
+            const rawValue = getValue();
+            let cellValue = '';
+            if (editor === 'date-range' || editor === 'number-range') {
+               // If both values are empty, render nothing instead of a comma.
+               if (
+                Array.isArray(rawValue) &&
+                rawValue[0] === '' &&
+                rawValue[1] === ''
+              ) {
+                cellValue = '';
+              } else if (Array.isArray(rawValue)) {
+                cellValue = rawValue.join(' - ');
+              } else {
+                cellValue = rawValue;
+              }
+            } else if (
+              editor === 'checkbox-group' ||
+              editor === 'switch-group' ||
+              editor === 'radio-group'
+            ) {
+              cellValue = editor === 'radio-group' ? rawValue : Array.isArray(rawValue) ? rawValue : [];
+            } else if (editor === 'checkbox' || editor === 'radio') {
+              cellValue = Boolean(rawValue);
+            } else {
+              cellValue = rawValue != null ? rawValue : '';
+            }
+
+            return <>{cellValue?.toString()}</>;
+          },
+        };
+      }),
+    ];
+  }, [transformedColumns, editingCell, onChange, columnSettings]);
 
   const table = useReactTable({
     data,
     columns,
-    initialState: {
-      columnPinning: { left: ['select', 'rowActions']}
-    },
     state: { columnVisibility, rowSelection, sorting, pagination, columnSizing, columnPinning },
+    initialState: {
+      columnPinning: { left: ['select', 'rowActions' ]}
+    },
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
     onPaginationChange: setPagination,
     onColumnSizingChange: setColumnSizing,
     onColumnPinningChange: setColumnPinning,
-    // enableColumnResizing: true,
     columnResizeMode: 'onChange',
-    // enableColumnPinning: true,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    enableColumnFilters: true // add data-table props to enable disabled
   });
 
   return (
@@ -425,7 +343,6 @@ export function DataTable<T extends object>({ dataSource, columnSettings, onChan
           selectedRows={table.getSelectedRowModel().rows.map((r) => r.original)}
           onDataUpdate={(newData) => {
             setData(newData);
-            setOriginalData(newData);
             if (onChange) onChange(newData);
           }}
         />
@@ -433,71 +350,17 @@ export function DataTable<T extends object>({ dataSource, columnSettings, onChan
       <TableWrapper ref={tableWrapperRef}>
         <TableStyled style={{ width: `${table.getCenterTotalSize()}px` }}>
           <div>
-            {table.getHeaderGroups().map((headerGroup) => (
+            {table.getHeaderGroups().map((headerGroup, ii) => (
               <div key={headerGroup.id} style={{ display: 'flex' }}>
-                {headerGroup.headers.map((header) => (
-                  <ThStyled key={header.id} style={{ ...getCommonPinningStyles(header.column), width: `${header.getSize()}px` }}>
+                {headerGroup.headers.map((header, i) => (
+                  <ThStyled key={`${header.id}-${i}`} style={{ ...getCommonPinningStyles(header.column), width: `${header.getSize()}px` }}>
                     {header.isPlaceholder ? null : (
                       <>
                         <div style={{ flex: 1 }}>
                           {flexRender(header.column.columnDef.header, header.getContext())}
                         </div>
-                        {(header.column.getCanPin() || header.column.getCanSort()) && (
-                          <LeftIconContainer>
-                            {header.column.getCanPin() && (
-                              <IconContainer
-                                title={`${header.column.getIsPinned() ? 'Unpin' : 'Pin'} ${flexRender(
-                                  header.column.columnDef.header,
-                                  header.getContext()
-                                )}`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  const isPinned = header.column.getIsPinned() === 'left';
-                                  header.column.pin(isPinned ? false : 'left');
-                                }}
-                              >
-                                <Icon icon="push_pin" />
-                              </IconContainer>
-                            )}
-                            {header.column.getCanSort() && (
-                              <IconContainer
-                                onClick={header.column.getToggleSortingHandler()}
-                                title={
-                                  header.column.getCanSort()
-                                    ? header.column.getNextSortingOrder() === 'asc'
-                                      ? 'Sort ascending'
-                                      : header.column.getNextSortingOrder() === 'desc'
-                                        ? 'Sort descending'
-                                        : 'Clear sort'
-                                    : undefined
-                                }
-                              >
-                                <Icon
-                                  icon={
-                                    header.column.getIsSorted() === 'asc'
-                                      ? 'keyboard_arrow_up'
-                                      : header.column.getIsSorted() === 'desc'
-                                      ? 'keyboard_arrow_down'
-                                      : 'unfold_more'
-                                  }
-                                />
-                              </IconContainer>
-                            )}
-                          </LeftIconContainer>
-                        )}
-                        {header.column.getCanResize() && (
-                          <Resizer
-                            {...{
-                              onDoubleClick: () => header.column.resetSize(),
-                              onMouseDown: header.getResizeHandler(),
-                              onTouchStart: header.getResizeHandler(),
-                              className: `column-resizer onChange ${
-                                header.column.getIsResizing() ? 'is-resizing' : ''
-                              }`,
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                        )}
+                        {header.column.getCanFilter() && <Filter column={header.column} />}
+                        <ColumnPinAndResize header={header}/>
                       </>
                     )}
                   </ThStyled>
@@ -506,35 +369,60 @@ export function DataTable<T extends object>({ dataSource, columnSettings, onChan
             ))}
           </div>
           <div style={{ height: '300px' }}>
-            {table.getRowModel().rows.map((row) => (
-              <div
-                key={row.id}
-                style={{
-                  display: 'flex',
-                  backgroundColor: (row.original as any).__isNewImported ? 'lightgreen' : 'inherit',
-                  transition: 'background-color 3s ease-out',
-                }}
-              >
-                {row.getVisibleCells().map((cell) => (
+          {table.getRowModel().rows.map((row, ri) => (
+            <div
+              key={row.id}
+              style={{
+                display: 'flex',
+                backgroundColor: ((row.original as any).__isNewImported || (row.original as any).__isNew) ? 'lightgreen' : 'inherit',
+                transition: 'background-color .3s ease-out',
+              }}
+            >
+              {row.getVisibleCells().map((cell, ci) => {
+                const cellEditor = (cell.column.columnDef as any)?.editor;
+                const rawValue = cell.getValue();
+                let errorMsg: string | null = null;
+                // Only compute error when not in edit mode (EditableCell handles its own error display)
+                if (
+                  !editingCell ||
+                  editingCell.rowId !== (row.original as any).__internalId ||
+                  editingCell.columnId !== cell.column.id
+                ) {
+                  errorMsg = getValidationError(rawValue, cell.column.columnDef.meta?.validation);
+                }
+                return (
                   <TdStyled
-                    key={cell.id}
-                    style={{ ...getCommonPinningStyles(cell.column), width: `${cell.column.getSize()}px` }}
-                    onClick={(e) => {
-                      if (e.target instanceof HTMLElement) {
-                        const tag = e.target.tagName.toLowerCase();
-                        if (tag === 'input' || tag === 'select' || tag === 'textarea') return;
-                      }
-                      setEditingCell({
-                        rowId: (row.original as any).__internalId,
-                        columnId: cell.column.columnDef.accessorKey,
-                      });
+                    key={`${cell.id}-${ci}`}
+                    hasError={!!errorMsg}
+                    title={errorMsg || undefined} // tooltip showing the error
+                    style={{
+                      ...getCommonPinningStyles(cell.column),
+                      width: `${cell.column.getSize()}px`,
+                      cursor: cellEditor !== undefined && cellEditor !== false ? 'pointer' : 'default',
                     }}
+                    {...(cellEditor !== undefined && cellEditor !== false
+                      ? {
+                          onClick: (e) => {
+                            if (e.target instanceof HTMLElement) {
+                              const tag = e.target.tagName.toLowerCase();
+                              if (tag === 'input' || tag === 'select' || tag === 'textarea')
+                                return;
+                            }
+                            setEditingCell({
+                              rowId: (row.original as any).__internalId,
+                              columnId: cell.column.id,
+                            });
+                          },
+                        }
+                      : {})}
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TdStyled>
-                ))}
-              </div>
-            ))}
+                );
+              })}
+            </div>
+          ))}
+
           </div>
         </TableStyled>
       </TableWrapper>

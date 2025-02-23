@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { DataTable } from "./index";
 import { StoryWrapper, Title } from "@components/StoryWrapper";
-import { DataTable as DataTable_, ColumnSetting } from './DataTable_/index';
+import { DataTable as DataTable_ } from './DataTable_/index';
+import { ColumnSetting } from './DataTable_/ColumnSettings';
 import { makeData } from "./makeData";
 import { COLUMN_SETTINGS_PLAIN } from './data';
 
@@ -62,21 +63,84 @@ const sampleData = Array.from({ length: 200 }, (_, i) => ({
 
 // Extra column settings covering every editor type
 const columnSettings: ColumnSetting[] = [
-  { title: "ID", accessor: "id", sortable: true, editor: "text", width: 80 },
-  { title: "Name", accessor: "name", sortable: true, editor: "text" },
-  { title: "Birthdate", accessor: "birthdate", sortable: true, editor: "date" },
-  { title: "Vacation Dates", accessor: "vacationDates", sortable: false, editor: "date-range" },
-  { title: "Department", accessor: "department", sortable: true, editor: "select" },
-  { title: "Salary", accessor: "salary", sortable: true, editor: "number" },
-  { title: "Working Hours", accessor: "workingHours", sortable: false, editor: "number-range" },
-  { title: "Available", accessor: "active", sortable: false, editor: "checkbox", width: 80 },
-  { title: "Is Out", accessor: "out", sortable: true, editor: "radio" },
-  { title: "Gender", accessor: "gender", sortable: true, editor: "radio-group" },
-  { title: "Status", accessor: "status", sortable: true, editor: "switch" },
-  { title: "Preferences", accessor: "preferences", sortable: false, editor: "checkbox-group" },
-  { title: "Switch Group", accessor: "switchGroup", sortable: false, editor: "switch-group" },
+  { 
+    title: "ID", 
+    column: "id", 
+    sort: "asc", 
+    pin: false, 
+    editor: {
+      validation: (v) => v.string()
+        .min(1, "ID is required")
+        .max(5, "ID too long")
+        .regex(/^[0-9 ]*$/, "Number only"),
+    }, 
+    width: 80,
+    filter: false
+  },
+  {
+    title: "Name",
+    column: "name",
+    sort: "asc",
+    pin: 'pin',
+    editor: {
+      validation: (v) => v.schema({
+        type: "string",
+        pattern: "^(?!.*\s{2,})[A-Za-z]+(?: [A-Za-z]+)*$"
+      }, "Name can only contain letters and single spaces")
+    }
+  },
+  { 
+    title: "Birthdate", 
+    column: "birthdate", 
+    sort: "asc", 
+    editor: {
+      type: "date",
+      validation: (v) => v.string().nonempty("Birthdate required"),
+    },
+    filter: { type: 'date-range' }
+  },
+  { 
+    title: "Vacation Dates", 
+    column: "vacationDates", 
+    sort: undefined, 
+    pin: false, 
+    editor: {
+      type: "date-range",
+      validation: (v) => v.array(v.string().nonempty("Date required")).min(2, "Two dates needed")
+    }
+  },
+  { title: "Department", column: "department", sort: "asc", pin: false, editor: "select" },
+  { title: "Salary", column: "salary", sort: "asc", pin: false, editor: "number" },
+  { title: "Working Hours", column: "workingHours", sort: undefined, pin: false, editor: "number-range" },
+  {
+    title: "Available",
+    column: "active",
+    sort: false,
+    pin: false,
+    width: 80,
+    editor: {
+      type: "checkbox",
+      validation: (v) => v.boolean().refine((val) => val === true, {
+        message: "You must be available",
+      }),
+    }
+  },
+  { title: "Is Out", column: "out", sort: "asc", pin: false, editor: {type: "radio"} },
+  { title: "Gender", column: "gender", sort: "asc", pin: false, editor: {type: "radio-group"} },
+  { title: "Status", column: "status", sort: "asc", pin: false, editor: {type: "switch"} },
+  { title: "Preferences", column: "preferences", sort: false, pin: false, editor: {type: "checkbox-group"} },
+  { title: "Switch Group", column: "switchGroup", sort: false, pin: false, editor: {type: "switch-group"} },
+  { 
+    title: "Action", 
+    column: "id", 
+    sort: false, 
+    pin: false, 
+    editor: false, 
+    cell: ({ rowValue, index }) => {
+      return <button>{rowValue.name} {index}</button>;
+    },
+  },
 ];
-
 
 const DATA_SOURCE = makeData(50000);
 
