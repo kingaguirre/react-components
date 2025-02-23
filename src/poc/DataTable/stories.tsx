@@ -145,14 +145,14 @@ const columnSettings: ColumnSetting[] = [
 
 const DATA_SOURCE = makeData(50000);
 
-/** ✅ Default Story */
-export const Default: StoryObj<typeof DataTable> = {
-  args: {
-    dataSource: sampleData,
-    columnSettings: columnSettings,
-  },
-  tags: ["!dev", "!autodocs"],
-};
+// /** ✅ Default Story */
+// export const Default: StoryObj<typeof DataTable> = {
+//   args: {
+//     dataSource: sampleData,
+//     columnSettings: columnSettings,
+//   },
+//   tags: ["!dev", "!autodocs"],
+// };
 
 /** ✅ Demo Story */
 export const Demo = {
