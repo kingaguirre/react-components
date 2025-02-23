@@ -28,6 +28,8 @@ export interface CustomInputProps {
   disabled?: boolean;
   /** Color theme for the input */
   color?: ColorType;
+  /** Size type for the input */
+  size?: SizeType;
   /** Placeholder text for the input */
   placeholder?: string;
   /** Help text to display under the input */

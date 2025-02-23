@@ -1,6 +1,7 @@
 // src/atoms/Badge/styled.tsx
 import styled from "styled-components";
 import { theme } from "../../styles/theme";
+import { ColorType } from "@common/interfaces";
 
 const sizeMapping = {
   sm: { dimension: "10px", fontSize: "0px" },
@@ -9,7 +10,7 @@ const sizeMapping = {
 };
 
 export const BadgeContainer = styled.span<{
-  $color?: keyof typeof theme.colors;
+  $color?: ColorType;
   $size: "sm" | "md" | "lg";
   $borderRadius?: string;
   $disabled: boolean;

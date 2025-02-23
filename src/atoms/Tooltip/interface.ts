@@ -1,14 +1,14 @@
 // src/atoms/Tooltip/interface.ts
 import type { TippyProps } from "@tippyjs/react";
-import { theme } from "../../styles/theme";
 import React from "react";
+import { ColorType } from "@common/interfaces";
 
 export interface TooltipProps extends Omit<TippyProps, "children"> {
   /**
    * The color theme to use.
    * Accepts keys from your theme.colors.
    */
-  color?: keyof typeof theme.colors;
+  color?: ColorType;
   children: React.ReactElement;
   content: React.ReactNode;
   placement?: "top" | "right" | "bottom" | "left";

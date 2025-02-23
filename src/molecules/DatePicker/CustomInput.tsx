@@ -11,6 +11,7 @@ export const CustomInput: React.FC<CustomInputProps> = ({
   required = false,
   disabled = false,
   color = "primary",
+  size = "md",
   placeholder = "Select Date",
   helpText,
   handleClear,
@@ -22,6 +23,7 @@ export const CustomInput: React.FC<CustomInputProps> = ({
       disabled={disabled}
       type="text"
       color={color}
+      size={size}
       value={value ?? ""}
       placeholder={placeholder}
       readOnly

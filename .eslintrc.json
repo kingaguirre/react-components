@@ -44,7 +44,8 @@
           ["@molecules", "./src/molecules"],
           ["@organisms", "./src/organisms"],
           ["@utils", "./src/utils"],
-          ["@common", "./src/common"]
+          ["@common", "./src/common"],
+          ["@styles", "./src/styles"]
         ],
         "extensions": [".ts", ".tsx", ".js", ".jsx"]
       }

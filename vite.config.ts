@@ -57,7 +57,8 @@ export default defineConfig({
       '@molecules': path.resolve(__dirname, 'src/molecules'),
       '@organisms': path.resolve(__dirname, 'src/organisms'),
       '@utils': path.resolve(__dirname, 'src/utils'),
-      '@common': path.resolve(__dirname, 'src/common')
+      '@common': path.resolve(__dirname, 'src/common'),
+      '@styles': path.resolve(__dirname, 'src/styles')
     },
   },
   test: {

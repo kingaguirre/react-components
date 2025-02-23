@@ -19,6 +19,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   placeholder = "Select Date",
   range = false,
   color = "primary",
+  size = 'md',
   minDate,
   maxDate,
   helpText,
@@ -95,6 +96,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
             label={label}
             disabled={disabled}
             color={color}
+            size={size}
             helpText={helpText}
             handleClear={handleClear}
           />

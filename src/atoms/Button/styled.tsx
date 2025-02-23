@@ -11,6 +11,7 @@ const getVariantStyles = ({
 }: {
   $variant?: string;
   $color: string;
+  /* eslint-disable @typescript-eslint/no-explicit-any */
   _theme: any
 }) => {
   if ($variant === 'outlined') {

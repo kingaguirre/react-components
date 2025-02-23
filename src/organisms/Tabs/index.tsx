@@ -114,7 +114,7 @@ export const Tabs: React.FC<TabsProps> = ({
               wrapperRef.current?.focus();
             }}
           >
-            <Icon icon="arrow_back"/>
+            <Icon icon="first_page"/>
           </NavButton>
         )}
         {isScrollable && (
@@ -175,7 +175,7 @@ export const Tabs: React.FC<TabsProps> = ({
               wrapperRef.current?.focus();
             }}
           >
-            <Icon icon="arrow_forward"/>
+            <Icon icon="last_page"/>
           </NavButton>
         )}
       </TabWrapper>
