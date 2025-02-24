@@ -37,7 +37,7 @@ const COLORS = ["primary", "success", "danger", "info", "warning", "default"] as
 // Wrap your hooks in a proper React component
 const ExamplesComponent: React.FC = () => {
   // Use Date types (or null) instead of any
-  const [singleDate, setSingleDate] = useState<Date | null>(new Date("2025-02-10"));
+  const [singleDate, setSingleDate] = useState<string | null | [string | string] | Date>("10-Feb-2025");
   const [rangeDate, setRangeDate] = useState<[Date, Date] | null>([
     new Date("2025-02-10"),
     new Date("2025-02-28"),
@@ -59,6 +59,7 @@ const ExamplesComponent: React.FC = () => {
               color={color}
               helpText="This is a help text"
               placeholder="Select Date..."
+              onChange={value => console.log(value)}
             />
           </GridItem>
         ))}
@@ -71,8 +72,8 @@ const ExamplesComponent: React.FC = () => {
           <Title>Single Date Picker</Title>
           <DatePicker
             label="Single Date"
-            selectedDate={singleDate}
-            onChange={(date) => console.log(date)}
+            value={singleDate as string}
+            onChange={(date) => setSingleDate(date as string)}
             required={isSingleRequired}
             disabled={isSingleDisabled}
             minDate={new Date()}
@@ -108,7 +109,7 @@ const ExamplesComponent: React.FC = () => {
           <Title>Date Range Picker</Title>
           <DatePicker
             label="Date Range"
-            selectedDate={rangeDate}
+            value={rangeDate}
             onChange={(date) => console.log(date)}
             required={isRangeRequired}
             disabled={isRangeDisabled}

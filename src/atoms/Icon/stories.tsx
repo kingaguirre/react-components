@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import styled from "styled-components";
 import { Icon } from "./index";
 import { StoryWrapper, Title } from "@components/StoryWrapper";
-import { ICONS } from "./data";
+import { EXTRA_ICONS, SCB_ICONS } from "./data";
 
 const meta = {
   title: "Atoms/Icon",
@@ -96,12 +96,14 @@ const IconGalleryComponent = () => {
   const handleIconClick = (icon: string) => {
     navigator.clipboard.writeText(icon).then(() => {
       setCopiedIcon(icon);
-      // Uncomment below to auto-hide the copied message after 2 seconds
-      // setTimeout(() => setCopiedIcon(null), 2000);
     });
   };
 
-  const filteredIcons = ICONS.filter((icon) =>
+  const filteredSCBIcons = SCB_ICONS.filter((icon) =>
+    icon.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const filteredExtraIcons = EXTRA_ICONS.filter((icon) =>
     icon.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -114,12 +116,32 @@ const IconGalleryComponent = () => {
         onChange={(e) => setSearch(e.target.value)}
       />
       <Title>
-        Click an Icon to Copy its Name
+        (SCB ICONS) Click an Icon to Copy its Name
         {copiedIcon && <CopiedMessage>Copied: {copiedIcon}</CopiedMessage>}
       </Title>
       <IconGrid>
-        {filteredIcons.length > 0 ? (
-          filteredIcons.map((icon) => (
+        {filteredSCBIcons.length > 0 ? (
+          filteredSCBIcons.map((icon) => (
+            <IconItem
+              key={icon}
+              $isCopied={copiedIcon === icon}
+              onClick={() => handleIconClick(icon)}
+            >
+              <Icon icon={icon} size="30px" />
+            </IconItem>
+          ))
+        ) : (
+          <p style={{ whiteSpace: "nowrap" }}>No icons found</p>
+        )}
+      </IconGrid>
+
+      <Title>
+        (Extra ICONS) Click an Icon to Copy its Name
+        {copiedIcon && <CopiedMessage>Copied: {copiedIcon}</CopiedMessage>}
+      </Title>
+      <IconGrid>
+        {filteredExtraIcons.length > 0 ? (
+          filteredExtraIcons.map((icon) => (
             <IconItem
               key={icon}
               $isCopied={copiedIcon === icon}

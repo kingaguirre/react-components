@@ -29,22 +29,22 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
   const inputRef = React.useRef<HTMLInputElement | null>(null)
 
   return (
-    <MainHeadercontainer className="main-header-container">
+    <MainHeadercontainer className='main-header-container'>
       <SearhContainer className='search-container'>
         <DebouncedInput
-          name="main-header-search-input"
+          name='main-header-search-input'
           value={value ?? ''}
           onChange={onChange}
-          placeholder="Search all columns..."
+          placeholder='Search all columns...'
           iconRight={[
             ...(!!value ? [{
-              icon: "clear",
-              color: "default",
-              hoverColor: "danger",
+              icon: 'clear',
+              color: 'default',
+              hoverColor: 'danger',
               onClick: onClear
             }] : []),
             {
-              icon: "search",
+              icon: 'search',
               onClick: () => inputRef?.current?.focus()
             }
           ]}
@@ -61,12 +61,12 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
         <IconContainer className='icon-container'>
           <RightIconButton
             icon='file_upload'
-            title='Upload'
+            title='Upload Excel'
             onClick={() => {}}
           />
           <RightIconButton
             icon='file_download'
-            title='Download'
+            title='Download to Excel'
             onClick={() => {}}
           />
           <RightIconButton

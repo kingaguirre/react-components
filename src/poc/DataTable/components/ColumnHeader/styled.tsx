@@ -38,7 +38,7 @@ export const CellContent = styled(CellContentStyles)<{
 export const ColumnHeaderContainer = styled(DataTableRowStyles)`
   position: sticky;
   top: 0;
-  z-index: 2;
+  z-index: 12;
   border-bottom: 1px solid ${theme.colors.default.pale};
   ${CellContainer} {
     background-color: ${theme.colors.lightA};
@@ -131,4 +131,10 @@ export const LeftIconContainer = styled.div`
       }
     }
   }
+`
+
+export const CellFilterPlaceholder = styled.div`
+  height: 33px;
+  width: 100%;
+  border-top: 1px solid ${theme.colors.default.pale};
 `

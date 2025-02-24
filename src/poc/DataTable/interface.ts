@@ -1,4 +1,5 @@
-import { z, ZodSchema, ZodTypeAny, ZodTypeDef } from 'zod'
+import { z, ZodSchema, ZodTypeAny } from 'zod'
+import { DropdownOption } from '@molecules/Dropdown/interface'
 
 export interface DataTableProps<T extends object> {
   /** Data to display in the table */
@@ -14,9 +15,8 @@ export type EditorType =
   | 'textarea'
   | 'date'
   | 'date-range'
-  | 'select'
+  | 'dropdown'
   | 'number'
-  | 'number-range'
   | 'checkbox'
   | 'radio'
   | 'switch'
@@ -37,17 +37,24 @@ export interface ColumnSetting {
   sort?: 'asc' | 'desc' | undefined | false // Initial sort order false disables sort for this column
   pin?: 'pin' | 'unpin' | false // 'pin' pins left (default unpinned) false disables pinning
   hidden?: boolean
-  // editor?: 'text' | 'date' | 'date-range' | 'select' | 'number' | 'number-range' | 'checkbox' | 'radio' | 'switch' | 'checkbox-group' | 'radio-group' | 'switch-group' | false
   width?: number            // Default width
   minWidth?: number         // Minimum width
   maxWidth?: number         // Maximum width
+  align?: 'left' | 'center' | 'right'
+  headerAlign?: 'left' | 'center' | 'right'
   cell?: ({ rowValue, index }: CellType) => JSX.Element // Optional custom cell renderer
-  // validation?: (v: ValidatorHelper) => ZodSchema<any>
   editor?: {
     type?: EditorType
     validation?: (v: ValidatorHelper) => ZodSchema<any>
+    options?: DropdownOption[]
   } | false
-  filter?: { type?: string, options?: any[] } | undefined | false
+  filter?: FilterType | undefined | false
+}
+
+export type FilterType = {
+  type?: 'text' | 'number-range' | 'dropdown' | 'date' | 'date-range'
+  options?: DropdownOption[]
+  filterBy?: 'includesString' | 'includesStringSensitive' | 'inNumberRange'
 }
 
 export type EditingCellType = { rowId: string; columnId: string } | null

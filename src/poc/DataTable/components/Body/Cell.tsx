@@ -15,12 +15,15 @@ export const Cell = ({ cell, errorMsg, cellEditor, isEditable, isEditMode, onCli
   onClick?: (e: React.MouseEvent<HTMLSpanElement>) => void
 }) => {
   const { isDragging, setNodeRef, transform } = useSortable({ id: cell.column.id })
-  const cellContent = flexRender(cell.column.columnDef.cell, cell.getContext())
+  const colDef = cell.column.columnDef
+  const colMeta: any = colDef.meta
+  const cellContent = flexRender(colDef.cell, cell.getContext())
 
   const celContent = (
     <CellContainer className='cell-container'
       ref={setNodeRef}
       $hasError={!!errorMsg}
+      $isEditMode={!!isEditMode}
       style={{
         ...getColumnStyles(cell.column, isDragging, transform),
         width: `${cell.column.getSize()}px`,
@@ -29,7 +32,13 @@ export const Cell = ({ cell, errorMsg, cellEditor, isEditable, isEditMode, onCli
       onClick={onClick}
     >
       {/** Cell Text */}
-      <CellContent className='cell-content'>
+      <CellContent
+        className='cell-content'
+        $isEditMode={!!isEditMode}
+        $align={colMeta?.align}
+        $hasError={!!errorMsg}
+        $isEditable={isEditable}
+      >
         {isEditMode ? cellContent : <span>{ cellContent }</span>}
       </CellContent>
     </CellContainer>

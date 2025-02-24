@@ -1,38 +1,7 @@
-import { FilterFn, ColumnDef, Column } from '@tanstack/react-table'
-import { CheckboxCell } from '../components/SelectColumn/CheckboxCell'
-import { CellContainer } from '../components/ColumnHeader/styled'
+import { FilterFn, Column } from '@tanstack/react-table'
 import { CSSProperties } from 'react'
 // needed for row & cell level scope DnD setup
 import { CSS } from '@dnd-kit/utilities'
-
-export const DATA_TABLE_SELECT_ID = 'data-table-select'
-
-// Create the default 'select' column as provided.
-export const selectColumn: ColumnDef<any> = {
-  id: DATA_TABLE_SELECT_ID,
-  size: 30,
-  enableResizing: false,
-  enablePinning: false,
-  header: ({ table }) => (
-    <CellContainer className='custom-action data-table-select-header'>
-      <CheckboxCell
-        checked={table.getIsAllRowsSelected()}
-        indeterminate={table.getIsSomeRowsSelected()}
-        onChange={table.getToggleAllRowsSelectedHandler()}
-      />
-    </CellContainer>
-  ),
-  cell: ({ row }) => (
-    <CellContainer className='custom-action data-table-select-item'>
-      <CheckboxCell
-        checked={row.getIsSelected()}
-        disabled={!row.getCanSelect()}
-        indeterminate={row.getIsSomeSelected()}
-        onChange={row.getToggleSelectedHandler()}
-      />
-    </CellContainer>
-  ),
-}
 
 export const dateFilter: FilterFn<any> = (row, columnId, filterValue) => { // defined inline here
   if (!filterValue) return true
@@ -99,7 +68,7 @@ export const getColumnStyles = (
     opacity: 1,
     position: isPinned ? 'sticky' : 'relative',
     width: column.getSize(),
-    zIndex: isPinned ? 1 : 0,
+    zIndex: isPinned ? 11 : 0,
   }
 
   // Dragging-specific styles.

@@ -48,6 +48,8 @@ export interface FormControlProps {
   simple?: boolean;
   /** Right icon with max of 2 */
   iconRight?: IconRight[];
+  /** Custom class */
+  className?: string;
   /** Any additional attributes */
   /* eslint-disable @typescript-eslint/no-explicit-any */
   [key: string]: any;

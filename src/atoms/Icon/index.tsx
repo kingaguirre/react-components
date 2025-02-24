@@ -2,10 +2,10 @@ import React from "react";
 import { IconContainer, FallbackBox } from "./styled";
 import { IconProps } from "./interface";
 import "../../styles/font.css";
-import { ICONS } from "./data"; // Import list of available icons
+import { EXTRA_ICONS, SCB_ICONS } from "./data"; // Import list of available icons
 
 // ✅ Convert array to a Set for optimized lookup
-const ICON_SET = new Set(ICONS);
+const ICON_SET = new Set([...EXTRA_ICONS, ...SCB_ICONS]);
 
 export const Icon = ({
   icon,

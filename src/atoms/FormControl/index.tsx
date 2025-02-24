@@ -24,6 +24,7 @@ export const FormControl = forwardRef<HTMLInputElement | HTMLTextAreaElement, Fo
   isVerticalOptions,
   value,
   iconRight,
+  className,
   simple,
   ...rest
 }, ref) => {
@@ -95,17 +96,8 @@ export const FormControl = forwardRef<HTMLInputElement | HTMLTextAreaElement, Fo
     if (onChange) onChange(event);
   }
 
-  const getRef = (node: HTMLInputElement | null): void => {
-    inputRef.current = node;
-    if (typeof ref === "function") {
-      ref(node);
-    } else if (ref) {
-      (ref as React.MutableRefObject<HTMLInputElement | null>).current = node;
-    }
-  };
-
   return (
-    <FormControInputContainer className={`form-control-input-container ${disabled ? 'disabled' : ''} ${isInvalid ? 'invalid' : ''}`}>
+    <FormControInputContainer className={`form-control-input-container ${type ?? ''} ${className ?? ''} ${disabled ? 'disabled' : ''} ${isInvalid ? 'invalid' : ''}`}>
       {label && <Label color={color} size={size}>{required && <span>*</span>}{label}</Label>}
       <FormControlWrapper
         $simple={simple}
@@ -113,6 +105,7 @@ export const FormControl = forwardRef<HTMLInputElement | HTMLTextAreaElement, Fo
         $size={size}
         $type={type}
         className={`form-control-wrapper ${disabled ? 'disabled' : ''} ${isInvalid ? 'invalid' : ''}`}
+        title={value}
       >
         {(() => {
           const defaultProps = {
@@ -122,7 +115,7 @@ export const FormControl = forwardRef<HTMLInputElement | HTMLTextAreaElement, Fo
             disabled,
             readOnly,
             value,
-            ref: getRef,
+            ref,
             name: `form-control-${type}`,
             className: `form-control-${type} ${isInvalid ? 'invalid' : ''} ${disabled ? 'disabled' : ''}`,
             ...rest
@@ -183,7 +176,7 @@ export const FormControl = forwardRef<HTMLInputElement | HTMLTextAreaElement, Fo
         </IconWrapper>
       )}
       </FormControlWrapper>
-      {helpText && <HelpText color={isInvalid ? 'danger' : color}>{helpText}</HelpText>}
+      {helpText && <HelpText className='help-text' color={isInvalid ? 'danger' : color}>{helpText}</HelpText>}
     </FormControInputContainer>
   )}
 );

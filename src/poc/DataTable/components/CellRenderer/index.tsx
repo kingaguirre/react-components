@@ -6,11 +6,9 @@ export interface CellRendererProps {
   getValue: () => any
   column?: any // mark as optional just in case
   editingCell: { rowId: string; columnId: string } | null
-  currentEditorRef: React.RefObject<HTMLInputElement | HTMLSelectElement>
   setEditingCell: React.Dispatch<React.SetStateAction<{ rowId: string; columnId: string } | null>>
   handleCellCommit: (rowId: string, columnId: string, value: any) => void
-  editor?: any
-  customCell?: any
+  cell?: any
 }
 
 const CellRendererComponent: React.FC<CellRendererProps> = ({
@@ -18,78 +16,80 @@ const CellRendererComponent: React.FC<CellRendererProps> = ({
   getValue,
   column,
   editingCell,
-  currentEditorRef,
   setEditingCell,
   handleCellCommit,
-  editor,
-  customCell,
+  cell,
 }) => {
+  const colMeta = column.columnDef.meta ?? {}
+  const { validation, editor, columnId } = colMeta
+  const { type: editorType, options = [] } = editor ?? {}
+
   // If the cell is in editing mode and an editor is allowed.
   if (
     editingCell &&
     editingCell.rowId === row.original.__internalId &&
-    editingCell.columnId === column.id &&
-    editor !== false
+    editingCell.columnId === columnId &&
+    editorType !== false
   ) {
     const rawValue = getValue()
     let cellValue: any
-    if (editor === 'date-range' || editor === 'number-range') {
-      cellValue = Array.isArray(rawValue) ? rawValue : ['', '']
+    if (editorType === 'date-range') {
+      cellValue = Array.isArray(rawValue) ? rawValue.join(',') : rawValue
     } else if (
-      editor === 'checkbox-group' ||
-      editor === 'switch-group' ||
-      editor === 'radio-group'
+      editorType === 'checkbox-group' ||
+      editorType === 'switch-group' ||
+      editorType === 'radio-group'
     ) {
-      cellValue = editor === 'radio-group' ? rawValue : Array.isArray(rawValue) ? rawValue : []
-    } else if (editor === 'checkbox') {
+      cellValue = editorType === 'radio-group' ? rawValue : Array.isArray(rawValue) ? rawValue : rawValue
+    } else if (editorType === 'checkbox' || editorType === 'radio') {
       cellValue = Boolean(rawValue)
     } else {
       cellValue = rawValue != null ? rawValue : ''
     }
+
     return (
       <EditableCell
-        ref={currentEditorRef}
-        editorType={editor || 'text'}
+        editorType={editorType || 'text'}
+        options={options}
         value={cellValue}
-        validation={column.columnDef.meta?.validation}
-        onChange={(val) =>
-          handleCellCommit(row.original.__internalId, column.id, val)
-        }
+        validation={validation}
+        onChange={(val) => handleCellCommit(row.original.__internalId, column.id, val)}
         autoFocus
         onCancel={() => setEditingCell(null)}
+        name={`${row.original.__internalId}-${columnId}`}
       />
     )
   }
 
   // If a custom cell renderer is provided, use it.
-  if (customCell) {
-    return customCell({ rowValue: row.original, index: row.index })
+  if (cell) {
+    return cell({ rowValue: row.original, index: row.index })
   }
 
   // Default cell rendering logic.
   const rawValue = getValue()
 
   let cellValue: any = ''
-  if (editor === 'date-range' || editor === 'number-range') {
+  if (editorType === 'date-range' || editorType === 'number-range') {
     if (Array.isArray(rawValue) && rawValue[0] === '' && rawValue[1] === '') {
       cellValue = ''
     } else if (Array.isArray(rawValue)) {
-      cellValue = rawValue.join(' - ')
+      cellValue = rawValue.join(',')
     } else {
       cellValue = rawValue
     }
   } else if (
-    editor === 'checkbox-group' ||
-    editor === 'switch-group' ||
-    editor === 'radio-group'
+    editorType === 'checkbox-group' ||
+    editorType === 'switch-group' ||
+    editorType === 'radio-group'
   ) {
-    cellValue = editor === 'radio-group' ? rawValue : Array.isArray(rawValue) ? rawValue : []
-  } else if (editor === 'checkbox' || editor === 'radio') {
+    cellValue = Array.isArray(rawValue) ? rawValue.join(',') : rawValue
+  } else if (editorType === 'checkbox' || editorType === 'radio') {
     cellValue = Boolean(rawValue)
   } else {
     cellValue = rawValue != null ? rawValue : ''
   }
-  return <>{cellValue?.toString()}</>
+  return cellValue?.toString()
 }
 
 export const CellRenderer = React.memo(CellRendererComponent)

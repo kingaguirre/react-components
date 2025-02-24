@@ -12,6 +12,7 @@ import {
 import { DropdownProps, DropdownOption } from './interface'
 import FormControl from '@atoms/FormControl'
 import { ifElse } from '@utils/index'
+import { getScrollParent } from './utils'
 
 export const Dropdown: React.FC<DropdownProps> = ({
   options,
@@ -26,6 +27,8 @@ export const Dropdown: React.FC<DropdownProps> = ({
   clearable = false,
   dropdownHeight,
   dropdownWidth,
+  hideOnScroll = false,
+  onBlur,
   ...rest
 }) => {
   const isMulti = !!multiselect
@@ -131,23 +134,63 @@ export const Dropdown: React.FC<DropdownProps> = ({
 
   // Recalculate dropdown position.
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !hideOnScroll) {
       updateDropdownPosition()
     }
-  }, [filteredOptions, filterText, isOpen])
+  }, [filteredOptions, filterText, isOpen, hideOnScroll])
+
+  // Define a scroll handler that just hides the dropdown.
+  const handleScrollHide = React.useCallback(() => {
+    setIsOpen(false)
+  }, [])
+
+  // NEW: Focus/Blur Handlers to open/close the dropdown based on focus.
+  const handleFocus = () => {
+    setIsOpen(true)
+  }
+
+  const handleBlur = (e: React.FocusEvent) => {
+    // Delay to allow clicks within the dropdown to register.
+    setTimeout(() => {
+      const activeEl = document.activeElement
+      if (
+        activeEl !== formControlRef.current &&
+        !(listRef.current && listRef.current.contains(activeEl))
+      ) {
+        setIsOpen(false)
+      }
+    }, 0)
+
+    onBlur?.(e)
+  }
 
   // When opening the dropdown, preset filter text (for single-select) and set focus.
   useEffect(() => {
+    // Choose the appropriate scroll handler based on hideOnScroll prop.
+    // const scrollHandler = hideOnScroll ? handleScrollHide : updateDropdownPosition
+    const scrollParent = getScrollParent(formControlRef.current);
+    const handleScroll = () => {
+      if (hideOnScroll) {
+        setIsOpen(false);
+      } else {
+        updateDropdownPosition();
+      }
+    };
+
     const attachEventListeners = () => {
+      scrollParent.addEventListener('scroll', handleScroll);
+      window.addEventListener('resize', updateDropdownPosition);
       document.addEventListener('mousedown', handleClickOutside)
-      window.addEventListener('scroll', updateDropdownPosition)
-      window.addEventListener('resize', updateDropdownPosition)
+      // window.addEventListener('scroll', scrollHandler)
+      // window.addEventListener('resize', updateDropdownPosition)
     }
   
     const detachEventListeners = () => {
+      scrollParent.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', updateDropdownPosition);
       document.removeEventListener('mousedown', handleClickOutside)
-      window.removeEventListener('scroll', updateDropdownPosition)
-      window.removeEventListener('resize', updateDropdownPosition)
+      // window.removeEventListener('scroll', scrollHandler)
+      // window.removeEventListener('resize', updateDropdownPosition)
     }
   
     const updateFilterText = () => {
@@ -200,8 +243,8 @@ export const Dropdown: React.FC<DropdownProps> = ({
     }
   
     return detachEventListeners
-  }, [isOpen, options, filter, selectedValue, selectedValues, isMulti, filteredOptions])
-  
+  }, [isOpen, options, filter, selectedValue, selectedValues, isMulti, filteredOptions, hideOnScroll, handleScrollHide])
+
   // Update lastFocusedValueRef whenever focusedIndex is valid.
   useEffect(() => {
     if (isOpen && focusedIndex >= 0 && focusedIndex < filteredOptions?.length) {
@@ -281,7 +324,8 @@ export const Dropdown: React.FC<DropdownProps> = ({
     return isInitial ? -1 : currentIndex
   }
 
-  const handleSelect = (selectedVal: string) => {
+  const handleSelect = (selectedVal: string, e: React.MouseEvent<HTMLLIElement, MouseEvent> | React.KeyboardEvent) => {
+    e.stopPropagation()
     if (isMulti) {
       setSelectedValues(prev => {
         let newSelected: string[]
@@ -318,6 +362,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
       const selectedOption = options.find(opt => opt.value === selectedVal)
       if (!selectedOption) return
       setIsOpen(false)
+      formControlRef.current?.blur()
       setDisplayValue(selectedOption.text)
       setSelectedValue(selectedVal)
       if (filter) {
@@ -385,7 +430,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
     } else if (event.key === 'Enter') {
       event.preventDefault()
       if (focusedIndex >= 0 && !filteredOptions[focusedIndex]?.disabled) {
-        handleSelect(filteredOptions[focusedIndex]?.value)
+        handleSelect(filteredOptions[focusedIndex]?.value, event)
       }
     } else if (event.key === 'Escape') {
       event.preventDefault()
@@ -448,9 +493,9 @@ export const Dropdown: React.FC<DropdownProps> = ({
     }
     // Otherwise highlight all occurrences.
     const regex = new RegExp(`(${filterText})`, 'gi')
-    return text.split(regex).map((part) =>
+    return text.split(regex).map((part, i: number) =>
       part.toLowerCase() === filterText.toLowerCase() ? (
-        <HighlightedText key={`key-${part}`}>{part}</HighlightedText>
+        <HighlightedText key={`key-${part}-${i}`}>{part}</HighlightedText>
       ) : (
         part
       )
@@ -489,8 +534,6 @@ export const Dropdown: React.FC<DropdownProps> = ({
   }
 
   const getClearIcon = () => {
-    if (!clearable) return []
-
     const shouldShowClear = (isMulti ? selectedValues.length > 0 : selectedValue)
 
     return shouldShowClear ? [
@@ -539,8 +582,9 @@ export const Dropdown: React.FC<DropdownProps> = ({
             $size={size}
             key={value}
             disabled={disabled}
+            onMouseDown={(e) => e.preventDefault()} 
             className={getSelectedClass(index, value)}
-            onClick={() => !disabled && handleSelect(value)}
+            onClick={(e: React.MouseEvent<HTMLLIElement, MouseEvent>) => !disabled && handleSelect(value, e)}
           >
             {isMulti && (
               <FormControl
@@ -569,7 +613,10 @@ export const Dropdown: React.FC<DropdownProps> = ({
         readOnly={isMulti || !filter || !isOpen}
         disabled={disabled}
         size={size}
-        onClick={() => setIsOpen(prev => !prev)}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        onClick={() => setIsOpen(true)}
+        className="form-control-dropdown-container"
         onChange={
           filter && !isMulti
             ? (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -580,8 +627,8 @@ export const Dropdown: React.FC<DropdownProps> = ({
         }
         onKeyDown={handleKeyDown}
         iconRight={[
-          ...(getClearIcon()),
-          { icon: 'keyboard_arrow_down', onClick: () => setIsOpen(prev => !prev) },
+          ...(!clearable ? getClearIcon() : []),
+          { icon: 'keyboard_arrow_down', onClick: () => setIsOpen(true) },
         ]}
       />
       {isOpen && ReactDOM.createPortal(dropdownContent, document.body)}

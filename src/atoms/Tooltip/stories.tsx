@@ -18,9 +18,8 @@ const meta = {
     },
     trigger: {
       control: "select",
-      options: ["mouseenter", "click", "focus", "manual"],
+      options: ["hover", "click"],
     },
-    arrow: { control: "boolean" },
   },
 } satisfies Meta<typeof Tooltip>;
 
@@ -79,14 +78,11 @@ export const Examples: StoryObj<typeof Tooltip> = {
             marginBottom: "40px",
           }}
         >
-          <Tooltip content="Hover trigger" color="default" placement="top" trigger="mouseenter">
+          <Tooltip content="Hover trigger" color="default" placement="top">
             <Button size="sm" color="default">Hover me</Button>
           </Tooltip>
           <Tooltip content="Click trigger" color="success" placement="top" trigger="click">
             <Button size="sm" color="success">Click me</Button>
-          </Tooltip>
-          <Tooltip content="Focus trigger" color="warning" placement="top" trigger="focus">
-            <Button size="sm" color="warning">Focus me</Button>
           </Tooltip>
         </div>
 
@@ -119,6 +115,7 @@ export const Examples: StoryObj<typeof Tooltip> = {
             content="This is a very long tooltip content. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent suscipit ultrices magna, sed dignissim libero ullamcorper ac. Integer eget lectus eu urna hendrerit ultrices. Donec non ex sed nisi viverra commodo. In hac habitasse platea dictumst."
             color="danger"
             placement="right"
+            maxWidth={200}
           >
             <Button size="sm" color="danger">Hover for long tooltip</Button>
           </Tooltip>

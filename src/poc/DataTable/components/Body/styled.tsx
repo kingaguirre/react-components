@@ -3,21 +3,21 @@ import styled from 'styled-components'
 
 export const BodyContainer = styled.div``
 
-export const CellContainer = styled.div<{ $hasError?: boolean }>`
+export const CellContainer = styled.div<{ $hasError?: boolean; $isEditMode?: boolean }>`
   background-color: 'white';
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  z-index: 1;
+  ${({ $isEditMode }) => !!$isEditMode ? 'z-index: 10!important;' : ''}
   box-shadow: 0 0 0 1px ${theme.colors.default.pale};
 
   ${({ $hasError }) => !!$hasError ? `
     &:before {
       content: "";
-      top: 0;
-      left: 0;
+      top: 1px;
+      left: 1px;
       right: 1px;
       bottom: 1px;
       pointer-events: none;
@@ -45,17 +45,31 @@ export const DataTableRow = styled.div`
   }
 `
 
-export const CellContent = styled.div`
+const getTextAlignment = (align?: string) => {
+  switch(align) {
+    case 'left': return 'flex-start'
+    case 'right': return 'flex-end'
+    default: return 'center'
+  }
+}
+
+export const CellContent = styled.div<{
+  $isEditMode?: boolean
+  $hasError?: boolean
+  $isEditable?: boolean
+  $align?: string
+}>`
   color: ${theme.colors.default.darker};
   font-size: 14px;
   line-height: 1.2;
-  padding: 4px;
+  padding: ${({ $isEditMode }) => !!$isEditMode ? '0' : '4px'};
   flex: 1;
   width: 100%;
   min-height: 30px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: ${({ $align }) => getTextAlignment($align)};
+  transition: background-color .3s ease;
 
   > span {
     white-space: nowrap;
@@ -64,4 +78,42 @@ export const CellContent = styled.div`
     cursor: inherit;
     color: ${theme.colors.default.dark};
   }
+
+  .form-control-input-container:not(.form-control-dropdown-container) {
+    &.editable-element {
+      .form-control-text,
+      .form-control-number,
+      .form-control-textarea {
+        text-align: ${({ $align }) => $align ?? 'center'};
+        height: 30px;
+      }
+
+      .help-text {
+        position: absolute;
+        z-index: 1;
+        background-color: white;
+        padding: 4px;
+        box-shadow: 0 2px 4px 2px rgba(0,0,0,0.3);
+        border-bottom-left-radius: 2px;
+        border-bottom-right-radius: 2px;
+        left: 2px;
+        width: calc(100% - 4px);
+        min-width: 120px;
+        top: 32px;
+      }
+    }
+
+    &.checkbox-group, &.switch-group, &.radio-group {
+      padding: 4px 8px;
+      .group-control-container {
+        gap: 4px;
+      }
+    }
+  }
+
+  ${({ $isEditable, $hasError }) => $isEditable ? `
+    &:hover {
+      background-color: ${$hasError ? theme.colors.danger.pale : theme.colors.primary.pale};
+    }
+  ` : ''}
 `

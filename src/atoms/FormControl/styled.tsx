@@ -10,7 +10,10 @@ export const FormControInputContainer = styled.div`
   font-family: ${theme.fontFamily};
   line-height: 1.4;
   max-width: 100%;
-  width: 100%;
+
+  &.textarea {
+    width: 100%;
+  }
 
   * {
     box-sizing: border-box;
@@ -142,13 +145,14 @@ const sharedInputStyles = css<{
       inset -1px 0 0 ${theme.colors[color].light}, 
       inset 0 -1px 0 ${theme.colors[color].light}, 
       inset 1px 0 0 ${theme.colors[color].light},
-      0 0 0 2px ${theme.colors[color].lighter}
+      0 0 0 4px ${theme.colors[color].lighter}
     `}
   }
 
   &:read-only {
     background-color: white;
     color: ${theme.colors.default.darker};
+    cursor: default;
   }
 
   &:disabled {
@@ -196,7 +200,7 @@ const sharedInputStyles = css<{
         inset -1px 0 0 ${theme.colors.danger.light}, 
         inset 0 -1px 0 ${theme.colors.danger.light}, 
         inset 1px 0 0 ${theme.colors.danger.light},
-        0 0 0 2px ${theme.colors.danger.pale}
+        0 0 0 4px ${theme.colors.danger.pale}
       `};
     }
 
@@ -239,6 +243,7 @@ export const TextArea = styled.textarea<{
   ${sharedInputStyles};
   resize: vertical;
   min-height: 80px; /* Default height for TextArea */
+  max-width: 100%;
 `;
 
 const getCustomCheckboxRadio = ({
@@ -324,7 +329,7 @@ export const CustomCheckboxRadio = styled.input<{
 
   &:focus:not(:disabled) {
     outline: none;
-    box-shadow: ${({ color = 'primary' }) => `0 0 0 2px ${theme.colors[color].pale}, 0 0 1px 3px ${theme.colors[color].lighter}`};
+    box-shadow: ${({ color = 'primary' }) => `0 0 0 4px ${theme.colors[color].pale}, 0 0 1px 5px ${theme.colors[color].lighter}`};
   }
 
   &:hover:not(:checked):not(:disabled):not(:indeterminate) {
@@ -388,7 +393,7 @@ export const CustomCheckboxRadio = styled.input<{
 
     &:focus:not(:disabled) {
       outline: none;
-      box-shadow: ${`0 0 0 2px ${theme.colors.danger.pale}, 0 0 1px 3px ${theme.colors.danger.lighter}`};
+      box-shadow: ${`0 0 0 4px ${theme.colors.danger.pale}, 0 0 1px 5px ${theme.colors.danger.lighter}`};
     }
 
     &:disabled {
@@ -409,6 +414,7 @@ export const Switch = styled(CustomCheckboxRadio)`
   background-color: ${({ color = 'primary' }) => theme.colors[color].pale};
   border-color: ${({ color = 'primary' }) => theme.colors[color].pale};
   position: relative;
+  box-shadow: 0 0 1px 0px rgba(0, 0, 0, 0.5);
 
   &:before {
     content: '';
@@ -427,14 +433,14 @@ export const Switch = styled(CustomCheckboxRadio)`
   &:hover:not(:disabled) {
     &:before {
       opacity: 1!important;
-      box-shadow: ${({ color = 'primary' }) => `0 0 0 2px ${theme.colors[color].pale}, 0 0 1px 3px ${theme.colors[color].lighter}`};
+      box-shadow: ${({ color = 'primary' }) => `0 0 0 4px ${theme.colors[color].pale}, 0 0 1px 5px ${theme.colors[color].lighter}`};
     }
   }
 
   &:focus:not(:disabled) {
-    box-shadow: none;
+    box-shadow: 0 0 1px 0px rgba(0, 0, 0, 0.5);
     &:before {
-      box-shadow: ${({ color = 'primary' }) => `0 0 0 2px ${theme.colors[color].pale}, 0 0 1px 3px ${theme.colors[color].lighter}`};
+      box-shadow: ${({ color = 'primary' }) => `0 0 0 4px ${theme.colors[color].pale}, 0 0 1px 5px ${theme.colors[color].lighter}`};
     }
   }
 
@@ -473,14 +479,14 @@ export const Switch = styled(CustomCheckboxRadio)`
     &:hover:not(:disabled) {
       &:before {
         opacity: 1!important;
-        box-shadow: ${`0 0 0 2px ${theme.colors.danger.pale}, 0 0 1px 3px ${theme.colors.danger.lighter}`};
+        box-shadow: ${`0 0 0 4px ${theme.colors.danger.pale}, 0 0 1px 5px ${theme.colors.danger.lighter}`};
       }
     }
 
     &:focus:not(:disabled) {
       box-shadow: none;
       &:before {
-        box-shadow: ${`0 0 0 2px ${theme.colors.danger.pale}, 0 0 1px 3px ${theme.colors.danger.lighter}`};
+        box-shadow: ${`0 0 0 4px ${theme.colors.danger.pale}, 0 0 1px 5px ${theme.colors.danger.lighter}`};
       }
     }
 

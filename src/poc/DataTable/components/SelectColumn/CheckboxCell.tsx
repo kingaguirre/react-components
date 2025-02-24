@@ -19,5 +19,5 @@ export const CheckboxCell = React.forwardRef<
     }
   }, [resolvedRef, indeterminate])
 
-  return <FormControl simple type="checkbox" ref={resolvedRef} {...rest} />
-});
+  return <FormControl simple type='checkbox' ref={resolvedRef} {...rest} />
+})

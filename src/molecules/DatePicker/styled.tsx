@@ -15,6 +15,10 @@ export const DatePickerGlobalStyles = createGlobalStyle`
     stroke: rgba(0, 0, 0, 0.04)!important;
   }
 
+  .react-datepicker-popper {
+    z-index: 999;
+  }
+
   .react-datepicker {
     border: none!important;
     box-shadow: 1px 0 0 #e6e6e6, -1px 0 0 #e6e6e6, 0 1px 0 #e6e6e6, 0 -1px 0 #e6e6e6, 0 3px 13px rgba(0, 0, 0, 0.08);
