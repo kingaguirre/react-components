@@ -2,7 +2,6 @@
 export const SCB_ICONS = [
   'action-backward',
   'action-forward',
-  'add',
   'alarm-clock',
   'alert',
   'alternate',
@@ -44,7 +43,6 @@ export const SCB_ICONS = [
   'chevron-right',
   'chevron-up',
   'classified',
-  'close',
   'copy',
   'create-new',
   'cross-box',

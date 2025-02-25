@@ -1,5 +1,5 @@
 // src/components/Panel/interface.ts
-import { ColorType } from '@common/interfaces'
+import { ColorType } from '../../common/interface'
 
 export interface IconObject {
   icon: string

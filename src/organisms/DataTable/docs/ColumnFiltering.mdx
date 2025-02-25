@@ -1,0 +1,68 @@
+import { Meta } from '@storybook/blocks';
+import React from 'react';
+import { DataTable } from '../index';
+import { DataTablePlayground } from '../Playground';
+import { StoryWrapper, Title } from '../../../components/StoryWrapper';
+
+<Meta title="Organisms/DataTable/Column Filtering" component={DataTable} />
+
+# Column Filtering
+
+Column filtering allows you to filter table data on a per-column basis.  
+This feature lets users narrow down visible rows by entering filter criteria.
+
+## How Column Filtering Works
+
+When enabled via the `enableColumnFiltering` prop, you can specify a `filter` object in the `columnSettings` array. The `filter` object can include:
+- **`type`** – The type of filter (e.g., `'text'`, `'number-range'`, `'dropdown'`).
+- **`options`** – For dropdown filters, an array of options.
+- **`filterBy`** – The filtering method (e.g., case sensitive, etc.).
+
+## Code Example
+
+Below is an example of how to implement column filtering in the DataTable component, similar to cell editing:
+
+```tsx
+import React from 'react';
+import { DataTable } from 'react-components-lib';
+
+export const ColumnFilteringDemo = () => (
+  <DataTable
+    dataSource={[
+      { id: "1", firstName: "John", lastname: "Doe", role: "Admin" },
+      { id: "2", firstName: "Jane", lastname: "Smith", role: "User" }
+    ]}
+    columnSettings={[
+      // ID column without filtering.
+      { title: "ID", column: "id", filter: false },
+      // First Name column with a text filter.
+      { 
+        title: "First Name", 
+        column: "firstName", 
+        filter: { type: 'text', filterBy: 'includesString' } 
+      },
+      // Last Name column with a text filter.
+      { 
+        title: "Last Name", 
+        column: "lastname", 
+        filter: { type: 'text', filterBy: 'includesStringSensitive' } 
+      },
+      // Role column with a dropdown filter.
+      { 
+        title: "Role", 
+        column: "role", 
+        filter: { 
+          type: 'dropdown', 
+          options: [
+            { value: "Admin", text: "Admin" },
+            { value: "User", text: "User" }
+          ]
+        } 
+      }
+    ]}
+    enableColumnFiltering
+  />
+);
+```
+## API
+For detailed API usage and configuration examples, please refer to the interactive **demo** story. The demo provides a comprehensive example of how to configure and utilize the **DataTable** with column filtering.

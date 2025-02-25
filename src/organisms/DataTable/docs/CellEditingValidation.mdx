@@ -1,0 +1,71 @@
+import { Meta } from '@storybook/blocks';
+
+<Meta title="Organisms/DataTable/Cell Editing - Zod Validation" />
+
+# Cell Editing with Zod Validation
+
+In the DataTable component, the cell editing feature leverages Zod for input validation. In the configuration, you'll notice that each column's editor can include a validation function. In these functions, the parameter `v` represents a **Zod** validation instance. 
+
+## How It Works
+
+- **Zod Instance (`v`)**: The `v` parameter is a ready-to-use Zod instance that you can utilize to define your validation schema.
+- **Schema Definition**: You can use Zod methods to specify the expected data type and constraints. For example, you might ensure that a string is not empty, or that a number falls within a certain range.
+- **Flexibility**: The approach allows you to easily integrate various validation rules, such as ensuring the presence of a value, setting minimum lengths, or even applying more complex validations, all using Zod's robust API.
+
+## Customizing Your Validation
+
+Zod supports a wide range of validations for different data types. Whether you need to validate strings, numbers, arrays, or even complex objects, you can configure your rules with Zod's expressive methods.
+
+```tsx
+// 1. String: Required, with a maximum length and a regex pattern.
+//    - The string must be non-empty, no longer than 100 characters, and only contain alphanumeric characters and spaces.
+const stringRequiredMaxPattern = (v) =>
+  v.string()
+    .min(1, "This field is required.")
+    .max(100, "Maximum length is 100 characters.")
+    .regex(/^[A-Za-z0-9\s]+$/, "Only alphanumeric characters and spaces are allowed.");
+
+// 2. String: Letters only with an exact number of characters.
+//    - The string must contain only letters and be exactly 5 characters long.
+const lettersOnlyExactLength = (v) =>
+  v.string()
+    .regex(/^[A-Za-z]+$/, "Only letters are allowed.")
+    .length(5, "Must be exactly 5 characters long.");
+
+// 3. Number: With minimum and maximum value constraints.
+//    - The number must be between 10 and 100 (inclusive).
+const numberMinMax = (v) =>
+  v.number()
+    .min(10, "Minimum value is 10.")
+    .max(100, "Maximum value is 100.");
+
+// 4. Additional examples:
+
+// Email validation:
+//    - Ensures the input is a valid email address.
+const emailValidation = (v) =>
+  v.string()
+    .email("Invalid email address.");
+
+// URL validation:
+//    - Ensures the input is a valid URL.
+const urlValidation = (v) =>
+  v.string()
+    .url("Invalid URL.");
+
+// Password validation (as an extra example):
+//    - The password must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, and one number.
+const passwordValidation = (v) =>
+  v.string()
+    .min(8, "Password must be at least 8 characters long.")
+    .regex(/(?=.*[a-z])/, "Password must contain at least one lowercase letter.")
+    .regex(/(?=.*[A-Z])/, "Password must contain at least one uppercase letter.")
+    .regex(/(?=.*\d)/, "Password must contain at least one number.");
+
+```
+
+## Learn More
+
+For detailed guidance and examples on building custom validations with Zod, please refer to the [Zod Documentation](https://zod.dev).
+
+By using Zod within your DataTable component, you ensure that user inputs are validated efficiently, resulting in a more dynamic and reliable user interface.

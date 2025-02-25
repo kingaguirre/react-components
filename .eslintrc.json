@@ -32,23 +32,13 @@
         "args": "after-used",
         "argsIgnorePattern": "^_"
       }
-    ]
+    ],
+    "semi": ["error", "never"],
+    "quotes": ["error", "single"]
   },
   "settings": {
     "import/resolver": {
       "typescript": {},
-      "alias": {
-        "map": [
-          ["@components", "./src/components"],
-          ["@atoms", "./src/atoms"],
-          ["@molecules", "./src/molecules"],
-          ["@organisms", "./src/organisms"],
-          ["@utils", "./src/utils"],
-          ["@common", "./src/common"],
-          ["@styles", "./src/styles"]
-        ],
-        "extensions": [".ts", ".tsx", ".js", ".jsx"]
-      }
     },
     "react": {
       "version": "detect"

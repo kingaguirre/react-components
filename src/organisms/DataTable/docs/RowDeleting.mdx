@@ -1,0 +1,41 @@
+
+import { Meta } from '@storybook/blocks';
+import React from 'react';
+import { DataTable } from '../index';
+import { DataTablePlayground } from '../Playground';
+import { StoryWrapper, Title } from '../../../components/StoryWrapper';
+
+<Meta title="Organisms/DataTable/Row Deleting" component={DataTable} />
+
+# Row Deleting
+
+Row deleting allows users to remove rows from the table, simplifying data management.
+
+## How Row Deleting Works
+
+When enabled via the `enableRowDeleting` prop, users can remove individual rows from the data source.
+
+## Code Example
+
+Below is an example of how to implement row deleting in the DataTable component:
+
+```tsx
+import React from 'react';
+import { DataTable } from 'react-components-lib';
+
+export const RowDeletingDemo = () => (
+  <DataTable
+    dataSource={[
+      { id: "1", firstName: "John", lastname: "Doe" }
+    ]}
+    columnSettings={[
+      { title: "ID", column: "id" },
+      { title: "First Name", column: "firstName" },
+      { title: "Last Name", column: "lastname" }
+    ]}
+    enableRowDeleting
+  />
+);
+```
+## API
+For detailed API usage and configuration examples, please refer to the interactive **demo** story. The demo provides a comprehensive example of how to configure and utilize the **DataTable** with row deleting.

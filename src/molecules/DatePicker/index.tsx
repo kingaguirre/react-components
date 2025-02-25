@@ -6,7 +6,7 @@ import 'react-datepicker/dist/react-datepicker.css'
 import { DatePickerContainer, DatePickerGlobalStyles } from './styled'
 import { DatePickerProps } from './interface'
 import { CustomInput } from './CustomInput'
-import { ifElse } from '@utils/index'
+import { ifElse } from '../../utils/index'
 
 let globalStylesInjected = false // Singleton flag
 
@@ -113,7 +113,5 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 }
 
 const CustomCalendarContainer = ({ children }: { children: ReactNode }) => (
-  <div className='react-datepicker' onClick={(e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation()}>{children}</div>
+  <div className='react-datepicker' data-testid='datepicker-popper' onClick={(e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation()}>{children}</div>
 )
-
-export default DatePicker

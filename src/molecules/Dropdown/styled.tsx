@@ -1,7 +1,6 @@
 // src/molecules/Dropdown/styled.tsx
 import styled from "styled-components"
-import { theme } from "../../styles/theme"
-import { scrollStyle } from "../../styles/GlobalStyles"
+import { theme, scrollStyle } from "../../styles"
 
 export const DropdownContainer = styled.div`
   position: relative;

@@ -1,6 +1,4 @@
-import React from 'react'
-
-export const ifElse = <T,>(condition: boolean, trueValue: T, falseValue: T): T => {
+export const ifElse = (condition: boolean, trueValue: any, falseValue: any) => {
   if (condition) {
     return trueValue
   }
@@ -37,21 +35,16 @@ export const countDigits = (value: string | number) => {
   return cleanValue.length
 }
 
-export function useOnClickOutside<T extends HTMLElement>(
-  ref: React.RefObject<T>,
-  handler: (event: MouseEvent) => void
-) {
-  React.useEffect(() => {
-    const listener = (event: MouseEvent) => {
-      // Do nothing if clicking ref's element or its descendants.
-      if (!ref.current || ref.current.contains(event.target as Node)) {
-        return
-      }
-      handler(event)
+export const getScrollParent = (element: HTMLElement | null): HTMLElement | Window => {
+  if (!element) return window
+  const overflowRegex = /(auto|scroll)/
+  let parent: HTMLElement | null = element
+  while (parent) {
+    const { overflow, overflowY, overflowX } = getComputedStyle(parent)
+    if (overflowRegex.test(overflow + overflowY + overflowX)) {
+      return parent
     }
-    document.addEventListener('mousedown', listener)
-    return () => {
-      document.removeEventListener('mousedown', listener)
-    }
-  }, [ref, handler])
+    parent = parent.parentElement
+  }
+  return window
 }

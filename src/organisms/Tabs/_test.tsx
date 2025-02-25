@@ -1,7 +1,8 @@
 // src/organisms/Tabs/_test.tsx
+import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
-import Tabs from "./index";
+import { Tabs } from "./index";
 import { TabItemProps } from "./interface";
 
 // Original tabsData where Tab 3 is disabled

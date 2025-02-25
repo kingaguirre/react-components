@@ -1,8 +1,8 @@
 // src/components/Tabs/styled.tsx
 import styled, { keyframes } from "styled-components";
 import { theme } from "../../styles/theme";
-import { ifElse } from "@utils/index";
-import { ColorType } from "@common/interfaces";
+import { ifElse } from "../../utils/index";
+import { ColorType } from "../../common/interface";
 
 export const TabWrapper = styled.div`
   display: flex;

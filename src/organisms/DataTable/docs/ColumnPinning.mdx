@@ -1,0 +1,51 @@
+import { Meta } from '@storybook/blocks';
+import React from 'react';
+import { DataTable } from '../index';
+import { DataTablePlayground } from '../Playground';
+import { StoryWrapper, Title } from '../../../components/StoryWrapper';
+
+<Meta title="Organisms/DataTable/Column Pinning" component={DataTable} />
+
+# Column Pinning
+
+Column pinning allows you to lock certain columns in place so they remain visible when scrolling horizontally. This is especially useful in tables with many columns where key data should always be in view.
+
+## How Column Pinning Works
+
+When enabled via the `enableColumnPinning` prop (default: true), you can control the pinning behavior for individual columns using the `pin` attribute in the `columnSettings` array. The `pin` attribute accepts the following values:
+
+- **`'pin'`** – The column is pinned (fixed) to the left.
+- **`'unpin'`** – The column is explicitly unpinned.
+- **`false`** – No pinning is applied.
+
+This granular control helps maintain context as users navigate through wide data tables.
+
+## Code Example
+
+Below is an example of how to implement column pinning in the DataTable component:
+
+```tsx
+import React from 'react';
+import { DataTable } from 'react-components-lib';
+
+export const ColumnPinningDemo = () => (
+  <DataTable
+    dataSource={[
+      { id: "1", firstName: "John", lastname: "Doe" }
+    ]}
+    columnSettings={[
+      // This column is pinned to the left.
+      { title: "ID", column: "id", pin: "pin" },
+      // This column is explicitly unpinned.
+      { title: "First Name", column: "firstName", pin: "unpin" },
+      // No pinning is applied to this column.
+      { title: "Last Name", column: "lastname", pin: false }
+    ]}
+    enableColumnPinning
+  />
+);
+
+```
+
+## API
+For detailed API usage and configuration examples, please refer to the interactive **demo** story. The demo provides a comprehensive example of how to configure and utilize the **DataTable** with column pinning.

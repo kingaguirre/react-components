@@ -2,6 +2,7 @@
 import styled, { css } from 'styled-components';
 import { FormControlProps, IconRight } from './interface';
 import { theme } from '../../styles/theme';
+import { ColorType, SizeType } from '../../common/interface';
 
 export const FormControInputContainer = styled.div`
   box-sizing: border-box;
@@ -84,6 +85,7 @@ export const Label = styled.span<{
   position: relative;
   margin-bottom: 8px;
   line-height: 1;
+  text-align: left;
   font-size: ${({ size }) => `${theme.sizes.label[size ?? 'md']}px`};
   font-family: ${theme.fontFamily};
   color: ${theme.colors.default.dark};
@@ -253,8 +255,8 @@ const getCustomCheckboxRadio = ({
   _theme,
 }: {
   type?: string;
-  color: string;
-  size?: string;
+  color: ColorType;
+  size?: SizeType;
   /* eslint-disable @typescript-eslint/no-explicit-any */
   _theme: any;
 }) => {
@@ -302,8 +304,8 @@ const getCustomCheckboxRadio = ({
 };
 
 export const CustomCheckboxRadio = styled.input<{
-  color?: FormControlProps['color'];
-  size?: keyof typeof theme.sizes.boxSize;
+  color?: ColorType;
+  size?: SizeType;
 }>`
   appearance: none;
   min-width: ${({ size }) => (size === 'xs' || size === 'sm' ? 12 : 16)}px;
@@ -332,13 +334,25 @@ export const CustomCheckboxRadio = styled.input<{
     box-shadow: ${({ color = 'primary' }) => `0 0 0 4px ${theme.colors[color].pale}, 0 0 1px 5px ${theme.colors[color].lighter}`};
   }
 
-  &:hover:not(:checked):not(:disabled):not(:indeterminate) {
-    &:before {
-      opacity: 0.4;
-      border-color: ${({ color = 'primary' }) => theme.colors[color].base};
-      transform: scale(1) rotate(45deg);
+  ${({ type, color = 'primary' }) => (type === 'radio' ? css`
+    &:focus:not(:checked):not(:disabled),
+    &:hover:not(:checked):not(:disabled) {
+      &:before {
+        opacity: 0.4;
+        border-color: ${theme.colors[color].base};
+        transform: scale(1);
+      }
     }
-  }
+  ` : css`
+    &:focus:not(:checked):not(:disabled):not(:indeterminate),
+    &:hover:not(:checked):not(:disabled):not(:indeterminate) {
+      &:before {
+        opacity: 0.4;
+        border-color: ${theme.colors[color].base};
+        transform: scale(1) rotate(45deg);
+      }
+    }
+  `)};
 
   &:disabled:checked,
   &:disabled {
@@ -364,6 +378,7 @@ export const CustomCheckboxRadio = styled.input<{
   ${({ type, color = 'primary' }) => (type === 'checkbox' ? `
     &:indeterminate {
       background-color: ${theme.colors[color].base};
+      transition: all 0s ease;
       &:before {
         transform-origin: bottom center;
         transform: scale(1) translate(-50%, -50%);
@@ -373,6 +388,7 @@ export const CustomCheckboxRadio = styled.input<{
         background-color: white;
         top: 50%;
         left: 50%;
+        transition: all 0s ease;
       }
     }
   ` : ``)};
@@ -543,9 +559,11 @@ export const Text = styled.span<{
   color: ${({ disabled }) => `${theme.colors.default[disabled ? 'base' : 'dark']}`};
   line-height: 1.2;
   pointer-events: none;
+  text-align: left;
 `;
 
 export const HelpText = styled.span<{ color: FormControlProps['color'] }>`
+  text-align: left;
   display: block;
   padding: 4px 0;
   font-size: 12px;

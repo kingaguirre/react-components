@@ -1,7 +1,7 @@
 // src/Alert/Alert.test.tsx
-import React from 'react';
+import React from "react";
 import { render, screen, fireEvent } from '@testing-library/react';
-import Alert from './index';
+import { Alert } from './index';
 import { vi } from 'vitest';
 
 describe('Alert Component', () => {

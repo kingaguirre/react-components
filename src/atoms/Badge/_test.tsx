@@ -1,7 +1,8 @@
 // src/atoms/Badge/_test.tsx
+import React from "react";
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import Badge from "./index";
+import { Badge } from "./index";
 
 describe("Badge Component", () => {
   test("renders badge with text", () => {

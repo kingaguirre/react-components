@@ -1,7 +1,7 @@
 // src/atoms/Badge/styled.tsx
 import styled from "styled-components";
 import { theme } from "../../styles/theme";
-import { ColorType } from "@common/interfaces";
+import { ColorType } from "../../common/interface";
 
 const sizeMapping = {
   sm: { dimension: "10px", fontSize: "0px" },

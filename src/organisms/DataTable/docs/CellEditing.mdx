@@ -1,0 +1,74 @@
+import { Meta } from '@storybook/blocks';
+import React from 'react';
+import { DataTable } from '../index';
+import { DataTablePlayground } from '../Playground';
+import { StoryWrapper, Title } from '../../../components/StoryWrapper';
+
+<Meta title="Organisms/DataTable/Cell Editing" component={DataTable} />
+
+# Cell Editing
+
+Cell editing allows users to update cell content directly within the table, enabling dynamic data updates.
+
+## How Cell Editing Works
+
+When enabled via the `enableCellEditing` prop, you specify an `editor` for each column in the `columnSettings` array. Editors can be text inputs, textareas, dropdowns, or other input types. You can also add validation rules to ensure data integrity.
+
+## Code Example
+
+Below is an example of how to implement cell editing in the DataTable component with multiple editor types, validation for text fields, and a dropdown editor:
+
+```tsx
+import React from 'react';
+import { DataTable } from 'react-components-lib';
+
+export const CellEditingDemo = () => (
+  <DataTable
+    dataSource={[
+      { id: "1", firstName: "John", lastname: "Doe", description: "Sample description for John.", active: "active" },
+      { id: "2", firstName: "Jane", lastname: "Smith", description: "Another description for Jane.", active: "not active" }
+    ]}
+    columnSettings={[
+      // ID column is not editable.
+      { title: "ID", column: "id", editor: false },
+      // First Name column uses a text editor with validation that only a non-empty string is allowed.
+      { 
+        title: "First Name", 
+        column: "firstName", 
+        editor: { 
+          type: 'text',
+          validation: (v) => v.string().min(1, "Required") 
+        } 
+      },
+      // Last Name column uses a text editor with validation that only a non-empty string is allowed.
+      { 
+        title: "Last Name", 
+        column: "lastname", 
+        editor: { 
+          type: 'text',
+          validation: (v) => v.string().min(1, "Required")
+        } 
+      },
+      // Description column uses a textarea editor with no validation.
+      { title: "Description", column: "description", editor: { type: 'textarea' } },
+      // Active column uses a dropdown editor with two options: "active" and "not active".
+      { 
+        title: "Active", 
+        column: "active", 
+        editor: { 
+          type: 'dropdown', 
+          options: [
+            { value: "active", text: "Active" },
+            { value: "not active", text: "Not Active" }
+          ]
+        } 
+      }
+    ]}
+    enableCellEditing
+  />
+);
+
+
+```
+## API
+For detailed API usage and configuration examples, please refer to the interactive **demo** story. The demo provides a comprehensive example of how to configure and utilize the **DataTable** with cell editing.

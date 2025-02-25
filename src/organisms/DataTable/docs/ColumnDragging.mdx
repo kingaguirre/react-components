@@ -1,0 +1,47 @@
+import { Meta } from '@storybook/blocks';
+import React from 'react';
+import { DataTable } from '../index';
+import { DataTablePlayground } from '../Playground';
+import { StoryWrapper, Title } from '../../../components/StoryWrapper';
+
+<Meta title="Organisms/DataTable/Column Dragging" component={DataTable} />
+
+# Column Dragging
+
+Column dragging enables users to reorder columns by dragging them, allowing for a customizable data view.
+
+## How Column Dragging Works
+
+When enabled via the `enableColumnDragging` prop, you allow users to drag columns to rearrange their order. Set the `draggable` property for each column as follows:
+- **`true`** – The column is draggable.
+- **`false`** – Dragging is disabled for that column.
+- **`undefined`** – No explicit dragging setting is provided; the column will use the default behavior.
+
+## Code Example
+
+Below is an example of how to implement column dragging in the DataTable component:
+
+```tsx
+import React from 'react';
+import { DataTable } from 'react-components-lib';
+
+export const ColumnDraggingDemo = () => (
+  <DataTable
+    dataSource={[
+      { id: "1", firstName: "John", lastname: "Doe" }
+    ]}
+    columnSettings={[
+      // This column is draggable.
+      { title: "ID", column: "id", draggable: true },
+      // This column is explicitly not draggable.
+      { title: "First Name", column: "firstName", draggable: false },
+      // This column does not specify a draggable value (defaults to undefined).
+      { title: "Last Name", column: "lastname" }
+    ]}
+    enableColumnDragging
+  />
+);
+
+```
+## API
+For detailed API usage and configuration examples, please refer to the interactive **demo** story. The demo provides a comprehensive example of how to configure and utilize the **DataTable** with column dragging.

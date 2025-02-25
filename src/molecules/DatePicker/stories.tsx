@@ -1,55 +1,64 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import DatePicker from "./index";
-import { StoryWrapper, Title } from "@components/StoryWrapper";
-import { useState } from "react";
-import Button from "@atoms/Button";
-import styled from "styled-components";
-import { Grid, GridItem } from "@atoms/Grid";
+import type { Meta, StoryObj } from '@storybook/react'
+import { DatePicker } from './index'
+import { StoryWrapper, Title } from '../../components/StoryWrapper'
+import React, { useState } from 'react'
+import { Button } from '../../atoms/Button'
+import styled from 'styled-components'
+import { Grid, GridItem } from '../../atoms/Grid'
 
-const meta = {
-  title: "Molecules/DatePicker",
+const descriptionText =
+  'The DatePicker component is used to select dates (or date ranges). It supports various colors, required/disabled states, and customizable placeholders, along with interactive examples.'
+
+const meta: Meta<typeof DatePicker> = {
+  title: 'Molecules/DatePicker',
   component: DatePicker,
-  argTypes: {
-    required: { control: "boolean" },
-    disabled: { control: "boolean" },
-    range: { control: "boolean" },
-    color: { control: "select", options: ["primary", "success", "danger", "info", "warning", "default"] },
+  parameters: {
+    docs: {
+      description: {
+        component: descriptionText,
+      },
+    },
   },
-} satisfies Meta<typeof DatePicker>;
+  argTypes: {
+    required: { control: 'boolean' },
+    disabled: { control: 'boolean' },
+    range: { control: 'boolean' },
+    color: {
+      control: 'select',
+      options: ['primary', 'success', 'danger', 'info', 'warning', 'default']
+    },
+  },
+}
 
-export default meta;
+export default meta
 
-/** ✅ Default DatePicker */
+// ✅ Default DatePicker
 export const Default: StoryObj<typeof meta> = {
   args: {
-    label: "Pick a Date",
+    label: 'Pick a Date'
   },
-  tags: ["!dev"],
-};
+  tags: ['!dev'],
+}
 
-// Styled Grid Layout
 const GridContainer = styled.div`
   margin-top: 16px;
-`;
+`
 
-const COLORS = ["primary", "success", "danger", "info", "warning", "default"] as const;
+const COLORS = ['primary', 'success', 'danger', 'info', 'warning', 'default'] as const
 
-// Wrap your hooks in a proper React component
 const ExamplesComponent: React.FC = () => {
-  // Use Date types (or null) instead of any
-  const [singleDate, setSingleDate] = useState<string | null | [string | string] | Date>("10-Feb-2025");
+  const [singleDate, setSingleDate] = useState<string | null | [string | string] | Date>('10-Feb-2025')
   const [rangeDate, setRangeDate] = useState<[Date, Date] | null>([
-    new Date("2025-02-10"),
-    new Date("2025-02-28"),
-  ]);
-  const [isSingleDisabled, setIsSingleDisabled] = useState<boolean>(false);
-  const [isRangeDisabled, setIsRangeDisabled] = useState<boolean>(false);
-  const [isSingleRequired, setIsSingleRequired] = useState<boolean>(false);
-  const [isRangeRequired, setIsRangeRequired] = useState<boolean>(false);
+    new Date('2025-02-10'),
+    new Date('2025-02-28')
+  ])
+  const [isSingleDisabled, setIsSingleDisabled] = useState<boolean>(false)
+  const [isRangeDisabled, setIsRangeDisabled] = useState<boolean>(false)
+  const [isSingleRequired, setIsSingleRequired] = useState<boolean>(false)
+  const [isRangeRequired, setIsRangeRequired] = useState<boolean>(false)
 
   return (
-    <StoryWrapper title="Date Picker Examples">
-      {/* 📌 Color Variants */}
+    <StoryWrapper title='Date Picker Examples' subTitle={descriptionText}>
       <Title>Color Variants</Title>
       <Grid>
         {COLORS.map((color: typeof COLORS[number]) => (
@@ -57,21 +66,20 @@ const ExamplesComponent: React.FC = () => {
             <DatePicker
               label={`${color.charAt(0).toUpperCase() + color.slice(1)} Color`}
               color={color}
-              helpText="This is a help text"
-              placeholder="Select Date..."
+              helpText='This is a help text'
+              placeholder='Select Date...'
               onChange={value => console.log(value)}
             />
           </GridItem>
         ))}
       </Grid>
 
-      {/* 📌 Form Props */}
       <Grid style={{ marginTop: 20 }}>
         {/* Left Column: Single Date Picker */}
         <GridItem xs={12} sm={6}>
           <Title>Single Date Picker</Title>
           <DatePicker
-            label="Single Date"
+            label='Single Date'
             value={singleDate as string}
             onChange={(date) => setSingleDate(date as string)}
             required={isSingleRequired}
@@ -81,22 +89,42 @@ const ExamplesComponent: React.FC = () => {
           <GridContainer>
             <Grid>
               <GridItem xs={6}>
-                <Button size="sm" fullWidth color="primary" onClick={() => setIsSingleDisabled((prev) => !prev)}>
+                <Button
+                  size='sm'
+                  fullWidth
+                  color='primary'
+                  onClick={() => setIsSingleDisabled((prev) => !prev)}
+                >
                   Toggle Disabled
                 </Button>
               </GridItem>
               <GridItem xs={6}>
-                <Button size="sm" fullWidth color="warning" onClick={() => setIsSingleRequired((prev) => !prev)}>
+                <Button
+                  size='sm'
+                  fullWidth
+                  color='warning'
+                  onClick={() => setIsSingleRequired((prev) => !prev)}
+                >
                   Toggle Required
                 </Button>
               </GridItem>
               <GridItem xs={6}>
-                <Button size="sm" fullWidth color="success" onClick={() => setSingleDate(new Date())}>
+                <Button
+                  size='sm'
+                  fullWidth
+                  color='success'
+                  onClick={() => setSingleDate(new Date())}
+                >
                   Set Today's Date
                 </Button>
               </GridItem>
               <GridItem xs={6}>
-                <Button size="sm" fullWidth color="danger" onClick={() => setSingleDate(null)}>
+                <Button
+                  size='sm'
+                  fullWidth
+                  color='danger'
+                  onClick={() => setSingleDate(null)}
+                >
                   Clear Date
                 </Button>
               </GridItem>
@@ -108,7 +136,7 @@ const ExamplesComponent: React.FC = () => {
         <GridItem xs={12} sm={6}>
           <Title>Date Range Picker</Title>
           <DatePicker
-            label="Date Range"
+            label='Date Range'
             value={rangeDate}
             onChange={(date) => console.log(date)}
             required={isRangeRequired}
@@ -118,20 +146,30 @@ const ExamplesComponent: React.FC = () => {
           <GridContainer>
             <Grid>
               <GridItem xs={6}>
-                <Button size="sm" fullWidth color="primary" onClick={() => setIsRangeDisabled((prev) => !prev)}>
+                <Button
+                  size='sm'
+                  fullWidth
+                  color='primary'
+                  onClick={() => setIsRangeDisabled((prev) => !prev)}
+                >
                   Toggle Disabled
                 </Button>
               </GridItem>
               <GridItem xs={6}>
-                <Button size="sm" fullWidth color="warning" onClick={() => setIsRangeRequired((prev) => !prev)}>
+                <Button
+                  size='sm'
+                  fullWidth
+                  color='warning'
+                  onClick={() => setIsRangeRequired((prev) => !prev)}
+                >
                   Toggle Required
                 </Button>
               </GridItem>
               <GridItem xs={6}>
                 <Button
-                  size="sm"
+                  size='sm'
                   fullWidth
-                  color="success"
+                  color='success'
                   onClick={() =>
                     setRangeDate([new Date(), new Date(new Date().setDate(new Date().getDate() + 7))])
                   }
@@ -140,7 +178,12 @@ const ExamplesComponent: React.FC = () => {
                 </Button>
               </GridItem>
               <GridItem xs={6}>
-                <Button size="sm" fullWidth color="danger" onClick={() => setRangeDate(null)}>
+                <Button
+                  size='sm'
+                  fullWidth
+                  color='danger'
+                  onClick={() => setRangeDate(null)}
+                >
                   Clear Date Range
                 </Button>
               </GridItem>
@@ -149,11 +192,10 @@ const ExamplesComponent: React.FC = () => {
         </GridItem>
       </Grid>
     </StoryWrapper>
-  );
-};
+  )
+}
 
-/** ✅ All Examples */
 export const Examples: StoryObj<typeof DatePicker> = {
-  tags: ["!autodocs"],
-  render: () => <ExamplesComponent />,
-};
+  tags: ['!autodocs'],
+  render: () => <ExamplesComponent />
+}

@@ -1,43 +1,52 @@
-import { useState } from "react";
-import type { Meta, StoryObj } from "@storybook/react";
-import styled from "styled-components";
-import { Icon } from "./index";
-import { StoryWrapper, Title } from "@components/StoryWrapper";
-import { EXTRA_ICONS, SCB_ICONS } from "./data";
+import React, { useState } from 'react'
+import type { Meta, StoryObj } from '@storybook/react'
+import styled from 'styled-components'
+import { Icon } from './index'
+import { StoryWrapper, Title } from '../../components/StoryWrapper'
+import { EXTRA_ICONS, SCB_ICONS } from './data'
 
-const meta = {
-  title: "Atoms/Icon",
+const descriptionText =
+  'The Icon component is used to display icons. It supports customizing size, color, and disabled state. The Icon Gallery provides an interactive list for searching and copying icon names.'
+
+const meta: Meta<typeof Icon> = {
+  title: 'Atoms/Icon',
   component: Icon,
+  parameters: {
+    docs: {
+      description: {
+        component: descriptionText,
+      },
+    },
+  },
   argTypes: {
     icon: {
-      control: "text",
-      description: "Icon class name for the icon",
+      control: 'text',
+      description: 'Icon class name for the icon',
     },
     size: {
-      control: "text",
-      description: "Font size of the icon (inherits from parent if undefined)",
+      control: 'text',
+      description: 'Font size of the icon (inherits from parent if undefined)',
     },
     color: {
-      control: "text",
-      description: "Color of the icon (inherits from parent if undefined)",
+      control: 'text',
+      description: 'Color of the icon (inherits from parent if undefined)',
     },
-    disabled: { control: "boolean" },
+    disabled: { control: 'boolean' },
   },
-} satisfies Meta<typeof Icon>;
+}
 
-export default meta;
+export default meta
 
 export const Default: StoryObj<typeof meta> = {
   args: {
-    icon: "home",
+    icon: 'logo-icon',
     size: undefined,
     color: undefined,
     disabled: false,
   },
-  tags: ["!dev"],
-};
+  tags: ['!dev'],
+}
 
-// Styled Components
 const SearchBox = styled.input`
   width: 100%;
   padding: 8px;
@@ -46,13 +55,13 @@ const SearchBox = styled.input`
   border-radius: 5px;
   font-size: 14px;
   box-sizing: border-box;
-`;
+`
 
 const IconGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
   gap: 12px;
-`;
+`
 
 const IconItem = styled.div<{ $isCopied: boolean }>`
   width: 50px;
@@ -73,8 +82,8 @@ const IconItem = styled.div<{ $isCopied: boolean }>`
       : `
     box-shadow: none;
     background-color: #ddd;
-  `};
-`;
+  `}
+`
 
 const CopiedMessage = styled.div`
   margin-bottom: 12px;
@@ -86,32 +95,31 @@ const CopiedMessage = styled.div`
   top: 0;
   text-transform: none;
   letter-spacing: 1px;
-`;
+`
 
-// Create a proper React component to use hooks
 const IconGalleryComponent = () => {
-  const [copiedIcon, setCopiedIcon] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
+  const [copiedIcon, setCopiedIcon] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
 
   const handleIconClick = (icon: string) => {
     navigator.clipboard.writeText(icon).then(() => {
-      setCopiedIcon(icon);
-    });
-  };
+      setCopiedIcon(icon)
+    })
+  }
 
   const filteredSCBIcons = SCB_ICONS.filter((icon) =>
     icon.toLowerCase().includes(search.toLowerCase())
-  );
+  )
 
   const filteredExtraIcons = EXTRA_ICONS.filter((icon) =>
     icon.toLowerCase().includes(search.toLowerCase())
-  );
+  )
 
   return (
-    <StoryWrapper title="Icon Gallery">
+    <StoryWrapper title='Icon Gallery' subTitle={descriptionText}>
       <SearchBox
-        type="text"
-        placeholder="Search icons..."
+        type='text'
+        placeholder='Search icons...'
         value={search}
         onChange={(e) => setSearch(e.target.value)}
       />
@@ -127,11 +135,11 @@ const IconGalleryComponent = () => {
               $isCopied={copiedIcon === icon}
               onClick={() => handleIconClick(icon)}
             >
-              <Icon icon={icon} size="30px" />
+              <Icon icon={icon} size='30px' />
             </IconItem>
           ))
         ) : (
-          <p style={{ whiteSpace: "nowrap" }}>No icons found</p>
+          <p style={{ whiteSpace: 'nowrap' }}>No icons found</p>
         )}
       </IconGrid>
 
@@ -147,18 +155,18 @@ const IconGalleryComponent = () => {
               $isCopied={copiedIcon === icon}
               onClick={() => handleIconClick(icon)}
             >
-              <Icon icon={icon} size="30px" />
+              <Icon icon={icon} size='30px' />
             </IconItem>
           ))
         ) : (
-          <p style={{ whiteSpace: "nowrap" }}>No icons found</p>
+          <p style={{ whiteSpace: 'nowrap' }}>No icons found</p>
         )}
       </IconGrid>
     </StoryWrapper>
-  );
-};
+  )
+}
 
 export const IconGallery = {
-  tags: ["!autodocs"],
+  tags: ['!autodocs'],
   render: () => <IconGalleryComponent />,
-};
+}

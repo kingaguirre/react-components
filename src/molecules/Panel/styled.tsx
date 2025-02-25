@@ -1,7 +1,7 @@
 // src/components/Panel/styled.tsx
 import styled from "styled-components"
 import { theme } from "../../styles/theme"
-import { ColorType } from "@common/interfaces"
+import { ColorType } from "../../common/interface"
 
 export const PanelContainer = styled.div<{
   $color: ColorType

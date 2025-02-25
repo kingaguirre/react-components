@@ -1,7 +1,7 @@
 // src/molecules/Accordion/styled.ts
 import styled from 'styled-components';
 import { theme } from '../../styles/theme'; // Adjust path as needed
-import { ColorType } from '@common/interfaces';
+import { ColorType } from '../../common/interface';
 
 // Simple helper to lighten a hex color
 const lighten = (hex: string, percent: number) => {
