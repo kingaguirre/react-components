@@ -1,26 +1,31 @@
-// src/atoms/Tooltip/interface.ts
-import type { TippyProps } from "@tippyjs/react";
-import React from "react";
-import { ColorType } from "@common/interfaces";
+import React from 'react';
+import { ColorType } from '@common/interfaces';
 
-export interface TooltipProps extends Omit<TippyProps, "children"> {
+export interface TooltipProps {
   /**
    * The color theme to use.
    * Accepts keys from your theme.colors.
    */
   color?: ColorType;
-  children: React.ReactElement;
+  /**
+   * The content displayed inside the tooltip.
+   */
   content: React.ReactNode;
-  placement?: "top" | "right" | "bottom" | "left";
   /**
-   * The trigger type for the tooltip.
-   * Options: 'mouseenter', 'click', 'focus', 'manual'
-   * Defaults to 'mouseenter' (hover).
+   * The child element that triggers the tooltip.
    */
-  trigger?: "mouseenter" | "click" | "focus" | "manual";
+  children: React.ReactElement;
   /**
-   * Whether to display an arrow on the tooltip.
-   * Defaults to true.
+   * Where to position the tooltip relative to the child.
+   * Options: "top", "right", "bottom", "left"
    */
-  arrow?: boolean;
+  placement?: 'top' | 'right' | 'bottom' | 'left';
+  /**
+   * The trigger event for the tooltip.
+   * Options: "hover", "click", 
+   * Defaults to "hover".
+   */
+  trigger?: 'hover' | 'click';
+  /** Sets max width for tooltip */
+  maxWidth?: number
 }

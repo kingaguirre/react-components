@@ -50,7 +50,7 @@ export const Footer: React.FC<FooterProps> = ({ table, selectedRows }) => {
           <span>of</span>
           <span>{formatNumber(table.getFilteredRowModel().rows.length)}</span>
           <span>Records</span>
-          <Button title='Refresh' onClick={() => rerender()}><Icon icon="refresh"></Icon></Button>
+          <Button title='Refresh' onClick={() => rerender()}><Icon icon='refresh'></Icon></Button>
         </LeftDetails>
         <RightDetails $totalCount={countDigits(table.getPageCount())}>
           <span>Rows</span>
@@ -58,7 +58,7 @@ export const Footer: React.FC<FooterProps> = ({ table, selectedRows }) => {
             size='sm'
             value={table.getState().pagination.pageSize.toString()}
             onChange={(value) => table.setPageSize(Number(value))}
-            clearable={false}
+            clearable
             options={[
               { text: '10', value: '10' },
               { text: '20', value: '20' },

@@ -8,6 +8,7 @@ export const SelectColumn = <T extends object>(): ColumnDef<T, any> => ({
   size: 30,
   enableResizing: false,
   enablePinning: false,
+  enableSorting: false,
   header: ({ table }) => (
     <CellContainer className='custom-action data-table-select-header'>
       <CheckboxCell
@@ -28,30 +29,3 @@ export const SelectColumn = <T extends object>(): ColumnDef<T, any> => ({
     </CellContainer>
   ),
 })
-
-// // Create the default 'select' column as provided.
-// export const selectColumn: ColumnDef<any> = {
-//   id: DATA_TABLE_SELECT_ID,
-//   size: 30,
-//   enableResizing: false,
-//   enablePinning: false,
-//   header: ({ table }) => (
-//     <CellContainer className='custom-action data-table-select-header'>
-//       <CheckboxCell
-//         checked={table.getIsAllRowsSelected()}
-//         indeterminate={table.getIsSomeRowsSelected()}
-//         onChange={table.getToggleAllRowsSelectedHandler()}
-//       />
-//     </CellContainer>
-//   ),
-//   cell: ({ row }) => (
-//     <CellContainer className='custom-action data-table-select-item'>
-//       <CheckboxCell
-//         checked={row.getIsSelected()}
-//         disabled={!row.getCanSelect()}
-//         indeterminate={row.getIsSomeSelected()}
-//         onChange={row.getToggleSelectedHandler()}
-//       />
-//     </CellContainer>
-//   ),
-// }

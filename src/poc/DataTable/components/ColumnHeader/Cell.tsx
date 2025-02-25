@@ -1,38 +1,42 @@
 import React from 'react'
 import { Header, flexRender } from '@tanstack/react-table'
-import { CellContainer, CellContent, Resizer, IconContainer, DragHandle, LeftIconContainer } from '../ColumnHeader/styled'
-import { getColumnStyles, DATA_TABLE_SELECT_ID } from '../../utils'
-import { Filter } from '../ColumnHeader/Filter';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { CellContainer, CellContent, Resizer, IconContainer, DragHandle, LeftIconContainer, CellFilterPlaceholder } from '../ColumnHeader/styled'
+import { getColumnStyles } from '../../utils'
+import { DATA_TABLE_SELECT_ID } from '../SelectColumn'
+import { Filter } from '../ColumnHeader/Filter'
+import { renderToStaticMarkup } from 'react-dom/server'
 
 // needed for row & cell level scope DnD setup
 import { useSortable } from '@dnd-kit/sortable'
 import Icon from '@atoms/Icon'
+import { DATA_TABLE_ROW_ACTION_ID } from '../RowActionsColumn'
 
 export const Cell = ({ header, table }: {
-  header: Header<unknown, unknown>;
+  header: Header<unknown, unknown>
   table: any
 }) => {
   const { attributes, isDragging, listeners, setNodeRef, transform } = useSortable({ id: header.column.id })
   const isPinLeft = header.column.getIsPinned() === 'left'
+  const colDef = header.column.columnDef
+  const colMeta: any = colDef.meta
   // custom column to ignore
-  const noDND = header.column.id === DATA_TABLE_SELECT_ID
+  const noDND = header.column.id === DATA_TABLE_SELECT_ID || header.column.id === DATA_TABLE_ROW_ACTION_ID
   const hasDND = true /** TODO: add column setting to control */
   const hasPin = header.column.getCanPin()
   const hasSort = header.column.getCanSort()
 
   const rawHeader =
-    typeof header.column.columnDef.header === 'function'
-      ? header.column.columnDef.header(header.getContext())
-      : header.column.columnDef.header;
+    typeof colDef.header === 'function'
+      ? colDef.header(header.getContext())
+      : colDef.header
 
   let headerText = rawHeader
 
   if (React.isValidElement(rawHeader)) {
     // Convert the React element to a static markup string.
-    const html = renderToStaticMarkup(rawHeader);
+    const html = renderToStaticMarkup(rawHeader)
     // Strip HTML tags to extract the plain text.
-    headerText = html.replace(/<[^>]+>/g, '');
+    headerText = html.replace(/<[^>]+>/g, '')
   }
 
   return (
@@ -53,12 +57,13 @@ export const Cell = ({ header, table }: {
         $hasDND={hasDND && !noDND}
         $hasPin={hasPin}
         $hasSort={hasSort}
+        $align={colMeta?.align}
       >
-        <span title={headerText}>{flexRender(header.column.columnDef.header, header.getContext())}</span>
+        <span title={headerText}>{flexRender(colDef.header, header.getContext())}</span>
       </CellContent>
 
       {/** Filter */}
-      {/* {header.column.getCanFilter() && <Filter column={header.column} />} */}
+      {header.column.getCanFilter() ? <Filter column={header.column} /> : <CellFilterPlaceholder/>}
 
       {/** Pinning and Sorting */}
       {(hasPin || hasSort) && (

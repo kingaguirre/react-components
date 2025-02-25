@@ -2,7 +2,6 @@ import React from 'react'
 import {
   useReactTable,
   ColumnDef,
-  RowData,
   ColumnFiltersState,
   SortingState,
   getCoreRowModel,
@@ -15,8 +14,7 @@ import {
 } from '@tanstack/react-table'
 import { DataTableProps } from './interface'
 import { DataTableWrapper, DataTableContainer, DataTableContentContainer } from './styled'
-import { useOnClickOutside } from '@utils/index';
-import { dateFilter, dateRangeFilter, DATA_TABLE_SELECT_ID } from './utils'
+import { dateFilter, dateRangeFilter } from './utils'
 import { MainHeader } from './components/MainHeader'
 import { SettingsPanel } from './components/MainHeader/SettingsPanel'
 import { ColumnHeader } from './components/ColumnHeader'
@@ -25,8 +23,10 @@ import { Footer } from './components/Footer'
 import { CellRenderer } from './components/CellRenderer'
 import { transformColumnSettings } from './utils/columnSettings'
 import { SelectColumn } from './components/SelectColumn'
-import { RowActionsColumn } from './components/RowActionsColumn';
-import { useRowActions } from './hooks/useRowActions';
+import { RowActionsColumn } from './components/RowActionsColumn'
+import { useRowActions } from './hooks/useRowActions'
+import { DATA_TABLE_ROW_ACTION_ID } from './components/RowActionsColumn'
+import { DATA_TABLE_SELECT_ID } from './components/SelectColumn'
 
 // needed for table body level scope DnD setup
 import {
@@ -42,13 +42,6 @@ import {
 import { restrictToHorizontalAxis } from '@dnd-kit/modifiers'
 import { arrayMove } from '@dnd-kit/sortable'
 
-declare module '@tanstack/react-table' {
-  //allows us to define custom properties for our columns
-  interface ColumnMeta<TData extends RowData, TValue> {
-    filterVariant?: 'text' | 'number-range' | 'dropdown' | 'date' | 'date-range' | string
-  }
-}
-
 // Our DataTable now accepts its data and column definitions via props.
 export const DataTable = <T extends object>({ dataSource, columnSettings, onChange }: DataTableProps<T>) => {
   // Augment rows with a stable internal ID.
@@ -56,79 +49,68 @@ export const DataTable = <T extends object>({ dataSource, columnSettings, onChan
     (row as any).__internalId ? row : { ...row, __internalId: i.toString() }
   )
 
-  const [data, setData] = React.useState<T[]>(() => initializeData(dataSource));
-  const [editingCell, setEditingCell] = React.useState<{ rowId: string; columnId: string } | null>(null);
+  const [data, setData] = React.useState<T[]>(() => initializeData(dataSource))
+  const [editingCell, setEditingCell] = React.useState<{ rowId: string; columnId: string } | null>(null)
   const [rowSelection, setRowSelection] = React.useState({})
   const [globalFilter, setGlobalFilter] = React.useState<string>('')
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [showSettingsPanel, setShowSettingsPanel] = React.useState<boolean>(false)
 
-  const currentEditorRef = React.useRef<HTMLInputElement | HTMLSelectElement>(null);
-
-  // Use our custom hook to blur the current editor when clicking outside.
-  useOnClickOutside(currentEditorRef, () => {
-    if (editingCell) {
-      currentEditorRef.current?.blur();
-    }
-  });
-
   React.useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && editingCell) {
-        setEditingCell(null);
+        setEditingCell(null)
       }
-    };
-    document.addEventListener('keydown', handleGlobalKeyDown);
-    return () => document.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [editingCell]);
+    }
+    document.addEventListener('keydown', handleGlobalKeyDown)
+    return () => document.removeEventListener('keydown', handleGlobalKeyDown)
+  }, [editingCell])
 
   const handleCellCommit = (rowId: string, accessor: string, val: any) => {
-    setEditingCell(null);
+    setEditingCell(null)
     setData((old) => {
-      const rowIndex = old.findIndex((r) => (r as any).__internalId === rowId);
-      if (rowIndex === -1) return old;
-      const currentValue = (old[rowIndex] as any)[accessor];
-      const currentValueStr = currentValue == null ? '' : String(currentValue);
-      const newValueStr = val == null ? '' : String(val);
+      const rowIndex = old.findIndex((r) => (r as any).__internalId === rowId)
+      if (rowIndex === -1) return old
+      const currentValue = (old[rowIndex] as any)[accessor]
+      const currentValueStr = currentValue == null ? '' : String(currentValue)
+      const newValueStr = val == null ? '' : String(val)
       if (currentValueStr === newValueStr) {
-        return old;
+        return old
       }
       const updated = old.map((r, i) =>
         i === rowIndex ? { ...r, [accessor]: val } : r
-      );
+      )
       if (!((updated[rowIndex] as any).__isNew) && onChange) {
-        onChange(updated);
+        onChange(updated)
       }
-      return updated;
-    });
-  };
+      return updated
+    })
+  }
 
   const handleAddRow = () => {
-    const newRow: any = { __isNew: true, __internalId: Date.now().toString() } as any as T;
+    const newRow: any = { __isNew: true, __internalId: Date.now().toString() } as any as T
     columnSettings.forEach((col) => {
-      newRow[col.column] = '';
-    });
-    setData((old) => [newRow, ...old]);
+      newRow[col.column] = ''
+    })
+    setData((old) => [newRow, ...old])
     if (columnSettings.length > 0) {
       setTimeout(() => {
-        setEditingCell({ rowId: (newRow as any).__internalId, columnId: columnSettings[0].column });
-      }, 0);
+        setEditingCell({ rowId: (newRow as any).__internalId, columnId: columnSettings[0].column })
+      }, 0)
     }
-  };
+  }
 
   // Transform new column settings into TanStack Table column definitions.
-  const transformedColumns = transformColumnSettings<T>(columnSettings);
+  const transformedColumns = transformColumnSettings<T>(columnSettings)
 
   // Use custom hook to get action handlers.
   const { handleSaveRow, handleDelete, handleCancelRow } = useRowActions({
-    data,
     setData,
     editingCell,
     setEditingCell,
-    currentEditorRef,
     onChange,
-  });
+  })
 
   // Prepend selection and row action columns.
   const columns = React.useMemo<ColumnDef<T, any>[]>(() => {
@@ -140,10 +122,10 @@ export const DataTable = <T extends object>({ dataSource, columnSettings, onChan
       handleCancelRow,
       handleDelete,
     }),
-  ];
+  ]
     return [...actionColumns,
       ...transformedColumns?.map((colDef) => {
-        if ('columns' in colDef) return colDef;
+        if ('columns' in colDef) return colDef
         return {
           ...colDef,
           cell: (cellProps: any) => (
@@ -151,15 +133,14 @@ export const DataTable = <T extends object>({ dataSource, columnSettings, onChan
               {...cellProps}
               {...colDef}
               editingCell={editingCell}
-              currentEditorRef={currentEditorRef}
               setEditingCell={setEditingCell}
               handleCellCommit={handleCellCommit}
             />
-          ),
-        };
+          )
+        }
       }),
-    ];
-  }, [transformedColumns, editingCell, onChange, columnSettings]); 
+    ]
+  }, [transformedColumns, editingCell, onChange, columnSettings]) 
 
   const [columnOrder, setColumnOrder] = React.useState<string[]>(() =>
     columns.map(c => c.id!)
@@ -171,7 +152,7 @@ export const DataTable = <T extends object>({ dataSource, columnSettings, onChan
     columnResizeMode: 'onChange',
     state: { rowSelection, globalFilter, columnOrder, columnFilters, sorting },
     initialState: {
-      columnPinning: { left: [DATA_TABLE_SELECT_ID]}
+      columnPinning: { left: [DATA_TABLE_SELECT_ID, DATA_TABLE_ROW_ACTION_ID]}
     },
     filterFns: { dateFilter, dateRangeFilter },
     onSortingChange: setSorting,

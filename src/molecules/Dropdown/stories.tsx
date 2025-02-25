@@ -70,6 +70,8 @@ export const Examples = () => {
               options={DEFAULT_OPTIONS}
               color={color}
               helpText={`Color variant example (${color}).`}
+              clearable={color === "info"}
+              hideOnScroll={color === "info"}
             />
           </GridItem>
         ))}

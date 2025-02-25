@@ -14,19 +14,19 @@ import {
 import { FormControlProps } from './interface';
 import Button from '@atoms/Button';
 
-export const TextInput: React.FC<FormControlProps> = ({ ...rest }) => <Input autoComplete="off" {...rest} />;
+export const TextInput: React.FC<FormControlProps> = ({ variant, ...rest }) => <Input autoComplete="off" $variant={variant} {...rest} />;
 
-export const TextAreaInput: React.FC<FormControlProps> = ({ ...rest }) => <TextArea {...rest} />;
+export const TextAreaInput: React.FC<FormControlProps> = ({ variant, ...rest }) => <TextArea $variant={variant} {...rest} />;
 
 export const CheckboxRadioInput: React.FC<FormControlProps> = ({ disabled, text, size, ...rest }) => (
-  <TextContainer disabled={disabled}>
+  <TextContainer disabled={disabled} onClick={e => e.stopPropagation()}>
     <CustomCheckboxRadio {...rest} size={size} disabled={disabled} />
     {text && <Text size={size} disabled={disabled}>{text}</Text>}
   </TextContainer>
 );
 
 export const SwitchInput: React.FC<FormControlProps> = ({ disabled, text,size,  ...rest }) => (
-  <TextContainer disabled={disabled}>
+  <TextContainer disabled={disabled} onClick={e => e.stopPropagation()}>
     <Switch {...rest} size={size} disabled={disabled} type="checkbox" />
     {text && <Text size={size} disabled={disabled}>{text}</Text>}
   </TextContainer>
@@ -35,7 +35,6 @@ export const SwitchInput: React.FC<FormControlProps> = ({ disabled, text,size,  
 export const CheckboxGroup: React.FC<FormControlProps> = ({ 
   options = [],
   disabled,
-  size,
   onChange,
   isVerticalOptions,
   selectedValues,
@@ -44,16 +43,16 @@ export const CheckboxGroup: React.FC<FormControlProps> = ({
   <GroupControlContainer $isVerticalOptions={isVerticalOptions} className="group-control-container checkbox-group">
     {options?.length > 0 ? options.map((option) => (
       <TextContainer key={option.value} disabled={option.disabled}>
-        <CustomCheckboxRadio
+        <CheckboxRadioInput
           {...rest}
+          key={option.value}
           type="checkbox"
-          size={size}
           disabled={option.disabled || disabled}
           value={option.value}
           checked={selectedValues.includes(option.value)}
           onChange={() => onChange(option.value)}
+          text={option.text}
         />
-        <Text size={size} disabled={option.disabled}>{option.text}</Text>
       </TextContainer>
     )) : <NoOptionsContainer>No Options found</NoOptionsContainer>}
   </GroupControlContainer>
@@ -63,7 +62,6 @@ export const CheckboxGroup: React.FC<FormControlProps> = ({
 export const RadioGroup: React.FC<FormControlProps> = ({
   options = [],
   disabled,
-  size,
   onChange,
   isVerticalOptions,
   selectedValue,
@@ -72,18 +70,16 @@ export const RadioGroup: React.FC<FormControlProps> = ({
 }) => (
   <GroupControlContainer $isVerticalOptions={isVerticalOptions} className={`group-control-container radio-group ${isInvalid ? 'invalid' : ''}`}>
     {options?.length > 0 ? options.map((option) => (
-      <TextContainer key={option.value} disabled={option.disabled}>
-        <CustomCheckboxRadio
-          {...rest}
-          type="radio"
-          size={size}
-          disabled={option.disabled || disabled}
-          value={option.value}
-          checked={selectedValue === option.value}
-          onChange={() => onChange(option.value)}
-        />
-        <Text size={size} disabled={option.disabled}>{option.text}</Text>
-      </TextContainer>
+      <CheckboxRadioInput
+        {...rest}
+        key={option.value}
+        type="radio"
+        disabled={option.disabled || disabled}
+        value={option.value}
+        checked={selectedValue === option.value}
+        onChange={() => onChange(option.value)}
+        text={option.text}
+      />
     )) : <NoOptionsContainer>No Options found</NoOptionsContainer>}
   </GroupControlContainer>
 );
@@ -91,7 +87,6 @@ export const RadioGroup: React.FC<FormControlProps> = ({
 export const SwitchGroup: React.FC<FormControlProps> = ({
   options = [],
   disabled,
-  size,
   onChange,
   isVerticalOptions,
   selectedValues,
@@ -100,16 +95,15 @@ export const SwitchGroup: React.FC<FormControlProps> = ({
   <GroupControlContainer $isVerticalOptions={isVerticalOptions} className="group-control-container switch-group">
     {options?.length > 0 ? options.map((option) => (
       <TextContainer key={option.value} disabled={option.disabled}>
-        <Switch
+        <SwitchInput
           {...rest}
           type="checkbox"
-          size={size}
           disabled={option.disabled || disabled}
           value={option.value}
           checked={selectedValues.includes(option.value)}
           onChange={() => onChange(option.value)}
+          text={option.text}
         />
-        <Text size={size} disabled={option.disabled}>{option.text}</Text>
       </TextContainer>
     )) : <NoOptionsContainer>No Options found</NoOptionsContainer>}
   </GroupControlContainer>

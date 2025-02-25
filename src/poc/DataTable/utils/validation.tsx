@@ -16,12 +16,12 @@ export const jsonSchemaToZod = (
   schema: { type: string; pattern?: string },
   errorMessage?: string
 ): ZodTypeAny => {
-  if (schema.type === "string") {
+  if (schema.type === 'string') {
     let zodSchema = z.string()
     if (schema.pattern) {
       zodSchema = zodSchema.regex(
         new RegExp(schema.pattern),
-        errorMessage || "Invalid format"
+        errorMessage || 'Invalid format'
       )
     }
     return zodSchema

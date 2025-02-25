@@ -2,7 +2,8 @@ import { flexRender } from '@tanstack/react-table'
 import { SettingsPanelContainer, SettingsContainer } from './styled'
 import { Panel } from '@molecules/Panel'
 import { FormControl } from '@atoms/FormControl'
-import { DATA_TABLE_SELECT_ID } from '../../../utils'
+import { DATA_TABLE_SELECT_ID } from '../../SelectColumn'
+import { DATA_TABLE_ROW_ACTION_ID } from '../../RowActionsColumn'
 
 export const SettingsPanel = ({
   table,
@@ -35,7 +36,7 @@ export const SettingsPanel = ({
           simple
         />
         {table.getAllLeafColumns()
-          .filter((i: any) => i.id !== DATA_TABLE_SELECT_ID)
+          .filter((i: any) => i.id !== DATA_TABLE_SELECT_ID && i.id !== DATA_TABLE_ROW_ACTION_ID)
           .map((column: any) => {
             const header = column.columnDef.header
             const headerContext = { column, table }

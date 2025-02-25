@@ -2,22 +2,26 @@
 import { ColumnDef } from '@tanstack/react-table'
 import { ColumnSetting } from '../interface'
 
-export function createColumnDef<T extends object>(col: ColumnSetting): ColumnDef<T, any> {
+export function createColumnDef<T extends object>(col: ColumnSetting, index?: number): ColumnDef<T, any> {
   return {
     accessorKey: col.column,
     header: col.title,
-    editor: col.editor !== false && (col.editor?.type ?? 'text'),
     size: col.width,
     minSize: col.minWidth,
     maxSize: col.maxWidth,
     enableSorting: col.sort !== false,
     enablePinning: col.pin !== false,
     enableColumnFilter: col.filter !== false,
-    filterVariant: col.filter !== false && (col?.filter?.type ?? 'text'),
+    ...(col.filter !== false && !!col.filter?.filterBy ? {filterFn: col.filter?.filterBy} : {}),
     meta: {
       initialSort: col.sort === 'asc' || col.sort === 'desc' ? col.sort : undefined,
       pinned: col.pin === 'pin' ? 'left' : false,
-      validation: col.editor !== false ? col.editor?.validation : undefined
+      validation: col.editor !== false ? col.editor?.validation : undefined,
+      filter: col.filter,
+      editor: col.editor,
+      columnId: index !== undefined ? `${col.column}-${index}` : col.column,
+      align: col.align,
+      headerAlign: col.headerAlign,
     } as ColumnDef<T, any>['meta'],
     cell: col.cell
       ? ({ rowValue, index }: any) => col.cell!({ rowValue, index })
@@ -37,9 +41,10 @@ export function transformColumnSettings<T extends object>(settings: ColumnSettin
     }
   })
   const groupColumns: ColumnDef<T, any>[] = Object.entries(groups).map(([groupTitle, cols]) => ({
+    id: `group-${groupTitle}`, 
     header: groupTitle,
-    columns: cols.map((c) => createColumnDef<T>(c)),
+    columns: cols.map((c, idx) => createColumnDef<T>(c, idx)),
   }))
-  const topColumns = topLevel.map((col) => createColumnDef<T>(col))
+  const topColumns = topLevel.map((col, idx) => createColumnDef<T>(col, idx))
   return [...groupColumns, ...topColumns]
 }

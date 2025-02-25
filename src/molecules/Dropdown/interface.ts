@@ -21,8 +21,11 @@ export interface DropdownProps {
   label?: string;
   required?: boolean;
   color?: string;
-  helpText?: string;
+  helpText?: string | null;
   clearable?: boolean
   dropdownHeight?: number;
   dropdownWidth?: number;
+  hideOnScroll?: boolean;
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  [key: string]: any;
 }

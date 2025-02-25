@@ -1,3 +1,5 @@
+import React from 'react'
+
 export const ifElse = <T,>(condition: boolean, trueValue: T, falseValue: T): T => {
   if (condition) {
     return trueValue
@@ -35,25 +37,21 @@ export const countDigits = (value: string | number) => {
   return cleanValue.length
 }
 
-import { useEffect } from 'react';
-
 export function useOnClickOutside<T extends HTMLElement>(
   ref: React.RefObject<T>,
   handler: (event: MouseEvent) => void
 ) {
-  useEffect(() => {
+  React.useEffect(() => {
     const listener = (event: MouseEvent) => {
       // Do nothing if clicking ref's element or its descendants.
       if (!ref.current || ref.current.contains(event.target as Node)) {
-        return;
+        return
       }
-      handler(event);
-    };
-    document.addEventListener('mousedown', listener);
+      handler(event)
+    }
+    document.addEventListener('mousedown', listener)
     return () => {
-      document.removeEventListener('mousedown', listener);
-    };
-  }, [ref, handler]);
+      document.removeEventListener('mousedown', listener)
+    }
+  }, [ref, handler])
 }
-
-
