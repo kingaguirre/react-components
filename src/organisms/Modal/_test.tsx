@@ -1,11 +1,12 @@
 // src/components/Modal/Modal.test.tsx
+import React from "react";
 import {
   render,
   screen,
   fireEvent,
 } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import Modal from "./index";
+import { Modal } from "./index";
 import ReactDOM from "react-dom";
 
 // Override createPortal so that the portal content is rendered inline.

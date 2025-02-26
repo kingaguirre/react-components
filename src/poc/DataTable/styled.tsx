@@ -1,5 +1,5 @@
-import { scrollStyle } from '@styles/GlobalStyles'
-import { theme } from '@styles/theme'
+import { scrollStyle } from '../../styles/GlobalStyles'
+import { theme } from '../../styles/theme'
 import styled from 'styled-components'
 
 export const DataTableWrapper = styled.div`

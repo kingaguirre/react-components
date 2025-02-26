@@ -1,9 +1,10 @@
 // src/atoms/Tooltip/_test.tsx
+import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import Tooltip from "./index";
+import { Tooltip } from "./index";
 import { theme } from "../../styles/theme";
-import { Button } from "@atoms/Button";
+import { Button } from "../Button";
 
 describe("Tooltip Component", () => {
   test("renders child element correctly", () => {

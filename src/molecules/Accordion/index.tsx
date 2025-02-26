@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { AccordionProps, AccordionItemProps, AccordionItemDetail } from './interface';
+import React, { useState, useRef, useEffect, useCallback } from 'react'
+import { AccordionProps, AccordionItemProps, AccordionItemDetail } from './interface'
 import {
   AccordionContainer,
   AccordionItemWrapper,
@@ -9,35 +9,35 @@ import {
   AccordionContentWrapper,
   AccordionContentInner,
   AccordionDetailContainer,
-} from './styled';
-import Icon from '@atoms/Icon';
-import Badge from '@atoms/Badge';
+} from './styled'
+import { Icon } from '../../atoms/Icon'
+import { Badge } from '../../atoms/Badge'
 
 export const Accordion: React.FC<AccordionProps> = ({ items, allowMultiple = false }) => {
   // openItems maps each item index to its open state.
   const [openItems, setOpenItems] = useState<Record<number, boolean>>(() => {
-    const init: Record<number, boolean> = {};
+    const init: Record<number, boolean> = {}
     items.forEach((item, idx) => {
       // Use the new `open` prop instead of `defaultOpen`. Default to false.
-      init[idx] = item.open ?? false;
-    });
-    return init;
-  });
+      init[idx] = item.open ?? false
+    })
+    return init
+  })
 
   const toggleItem = (index: number) => {
     setOpenItems((prev) => {
-      const newState = { ...prev };
+      const newState = { ...prev }
       if (allowMultiple) {
-        newState[index] = !prev[index];
+        newState[index] = !prev[index]
       } else {
         Object.keys(newState).forEach((key) => {
-          newState[Number(key)] = false;
-        });
-        newState[index] = !prev[index];
+          newState[Number(key)] = false
+        })
+        newState[index] = !prev[index]
       }
-      return newState;
-    });
-  };
+      return newState
+    })
+  }
 
   return (
     <AccordionContainer>
@@ -50,12 +50,12 @@ export const Accordion: React.FC<AccordionProps> = ({ items, allowMultiple = fal
         />
       ))}
     </AccordionContainer>
-  );
-};
+  )
+}
 
 interface AccordionItemInternalProps extends AccordionItemProps {
-  open: boolean;
-  toggle: () => void;
+  open: boolean
+  toggle: () => void
 }
 
 const AccordionItem: React.FC<AccordionItemInternalProps> = ({
@@ -67,45 +67,45 @@ const AccordionItem: React.FC<AccordionItemInternalProps> = ({
   open,
   toggle,
 }) => {
-  const contentRef = useRef<HTMLDivElement>(null);
-  const [maxHeight, setMaxHeight] = useState(0);
+  const contentRef = useRef<HTMLDivElement>(null)
+  const [maxHeight, setMaxHeight] = useState(0)
 
   const updateHeight = useCallback(() => {
     if (contentRef.current) {
-      setMaxHeight(contentRef.current.scrollHeight);
+      setMaxHeight(contentRef.current.scrollHeight)
     }
-  }, []);
+  }, [])
 
   useEffect(() => {
-    updateHeight();
+    updateHeight()
     const ro = new ResizeObserver(() => {
-      updateHeight();
-    });
+      updateHeight()
+    })
     if (contentRef.current) {
-      ro.observe(contentRef.current);
+      ro.observe(contentRef.current)
     }
     return () => {
-      ro.disconnect();
-    };
-  }, [updateHeight]);
+      ro.disconnect()
+    }
+  }, [updateHeight])
 
   return (
-    <AccordionItemWrapper className="accordion-item-wrapper">
-      <AccordionHeader className="accordion-header" $open={open} $color={color} onClick={toggle}>
+    <AccordionItemWrapper className='accordion-item-wrapper'>
+      <AccordionHeader className='accordion-header' $open={open} $color={color} onClick={toggle}>
         <Icon icon={open ? 'remove' : 'add'} />
-        <AccordionTitle className="accordion-title" $color={color}>{title}</AccordionTitle>
-        {rightContent && <AccordionRightContent className="accordion-right-content">{rightContent}</AccordionRightContent>}
+        <AccordionTitle className='accordion-title' $color={color}>{title}</AccordionTitle>
+        {rightContent && <AccordionRightContent className='accordion-right-content'>{rightContent}</AccordionRightContent>}
         {rightDetails?.map((detail: AccordionItemDetail, idx: number) => {
             // Only render if at least one property is defined.
-            if (!detail.icon && !detail.value && !detail.text) return null;
+            if (!detail.icon && !detail.value && !detail.text) return null
 
             return (
               <AccordionDetailContainer
                 key={`${detail?.icon}-${idx}`}
-                className="accordion-detail-container"
+                className='accordion-detail-container'
                 onClick={(e) => {
-                  e.stopPropagation();
-                  detail.onClick?.();
+                  e.stopPropagation()
+                  detail.onClick?.()
                 }}
               >
                 {detail.value && (
@@ -122,14 +122,12 @@ const AccordionItem: React.FC<AccordionItemInternalProps> = ({
                   </span>
                 )}
               </AccordionDetailContainer>
-            );
+            )
           })}
       </AccordionHeader>
-      <AccordionContentWrapper className="accordion-content-wrapper" $expanded={open} $maxHeight={maxHeight}>
-        <AccordionContentInner className="accordion-content-inner" ref={contentRef}>{children}</AccordionContentInner>
+      <AccordionContentWrapper className='accordion-content-wrapper' $expanded={open} $maxHeight={maxHeight}>
+        <AccordionContentInner className='accordion-content-inner' ref={contentRef}>{children}</AccordionContentInner>
       </AccordionContentWrapper>
     </AccordionItemWrapper>
-  );
-};
-
-export default Accordion;
+  )
+}

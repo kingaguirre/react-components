@@ -1,10 +1,10 @@
-import React from 'react';
-import { StyledGrid, StyledGridItem } from './styled';
-import { GridProps, GridItemProps } from './interface';
+import React from 'react'
+import { StyledGrid, StyledGridItem } from './styled'
+import { GridProps, GridItemProps } from './interface'
 
 export const Grid: React.FC<GridProps> = ({ children, spacing = 16, style }) => {
-  return <StyledGrid className="grid" spacing={spacing} style={style}>{children}</StyledGrid>;
-};
+  return <StyledGrid className='grid' spacing={spacing} style={style}>{children}</StyledGrid>
+}
 
 export const GridItem: React.FC<GridItemProps> = ({
   children,
@@ -18,8 +18,8 @@ export const GridItem: React.FC<GridItemProps> = ({
 }) => {
   return (
     <StyledGridItem
-      data-testid="grid-item"
-      className="grid-item"
+      data-testid='grid-item'
+      className='grid-item'
       data-xs={xs} // Add data-* attributes for testing
       data-sm={sm}
       data-md={md}
@@ -37,9 +37,5 @@ export const GridItem: React.FC<GridItemProps> = ({
     >
       {children}
     </StyledGridItem>
-  );
-};
-
-GridItem.displayName = 'GridItem';
-
-export default GridItem;
+  )
+}

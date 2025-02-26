@@ -1,6 +1,6 @@
 // src/molecules/Accordion/interface.ts
 import { ReactNode } from 'react';
-import { ColorType } from '@common/interfaces';
+import { ColorType } from '../../common/interface';
 
 export interface AccordionItemDetail {
   value?: string;

@@ -1,8 +1,8 @@
 // src/atoms/Tooltip/Tooltip.stories.tsx
 import type { Meta, StoryObj } from "@storybook/react";
-import Tooltip from "./index";
-import { StoryWrapper, Title } from "@components/StoryWrapper";
-import { Button } from "@atoms/Button";
+import { Tooltip } from "./index";
+import { StoryWrapper, Title } from "../../components/StoryWrapper";
+import { Button } from "../../atoms/Button";
 
 const meta = {
   title: "Atoms/Tooltip",

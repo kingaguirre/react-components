@@ -2,8 +2,8 @@ import React from 'react'
 import { MainHeadercontainer, SearhContainer, RightDetailsContainer, IconContainer } from './styled'
 import { DebouncedInput } from '../ColumnHeader/Filter'
 import { Button as FooterButton } from '../Footer/styled'
-import { Icon } from '@atoms/Icon'
-import { Button } from '@atoms/Button'
+import { Icon } from '../../../../atoms/Icon'
+import { Button } from '../../../../atoms/Button'
 
 interface MainHeaderProps {
   value?: string
@@ -60,6 +60,12 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
         </Button>
         <IconContainer className='icon-container'>
           <RightIconButton
+            icon='delete_forever'
+            title='Delete Selected Rows'
+            onClick={() => {}}
+            className='delete-icon'
+          />
+          {/* <RightIconButton
             icon='file_upload'
             title='Upload Excel'
             onClick={() => {}}
@@ -68,7 +74,7 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
             icon='file_download'
             title='Download to Excel'
             onClick={() => {}}
-          />
+          /> */}
           <RightIconButton
             icon='settings'
             title='Settings'
@@ -87,12 +93,13 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
 
 export default MainHeader
 
-const RightIconButton = ({ onClick, title, icon }: {
+const RightIconButton = ({ onClick, title, icon, className }: {
   onClick?: () => void
   title?: string
   icon: string
+  className?: string
 }) => (
-  <button onClick={onClick} title={title}>
+  <button onClick={onClick} title={title} className={`${className ?? ''}`}>
     <Icon icon={icon}/>
   </button>
 )

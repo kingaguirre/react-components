@@ -1,4 +1,4 @@
-import { ColorType, SizeType } from '@common/interfaces'
+import { ColorType, SizeType } from '../../common/interface'
 
 export interface DatePickerProps {
   label?: string

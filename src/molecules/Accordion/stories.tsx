@@ -1,10 +1,10 @@
 // src/molecules/Accordion.stories.tsx
 import { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import Accordion from './index';
+import { Accordion } from './index';
 import { AccordionItemProps } from './interface';
-import { StoryWrapper, Title } from '@components/StoryWrapper';
-import { Button } from '@atoms/Button';
+import { StoryWrapper, Title } from '../../components/StoryWrapper';
+import { Button } from '../../atoms/Button';
 
 const meta = {
   title: 'Molecules/Accordion',

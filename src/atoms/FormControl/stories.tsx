@@ -3,9 +3,9 @@
 import { useState, useRef } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { FormControl } from './index';
-import { StoryWrapper, Title } from '@components/StoryWrapper';
-import { Grid, GridItem } from '@atoms/Grid';
-import { Button } from '@atoms/Button';
+import { StoryWrapper, Title } from '../../components/StoryWrapper';
+import { Grid, GridItem } from '../../atoms/Grid';
+import { Button } from '../../atoms/Button';
 
 const meta = {
   title: 'Atoms/FormControl',

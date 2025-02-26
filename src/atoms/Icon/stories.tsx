@@ -1,8 +1,8 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react";
 import styled from "styled-components";
 import { Icon } from "./index";
-import { StoryWrapper, Title } from "@components/StoryWrapper";
+import { StoryWrapper, Title } from "../../components/StoryWrapper";
 import { EXTRA_ICONS, SCB_ICONS } from "./data";
 
 const meta = {

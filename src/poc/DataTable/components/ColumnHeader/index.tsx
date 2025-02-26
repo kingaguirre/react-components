@@ -1,3 +1,4 @@
+import React from 'react'
 import { ColumnHeaderContainer } from './styled'
 import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable'
 import { Cell } from './Cell'
@@ -18,5 +19,3 @@ export const ColumnHeader = ({ table, columnOrder }: {
     ))}
   </ColumnHeaderContainer>
 )
-
-export default ColumnHeader

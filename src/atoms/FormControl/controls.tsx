@@ -12,7 +12,7 @@ import {
   NoOptionsContainer,
 } from './styled';
 import { FormControlProps } from './interface';
-import Button from '@atoms/Button';
+import { Button } from '../../atoms/Button';
 
 export const TextInput: React.FC<FormControlProps> = ({ variant, ...rest }) => <Input autoComplete="off" $variant={variant} {...rest} />;
 

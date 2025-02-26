@@ -2,10 +2,10 @@
 
 import type { Meta, StoryObj } from '@storybook/react';
 import React, { useState, useRef } from 'react';
-import Alert from './index';
-import { StoryWrapper, Title } from '@components/StoryWrapper';
-import { Grid, GridItem } from '@atoms/Grid';
-import { Button } from '@atoms/Button';
+import { Alert } from './index';
+import { StoryWrapper, Title } from '../../components/StoryWrapper';
+import { Grid, GridItem } from '../../atoms/Grid';
+import { Button } from '../../atoms/Button';
 
 const meta = {
   title: 'Molecules/Alert',

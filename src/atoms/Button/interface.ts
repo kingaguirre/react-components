@@ -1,5 +1,5 @@
 // src/atoms/Button/interface.ts
-import { ColorType, SizeType } from '@common/interfaces';
+import { ColorType, SizeType } from '../../common/interface';
 
 export interface ButtonProps {
   /** Button label or children */

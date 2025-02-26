@@ -1,10 +1,11 @@
-import theme from '@styles/theme';
+import { theme } from '../../../../styles/theme';
 import styled from 'styled-components'
 
 export const BodyContainer = styled.div``
 
 export const CellContainer = styled.div<{ $hasError?: boolean; $isEditMode?: boolean }>`
-  background-color: 'white';
+  background-color: white;
+  height: auto;
   position: relative;
   display: flex;
   align-items: center;
@@ -32,7 +33,12 @@ export const DataTableRow = styled.div`
   width: fit-content;
   display: flex;
   justify-content: flex-start;
+  align-items: stretch;
   background-color: ${theme.colors.lightA};
+
+  > span > div {
+    height: 100%;
+  }
 
   ${CellContainer} {
     background-color: ${theme.colors.lightA};

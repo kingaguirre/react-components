@@ -1,5 +1,5 @@
 import styled from 'styled-components'
-import { theme } from '@styles/theme'
+import { theme } from '../../../../styles/theme'
 
 export const MainHeadercontainer = styled.div`
   position: relative;
@@ -57,6 +57,7 @@ export const RightDetailsContainer = styled.div`
   .button {
     align-self: center;
     justify-self: center;
+
     @media (max-width: 480px) {
       margin-right: 8px;
     }
@@ -82,9 +83,26 @@ export const IconContainer = styled.div`
     padding: 0;
     cursor: pointer;
 
+    &.delete-icon {
+      color: ${theme.colors.danger.base};
+
+      &:hover {
+        color: ${theme.colors.danger.dark};
+      }
+
+      &:active {
+        color: ${theme.colors.danger.darker};
+      }
+
+    }
+
     &:hover {
       background-color: ${theme.colors.default.pale};
       color: ${theme.colors.primary.dark};
+    }
+
+    &:active {
+      color: ${theme.colors.primary.darker};
     }
 
     &:disabled {

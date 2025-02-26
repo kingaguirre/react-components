@@ -1,7 +1,7 @@
 // src/molecules/Alert/styled.tsx
 import styled, { keyframes, css } from 'styled-components';
 import { theme } from '../../styles/theme';
-import { ColorType } from '@common/interfaces';
+import { ColorType } from '../../common/interface';
 
 // --- Opening animations ---
 const growIn = keyframes`

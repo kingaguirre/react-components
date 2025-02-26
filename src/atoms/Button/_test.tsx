@@ -2,7 +2,7 @@ import React from "react";
 import { render, fireEvent, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { vi } from "vitest";
-import Button from "./index";
+import { Button } from "./index";
 import { ButtonProps } from "./interface";
 
 describe("Button Component", () => {

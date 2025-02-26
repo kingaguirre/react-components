@@ -1,7 +1,7 @@
 // src/atoms/Badge/stories.tsx
 import type { Meta, StoryObj } from "@storybook/react";
-import Badge from "./index";
-import { StoryWrapper, Title } from "@components/StoryWrapper";
+import { Badge } from "./index";
+import { StoryWrapper, Title } from "../../components/StoryWrapper";
 
 const meta = {
   title: "Atoms/Badge",

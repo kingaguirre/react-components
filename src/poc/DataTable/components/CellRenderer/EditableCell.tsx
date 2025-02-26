@@ -6,13 +6,13 @@ import React, {
   FocusEvent,
   KeyboardEvent,
 } from 'react'
-import { useOnClickOutside } from '@utils/index'
+import { useOnClickOutside } from '../../../../utils'
 import { z, ZodSchema } from 'zod'
 import { getValidationError, jsonSchemaToZod } from '../../utils/validation'
 import { ValidatorHelper, EditorType } from '../../interface'
-import { FormControl } from '@atoms/FormControl'
-import DatePicker from '@molecules/DatePicker'
-import Dropdown from '@molecules/Dropdown'
+import { FormControl } from '../../../../atoms/FormControl'
+import { DatePicker } from '../../../../molecules/DatePicker'
+import { Dropdown } from '../../../../molecules/Dropdown'
 
 interface EditableCellProps {
   value: any
@@ -204,6 +204,3 @@ export const EditableCell = (props: EditableCellProps) => {
 
   return null
 }
-
-
-EditableCell.displayName = 'EditableCell'

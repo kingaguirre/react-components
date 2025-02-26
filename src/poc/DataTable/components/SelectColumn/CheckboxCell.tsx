@@ -1,5 +1,5 @@
 import React from 'react'
-import { FormControl } from '@atoms/FormControl'
+import { FormControl } from '../../../../atoms/FormControl'
 
 // IndeterminateCheckbox supporting an “indeterminate” state.
 export const CheckboxCell = React.forwardRef<

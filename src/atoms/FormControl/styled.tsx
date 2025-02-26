@@ -2,6 +2,7 @@
 import styled, { css } from 'styled-components';
 import { FormControlProps, IconRight } from './interface';
 import { theme } from '../../styles/theme';
+import { ColorType, SizeType } from '../../common/interface';
 
 export const FormControInputContainer = styled.div`
   box-sizing: border-box;
@@ -84,6 +85,7 @@ export const Label = styled.span<{
   position: relative;
   margin-bottom: 8px;
   line-height: 1;
+  text-align: left;
   font-size: ${({ size }) => `${theme.sizes.label[size ?? 'md']}px`};
   font-family: ${theme.fontFamily};
   color: ${theme.colors.default.dark};
@@ -253,8 +255,8 @@ const getCustomCheckboxRadio = ({
   _theme,
 }: {
   type?: string;
-  color: string;
-  size?: string;
+  color: ColorType;
+  size?: SizeType;
   /* eslint-disable @typescript-eslint/no-explicit-any */
   _theme: any;
 }) => {
@@ -302,8 +304,8 @@ const getCustomCheckboxRadio = ({
 };
 
 export const CustomCheckboxRadio = styled.input<{
-  color?: FormControlProps['color'];
-  size?: keyof typeof theme.sizes.boxSize;
+  color?: ColorType;
+  size?: SizeType;
 }>`
   appearance: none;
   min-width: ${({ size }) => (size === 'xs' || size === 'sm' ? 12 : 16)}px;
@@ -543,9 +545,11 @@ export const Text = styled.span<{
   color: ${({ disabled }) => `${theme.colors.default[disabled ? 'base' : 'dark']}`};
   line-height: 1.2;
   pointer-events: none;
+  text-align: left;
 `;
 
 export const HelpText = styled.span<{ color: FormControlProps['color'] }>`
+  text-align: left;
   display: block;
   padding: 4px 0;
   font-size: 12px;

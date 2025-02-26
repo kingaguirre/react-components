@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import DatePicker from "./index";
-import { StoryWrapper, Title } from "@components/StoryWrapper";
+import { DatePicker } from "./index";
+import { StoryWrapper, Title } from "../../components/StoryWrapper";
 import { useState } from "react";
-import Button from "@atoms/Button";
+import { Button } from "../../atoms/Button";
 import styled from "styled-components";
-import { Grid, GridItem } from "@atoms/Grid";
+import { Grid, GridItem } from "../../atoms/Grid";
 
 const meta = {
   title: "Molecules/DatePicker",

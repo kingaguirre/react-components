@@ -1,9 +1,9 @@
 import React from 'react'
-import { FormControl } from '@atoms/FormControl'
+import { FormControl } from '../../../../atoms/FormControl'
 import { FilterContainer } from './styled'
 import { Column } from '@tanstack/react-table'
-import DatePicker from '@molecules/DatePicker'
-import Dropdown from '@molecules/Dropdown'
+import { DatePicker } from '../../../../molecules/DatePicker'
+import { Dropdown } from '../../../../molecules/Dropdown'
 
 // Filter component using our styled inputs.
 export const Filter = ({ column }: { column: Column<any, unknown> }) => {
@@ -82,7 +82,7 @@ export const Filter = ({ column }: { column: Column<any, unknown> }) => {
             )
           case 'dropdown':
             const options = colMeta?.filter?.options ?? []
-            let _options = []
+            let _options: any[] = []
 
             if (options?.length > 0) {
               _options = options
@@ -92,7 +92,7 @@ export const Filter = ({ column }: { column: Column<any, unknown> }) => {
                 return !isArray ? { value, text: value?.toString() } : undefined
               }).filter(i => i)
   
-              _options = generatedOptions.length ? generatedOptions : []
+              _options = generatedOptions.length > 0 ? generatedOptions : []
             }
 
             return (

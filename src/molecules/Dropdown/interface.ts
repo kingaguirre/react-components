@@ -1,5 +1,5 @@
 // src/molecules/Dropdown/interface.ts
-import { SizeType } from '@common/interfaces';
+import { SizeType } from '../../common/interface';
 
 export interface DropdownOption {
   value: string;

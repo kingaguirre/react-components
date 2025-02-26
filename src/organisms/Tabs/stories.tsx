@@ -1,7 +1,8 @@
+import React from "react";
 import type { Meta, StoryObj } from "@storybook/react";
-import Tabs from "./index";
+import { Tabs } from "./index";
 import { TabItemProps } from "./interface";
-import { StoryWrapper, Title } from "@components/StoryWrapper";
+import { StoryWrapper, Title } from "../../components/StoryWrapper";
 
 const meta = {
   title: "Organisms/Tabs",
@@ -58,7 +59,7 @@ export const Examples = {
       {/* 📌 onTabChange Event */}
       <Title>Tabs with `onTabChange`</Title>
       <p>Trigger an alert whenever the user changes tabs.</p>
-      <Tabs tabs={basicTabs} onTabChange={(index) => alert(`Selected Tab: ${index}`)} />
+      <Tabs tabs={basicTabs} onTabChange={(index: number) => alert(`Selected Tab: ${index}`)} />
 
       {/* 📌 Styling Variants */}
       <Title>Colored Tabs</Title>

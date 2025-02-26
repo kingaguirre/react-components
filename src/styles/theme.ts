@@ -1,4 +1,4 @@
-export const theme = {
+export const theme: any = {
   colors: {
     primary: {
       base: '#009fda',
@@ -83,5 +83,3 @@ export const theme = {
   fontFamily: '"Nunito Sans", -apple-system, ".SFNSText-Regular", "San Francisco", BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif',
   transition: 'all .3s ease',
 };
-
-export default theme;

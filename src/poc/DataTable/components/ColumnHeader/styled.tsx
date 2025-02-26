@@ -1,4 +1,4 @@
-import theme from '@styles/theme';
+import { theme } from '../../../../styles/theme';
 import styled from 'styled-components'
 import {
   CellContainer as CellContainerStyles,
@@ -16,9 +16,15 @@ export const CellContent = styled(CellContentStyles)<{
   font-size: 12px;
   min-height: 25px;
   align-items: flex-end;
+
+  > span {
+    cursor: default;
+  }
+
   * {
     color: ${theme.colors.default.darker};
   }
+
   ${({ $hasDND }) => $hasDND ? 'padding-left: 22px;' : ''}
   ${({ $hasPin, $hasSort }) => {
     if (!$hasPin && !$hasSort) {

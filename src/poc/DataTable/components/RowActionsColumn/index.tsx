@@ -1,7 +1,7 @@
 import { ColumnDef } from '@tanstack/react-table'
 import { getValidationError } from '../../utils/validation'
 import { ColumnSetting } from '../../interface'
-import { Icon } from '@atoms/Icon'
+import { Icon } from '../../../../atoms/Icon'
 import { ActionContainer } from './styled'
 
 export const DATA_TABLE_ROW_ACTION_ID = 'data-table-row-action'

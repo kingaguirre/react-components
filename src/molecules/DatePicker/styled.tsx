@@ -207,8 +207,9 @@ export const DatePickerGlobalStyles = createGlobalStyle`
   
           &.react-datepicker__day--today {
             background-color: white;
-            border: 1px solid ${theme.colors.default.base};
+            border: 1px solid ${theme.colors.default.pale};
             &:hover {
+              color: ${theme.colors.primary.base}!important;
               background-color: ${theme.colors.default.pale};
             }
           }

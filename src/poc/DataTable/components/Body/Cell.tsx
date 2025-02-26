@@ -1,7 +1,8 @@
+import React from 'react'
 import { Cell as CellProps, flexRender } from '@tanstack/react-table'
 import { CellContainer, CellContent } from './styled'
 import { getColumnStyles } from '../../utils'
-import { Tooltip } from '@atoms/Tooltip'
+import { Tooltip } from '../../../../atoms/Tooltip'
 
 // needed for row & cell level scope DnD setup
 import { useSortable } from '@dnd-kit/sortable'

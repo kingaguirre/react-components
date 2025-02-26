@@ -5,11 +5,11 @@ import {
   SelectRowContainer, FooterDetailsContainer, LeftDetails,
   RightDetails, Button, SelectedContainer
 } from './styled'
-import { formatNumber, countDigits } from '@utils/index'
-import { Dropdown } from '@molecules/Dropdown'
-import { Icon } from '@atoms/Icon'
-import { FormControl } from '@atoms/FormControl'
-import { Tooltip } from '@atoms/Tooltip'
+import { formatNumber, countDigits } from '../../../../utils/index'
+import { Dropdown } from '../../../../molecules/Dropdown'
+import { Icon } from '../../../../atoms/Icon'
+import { FormControl } from '../../../../atoms/FormControl'
+import { Tooltip } from '../../../../atoms/Tooltip'
 
 interface FooterProps {
   table: any
@@ -95,6 +95,7 @@ export const Footer: React.FC<FooterProps> = ({ table, selectedRows }) => {
                 const page = e.target.value ? Number(e.target.value) - 1 : 0
                 table.setPageIndex(page)
               }}
+              className='footer-page'
             />
           </Tooltip>
           <Button

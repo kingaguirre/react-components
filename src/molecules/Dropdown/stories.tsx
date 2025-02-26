@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Meta, StoryObj } from "@storybook/react";
-import Dropdown from "./index";
-import { StoryWrapper, Title } from "@components/StoryWrapper";
-import { Grid, GridItem } from "@atoms/Grid";
-import { Button } from "@atoms/Button";
+import { Dropdown } from "./index";
+import { StoryWrapper, Title } from "../../components/StoryWrapper";
+import { Grid, GridItem } from "../../atoms/Grid";
+import { Button } from "../../atoms/Button";
 
 const DEFAULT_OPTIONS = [
   { value: "option1", text: "Option 1" },

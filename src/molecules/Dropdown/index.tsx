@@ -10,8 +10,8 @@ import {
   NoOptionsContainer
 } from './styled'
 import { DropdownProps, DropdownOption } from './interface'
-import FormControl from '@atoms/FormControl'
-import { ifElse } from '@utils/index'
+import { FormControl } from '../../atoms/FormControl'
+import { ifElse } from '../../utils/index'
 import { getScrollParent } from './utils'
 
 export const Dropdown: React.FC<DropdownProps> = ({
@@ -635,5 +635,3 @@ export const Dropdown: React.FC<DropdownProps> = ({
     </DropdownContainer>
   )
 }
-
-export default Dropdown

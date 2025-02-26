@@ -1,6 +1,6 @@
 import React from 'react'
 
-export const ifElse = <T,>(condition: boolean, trueValue: T, falseValue: T): T => {
+export const ifElse = (condition: boolean, trueValue: any, falseValue: any) => {
   if (condition) {
     return trueValue
   }

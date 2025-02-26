@@ -1,5 +1,5 @@
 // src/components/Modal/interface.ts
-import { PanelProps } from "@molecules/Panel/interface";
+import { PanelProps } from "../../molecules/Panel/interface";
 
 export interface ModalProps extends Omit<PanelProps, "className"> {
   show: boolean;

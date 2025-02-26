@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Meta } from '@storybook/react';
 import { Grid, GridItem } from './index';
-import { StoryWrapper, Title } from '@components/StoryWrapper';
+import { StoryWrapper, Title } from '../../components/StoryWrapper';
 import styled from 'styled-components';
 
 const Wrapper = styled.div`

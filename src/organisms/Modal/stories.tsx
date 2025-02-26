@@ -1,13 +1,12 @@
 /* eslint-disable react-refresh/only-export-components */
-
 import type { Meta, StoryObj } from "@storybook/react";
-import Modal from "./index";
+import { Modal } from "./index";
 import { ModalProps } from "./interface";
-import { StoryWrapper, Title } from "@components/StoryWrapper";
-import { useState } from "react";
-import Button from "@atoms/Button";
-import FormControl from "@atoms/FormControl";
-import Icon from "@atoms/Icon";
+import { StoryWrapper, Title } from "../../components/StoryWrapper";
+import React, { useState } from "react";
+import { Button } from "../../atoms/Button";
+import { FormControl } from "../../atoms/FormControl";
+import { Icon } from "../../atoms/Icon";
 
 const meta = {
   title: "Organisms/Modal",
@@ -86,7 +85,7 @@ const ModalExamples = () => {
         <p>
           <Icon icon="info" /> Example modal with <strong>long scrollable content</strong>.
         </p>
-        {[...Array(50)].map((i) => (
+        {[...Array(50)].map((_, i) => (
           <p key={i}>This is long content line {i + 1}. Lorem ipsum dolor sit amet...</p>
         ))}
       </Modal>

@@ -1,6 +1,6 @@
 // Alert/Molecules/interface.ts
 import { ReactNode } from 'react';
-import { ColorType } from '@common/interfaces';
+import { ColorType } from '../../common/interface';
 
 export interface AlertProps {
   /** The alert’s color variant (keys should match your theme colors) */

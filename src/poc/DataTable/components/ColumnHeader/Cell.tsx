@@ -8,7 +8,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 
 // needed for row & cell level scope DnD setup
 import { useSortable } from '@dnd-kit/sortable'
-import Icon from '@atoms/Icon'
+import { Icon } from '../../../../atoms/Icon'
 import { DATA_TABLE_ROW_ACTION_ID } from '../RowActionsColumn'
 
 export const Cell = ({ header, table }: {
@@ -30,14 +30,7 @@ export const Cell = ({ header, table }: {
       ? colDef.header(header.getContext())
       : colDef.header
 
-  let headerText = rawHeader
-
-  if (React.isValidElement(rawHeader)) {
-    // Convert the React element to a static markup string.
-    const html = renderToStaticMarkup(rawHeader)
-    // Strip HTML tags to extract the plain text.
-    headerText = html.replace(/<[^>]+>/g, '')
-  }
+  const headerText = typeof rawHeader === 'string' ? rawHeader : ''
 
   return (
     <CellContainer className='cell-container'
@@ -61,9 +54,6 @@ export const Cell = ({ header, table }: {
       >
         <span title={headerText}>{flexRender(colDef.header, header.getContext())}</span>
       </CellContent>
-
-      {/** Filter */}
-      {header.column.getCanFilter() ? <Filter column={header.column} /> : <CellFilterPlaceholder/>}
 
       {/** Pinning and Sorting */}
       {(hasPin || hasSort) && (

@@ -1,7 +1,8 @@
+import React from 'react'
 import { flexRender } from '@tanstack/react-table'
 import { SettingsPanelContainer, SettingsContainer } from './styled'
-import { Panel } from '@molecules/Panel'
-import { FormControl } from '@atoms/FormControl'
+import { Panel } from '../../../../../molecules/Panel'
+import { FormControl } from '../../../../../atoms/FormControl'
 import { DATA_TABLE_SELECT_ID } from '../../SelectColumn'
 import { DATA_TABLE_ROW_ACTION_ID } from '../../RowActionsColumn'
 

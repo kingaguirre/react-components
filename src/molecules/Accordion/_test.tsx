@@ -1,6 +1,7 @@
 // src/molecules/Accordion/Accordion.test.tsx
+import React from "react";
 import { render, screen} from '@testing-library/react';
-import Accordion from './index';
+import { Accordion } from './index';
 import { AccordionItemProps } from './interface';
 import { vi } from 'vitest';
 import '@testing-library/jest-dom';

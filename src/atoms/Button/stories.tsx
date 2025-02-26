@@ -1,8 +1,8 @@
 // src/atoms/Button/stories.tsx
 import type { Meta, StoryObj } from "@storybook/react";
 import { Button } from "./index";
-import { StoryWrapper, Title } from "@components/StoryWrapper";
-import { Grid, GridItem } from "@atoms/Grid";
+import { StoryWrapper, Title } from "../../components/StoryWrapper";
+import { Grid, GridItem } from "../../atoms/Grid";
 
 const meta = {
   title: "Atoms/Button",

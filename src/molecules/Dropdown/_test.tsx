@@ -8,7 +8,7 @@ import {
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import Dropdown from "./index";
+import { Dropdown } from "./index";
 import ReactDOM from "react-dom";
 
 // Override createPortal to render inline for testing.

@@ -1,6 +1,6 @@
 import styled from "styled-components";
 import { IconProps } from "./interface";
-import { ifElse } from "@utils/index";
+import { ifElse } from "../../utils/index";
 
 export const IconContainer = styled.span<{
   $size?: IconProps["size"];

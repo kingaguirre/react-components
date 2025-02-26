@@ -1,5 +1,5 @@
 import { z, ZodSchema, ZodTypeAny } from 'zod'
-import { DropdownOption } from '@molecules/Dropdown/interface'
+import { DropdownOption } from '../../molecules/Dropdown/interface'
 
 export interface DataTableProps<T extends object> {
   /** Data to display in the table */

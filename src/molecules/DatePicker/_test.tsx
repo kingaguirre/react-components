@@ -1,7 +1,8 @@
+import React from "react";
 import { render, fireEvent, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { vi } from "vitest";
-import DatePicker from "./index";
+import { DatePicker } from "./index";
 
 describe("DatePicker Component", () => {
   test("renders DatePicker with label", () => {

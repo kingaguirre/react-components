@@ -1,4 +1,4 @@
-import theme from '@styles/theme'
+import { theme } from '../../../../styles/theme'
 import styled from 'styled-components'
 
 export const FooterContainer = styled.div`
@@ -59,9 +59,10 @@ export const RightDetails = styled(LeftDetails)<{ $totalCount: number }>`
   align-items: center;
   justify-content: flex-end;
 
-  > .form-control-input-container {
+  .footer-page {
     width: ${({ $totalCount }) => getTextBoxWidth($totalCount)}px;
-    input {
+
+    .form-control-number {
       text-align: center;
     }
   }

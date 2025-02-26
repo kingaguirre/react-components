@@ -44,7 +44,6 @@ export const SCB_ICONS = [
   'chevron-right',
   'chevron-up',
   'classified',
-  'close',
   'copy',
   'create-new',
   'cross-box',

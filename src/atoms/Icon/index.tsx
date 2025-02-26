@@ -1,26 +1,26 @@
-import React from "react";
-import { IconContainer, FallbackBox } from "./styled";
-import { IconProps } from "./interface";
-import "../../styles/font.css";
-import { EXTRA_ICONS, SCB_ICONS } from "./data"; // Import list of available icons
+import React from 'react'
+import { IconContainer, FallbackBox } from './styled'
+import { IconProps } from './interface'
+import '../../styles/font.css'
+import { EXTRA_ICONS, SCB_ICONS } from './data' // Import list of available icons
 
 // ✅ Convert array to a Set for optimized lookup
-const ICON_SET = new Set([...EXTRA_ICONS, ...SCB_ICONS]);
+const ICON_SET = new Set([...EXTRA_ICONS, ...SCB_ICONS])
 
-export const Icon = ({
+export const Icon: React.FC<IconProps> = ({
   icon,
   size,
   color,
   disabled = false,
-  className = "",
+  className = '',
   onClick
-}: IconProps) => {
-  const iconExists = ICON_SET.has(icon); // ✅ O(1) lookup time
+}) => {
+  const iconExists = ICON_SET.has(icon) // ✅ O(1) lookup time
 
   return iconExists ? (
     <IconContainer
-      data-testid="icon"
-      className={`icon icon-${icon} ${className} ${disabled ? "icon-disabled" : ""}`.trim()}
+      data-testid='icon'
+      className={`icon icon-${icon} ${className} ${disabled ? 'icon-disabled' : ''}`.trim()}
       $size={size}
       $color={color}
       $disabled={disabled}
@@ -28,10 +28,6 @@ export const Icon = ({
       onClick={onClick}
     />
   ) : (
-    <FallbackBox data-testid="icon" $size={size}>?</FallbackBox> // ✅ Show fallback if the icon is missing
-  );
-};
-
-Icon.displayName = "Icon";
-
-export default Icon;
+    <FallbackBox data-testid='icon' $size={size}>?</FallbackBox> // ✅ Show fallback if the icon is missing
+  )
+}
