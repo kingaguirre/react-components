@@ -55,6 +55,9 @@ export const Cell = ({ header, table }: {
         <span title={headerText}>{flexRender(colDef.header, header.getContext())}</span>
       </CellContent>
 
+      {/** Filter */}
+      {header.column.getCanFilter() ? <Filter column={header.column} /> : <CellFilterPlaceholder/>}
+
       {/** Pinning and Sorting */}
       {(hasPin || hasSort) && (
         <LeftIconContainer>

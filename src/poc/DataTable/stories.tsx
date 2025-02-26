@@ -2,7 +2,7 @@ import React from "react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { DataTable } from "./index";
 import { StoryWrapper, Title } from "../../components/StoryWrapper";
-// import { DataTable as DataTable_ } from './DataTable_/index';
+import { DataTable as DataTable_ } from './DataTable_/index';
 import { ColumnSetting } from './interface';
 import { makeData } from "./makeData";
 import { COLUMN_SETTINGS_PLAIN } from './data';
@@ -28,7 +28,7 @@ const loremAddresses = [
 ];
 
 // Generate 200 rows of sample data with all columns defined
-const sampleData = Array.from({ length: 10000 }, (_, i) => ({
+const sampleData = Array.from({ length: 100 }, (_, i) => ({
   id: i + 1,
   name: `Name ${i + 1}`,
   age: Math.floor(Math.random() * 60) + 20,
@@ -380,16 +380,313 @@ export const Demo = {
   ),
 };
 
+// import { useState } from 'react';
+
+// const FloatingSettingsPanel = ({ children, onClose }) => {
+//   return (
+//     <div
+//       style={{
+//         position: "fixed",
+//         top: "16px",
+//         right: "16px",
+//         backgroundColor: "#fff",
+//         padding: "16px",
+//         boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+//         zIndex: 1000,
+//         maxHeight: "80vh",
+//         overflowY: "auto",
+//       }}
+//     >
+//       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+//         <h4 style={{ margin: 0 }}>Settings</h4>
+//         <button onClick={onClose} style={{ marginLeft: "8px" }}>Close</button>
+//       </div>
+//       <div style={{ marginTop: "16px" }}>{children}</div>
+//     </div>
+//   );
+// };
+
+// const DataTablePlayground = () => {
+//   const [showSettings, setShowSettings] = useState(true);
+
+//   // Toggleable prop states
+//   const [enableColumnFiltering, setEnableColumnFiltering] = useState(true);
+//   const [enableColumnPinning, setEnableColumnPinning] = useState(true);
+//   const [enableColumnDragging, setEnableColumnDragging] = useState(true);
+//   const [enableColumnSorting, setEnableColumnSorting] = useState(true);
+//   const [enableColumnResizing, setEnableColumnResizing] = useState(true);
+//   const [enableCellEditing, setEnableCellEditing] = useState(true);
+//   const [enableRowAdding, setEnableRowAdding] = useState(true);
+//   const [enableRowDeleting, setEnableRowDeleting] = useState(true);
+//   const [enableSelectedRowDeleting, setEnableSelectedRowDeleting] = useState(true);
+//   const [enableRowSelection, setEnableRowSelection] = useState(true);
+//   const [enableGlobalFiltering, setEnableGlobalFiltering] = useState(true);
+//   const [title, setTitle] = useState("DataTable Demo Title");
+//   const [cellTextAlignment, setCellTextAlignment] = useState<"left" | "center" | "right">("center");
+//   const [height, setHeight] = useState("500px");
+//   const [maxHeight, setMaxHeight] = useState("600px");
+//   const [pageSize, setPageSize] = useState(10);
+//   const [pageIndex, setPageIndex] = useState(0);
+//   const [multiSelect, setMultiSelect] = useState(true);
+//   const [activeRow, setActiveRow] = useState("1"); // Ensure this key exists in sampleData.
+//   const [selectedRows, setSelectedRows] = useState<string[]>(["1", "2"]);
+//   const [partialRowDeletionID, setPartialRowDeletionID] = useState("partialDelete");
+
+//   return (
+//     <div style={{ padding: "16px" }}>
+//       {/* Button to toggle the settings panel */}
+//       <button
+//         style={{ position: "fixed", top: "16px", left: "16px", zIndex: 1000 }}
+//         onClick={() => setShowSettings(!showSettings)}
+//       >
+//         {showSettings ? "Hide Settings" : "Show Settings"}
+//       </button>
+
+//       {showSettings && (
+//         <FloatingSettingsPanel onClose={() => setShowSettings(false)}>
+//           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+//             <label>
+//               <input
+//                 type="checkbox"
+//                 checked={enableColumnFiltering}
+//                 onChange={(e) => setEnableColumnFiltering(e.target.checked)}
+//               />
+//               Enable Column Filtering
+//             </label>
+//             <label>
+//               <input
+//                 type="checkbox"
+//                 checked={enableColumnPinning}
+//                 onChange={(e) => setEnableColumnPinning(e.target.checked)}
+//               />
+//               Enable Column Pinning
+//             </label>
+//             <label>
+//               <input
+//                 type="checkbox"
+//                 checked={enableColumnDragging}
+//                 onChange={(e) => setEnableColumnDragging(e.target.checked)}
+//               />
+//               Enable Column Dragging
+//             </label>
+//             <label>
+//               <input
+//                 type="checkbox"
+//                 checked={enableColumnSorting}
+//                 onChange={(e) => setEnableColumnSorting(e.target.checked)}
+//               />
+//               Enable Column Sorting
+//             </label>
+//             <label>
+//               <input
+//                 type="checkbox"
+//                 checked={enableColumnResizing}
+//                 onChange={(e) => setEnableColumnResizing(e.target.checked)}
+//               />
+//               Enable Column Resizing
+//             </label>
+//             <label>
+//               <input
+//                 type="checkbox"
+//                 checked={enableCellEditing}
+//                 onChange={(e) => setEnableCellEditing(e.target.checked)}
+//               />
+//               Enable Cell Editing
+//             </label>
+//             <label>
+//               <input
+//                 type="checkbox"
+//                 checked={enableRowAdding}
+//                 onChange={(e) => setEnableRowAdding(e.target.checked)}
+//               />
+//               Enable Row Adding
+//             </label>
+//             <label>
+//               <input
+//                 type="checkbox"
+//                 checked={enableRowDeleting}
+//                 onChange={(e) => setEnableRowDeleting(e.target.checked)}
+//               />
+//               Enable Row Deleting
+//             </label>
+//             <label>
+//               <input
+//                 type="checkbox"
+//                 checked={enableSelectedRowDeleting}
+//                 onChange={(e) => setEnableSelectedRowDeleting(e.target.checked)}
+//               />
+//               Enable Selected Row Deleting
+//             </label>
+//             <label>
+//               <input
+//                 type="checkbox"
+//                 checked={enableRowSelection}
+//                 onChange={(e) => setEnableRowSelection(e.target.checked)}
+//               />
+//               Enable Row Selection
+//             </label>
+//             <label>
+//               <input
+//                 type="checkbox"
+//                 checked={enableGlobalFiltering}
+//                 onChange={(e) => setEnableGlobalFiltering(e.target.checked)}
+//               />
+//               Enable Global Filtering
+//             </label>
+//             <label>
+//               Title:
+//               <input
+//                 type="text"
+//                 value={title}
+//                 onChange={(e) => setTitle(e.target.value)}
+//                 style={{ marginLeft: "8px" }}
+//               />
+//             </label>
+//             <label>
+//               Cell Text Alignment:
+//               <select
+//                 value={cellTextAlignment}
+//                 onChange={(e) =>
+//                   setCellTextAlignment(e.target.value as "left" | "center" | "right")
+//                 }
+//                 style={{ marginLeft: "8px" }}
+//               >
+//                 <option value="left">Left</option>
+//                 <option value="center">Center</option>
+//                 <option value="right">Right</option>
+//               </select>
+//             </label>
+//             <label>
+//               Height:
+//               <input
+//                 type="text"
+//                 value={height}
+//                 onChange={(e) => setHeight(e.target.value)}
+//                 style={{ marginLeft: "8px" }}
+//               />
+//             </label>
+//             <label>
+//               Max Height:
+//               <input
+//                 type="text"
+//                 value={maxHeight}
+//                 onChange={(e) => setMaxHeight(e.target.value)}
+//                 style={{ marginLeft: "8px" }}
+//               />
+//             </label>
+//             <label>
+//               Page Size:
+//               <select
+//                 value={pageSize}
+//                 onChange={(e) => setPageSize(Number(e.target.value))}
+//                 style={{ marginLeft: "8px" }}
+//               >
+//                 <option value={5}>5</option>
+//                 <option value={10}>10</option>
+//                 <option value={20}>20</option>
+//               </select>
+//             </label>
+//             <label>
+//               Page Index:
+//               <input
+//                 type="number"
+//                 value={pageIndex}
+//                 onChange={(e) => setPageIndex(Number(e.target.value))}
+//                 style={{ marginLeft: "8px", width: "60px" }}
+//               />
+//             </label>
+//             <label>
+//               Multi Select:
+//               <input
+//                 type="checkbox"
+//                 checked={multiSelect}
+//                 onChange={(e) => setMultiSelect(e.target.checked)}
+//                 style={{ marginLeft: "8px" }}
+//               />
+//             </label>
+//             <label>
+//               Active Row (ID):
+//               <input
+//                 type="text"
+//                 value={activeRow}
+//                 onChange={(e) => setActiveRow(e.target.value)}
+//                 style={{ marginLeft: "8px", width: "60px" }}
+//               />
+//             </label>
+//             <label>
+//               Selected Rows (comma separated):
+//               <input
+//                 type="text"
+//                 value={selectedRows.join(',')}
+//                 onChange={(e) =>
+//                   setSelectedRows(e.target.value.split(',').map((s) => s.trim()))
+//                 }
+//                 style={{ marginLeft: "8px" }}
+//               />
+//             </label>
+//             <label>
+//               Partial Row Deletion ID:
+//               <input
+//                 type="text"
+//                 value={partialRowDeletionID}
+//                 onChange={(e) => setPartialRowDeletionID(e.target.value)}
+//                 style={{ marginLeft: "8px" }}
+//               />
+//             </label>
+//           </div>
+//         </FloatingSettingsPanel>
+//       )}
+
+//       {/* DataTable rendering below; marginTop provides spacing when settings panel is toggled */}
+//       <div style={{ marginTop: "80px" }}>
+//         <DataTable_
+//           dataSource={sampleData}
+//           columnSettings={columnSettings}
+//           onChange={(e) => console.log("onChange", e)}
+//           enableColumnFiltering={enableColumnFiltering}
+//           enableColumnPinning={enableColumnPinning}
+//           enableColumnDragging={enableColumnDragging}
+//           enableColumnSorting={enableColumnSorting}
+//           enableColumnResizing={enableColumnResizing}
+//           enableCellEditing={enableCellEditing}
+//           enableRowAdding={enableRowAdding}
+//           enableRowDeleting={enableRowDeleting}
+//           enableSelectedRowDeleting={enableSelectedRowDeleting}
+//           enableRowSelection={enableRowSelection}
+//           enableGlobalFiltering={enableGlobalFiltering}
+//           title={title}
+//           cellTextAlignment={cellTextAlignment}
+//           height={height}
+//           maxHeight={maxHeight}
+//           pageSize={pageSize}
+//           pageIndex={pageIndex}
+//           enableMultiRowSelection={multiSelect}
+//           activeRow={activeRow}
+//           selectedRows={selectedRows}
+//           partialRowDeletionID={partialRowDeletionID}
+//           onRowClick={(row) => console.log("Row clicked:", row)}
+//           onRowDoubleClick={(row) => console.log("Row double-clicked:", row)}
+//           onColumnSettingsChange={(newSettings) =>
+//             console.log("Column settings changed:", newSettings)
+//           }
+//           onPageSizeChange={(newSize) => console.log("Page size changed:", newSize)}
+//           onPageIndexChange={(newIndex) => console.log("Page index changed:", newIndex)}
+//           onSelectedRowsChange={(rows) =>
+//             console.log("Selected rows changed:", rows)
+//           }
+//         />
+//       </div>
+//     </div>
+//   );
+// };
+
 // export const DataTableTest = {
 //   tags: ["!autodocs"],
 //   render: () => (
 //     <StoryWrapper title="DataTable Test">
 //       <Title>DataTable Test Feature Demo</Title>
-//       <DataTable_
-//         dataSource={sampleData}
-//         columnSettings={columnSettings}
-//         onChange={e => console.log(e)}
-//       />
+//       <DataTablePlayground />
 //     </StoryWrapper>
 //   ),
 // };
+
