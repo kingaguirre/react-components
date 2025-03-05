@@ -1,4 +1,4 @@
-import React from 'react';
+import React from 'react'
 import {
   Input,
   TextArea,
@@ -10,27 +10,35 @@ import {
   RadioButton,
   RadioButtonContainer,
   NoOptionsContainer,
-} from './styled';
-import { FormControlProps } from './interface';
-import Button from '@atoms/Button';
+} from './styled'
+import { FormControlProps } from './interface'
+import { Button } from '../../atoms/Button'
 
-export const TextInput: React.FC<FormControlProps> = ({ variant, ...rest }) => <Input autoComplete="off" $variant={variant} {...rest} />;
+export const TextInput: React.FC<FormControlProps> = ({ variant, testId, ...rest }) => (
+  <Input
+    {...rest}
+    data-testid={testId}
+    autoComplete='off'
+    $variant={variant}
+    role='textbox'
+  />
+)
 
-export const TextAreaInput: React.FC<FormControlProps> = ({ variant, ...rest }) => <TextArea $variant={variant} {...rest} />;
+export const TextAreaInput: React.FC<FormControlProps> = ({ variant, ...rest }) => <TextArea $variant={variant} {...rest} />
 
-export const CheckboxRadioInput: React.FC<FormControlProps> = ({ disabled, text, size, ...rest }) => (
+export const CheckboxRadioInput: React.FC<FormControlProps> = ({ disabled, text, size, testId, ...rest }) => (
   <TextContainer disabled={disabled} onClick={e => e.stopPropagation()}>
-    <CustomCheckboxRadio {...rest} size={size} disabled={disabled} />
+    <CustomCheckboxRadio {...rest} size={size} disabled={disabled} data-testid={testId}/>
     {text && <Text size={size} disabled={disabled}>{text}</Text>}
   </TextContainer>
-);
+)
 
-export const SwitchInput: React.FC<FormControlProps> = ({ disabled, text,size,  ...rest }) => (
+export const SwitchInput: React.FC<FormControlProps> = ({ disabled, text,size, testId, ...rest }) => (
   <TextContainer disabled={disabled} onClick={e => e.stopPropagation()}>
-    <Switch {...rest} size={size} disabled={disabled} type="checkbox" />
+    <Switch {...rest} size={size} disabled={disabled} type='checkbox' data-testid={testId} />
     {text && <Text size={size} disabled={disabled}>{text}</Text>}
   </TextContainer>
-);
+)
 
 export const CheckboxGroup: React.FC<FormControlProps> = ({ 
   options = [],
@@ -38,25 +46,27 @@ export const CheckboxGroup: React.FC<FormControlProps> = ({
   onChange,
   isVerticalOptions,
   selectedValues,
+  testId,
   ...rest 
 }) => (
-  <GroupControlContainer $isVerticalOptions={isVerticalOptions} className="group-control-container checkbox-group">
+  <GroupControlContainer $isVerticalOptions={isVerticalOptions} className='group-control-container checkbox-group'>
     {options?.length > 0 ? options.map((option) => (
       <TextContainer key={option.value} disabled={option.disabled}>
         <CheckboxRadioInput
           {...rest}
           key={option.value}
-          type="checkbox"
+          type='checkbox'
           disabled={option.disabled || disabled}
           value={option.value}
           checked={selectedValues.includes(option.value)}
           onChange={() => onChange(option.value)}
           text={option.text}
+          testId={`${testId}-${option.value}`}
         />
       </TextContainer>
     )) : <NoOptionsContainer>No Options found</NoOptionsContainer>}
   </GroupControlContainer>
-);
+)
 
 
 export const RadioGroup: React.FC<FormControlProps> = ({
@@ -66,6 +76,7 @@ export const RadioGroup: React.FC<FormControlProps> = ({
   isVerticalOptions,
   selectedValue,
   isInvalid,
+  testId,
   ...rest
 }) => (
   <GroupControlContainer $isVerticalOptions={isVerticalOptions} className={`group-control-container radio-group ${isInvalid ? 'invalid' : ''}`}>
@@ -73,16 +84,17 @@ export const RadioGroup: React.FC<FormControlProps> = ({
       <CheckboxRadioInput
         {...rest}
         key={option.value}
-        type="radio"
+        type='radio'
         disabled={option.disabled || disabled}
         value={option.value}
         checked={selectedValue === option.value}
         onChange={() => onChange(option.value)}
         text={option.text}
+        testId={`${testId}-${option.value}`}
       />
     )) : <NoOptionsContainer>No Options found</NoOptionsContainer>}
   </GroupControlContainer>
-);
+)
 
 export const SwitchGroup: React.FC<FormControlProps> = ({
   options = [],
@@ -90,24 +102,26 @@ export const SwitchGroup: React.FC<FormControlProps> = ({
   onChange,
   isVerticalOptions,
   selectedValues,
+  testId,
   ...rest
 }) => (
-  <GroupControlContainer $isVerticalOptions={isVerticalOptions} className="group-control-container switch-group">
+  <GroupControlContainer $isVerticalOptions={isVerticalOptions} className='group-control-container switch-group'>
     {options?.length > 0 ? options.map((option) => (
       <TextContainer key={option.value} disabled={option.disabled}>
         <SwitchInput
           {...rest}
-          type="checkbox"
+          type='checkbox'
           disabled={option.disabled || disabled}
           value={option.value}
           checked={selectedValues.includes(option.value)}
           onChange={() => onChange(option.value)}
           text={option.text}
+          testId={`${testId}-${option.value}`}
         />
       </TextContainer>
     )) : <NoOptionsContainer>No Options found</NoOptionsContainer>}
   </GroupControlContainer>
-);
+)
 
 export const RadioButtonGroup: React.FC<FormControlProps> = ({
   options = [],
@@ -120,12 +134,12 @@ export const RadioButtonGroup: React.FC<FormControlProps> = ({
   isInvalid,
   ...rest
 }) => (
-  <GroupControlContainer $isVerticalOptions={isVerticalOptions} $gap={0} className="group-control-container radio-button-group">
+  <GroupControlContainer $isVerticalOptions={isVerticalOptions} $gap={0} className='group-control-container radio-button-group'>
     {options?.length > 0 ? options.map((option) => (
       <RadioButtonContainer key={option.value} disabled={option.disabled}>
         <RadioButton
           {...rest}
-          type="radio"
+          type='radio'
           size={size}
           color={color}
           disabled={option.disabled || disabled}
@@ -145,5 +159,5 @@ export const RadioButtonGroup: React.FC<FormControlProps> = ({
       </RadioButtonContainer>
     )) : <NoOptionsContainer>No Options found</NoOptionsContainer>}
   </GroupControlContainer>
-);
+)
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ColorType } from '@common/interfaces';
+import { ColorType } from '../../common/interface';
 
 export interface TooltipProps {
   /**
@@ -14,7 +14,7 @@ export interface TooltipProps {
   /**
    * The child element that triggers the tooltip.
    */
-  children: React.ReactElement;
+  children: React.ReactNode;
   /**
    * Where to position the tooltip relative to the child.
    * Options: "top", "right", "bottom", "left"
@@ -28,4 +28,6 @@ export interface TooltipProps {
   trigger?: 'hover' | 'click';
   /** Sets max width for tooltip */
   maxWidth?: number
+  type?: 'tooltip' | 'title';
+  testId?: string
 }

@@ -1,24 +1,24 @@
 // src/components/Panel/index.tsx
-import React from "react";
-import { PanelContainer, PanelHeader, PanelContent, IconWrapper, Text } from "./styled";
-import { PanelProps } from "./interface";
-import Icon from "@atoms/Icon";
+import React from 'react'
+import { PanelContainer, PanelHeader, PanelContent, IconWrapper, Text } from './styled'
+import { PanelProps } from './interface'
+import { Icon } from '../../atoms/Icon'
 
 export const Panel: React.FC<PanelProps> = ({
   title,
   children,
   leftIcon,
   rightIcons = [],
-  color = "primary",
+  color = 'primary',
   disabled = false,
 }) => {
-  const isHeadless = !title && !leftIcon && rightIcons.length === 0;
+  const isHeadless = !title && !leftIcon && rightIcons.length === 0
 
   return (
     <PanelContainer $color={color} $disabled={disabled} className={`panel ${disabled ? 'panel-disabled' : ''}`.trim()}>
       {!isHeadless && (
         <PanelHeader
-          className="panel-header"
+          className='panel-header'
           $color={color}
           $disabled={disabled}
           $hasLeftIcon={!!leftIcon}
@@ -26,7 +26,7 @@ export const Panel: React.FC<PanelProps> = ({
         >
           {leftIcon && (
             <IconWrapper
-              className="left-header-icon"
+              className='left-header-icon'
               onClick={!disabled && leftIcon.onClick ? leftIcon.onClick : undefined}
               $clickable={!disabled && !!leftIcon.onClick}
               title={leftIcon.title}
@@ -34,9 +34,9 @@ export const Panel: React.FC<PanelProps> = ({
               <Icon icon={leftIcon.icon} />
             </IconWrapper>
           )}
-          <div className="title">{title}</div>
+          <div className='title'>{title}</div>
           {rightIcons.length > 0 && (
-            <div className="right-header-icons-container">
+            <div className='right-header-icons-container'>
               {rightIcons.map((icon) => (
                 <IconWrapper
                   key={`key-${icon.icon}-${icon.color}`}
@@ -51,9 +51,7 @@ export const Panel: React.FC<PanelProps> = ({
           )}
         </PanelHeader>
       )}
-      <PanelContent className="panel-content">{children}</PanelContent>
+      <PanelContent className='panel-content'>{children}</PanelContent>
     </PanelContainer>
-  );
-};
-
-export default Panel;
+  )
+}

@@ -1,12 +1,12 @@
-import React, { forwardRef, useState, useRef, useEffect } from 'react';
-import { FormControInputContainer, FormControlWrapper, Label, HelpText, IconWrapper, IconContainer } from './styled';
-import { FormControlProps, IconRight } from './interface';
+import React, { forwardRef, useState, useRef, useEffect } from 'react'
+import { FormControInputContainer, FormControlWrapper, Label, HelpText, IconWrapper, IconContainer } from './styled'
+import { FormControlProps, IconRight } from './interface'
 import { 
   TextInput, TextAreaInput, CheckboxRadioInput, SwitchInput, 
   CheckboxGroup, RadioGroup, SwitchGroup , RadioButtonGroup
-} from './controls';
-import { getInvalidForCustomGroupControl } from './utils';
-import Icon from '@atoms/Icon';
+} from './controls'
+import { getInvalidForCustomGroupControl, mergeRefs } from './utils'
+import { Icon } from '../../atoms/Icon'
 
 export const FormControl = forwardRef<HTMLInputElement | HTMLTextAreaElement, FormControlProps>(({
   label,
@@ -29,71 +29,74 @@ export const FormControl = forwardRef<HTMLInputElement | HTMLTextAreaElement, Fo
   ...rest
 }, ref) => {
 
-  const [isInvalid, setIsInvalid] = useState(false);
-  const [selectedValues, setSelectedValues] = useState<string[]>([]);
-  const [selectedValue, setSelectedValue] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
-  const prevValue = useRef(value);
-  const isCustomControl = type === 'checkbox' || type === 'radio' || type === 'switch';
-  const isGroupCustomControl = type === 'checkbox-group' || type === 'radio-group' || type === 'switch-group' || type === 'radio-button-group';
-  const isFirstRender = useRef(true); // Track initial mount
+  const [isInvalid, setIsInvalid] = useState(false)
+  const [selectedValues, setSelectedValues] = useState<string[]>([])
+  const [selectedValue, setSelectedValue] = useState<string | null>(null)
+  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null)
+  const prevValue = useRef(value)
+  const isCustomControl = type === 'checkbox' || type === 'radio' || type === 'switch'
+  const isGroupCustomControl = type === 'checkbox-group' || type === 'radio-group' || type === 'switch-group' || type === 'radio-button-group'
+  const isFirstRender = useRef(true) // Track initial mount
+  
+  // Merge the forwarded ref and internal ref
+  const combinedRef = mergeRefs(ref, inputRef)
 
   useEffect(() => {
     if (inputRef.current) {
-      const element = inputRef.current as HTMLInputElement;
-      const isInvalidBool = isCustomControl && required && !element.checked;
-      const isInvalidText = !isCustomControl && required && !element.value;
+      const element = inputRef.current as HTMLInputElement
+      const isInvalidBool = isCustomControl && required && !element.checked
+      const isInvalidText = !isCustomControl && required && !element.value
 
       // Always validate on first render OR when value changes
       if (isFirstRender.current || prevValue.current !== value) {
-        setIsInvalid(!element.validity.valid || isInvalidBool || isInvalidText);
-        prevValue.current = value;
-        isFirstRender.current = false; // Mark first render as done
+        setIsInvalid(!element.validity.valid || isInvalidBool || isInvalidText)
+        prevValue.current = value
+        isFirstRender.current = false // Mark first render as done
       }
     }
-  }, [required, isCustomControl, value]);
+  }, [required, isCustomControl, value, inputRef])
 
   useEffect(() => {
     if (isGroupCustomControl) {
       if (type === 'radio-group' || type === 'radio-button-group') {
-        const selectedValues = typeof value === 'string' ? value.split(',') : value || [];
-        const processedValue = selectedValues.length > 0 ? selectedValues[0] : null;
+        const selectedValues = typeof value === 'string' ? value.split(',') : value || []
+        const processedValue = selectedValues.length > 0 ? selectedValues[0] : null
     
-        setSelectedValue(processedValue);
-        setIsInvalid(selectedValues.length === 0 && required);
+        setSelectedValue(processedValue)
+        setIsInvalid(selectedValues.length === 0 && required)
       } else {
-        const initialValues = typeof value === 'string' ? value.split(',').filter(v => v) : value || [];
-        setSelectedValues(initialValues);
-        setIsInvalid(getInvalidForCustomGroupControl(initialValues, required));
+        const initialValues = typeof value === 'string' ? value.split(',').filter(v => v) : value || []
+        setSelectedValues(initialValues)
+        setIsInvalid(getInvalidForCustomGroupControl(initialValues, required))
       }
     }
-  }, [value, isGroupCustomControl, required, type]);
+  }, [value, isGroupCustomControl, required, type])
 
   const handleCheckboxChange = (optionValue: string) => {
     const updatedValues = selectedValues.includes(optionValue)
       ? selectedValues.filter((v) => v && v !== optionValue) // Ensures no empty values
-      : [...selectedValues, optionValue]; // Adds new value ensuring no empty strings
+      : [...selectedValues, optionValue] // Adds new value ensuring no empty strings
 
-    setIsInvalid(getInvalidForCustomGroupControl(updatedValues, required));
-    setSelectedValues(updatedValues);
-    onChange?.(updatedValues.join(','));
-  };
+    setIsInvalid(getInvalidForCustomGroupControl(updatedValues, required))
+    setSelectedValues(updatedValues)
+    onChange?.(updatedValues.join(','))
+  }
 
   const handleRadioChange = (optionValue: string) => {
-    setIsInvalid(false);
-    setSelectedValue(optionValue);
-    onChange?.(optionValue);
-  };
+    setIsInvalid(false)
+    setSelectedValue(optionValue)
+    onChange?.(optionValue)
+  }
 
   const handleValidation = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { value, validity } = event.target as HTMLInputElement;
-    setIsInvalid(!validity.valid || (!value && required));
-    if (onChange) onChange(event);
-  };
+    const { value, validity } = event.target as HTMLInputElement
+    setIsInvalid(!validity.valid || (!value && required))
+    if (onChange) onChange(event)
+  }
 
   const handleBooleanValidation = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setIsInvalid(!event.target.checked && required);
-    if (onChange) onChange(event);
+    setIsInvalid(!event.target.checked && required)
+    if (onChange) onChange(event)
   }
 
   return (
@@ -115,43 +118,43 @@ export const FormControl = forwardRef<HTMLInputElement | HTMLTextAreaElement, Fo
             disabled,
             readOnly,
             value,
-            ref,
+            ref: combinedRef,
             name: `form-control-${type}`,
             className: `form-control-${type} ${isInvalid ? 'invalid' : ''} ${disabled ? 'disabled' : ''}`,
             ...rest
           }
 
-          const customCheckboxGroupProps = { ...defaultProps, options, onChange: handleCheckboxChange, selectedValues, isVerticalOptions };
-          const customRadioGroupProps = { ...defaultProps, options, onChange: handleRadioChange, selectedValue, isVerticalOptions, isInvalid };
+          const customCheckboxGroupProps = { ...defaultProps, options, onChange: handleCheckboxChange, selectedValues, isVerticalOptions }
+          const customRadioGroupProps = { ...defaultProps, options, onChange: handleRadioChange, selectedValue, isVerticalOptions, isInvalid }
 
           switch (type) {
             case 'text':
             case 'password':
             case 'email':
             case 'number':
-              return <TextInput {...{ ...defaultProps, ...rest, pattern, onChange: handleValidation }} />;
+              return <TextInput {...{ ...defaultProps, ...rest, pattern, onChange: handleValidation }} />
             case 'textarea':
-              return <TextAreaInput {...{ ...defaultProps, ...rest, onChange: handleValidation }} />;
+              return <TextAreaInput {...{ ...defaultProps, ...rest, onChange: handleValidation }} />
             case 'checkbox':
             case 'radio': 
-              return <CheckboxRadioInput {...{ ...defaultProps, ...rest, text, onChange: handleBooleanValidation }} />;
+              return <CheckboxRadioInput {...{ ...defaultProps, ...rest, text, onChange: handleBooleanValidation }} />
             case 'switch': 
-              return <SwitchInput {...{ ...defaultProps, ...rest, text, onChange: handleBooleanValidation }} />;
+              return <SwitchInput {...{ ...defaultProps, ...rest, text, onChange: handleBooleanValidation }} />
             case 'checkbox-group': 
-              return <CheckboxGroup {...customCheckboxGroupProps} />;
+              return <CheckboxGroup {...customCheckboxGroupProps} />
             case 'radio-group': 
-              return <RadioGroup {...customRadioGroupProps} />;
+              return <RadioGroup {...customRadioGroupProps} />
             case 'radio-button-group': 
-              return <RadioButtonGroup {...customRadioGroupProps} />;
+              return <RadioButtonGroup {...customRadioGroupProps} />
             case 'switch-group': 
-              return <SwitchGroup {...customCheckboxGroupProps} />;
+              return <SwitchGroup {...customCheckboxGroupProps} />
             default: 
-              return null;
+              return null
           }
         })()}
       {(iconRight?.length > 0 && !isCustomControl && !isGroupCustomControl) && (
         <IconWrapper
-          className="icon-wrapper"
+          className='icon-wrapper'
           $size={size}
           $color={color}
           $disabled={disabled}
@@ -176,11 +179,13 @@ export const FormControl = forwardRef<HTMLInputElement | HTMLTextAreaElement, Fo
         </IconWrapper>
       )}
       </FormControlWrapper>
-      {helpText && <HelpText className='help-text' color={isInvalid ? 'danger' : color}>{helpText}</HelpText>}
+      {helpText && (
+        <HelpText
+          className='help-text'
+          color={isInvalid ? 'danger' : color}
+          data-testid={`${rest.testId}-help-text`}
+        >{helpText}</HelpText>
+      )}
     </FormControInputContainer>
   )}
-);
-
-FormControl.displayName = 'FormControl';
-
-export default FormControl;
+)

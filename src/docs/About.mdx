@@ -1,0 +1,123 @@
+import { Meta } from "@storybook/blocks";
+import pkg from '../../package.json';
+
+export const RightArrow = () => <svg 
+    viewBox="0 0 14 14" 
+    width="8px" 
+    height="14px" 
+    style={{ 
+      marginLeft: '4px',
+      display: 'inline-block',
+      shapeRendering: 'inherit',
+      verticalAlign: 'middle',
+      fill: 'currentColor',
+      'path fill': 'currentColor'
+    }}
+>
+  <path d="m11.1 7.35-5.5 5.5a.5.5 0 0 1-.7-.7L10.04 7 4.9 1.85a.5.5 0 1 1 .7-.7l5.5 5.5c.2.2.2.5 0 .7Z" />
+</svg>
+
+<Meta title="About" />
+
+<style>
+{`
+  .about-container {
+    font-family: 'Roboto', sans-serif;
+    line-height: 1.6;
+    color: #333;
+    margin: 0 auto;
+  }
+  .about-container * {
+    box-sizing: border-box;
+  }
+  .about-header {
+    margin-bottom: 40px;
+    text-align: left;
+    border-bottom: 1px solid #ccc;
+  }
+  .about-header h1 {
+    margin: 0;
+    font-size: 2.5em;
+    color: #1976d2;
+  }
+  .about-header p {
+    font-size: 1.2em;
+    margin-top: 8px;
+  }
+  .about-section {
+    margin-bottom: 32px;
+  }
+  .about-section h3 {
+    color: #1976d2;
+    padding-bottom: 8px;
+    margin-bottom: 16px;
+  }
+  .about-section ul {
+    list-style: disc;
+    margin-left: 20px;
+  }
+  .support-link p {
+    color: #1976d2;
+    text-decoration: none;
+    font-weight: 500;
+    margin-top: 0;
+  }
+  .support-link p:hover {
+    text-decoration: underline;
+  }
+  .mt-0 {
+    margin-top: 0;
+  }
+  .mb-0 {
+    margin-bottom: 0;
+  }
+`}
+</style>
+
+<div className="about-container">
+  <div className="about-header">
+    <h1>About</h1>
+    <p>Your one‑stop solution for reusable, professional React components.</p>
+  </div>
+
+  <div className="about-section">
+    <h3>What is react-components-lib?</h3>
+    <p>**react-components-lib** is a comprehensive collection of reusable React components designed to help you build beautiful, responsive, and accessible user interfaces quickly. Inspired by popular libraries, our system provides a robust design framework that is easy to integrate, customize, and extend.</p>
+  </div>
+
+  <div className="about-section">
+    <h3>Key Features</h3>
+    <ul>
+      <li>Reusable &amp; Customizable Components</li>
+      <li>Responsive Design &amp; Accessibility by Default</li>
+      <li>Modular Architecture following Atomic Design (Atoms, Molecules, Organisms)</li>
+      <li>Easy Theming &amp; Styling Integration</li>
+      <li>Comprehensive Documentation &amp; Examples</li>
+      <li>Community-Driven Development</li>
+    </ul>
+  </div>
+
+  <div className="about-section">
+    <h3>Design Philosophy</h3>
+    <p>We embrace a modular approach: small, independent units (atoms) that are composed into molecules and organisms. This structure not only streamlines maintenance but also ensures consistency across your project.</p>
+  </div>
+
+  <div className="about-section">
+    <h3>Documentation &amp; Support</h3>
+    <p>For detailed usage instructions and best practices, please see the stories below within the Atoms, Molecules, and Organisms sections.</p>
+    <p className="mb-0">For further inquiries, contact</p>
+    <a className="support-link" href="mailto:emmanuel.arguellesaguirre@sc.com">
+      emmanuel.arguellesaguirre@sc.com <RightArrow />
+    </a>
+  </div>
+
+  <div className="about-section">
+    <h3>Why Choose react-components-lib?</h3>
+    <p>Our goal is to empower developers with flexible, easy‑to‑use components. Whether you’re building a small app or a large enterprise solution, **react-components-lib** gives you the tools to create consistent and engaging user experiences.</p>
+  </div>
+
+  <div className="about-section">
+    <p className="mb-0">Current latest version:</p>
+    <h3>react-components-lib@{pkg.version}</h3>
+  </div>
+</div>

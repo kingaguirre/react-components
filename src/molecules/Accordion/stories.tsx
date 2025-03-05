@@ -1,17 +1,26 @@
-// src/molecules/Accordion.stories.tsx
-import { useState } from 'react';
-import type { Meta, StoryObj } from '@storybook/react';
-import Accordion from './index';
-import { AccordionItemProps } from './interface';
-import { StoryWrapper, Title } from '@components/StoryWrapper';
-import { Button } from '@atoms/Button';
+import React, { useState } from 'react'
+import type { Meta, StoryObj } from '@storybook/react'
+import { Accordion } from './index'
+import type { AccordionItemProps } from './interface'
+import { StoryWrapper, Title } from '../../components/StoryWrapper'
+import { Button } from '../../atoms/Button'
 
-const meta = {
+const descriptionText =
+  'The Accordion component is used to display collapsible content panels for presenting information in a limited amount of space. It supports various configurations including colors, dynamic content, and right details.'
+
+const meta: Meta<typeof Accordion> = {
   title: 'Molecules/Accordion',
   component: Accordion,
-} satisfies Meta<typeof Accordion>;
+  parameters: {
+    docs: {
+      description: {
+        component: descriptionText,
+      },
+    },
+  },
+}
 
-export default meta;
+export default meta
 
 const sampleItems: AccordionItemProps[] = [
   {
@@ -22,7 +31,6 @@ const sampleItems: AccordionItemProps[] = [
     rightDetails: [
       { value: '2', icon: 'check', text: 'Detail 1', onClick: () => alert('Detail 1 clicked') },
     ],
-  
   },
   {
     title: 'Accordion Item 2',
@@ -42,9 +50,8 @@ const sampleItems: AccordionItemProps[] = [
     rightDetails: [
       { value: '10', icon: 'check', text: 'Detail 3', onClick: () => alert('Detail 3 clicked') },
     ],
-  
   },
-];
+]
 
 export const Default: StoryObj<typeof Accordion> = {
   tags: ['!dev'],
@@ -52,13 +59,13 @@ export const Default: StoryObj<typeof Accordion> = {
     items: sampleItems,
     allowMultiple: false,
   },
-};
+}
 
-const AccordionExamples: React.FC = () => {
+const AccordionExamples = () => {
   const [dynamicContent, setDynamicContent] = useState(
     'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.'
-  );
-  const [allowMultiple, setAllowMultiple] = useState(false);
+  )
+  const [allowMultiple, setAllowMultiple] = useState(false)
 
   // Colors Accordion: one item per allowed color.
   const colors: AccordionItemProps[] = ['primary', 'info', 'success', 'warning', 'danger', 'default'].map(
@@ -67,7 +74,7 @@ const AccordionExamples: React.FC = () => {
       children: <div>This is a {col} accordion item.</div>,
       color: col as AccordionItemProps['color'],
     })
-  );
+  )
 
   // RightDetails Examples: various configurations.
   const detailExamples: AccordionItemProps[] = [
@@ -100,18 +107,18 @@ const AccordionExamples: React.FC = () => {
       title: 'Right Content as Button',
       children: <div>Item with right content as a react element.</div>,
       color: 'info',
-      rightContent: <Button size="xs">Extra</Button>,
+      rightContent: <Button size='xs'>Extra</Button>,
     },
-  ];
+  ]
 
   return (
-    <StoryWrapper title="Accordion Examples">
+    <StoryWrapper title='Accordion Examples' subTitle={descriptionText}>
       <Title>Colors Accordion</Title>
       <Accordion items={colors} />
 
       <Title>Dynamic Content Accordion</Title>
       <Button
-        size="sm"
+        size='sm'
         onClick={() =>
           setDynamicContent(
             dynamicContent +
@@ -134,7 +141,7 @@ const AccordionExamples: React.FC = () => {
       />
 
       <Title>Toggle Behavior Accordion</Title>
-      <Button size="sm" onClick={() => setAllowMultiple(!allowMultiple)}>
+      <Button size='sm' onClick={() => setAllowMultiple(!allowMultiple)}>
         Toggle Allow Multiple (Currently {allowMultiple ? 'Multiple' : 'Single'})
       </Button>
       <Accordion items={sampleItems} allowMultiple={allowMultiple} />
@@ -142,9 +149,9 @@ const AccordionExamples: React.FC = () => {
       <Title>RightDetails Accordion</Title>
       <Accordion items={detailExamples} allowMultiple={true} />
     </StoryWrapper>
-  );
-};
+  )
+}
 
 export const Examples: StoryObj<typeof Accordion> = {
   render: () => <AccordionExamples />,
-};
+}

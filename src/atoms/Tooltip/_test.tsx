@@ -1,98 +1,114 @@
 // src/atoms/Tooltip/_test.tsx
+import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import Tooltip from "./index";
+import { Tooltip } from "./index";
 import { theme } from "../../styles/theme";
-import { Button } from "@atoms/Button";
+import { Button } from "../Button";
 
 describe("Tooltip Component", () => {
   test("renders child element correctly", () => {
-    render(
+    const { container } = render(
       <Tooltip content="Test Tooltip">
         <Button>Hover me</Button>
       </Tooltip>
     );
-
-    expect(screen.getByRole("button", { name: "Hover me" })).toBeInTheDocument();
+    const button = container.querySelector(".button");
+    expect(button).toBeInTheDocument();
   });
 
   test("shows tooltip on hover", async () => {
-    render(
+    const { container } = render(
       <Tooltip content="Test Tooltip">
         <Button>Hover me</Button>
       </Tooltip>
     );
 
-    const button = screen.getByRole("button", { name: "Hover me" });
-
+    const button = container.querySelector(".button");
     // Tooltip should not be in the document initially
     expect(screen.queryByText("Test Tooltip")).not.toBeInTheDocument();
 
-    // Hover over the button
-    fireEvent.mouseEnter(button);
+    // Hover over the button using the class selector
+    fireEvent.mouseEnter(button!);
 
-    // Tooltip should appear
-    expect(await screen.findByText("Test Tooltip")).toBeVisible();
+    // Wait for the tooltip to become visible, allowing for the delay (e.g., 300ms)
+    await waitFor(() => {
+      expect(screen.getByText("Test Tooltip")).toBeVisible();
+    },{ timeout: 1000 });
   });
 
   test("hides tooltip on mouse leave", async () => {
-    render(
+    const { container } = render(
       <Tooltip content="Test Tooltip">
         <Button>Hover me</Button>
       </Tooltip>
     );
 
-    const button = screen.getByRole("button", { name: "Hover me" });
-
+    const button = container.querySelector(".button");
     // Hover over the button
-    fireEvent.mouseEnter(button);
+    fireEvent.mouseEnter(button!);
+    await waitFor(() => {
+      expect(screen.getByText("Test Tooltip")).toBeVisible();
+    },{ timeout: 1000 });
+
     const tooltip = await screen.findByText("Test Tooltip");
-    expect(tooltip).toBeVisible();
 
     // Move the mouse away
-    fireEvent.mouseLeave(button);
+    fireEvent.mouseLeave(button!);
 
-    // Wait for Tippy to hide the tooltip
-    await waitFor(() => {
-      expect(tooltip).not.toBeVisible();
-    }, { timeout: 500 });
+    // Wait for the tooltip to hide (may need a timeout if there's a hide delay)
+    await waitFor(
+      () => {
+        expect(tooltip).not.toBeVisible();
+      },
+      { timeout: 1000 }
+    );
   });
 
   test("renders tooltip with correct color", async () => {
-    render(
+    const { container } = render(
       <Tooltip content="Colored Tooltip" color="danger">
         <Button>Hover me</Button>
       </Tooltip>
     );
   
-    fireEvent.mouseEnter(screen.getByRole("button", { name: "Hover me" }));
+    const button = container.querySelector(".button");
+    fireEvent.mouseEnter(button!);
   
-    const tooltip = await screen.findByText("Colored Tooltip");
-    expect(tooltip).toBeVisible();
+    await waitFor(() => {
+      expect(screen.getByText("Colored Tooltip")).toBeVisible();
+    },{ timeout: 1000 });
   
-    // Ensure tooltip background is set (onMount styling)
-    const tooltipBox = tooltip.closest(".tippy-box");
-    expect(tooltipBox).toHaveStyle(
+    const tooltipText = screen.getByText("Colored Tooltip");
+    // Instead of searching for a Tippy-specific class,
+    // we verify the inline style on the tooltip container.
+    const tooltipContainer = tooltipText;
+    expect(tooltipContainer).toHaveStyle(
       `background-color: ${theme.colors.danger.base}`
     );
   });
 
   test("tooltip appears on click when trigger is 'click'", async () => {
-    render(
+    const { container } = render(
       <Tooltip content="Click Tooltip" trigger="click">
         <Button>Click me</Button>
       </Tooltip>
     );
-
-    const button = screen.getByRole("button", { name: "Click me" });
-
+  
+    const button = container.querySelector(".button");
+  
     // Tooltip should not be present initially
     expect(screen.queryByText("Click Tooltip")).not.toBeInTheDocument();
-
-    // Click on button
-    fireEvent.click(button);
-
-    // Tooltip should now be visible
-    expect(await screen.findByText("Click Tooltip")).toBeVisible();
+  
+    // Click the button using the class selector
+    fireEvent.click(button!);
+  
+    // Wait for the tooltip to become visible
+    await waitFor(
+      () => {
+        expect(screen.getByText("Click Tooltip")).toBeVisible();
+      },
+      { timeout: 1000 }
+    );
   });
 });

@@ -1,0 +1,40 @@
+import { Meta } from '@storybook/blocks';
+import React from 'react';
+import { DataTable } from '../index';
+import { DataTablePlayground } from '../Playground';
+import { StoryWrapper, Title } from '../../../components/StoryWrapper';
+
+<Meta title="Organisms/DataTable/Selected Row Deleting" component={DataTable} />
+
+# Selected Row Deleting
+
+Selected row deleting allows you to remove only the rows that have been selected by the user.
+
+## How Selected Row Deleting Works
+
+When enabled via the `enableSelectedRowDeleting` prop, the table provides an option to delete only the selected rows.
+
+## Code Example
+
+Below is an example of how to implement selected row deleting in the DataTable component:
+
+```tsx
+import React from 'react';
+import { DataTable } from 'react-components-lib';
+
+export const SelectedRowDeletingDemo = () => (
+  <DataTable
+    dataSource={[
+      { id: "1", firstName: "John", lastname: "Doe" }
+    ]}
+    columnSettings={[
+      { title: "ID", column: "id" },
+      { title: "First Name", column: "firstName" },
+      { title: "Last Name", column: "lastname" }
+    ]}
+    enableSelectedRowDeleting
+  />
+);
+```
+## API
+For detailed API usage and configuration examples, please refer to the interactive **demo** story. The demo provides a comprehensive example of how to configure and utilize the **DataTable** with selected row deleting.

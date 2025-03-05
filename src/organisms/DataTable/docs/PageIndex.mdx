@@ -1,0 +1,44 @@
+import { Meta } from '@storybook/blocks';
+import React from 'react';
+import { DataTable } from '../index';
+import { DataTablePlayground } from '../Playground';
+import { StoryWrapper, Title } from '../../../components/StoryWrapper';
+
+<Meta title="Organisms/DataTable/Page Index" component={DataTable} />
+
+# Page Index
+
+The page index controls which page of data is displayed.  
+**Note:** The page index starts at 0.
+
+## How Page Index Works
+
+Use the `pageIndex` prop to set the current page.  
+For example, setting `pageIndex` to 0 will display the first page, 1 the second page, and so on.
+
+## Code Example
+
+Below is an example of how to implement page index in the DataTable component:
+
+```tsx
+import React from 'react';
+import { DataTable } from 'react-components-lib';
+
+export const PageIndexDemo = () => (
+  <DataTable
+    dataSource={[
+      { id: "1", firstName: "John", lastname: "Doe" },
+      { id: "2", firstName: "Jane", lastname: "Smith" },
+      { id: "3", firstName: "Alice", lastname: "Johnson" }
+    ]}
+    columnSettings={[
+      { title: "ID", column: "id" },
+      { title: "First Name", column: "firstName" },
+      { title: "Last Name", column: "lastname" }
+    ]}
+    pageIndex={0}
+  />
+);
+```
+## API
+For detailed API usage and configuration examples, please refer to the interactive **demo** story. The demo provides a comprehensive example of how to configure and utilize the **DataTable** with page indexing.

@@ -58,14 +58,27 @@ const StoryTitle = styled.div`
   font-weight: bold;
 `;
 
+const StorySubTitle = styled.div`
+  font-size: 14px;
+  margin: 16px 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+  -webkit-overflow-scrolling: touch;
+  line-height: 24px;
+  color: #2E3438;
+`
+
 interface StoryWrapperProps {
   title: string;
+  subTitle?: string;
   children: React.ReactNode;
 }
 
-export const StoryWrapper: React.FC<StoryWrapperProps> = ({ title, children }) => (
+export const StoryWrapper: React.FC<StoryWrapperProps> = ({ title, subTitle, children }) => (
   <Wrapper>
     <StoryTitle>{title}</StoryTitle>
+    {subTitle && <StorySubTitle>{subTitle}</StorySubTitle>}
     <Container>{children}</Container>
   </Wrapper>
 );

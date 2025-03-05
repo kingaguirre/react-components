@@ -1,0 +1,44 @@
+import { Meta } from '@storybook/blocks';
+import React from 'react';
+import { DataTable } from '../index';
+import { DataTablePlayground } from '../Playground';
+import { StoryWrapper, Title } from '../../../components/StoryWrapper';
+
+<Meta title="Organisms/DataTable/Active Row" component={DataTable} />
+
+# Active Row
+
+The active row indicates the current row in focus, often highlighted for better context.  
+This is managed using the `activeRow` prop.
+
+## How Active Row Works
+
+Set the `activeRow` prop with the key of the row that should be active.  
+This helps in scenarios where you want to emphasize or take action on a specific row.
+
+## Code Example
+
+Below is an example of how to implement an active row in the DataTable component:
+
+```tsx
+import React from 'react';
+import { DataTable } from 'react-components-lib';
+
+export const ActiveRowDemo = () => (
+  <DataTable
+    dataSource={[
+      { id: "1", firstName: "John", lastname: "Doe" },
+      { id: "2", firstName: "Jane", lastname: "Smith" },
+      { id: "3", firstName: "Alice", lastname: "Johnson" }
+    ]}
+    columnSettings={[
+      { title: "ID", column: "id" },
+      { title: "First Name", column: "firstName" },
+      { title: "Last Name", column: "lastname" }
+    ]}
+    activeRow="2"
+  />
+);
+```
+## API
+For detailed API usage and configuration examples, please refer to the interactive **demo** story. The demo provides a comprehensive example of how to configure and utilize the **DataTable** with active rows.

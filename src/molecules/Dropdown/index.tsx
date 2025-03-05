@@ -10,9 +10,9 @@ import {
   NoOptionsContainer
 } from './styled'
 import { DropdownProps, DropdownOption } from './interface'
-import FormControl from '@atoms/FormControl'
-import { ifElse } from '@utils/index'
-import { getScrollParent } from './utils'
+import { FormControl } from '../../atoms/FormControl'
+import { ifElse } from '../../utils/index'
+import { getScrollParent } from '../../utils'
 
 export const Dropdown: React.FC<DropdownProps> = ({
   options,
@@ -139,11 +139,6 @@ export const Dropdown: React.FC<DropdownProps> = ({
     }
   }, [filteredOptions, filterText, isOpen, hideOnScroll])
 
-  // Define a scroll handler that just hides the dropdown.
-  const handleScrollHide = React.useCallback(() => {
-    setIsOpen(false)
-  }, [])
-
   // NEW: Focus/Blur Handlers to open/close the dropdown based on focus.
   const handleFocus = () => {
     setIsOpen(true)
@@ -167,30 +162,25 @@ export const Dropdown: React.FC<DropdownProps> = ({
   // When opening the dropdown, preset filter text (for single-select) and set focus.
   useEffect(() => {
     // Choose the appropriate scroll handler based on hideOnScroll prop.
-    // const scrollHandler = hideOnScroll ? handleScrollHide : updateDropdownPosition
-    const scrollParent = getScrollParent(formControlRef.current);
+    const scrollParent = getScrollParent(formControlRef.current)
     const handleScroll = () => {
       if (hideOnScroll) {
-        setIsOpen(false);
+        setIsOpen(false)
       } else {
-        updateDropdownPosition();
+        updateDropdownPosition()
       }
-    };
+    }
 
     const attachEventListeners = () => {
-      scrollParent.addEventListener('scroll', handleScroll);
-      window.addEventListener('resize', updateDropdownPosition);
+      scrollParent.addEventListener('scroll', handleScroll)
+      window.addEventListener('resize', updateDropdownPosition)
       document.addEventListener('mousedown', handleClickOutside)
-      // window.addEventListener('scroll', scrollHandler)
-      // window.addEventListener('resize', updateDropdownPosition)
     }
   
     const detachEventListeners = () => {
-      scrollParent.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('resize', updateDropdownPosition);
+      scrollParent.removeEventListener('scroll', handleScroll)
+      window.removeEventListener('resize', updateDropdownPosition)
       document.removeEventListener('mousedown', handleClickOutside)
-      // window.removeEventListener('scroll', scrollHandler)
-      // window.removeEventListener('resize', updateDropdownPosition)
     }
   
     const updateFilterText = () => {
@@ -243,7 +233,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
     }
   
     return detachEventListeners
-  }, [isOpen, options, filter, selectedValue, selectedValues, isMulti, filteredOptions, hideOnScroll, handleScrollHide])
+  }, [isOpen, options, filter, selectedValue, selectedValues, isMulti, filteredOptions, hideOnScroll])
 
   // Update lastFocusedValueRef whenever focusedIndex is valid.
   useEffect(() => {
@@ -362,7 +352,6 @@ export const Dropdown: React.FC<DropdownProps> = ({
       const selectedOption = options.find(opt => opt.value === selectedVal)
       if (!selectedOption) return
       setIsOpen(false)
-      formControlRef.current?.blur()
       setDisplayValue(selectedOption.text)
       setSelectedValue(selectedVal)
       if (filter) {
@@ -558,6 +547,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
       $size={size}
       $dropdownHeight={dropdownHeight}
       $position={dropdownPosition.position}
+      className='dropdown-list'
     >
       {isMulti && filter && (
         <DropdownFilterContainer>
@@ -580,7 +570,8 @@ export const Dropdown: React.FC<DropdownProps> = ({
         filteredOptions.map(({ value, text, disabled }, index) => (
           <DropdownItem
             $size={size}
-            key={value}
+            key={`${value}-${index}`}
+            data-testid={text}
             disabled={disabled}
             onMouseDown={(e) => e.preventDefault()} 
             className={getSelectedClass(index, value)}
@@ -616,7 +607,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
         onFocus={handleFocus}
         onBlur={handleBlur}
         onClick={() => setIsOpen(true)}
-        className="form-control-dropdown-container"
+        className='form-control-dropdown-container'
         onChange={
           filter && !isMulti
             ? (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -635,5 +626,3 @@ export const Dropdown: React.FC<DropdownProps> = ({
     </DropdownContainer>
   )
 }
-
-export default Dropdown

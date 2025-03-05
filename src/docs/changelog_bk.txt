@@ -1,0 +1,26 @@
+
+## Latest Update – v1.1.0
+This update introduces new features, enhancements, and bug fixes to improve your development experience with **react-components-lib**.
+
+- **New Feature:** Added a customizable theme switcher component.
+- **Enhancement:** Improved performance and accessibility in the DatePicker.
+- **Bug Fix:** Resolved issues with Tooltip positioning and animation.
+
+### Atoms
+- **Badge:** Updated styling with additional color variants.
+- **Button:** New size and variant options for enhanced flexibility.
+- **FormControl:** Enhanced error messaging and improved accessibility.
+- **Grid:** Optimized responsive behavior for various screen sizes.
+- **Icon:** Expanded the icon library with over 20 new icons.
+- **Tooltip:** Fixed minor positioning glitches and added a delay option.
+
+### Molecules
+- **Accordion:** Smoother transitions and better state management.
+- **Alert:** Refined color schemes and enhanced accessibility features.
+- **DatePicker:** Now supports keyboard navigation and improved date selection.
+- **Dropdown:** Enhanced multi-select functionality with search capability.
+- **Panel:** More customization options for layout and content grouping.
+
+### Organisms
+- **Modal:** Optimized for mobile with smoother animations.
+- **Tabs:** Added lazy-loading support for tab content to improve load times.

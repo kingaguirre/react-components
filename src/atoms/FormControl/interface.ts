@@ -1,4 +1,4 @@
-import { ColorType, SizeType } from '@common/interfaces';
+import { ColorType, SizeType } from '../../common/interface';
 
 export type FormControlType =
   | "text"
@@ -50,6 +50,8 @@ export interface FormControlProps {
   iconRight?: IconRight[];
   /** Custom class */
   className?: string;
+  /** Attach test-id in the input */
+  testId?: string;
   /** Any additional attributes */
   /* eslint-disable @typescript-eslint/no-explicit-any */
   [key: string]: any;

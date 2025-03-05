@@ -1,0 +1,59 @@
+import { Meta } from '@storybook/blocks';
+import React from 'react';
+import { DataTable } from '../index';
+import { DataTablePlayground } from '../Playground';
+import { StoryWrapper, Title } from '../../../components/StoryWrapper';
+
+<Meta title="Organisms/DataTable/Row Adding" component={DataTable} />
+
+# Row Adding
+
+Row adding allows users to insert new rows into the table, dynamically expanding the data set.
+
+## How Row Adding Works
+
+When enabled via the `enableRowAdding` prop, the table provides an interface to add new rows.  
+Any validation specified in the column editor is also applied to newly added rows, ensuring data integrity.
+
+## Code Example
+
+Below is an example of how to implement row adding in the DataTable component with validation for text fields:
+
+```tsx
+import React from 'react';
+import { DataTable } from 'react-components-lib';
+
+export const RowAddingDemo = () => (
+  <DataTable
+    dataSource={[
+      { id: "1", firstName: "John", lastname: "Doe" }
+    ]}
+    columnSettings={[
+      // ID column is not editable, so no validation is needed.
+      { title: "ID", column: "id", editor: false },
+      // First Name column uses a text editor with validation that requires a non-empty string.
+      { 
+        title: "First Name", 
+        column: "firstName", 
+        editor: { 
+          type: 'text',
+          validation: (v) => v.string().min(1, "Required")
+        }
+      },
+      // Last Name column uses a text editor with similar validation.
+      { 
+        title: "Last Name", 
+        column: "lastname", 
+        editor: { 
+          type: 'text',
+          validation: (v) => v.string().min(1, "Required")
+        }
+      }
+    ]}
+    enableRowAdding
+  />
+);
+
+```
+## API
+For detailed API usage and configuration examples, please refer to the interactive **demo** story. The demo provides a comprehensive example of how to configure and utilize the **DataTable** with row adding.

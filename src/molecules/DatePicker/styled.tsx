@@ -1,7 +1,6 @@
 // src/atoms/DatePicker/styled.tsx
 import styled, { createGlobalStyle } from "styled-components";
-import { theme } from "../../styles/theme";
-import { scrollStyle } from '../../styles/GlobalStyles';
+import { theme, scrollStyle } from "../../styles";
 
 export const DatePickerContainer = styled.div`
   .react-datepicker-wrapper {
@@ -16,7 +15,7 @@ export const DatePickerGlobalStyles = createGlobalStyle`
   }
 
   .react-datepicker-popper {
-    z-index: 999;
+    z-index: 999!important;
   }
 
   .react-datepicker {
@@ -204,11 +203,16 @@ export const DatePickerGlobalStyles = createGlobalStyle`
           transition: all .15s ease;
           color: #393939;
           margin: 1px;
-  
+          
+          &.react-datepicker__day--keyboard-selected:not([aria-disabled=true]):hover {
+            color: white;
+          }
+
           &.react-datepicker__day--today {
             background-color: white;
-            border: 1px solid ${theme.colors.default.base};
+            border: 1px solid ${theme.colors.default.pale};
             &:hover {
+              color: ${theme.colors.primary.base}!important;
               background-color: ${theme.colors.default.pale};
             }
           }
@@ -220,10 +224,6 @@ export const DatePickerGlobalStyles = createGlobalStyle`
               background-color: ${theme.colors.primary.base};
               color: white;
             }
-          }
-
-          &.react-datepicker__day--keyboard-selected:not([aria-disabled=true]):hover {
-            color: white!important;
           }
 
           &.react-datepicker__day--in-selecting-range,
@@ -261,6 +261,7 @@ export const DatePickerGlobalStyles = createGlobalStyle`
           }
 
           &.react-datepicker__day--disabled {
+            pointer-events: none;
             opacity: 0.3;
           }
         }

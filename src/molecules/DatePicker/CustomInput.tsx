@@ -1,6 +1,6 @@
 // src/atoms/DatePicker/CustomInput.tsx
 import React from 'react'
-import FormControl from '@atoms/FormControl'
+import { FormControl } from '../../atoms/FormControl'
 import { CustomInputWrapper } from './styled'
 import { CustomInputProps } from './interface'
 

@@ -1,64 +1,66 @@
 import { defineConfig } from 'vitest/config';
-import react from '@vitejs/plugin-react-swc';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import fg from 'fast-glob';
-
-// Resolve __dirname in ESM
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Use fast-glob to find all index.tsx files under atoms, molecules, and organisms
-const entryFiles = fg.sync([
-  'src/atoms/**/index.tsx',
-  'src/molecules/**/index.tsx',
-  'src/organisms/**/index.tsx'
-]);
-
-// Create an entries object with keys like "atoms/FormControl"
-const componentEntries = entryFiles.reduce((acc, file) => {
-  // Remove the 'src/' prefix and the '/index.tsx' suffix to get the module key
-  const key = file.replace(/^src\//, '').replace(/\/index\.tsx$/, '');
-  acc[key] = path.resolve(__dirname, file);
-  return acc;
-}, {} as Record<string, string>);
-
-// Manually add style entry points:
-const styleEntries = {
-  // This entry builds your GlobalStyles component
-  'styles/GlobalStyles': path.resolve(__dirname, 'src/styles/GlobalStyles.ts'),
-  'styles/theme': path.resolve(__dirname, 'src/styles/theme.ts'),
-};
-
-const entries = { ...componentEntries, ...styleEntries };
+import react from '@vitejs/plugin-react';
+import path from 'node:path';
+import tsconfigPaths from 'vite-tsconfig-paths';
+import dts from 'vite-plugin-dts';
+import commonjs from 'rollup-plugin-commonjs';
+import cssInjectedByJsPlugin from 'vite-plugin-css-injected-by-js';
 
 export default defineConfig({
-  plugins: [react()],
-  build: {
-    outDir: 'dist',      // Output directory
-    emptyOutDir: true,   // Clean previous builds
-    rollupOptions: {
-      input: entries,
-      output: {
-        // preserveModules: true,
-        preserveModulesRoot: 'src',
-        // Each file will be output as [name]/index.js (e.g., atoms/FormControl/index.js)
-        entryFileNames: '[name]/index.js',
-        format: 'esm',
-      },
-      // Ensure peer dependencies are external
-      external: ['react', 'react-dom', 'styled-components']
-    },
-  },
+  logLevel: 'warn',
+  plugins: [
+    tsconfigPaths(),
+    dts({
+      insertTypesEntry: true,
+      exclude: [
+        'public/**',
+        'node_module/**',
+        'src/poc/**',
+        'src/components/**',
+        '**/stories.ts',
+        '**/stories.tsx',
+        '**/_test.ts',
+        '**/_test.tsx'
+      ],
+    }),
+    react(),
+    cssInjectedByJsPlugin(), // Inlines CSS into the JS bundle
+  ],
   resolve: {
     alias: {
-      '@components': path.resolve(__dirname, 'src/components'),
-      '@atoms': path.resolve(__dirname, 'src/atoms'),
-      '@molecules': path.resolve(__dirname, 'src/molecules'),
-      '@organisms': path.resolve(__dirname, 'src/organisms'),
-      '@utils': path.resolve(__dirname, 'src/utils'),
-      '@common': path.resolve(__dirname, 'src/common'),
-      '@styles': path.resolve(__dirname, 'src/styles')
+      // Ensure only one instance of React is used
+      'react': path.resolve('node_modules', 'react'),
+      'react-dom': path.resolve('node_modules', 'react-dom'),
+    },
+  },
+  build: {
+    lib: {
+      entry: path.resolve(__dirname, 'src/index.ts'),
+      name: 'ReactComponentsLib',
+      formats: ['es', 'cjs', 'umd'],
+      fileName: (format) => {
+        if (format === 'cjs') return 'react-components-lib.cjs';
+        return `react-components-lib.${format}.js`;
+      },
+    },
+    rollupOptions: {
+      plugins: [commonjs()],
+      external: [
+        'react',
+        'react-dom',
+        'styled-components',
+        'react-datepicker',
+        'react-tooltip',
+      ],
+      output: {
+        globals: {
+          react: 'React',
+          'react-dom': 'ReactDOM',
+          'styled-components': 'styled',
+          'react-datepicker': 'ReactDatePicker',
+          'react-tooltip': 'reactTooltip',
+        },
+      },
     },
   },
   test: {
@@ -72,11 +74,11 @@ export default defineConfig({
     coverage: {
       reporter: ['text', 'lcov'],
       exclude: [
-        'src/poc/**/stories.tsx',         // Ignore story files in POC
-        'src/organisms/**/stories.tsx',   // Ignore story files in Organisms
-        'src/molecules/**/stories.tsx',   // Ignore story files in Molecules
-        'src/atoms/**/stories.tsx',       // Ignore story files in Atoms
-        'src/components/**',              // Ignore everything inside src/components/
+        'src/poc/**/stories.tsx',
+        'src/organisms/**/stories.tsx',
+        'src/molecules/**/stories.tsx',
+        'src/atoms/**/stories.tsx',
+        'src/components/**'
       ],
     },
   },

@@ -2,7 +2,8 @@
 import styled, { css } from "styled-components";
 import { ButtonProps } from "./interface";
 import { theme } from "../../styles/theme";
-import { ifElse } from "@utils/index";
+import { ifElse } from "../../utils/index";
+import { ColorType } from "../../common/interface";
 
 const getVariantStyles = ({
   $variant,
@@ -58,7 +59,7 @@ const getVariantStyles = ({
 }
 
 export const ButtonContainer = styled.button<{
-  $color: NonNullable<ButtonProps["color"]>;
+  $color: ColorType;
   $variant: ButtonProps["variant"];
   $size: NonNullable<ButtonProps["size"]>;
   $rounded: boolean;

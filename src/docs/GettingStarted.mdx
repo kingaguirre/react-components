@@ -1,0 +1,151 @@
+import { Meta } from "@storybook/blocks";
+export const RightArrow = () => <svg 
+    viewBox="0 0 14 14" 
+    width="8px" 
+    height="14px" 
+    style={{ 
+      marginLeft: '4px',
+      display: 'inline-block',
+      shapeRendering: 'inherit',
+      verticalAlign: 'middle',
+      fill: 'currentColor',
+      'path fill': 'currentColor'
+    }}
+>
+  <path d="m11.1 7.35-5.5 5.5a.5.5 0 0 1-.7-.7L10.04 7 4.9 1.85a.5.5 0 1 1 .7-.7l5.5 5.5c.2.2.2.5 0 .7Z" />
+</svg>
+
+<Meta title="Getting Started" />
+
+<style>
+{`
+  .gs-container {
+    font-family: 'Roboto', sans-serif;
+    color: #333;
+    margin: 0 auto;
+  }
+
+  .gs-container * {
+    box-sizing: border-box;
+  }
+  .gs-header {
+    margin-bottom: 40px;
+    text-align: left;
+    border-bottom: 1px solid #ccc;
+  }
+  .gs-header h1 {
+    margin: 0;
+    font-size: 2.5em;
+    color: #43a047;
+  }
+  .gs-header p {
+    font-size: 1.2em;
+    margin-top: 8px;
+    color: #444;
+  }
+  .gs-step {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 24px;
+  }
+  .gs-step-icon {
+    background: #43a047;
+    color: white;
+    font-weight: bold;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 16px;
+    flex-shrink: 0;
+  }
+  .gs-step-content {
+    width: 100%;
+  }
+  .gs-step-content h3 {
+    margin: 0 0 8px;
+    color: #43a047;
+  }
+  .gs-step-content p {
+    margin: 0 0 8px;
+  }
+  .support-link p {
+    color: #43a047;
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .support-link p:hover {
+    text-decoration: underline;
+  }
+`}
+</style>
+
+<div className="gs-container">
+  <div className="gs-header">
+    <h1>Getting Started</h1>
+    <p>Follow these steps to integrate "react-components-lib" into your project.</p>
+  </div>
+
+  <div className="gs-step">
+    <div className="gs-step-icon">1</div>
+    <div className="gs-step-content">
+      <h3>Install the Library</h3>
+      <p>Use npm or yarn to install the package:</p>
+      ```bash
+      npm install react-components-lib
+      ```
+    </div>
+  </div>
+
+  <div className="gs-step">
+    <div className="gs-step-icon">2</div>
+    <div className="gs-step-content">
+      <h3>Import Components</h3>
+      <p>Begin using our components in your project:</p>
+      ```tsx
+      import { Button, FormControl } from 'react-components-lib';
+
+      const App = () => (
+        <div>
+          <h2>Welcome</h2>
+          <FormControl label="Username"/>
+          <FormControl label="Password" type="password"/>
+          <FormControl text="Remember me" type="checkbox"/>
+          <Button onClick={() => console.log('Clicked!')}>Sign In</Button>
+        </div>
+      );
+
+      export default App;
+      ```
+    </div>
+  </div>
+
+  <div className="gs-step">
+    <div className="gs-step-icon">3</div>
+    <div className="gs-step-content">
+      <h3>Explore the Stories</h3>
+      <p>See the component stories under Atoms, Molecules, and Organisms in Storybook for real‑world usage examples and customization tips.</p>
+    </div>
+  </div>
+
+  <div className="gs-step">
+    <div className="gs-step-icon">4</div>
+    <div className="gs-step-content">
+      <h3>Customize &amp; Extend</h3>
+      <p>Leverage our theming and styling capabilities to adapt components to your brand.</p>
+    </div>
+  </div>
+
+  <div className="gs-step">
+    <div className="gs-step-icon">5</div>
+    <div className="gs-step-content">
+      <h3>Need Help?</h3>
+      <p>For support, please contact</p>
+      <a className="support-link" href="mailto:emmanuel.arguellesaguirre@sc.com">
+        Emmanuel Aguirre <RightArrow />
+      </a>
+    </div>
+  </div>
+</div>

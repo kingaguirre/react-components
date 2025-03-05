@@ -1,7 +1,8 @@
+import React from "react";
 import { render, fireEvent, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { vi } from "vitest";
-import DatePicker from "./index";
+import { DatePicker } from "./index";
 
 describe("DatePicker Component", () => {
   test("renders DatePicker with label", () => {
@@ -15,7 +16,7 @@ describe("DatePicker Component", () => {
     
     fireEvent.click(input);
 
-    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(await screen.findByTestId('datepicker-popper')).toBeInTheDocument();
   });
 
   test("calls onChange when a date is selected", async () => {

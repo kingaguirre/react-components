@@ -1,7 +1,7 @@
 // src/molecules/Alert/styled.tsx
 import styled, { keyframes, css } from 'styled-components';
 import { theme } from '../../styles/theme';
-import { ColorType } from '@common/interfaces';
+import { ColorType } from '../../common/interface';
 
 // --- Opening animations ---
 const growIn = keyframes`
@@ -83,8 +83,11 @@ export const Title = styled.div<{ $color: ColorType }>`
 `;
 
 export const Content = styled.span`
-  flex-grow: 1;
   color: ${theme.colors.default.dark};
+  line-height: 1.2;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 `;
 
 export const IconWrapper = styled.div<{ $color: ColorType }>`

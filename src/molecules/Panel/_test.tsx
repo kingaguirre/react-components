@@ -2,7 +2,7 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { vi } from "vitest";
-import Panel from "./index";
+import { Panel } from "./index";
 
 describe("Panel Component", () => {
   test("renders panel with title and children", () => {
