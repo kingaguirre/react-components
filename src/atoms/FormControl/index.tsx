@@ -154,7 +154,7 @@ export const FormControl = forwardRef<HTMLInputElement | HTMLTextAreaElement, Fo
         })()}
       {(iconRight?.length > 0 && !isCustomControl && !isGroupCustomControl) && (
         <IconWrapper
-          className='icon-wrapper'
+          className='wrapper-icon'
           $size={size}
           $color={color}
           $disabled={disabled}
@@ -167,7 +167,7 @@ export const FormControl = forwardRef<HTMLInputElement | HTMLTextAreaElement, Fo
               key={`${icon.icon}-${idx}`}
               onClick={icon?.onClick}
               data-testid={icon.className}
-              className={`icon-container ${icon.className ?? ''}`}
+              className={`container-icon ${icon.className ?? ''}`}
               $disabled={icon.disabled}
               $size={size}
               $color={icon.color ?? color}

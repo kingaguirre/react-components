@@ -58,14 +58,14 @@ export const FormControlWrapper = styled.div<{
       let paddingRight = '';
 
       if (iconCount === 1) {
-        paddingRight = `> *:not(.icon-wrapper) { padding-right: ${$size === 'sm' ? 22 : 32}px!important; }`;
+        paddingRight = `> *:not(.wrapper-icon) { padding-right: ${$size === 'sm' ? 22 : 32}px!important; }`;
       } else if (iconCount > 1) {
-        paddingRight = `> *:not(.icon-wrapper) { padding-right: ${$size === 'sm' ? 44 : 60}px!important; }`;
+        paddingRight = `> *:not(.wrapper-icon) { padding-right: ${$size === 'sm' ? 44 : 60}px!important; }`;
       }
 
       return `
         &.invalid {
-          .icon-wrapper > .icon-container {
+          .wrapper-icon > .container-icon {
             color: ${theme.colors.danger.base};
             &:hover {
               color: ${theme.colors.danger.light};
@@ -620,6 +620,7 @@ export const IconContainer = styled.span<{
 
   &:last-child {
     border-left: 1px solid ${({ $color = 'primary' }) => theme.colors[$color].lighter};
+    padding-left: 4px;
   }
 
   &:hover {

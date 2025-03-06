@@ -21,7 +21,7 @@ export const SettingsPanelContainer = styled.div<{ $hasTitle?: boolean }>`
     position: sticky;
     top: 0;
 
-    .right-header-icons-container .icon-clear {
+    .right-header-icons-container .clear-icon {
       &:hover {
         color: ${theme.colors.danger.base};
       }

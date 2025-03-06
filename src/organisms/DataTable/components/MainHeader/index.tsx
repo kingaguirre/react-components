@@ -78,7 +78,7 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
             Add New <Icon icon='add_circle_outline'/>
           </Button>
         )}
-        <IconContainer className='icon-container'>
+        <IconContainer className='container-icon'>
           {showDeleteIcon && (
             <RightIconButton
               icon='delete_forever'

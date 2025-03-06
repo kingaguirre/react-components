@@ -129,6 +129,9 @@ export const CellContent = styled.div<{
           text-align: ${({ $align }) => $align ?? 'center'};
           height: 30px;
         }
+        .wrapper-icon {
+          height: 30px;
+        }
 
         .help-text {
           position: absolute;

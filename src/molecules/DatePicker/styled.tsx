@@ -281,7 +281,7 @@ export const CustomInputWrapper = styled.div<{ $value?: string }>`
     padding-right: ${({ $value }) => $value ? 60 : 30}px; /* Ensures space for icons */
   }
 
-  .form-control-input-container.invalid + .icon-container > .calendar-icon {
+  .form-control-input-container.invalid + .container-icon > .calendar-icon {
     border-left: 1px solid ${theme.colors.danger.lighter}!important;
     color: ${theme.colors.danger.light}!important;
     &:hover {
@@ -289,7 +289,7 @@ export const CustomInputWrapper = styled.div<{ $value?: string }>`
     }
   }
 
-  .form-control-input-container.disabled + .icon-container {
+  .form-control-input-container.disabled + .container-icon {
     pointer-events: none;
     > span, .icon {
       pointer-events: none;

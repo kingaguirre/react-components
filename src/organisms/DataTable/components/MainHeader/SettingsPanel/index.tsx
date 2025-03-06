@@ -34,7 +34,8 @@ export const SettingsPanel = ({
         leftIcon={{
           icon: 'replay',
           onClick: setDefaultColumnVisibility,
-          title: 'Reset'
+          tooltip: 'Reset',
+          tooltipType: 'title'
         }}
       >
         <SettingsContainer>

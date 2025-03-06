@@ -122,3 +122,4 @@ export const Examples = () => (
     </div>
   </StoryWrapper>
 )
+Examples.tags = ['!autodocs']
