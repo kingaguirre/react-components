@@ -1,12 +1,16 @@
 // src/components/Panel/interface.ts
 import { ColorType } from '../../common/interface'
+import { TooltipProps } from '../../atoms/Tooltip/interface'
 
 export interface IconObject {
   icon: string
   color?: string
   hoverColor?: string
   text?: string
-  title?: string
+  tooltip?: string
+  tooltipColor?: ColorType
+  tooltipType?: TooltipProps["type"]
+  tooltipPlacement?: TooltipProps["placement"]
   onClick?: () => void
 }
 

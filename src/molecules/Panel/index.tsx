@@ -1,8 +1,9 @@
 // src/components/Panel/index.tsx
 import React from 'react'
 import { PanelContainer, PanelHeader, PanelContent, IconWrapper, Text } from './styled'
-import { PanelProps } from './interface'
+import { PanelProps, IconObject } from './interface'
 import { Icon } from '../../atoms/Icon'
+import { Tooltip } from '../../atoms/Tooltip'
 
 export const Panel: React.FC<PanelProps> = ({
   title,
@@ -25,27 +26,20 @@ export const Panel: React.FC<PanelProps> = ({
           $hasRightIcons={rightIcons.length > 0}
         >
           {leftIcon && (
-            <IconWrapper
-              className='left-header-icon'
-              onClick={!disabled && leftIcon.onClick ? leftIcon.onClick : undefined}
-              $clickable={!disabled && !!leftIcon.onClick}
-              title={leftIcon.title}
-            >
-              <Icon icon={leftIcon.icon} />
-            </IconWrapper>
+            <IconComponent
+              disabled={disabled}
+              icon={leftIcon}
+            />
           )}
           <div className='title'>{title}</div>
           {rightIcons.length > 0 && (
             <div className='right-header-icons-container'>
               {rightIcons.map((icon) => (
-                <IconWrapper
+                <IconComponent
                   key={`key-${icon.icon}-${icon.color}`}
-                  onClick={!disabled && icon.onClick ? icon.onClick : undefined}
-                  $clickable={!disabled && !!icon.onClick}
-                >
-                  {icon.text && <Text>{icon.text}</Text>}
-                  <Icon icon={icon.icon} />
-                </IconWrapper>
+                  disabled={disabled}
+                  icon={icon}
+                />
               ))}
             </div>
           )}
@@ -54,4 +48,32 @@ export const Panel: React.FC<PanelProps> = ({
       <PanelContent className='panel-content'>{children}</PanelContent>
     </PanelContainer>
   )
+}
+
+interface IconComponentProps {
+  disabled?: PanelProps["disabled"]
+  icon: IconObject
+}
+const IconComponent = (props: IconComponentProps) => {
+  const { icon, disabled } = props
+
+  const iconDetails = (
+    <IconWrapper
+      onClick={!disabled && icon.onClick ? icon.onClick : undefined}
+      $clickable={!disabled && !!icon.onClick}
+    >
+      {icon.text && <Text>{icon.text}</Text>}
+      <Icon icon={icon.icon} />
+    </IconWrapper>
+  )
+
+  return icon.tooltip ? (
+    <Tooltip
+      content={icon.tooltip}
+      color={icon.tooltipColor}
+      type={icon.tooltipType}
+      placement={icon.tooltipPlacement}
+    >{iconDetails}</Tooltip>
+
+    ) : iconDetails
 }

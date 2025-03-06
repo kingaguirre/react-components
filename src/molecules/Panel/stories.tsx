@@ -62,7 +62,9 @@ const generateIconStories = () => (
         leftIcon={{
           color: 'grey',
           icon: 'home',
-          onClick: () => alert('Left icon clicked')
+          onClick: () => alert('Left icon clicked'),
+          tooltip: 'Im a tooltip with **title** type',
+          tooltipType: "title"
         }}
       >
         <p>This panel has a left icon.</p>
@@ -73,8 +75,8 @@ const generateIconStories = () => (
         title='Panel with Right Icons'
         color='info'
         rightIcons={[
-          { icon: 'folder', onClick: () => alert('Folder clicked'), color: 'grey', hoverColor: 'red' },
-          { icon: 'folder_special', onClick: () => alert('Add Folder clicked'), text: 'New Folder' }
+          { icon: 'folder', onClick: () => alert('Folder clicked'), color: 'grey', hoverColor: 'red', tooltip: 'Im a tooltip' },
+          { icon: 'folder_special', onClick: () => alert('Add Folder clicked'), text: 'New Folder', tooltip: 'Im a tooltip but green', tooltipColor: 'success' }
         ]}
       >
         <p>This panel has right icons.</p>
