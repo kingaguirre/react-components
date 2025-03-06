@@ -607,7 +607,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
         onFocus={handleFocus}
         onBlur={handleBlur}
         onClick={() => setIsOpen(true)}
-        className='form-control-dropdown-container'
+        className={`${rest.className ?? ''} form-control-dropdown-container`}
         onChange={
           filter && !isMulti
             ? (e: React.ChangeEvent<HTMLInputElement>) => {
