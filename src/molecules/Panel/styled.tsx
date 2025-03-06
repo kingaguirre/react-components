@@ -49,6 +49,11 @@ export const PanelHeader = styled.div<{
     display: flex;
     gap: 8px;
   }
+
+  .tooltip-container {
+    display: block;
+    line-height: 1;
+  }
 `
 
 export const PanelContent = styled.div`

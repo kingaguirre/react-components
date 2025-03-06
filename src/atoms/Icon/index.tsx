@@ -1,7 +1,7 @@
 import React from 'react'
 import { IconContainer, FallbackBox } from './styled'
 import { IconProps } from './interface'
-import '../../styles/font.css'
+import './font.css'
 import { EXTRA_ICONS, SCB_ICONS } from './data' // Import list of available icons
 
 // ✅ Convert array to a Set for optimized lookup

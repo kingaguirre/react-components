@@ -113,5 +113,5 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 }
 
 const CustomCalendarContainer = ({ children }: { children: ReactNode }) => (
-  <div className='react-datepicker' data-testid='datepicker-popper' onClick={(e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation()}>{children}</div>
+  <div className='react-datepicker react-components-datepicker' data-testid='datepicker-popper' onClick={(e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation()}>{children}</div>
 )

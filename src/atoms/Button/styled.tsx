@@ -53,6 +53,7 @@ const getVariantStyles = ({
       }
       &:hover {
         background: ${_theme.colors[$color].dark};
+        border-color: ${_theme.colors[$color].dark};
       }
     `
   }
