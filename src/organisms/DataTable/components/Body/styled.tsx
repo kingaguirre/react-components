@@ -121,38 +121,49 @@ export const CellContent = styled.div<{
 
   .form-control-input-container {
     width: 100%;
-    &:not(.form-control-dropdown-container) {
-      &.editable-element {
-        .form-control-text,
-        .form-control-number,
-        .form-control-textarea {
-          text-align: ${({ $align }) => $align ?? 'center'};
-          height: 30px;
-        }
-        .wrapper-icon {
-          height: 30px;
-        }
 
-        .help-text {
-          position: absolute;
-          z-index: 1;
-          background-color: white;
-          padding: 4px;
-          box-shadow: 0 2px 4px 2px rgba(0,0,0,0.3);
-          border-bottom-left-radius: 2px;
-          border-bottom-right-radius: 2px;
-          left: 2px;
-          width: calc(100% - 4px);
-          min-width: 120px;
-          top: 32px;
+    .wrapper-icon {
+      height: 30px;
+    }
+
+    &.editable-element {
+      &.form-control-dropdown-container {
+        .form-control-text {
+          text-align: left
         }
       }
+      
+      .form-control-text,
+      .form-control-number,
+      .form-control-textarea {
+        height: 30px;
+      }
 
-      &.checkbox-group, &.switch-group, &.radio-group {
-        padding: 4px 8px;
-        .group-control-container {
-          gap: 4px;
-        }
+      .form-control-text,
+      .form-control-number,
+      .form-control-textarea {
+        text-align: ${({ $align }) => $align ?? 'center'};
+      }
+
+      .help-text {
+        position: absolute;
+        z-index: 1;
+        background-color: white;
+        padding: 4px;
+        box-shadow: 0 2px 4px 2px rgba(0,0,0,0.3);
+        border-bottom-left-radius: 2px;
+        border-bottom-right-radius: 2px;
+        left: 2px;
+        width: calc(100% - 4px);
+        min-width: 120px;
+        top: 32px;
+      }
+    }
+
+    &.checkbox-group, &.switch-group, &.radio-group {
+      padding: 4px 8px;
+      .group-control-container {
+        gap: 4px;
       }
     }
   }
