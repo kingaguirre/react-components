@@ -60,7 +60,7 @@ export const Cell = ({ header, table, enableColumnDragging }: {
   return (
     <CellContainer className='cell-container'
       ref={setNodeRef}
-      style={getColumnStyles(header.column, isDragging, transform)}
+      style={{...getColumnStyles(header.column, isDragging, transform), width: header.getSize()}}
       data-testid={`cell-container-${header.column.id}`}
     >
       {header.isPlaceholder ? null : (
@@ -123,18 +123,18 @@ export const Cell = ({ header, table, enableColumnDragging }: {
               )}
             </LeftIconContainer>
           )}
-
-          {/** Resize handler */}
-          {header.column.getCanResize() && !isCustomColumn && (
-            <Resizer
-              onDoubleClick={() => header.column.resetSize()}
-              onMouseDown={header.getResizeHandler()}
-              onTouchStart={header.getResizeHandler()}
-              className={`column-resizer ${table.options.columnResizeDirection} ${header.column.getIsResizing() ? 'is-resizing' : ''}`}
-              data-testid={`resizer-${header.column.id}`}
-            />
-          )}
         </>
+      )}
+
+      {/** Resize handler */}
+      {header.column.getCanResize() && !isCustomColumn && (
+        <Resizer
+          onDoubleClick={() => header.column.resetSize()}
+          onMouseDown={header.getResizeHandler()}
+          onTouchStart={header.getResizeHandler()}
+          className={`column-resizer ${table.options.columnResizeDirection} ${header.column.getIsResizing() ? 'is-resizing' : ''}`}
+          data-testid={`resizer-${header.column.id}`}
+        />
       )}
     </CellContainer>
   )

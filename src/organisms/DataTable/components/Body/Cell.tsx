@@ -1,8 +1,9 @@
 import React, { memo } from 'react'
 import { Cell as CellProps, flexRender } from '@tanstack/react-table'
-import { CellContainer, CellContent } from './styled'
+import { CellContainer, CellContent, TooltipContent } from './styled'
 import { getColumnStyles } from '../../utils/columnSettings'
 import { Tooltip } from '../../../../atoms/Tooltip'
+import { useHasEllipsis } from '../../hooks/useHasEllipsis'
 
 // needed for row & cell level scope DnD setup
 import { useSortable } from '@dnd-kit/sortable'
@@ -14,6 +15,7 @@ export const Cell = memo(({
   isEditable,
   isEditMode,
   isDisabled,
+  isDisabledRow,
   onClick,
   columnId,
   rowId,
@@ -25,6 +27,7 @@ export const Cell = memo(({
   isEditable?: boolean
   isEditMode?: boolean
   isDisabled?: boolean
+  isDisabledRow?: boolean
   onClick?: (e: React.MouseEvent<HTMLSpanElement>) => void
   columnId?: string
   rowId?: string
@@ -34,22 +37,24 @@ export const Cell = memo(({
   const { isDragging, setNodeRef, transform } = useSortable({ id: colDef.accessorKey })
   const colMeta: any = colDef.meta
   const cellContext = flexRender(colDef.cell, cell.getContext())
+  const { ref, hasEllipsis } = useHasEllipsis(cellContext);
+  const _cellContext = hasEllipsis ? <Tooltip maxWidth={150} content={cellContext} type='title'>{cellContext}</Tooltip> : cellContext
 
   const cellContent = (
     <CellContent
-      className={`cell-content ${colMeta?.className ?? ''} ${isDisabled ? 'disabled' : ''}`}
+      className={`cell-content ${colMeta?.className ?? ''} ${isDisabled ? 'disabled' : ''} ${isDisabledRow ? 'disabled-row' : ''}`}
       $isEditMode={!!isEditMode}
       $isCellSelected={isCellSelected}
       $align={colMeta?.align}
       $isEditable={isEditable}
     >
-      {isEditMode ? cellContext : <span>{ cellContext }</span>}
+      {isEditMode ? cellContext : <span ref={ref}>{ _cellContext }</span>}
     </CellContent>
   )
   
   return (
     <CellContainer
-      className={`cell-container ${colMeta?.className ?? ''} ${isDisabled ? 'disabled' : ''}`}
+      className={`cell-container ${colMeta?.className ?? ''} ${isDisabled ? 'disabled' : ''} ${isDisabledRow ? 'disabled-row' : ''}`}
       ref={setNodeRef}
       $hasError={!!errorMsg}
       $isEditMode={!!isEditMode}
@@ -57,11 +62,11 @@ export const Cell = memo(({
       style={getColumnStyles(cell.column, isDragging, transform)}
       data-row-id={rowId}
       data-col-id={columnId}
-      onClick={onClick}
+      onClick={!isDisabled ? onClick : undefined}
       data-testid={testId}
     >
       {!!errorMsg && !isEditMode ? (
-        <Tooltip testId={`${testId}-tooltip`} content={errorMsg} color='danger' maxWidth={150}>{cellContent}</Tooltip>
+        <Tooltip testId={`${testId}-tooltip`} content={<TooltipContent>{errorMsg}</TooltipContent>} color='danger' maxWidth={150}>{cellContent}</Tooltip>
       ) : cellContent}
     </CellContainer>
   )

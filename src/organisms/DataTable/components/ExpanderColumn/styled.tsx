@@ -14,6 +14,7 @@ export const ButtonIcon = styled.button`
   justify-content: center;
   height: 16px;
   width: 16px;
+  border-radius: 0;
   &.expanded,
   &:hover {
     color: ${theme.colors.primary.base};

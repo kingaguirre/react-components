@@ -85,6 +85,7 @@ export const IconContainer = styled.div`
     font-size: 22px;
     padding: 0;
     cursor: pointer;
+    border-radius: 0;
 
     &.delete-icon {
       color: ${theme.colors.danger.base};

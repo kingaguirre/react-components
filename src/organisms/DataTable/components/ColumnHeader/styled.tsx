@@ -115,6 +115,7 @@ export const DragHandle = styled(IconContainer)`
   left: 4px;
   cursor: grab;
   outline: none;
+  z-index: 1;
 
   &:active {
     cursor: all-scroll;

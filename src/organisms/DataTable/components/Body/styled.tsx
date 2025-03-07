@@ -14,6 +14,10 @@ export const CellContainer = styled.div<{ $hasError?: boolean; $isEditMode?: boo
   flex-direction: column;
   ${({ $isEditMode, $isPinned }) => $isEditMode ? `z-index: ${ifElse(!!$isPinned, 14, 10)}!important;` : ''}
   box-shadow: 0 0 0 1px ${theme.colors.default.pale};
+  &.disabled {
+    cursor: not-allowed;
+    background-color: ${theme.colors.default.pale}!important;
+  }
 
   ${({ $hasError }) => $hasError ? `
     &:before {
@@ -33,10 +37,8 @@ const getCellBgColor = (isActiveRow: boolean, isNewRow: boolean, isDisabled: boo
   if (isNewRow) {
     return `${theme.colors.success.pale}!important`
   } else {
-    if (isActiveRow && isDisabled) {
-      return `${theme.colors.success.pale}!important`
-    } else if (isActiveRow) {
-      return '#cfe2f2!important'
+    if (isActiveRow) {
+      return `${theme.colors.primary.pale}!important`
     } else if (isDisabled) {
       return `${theme.colors.default.pale}!important`
     } else {
@@ -109,9 +111,15 @@ export const CellContent = styled.div<{
   align-items: center;
   justify-content: ${({ $align }) => getTextAlignment($align)};
   transition: background-color .3s ease;
+  position: relative;
   cursor: default;
 
-  > span {
+  &.disabled {
+    pointer-events: none;
+  }
+
+  > span,
+  .tooltip-container {
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
@@ -121,6 +129,7 @@ export const CellContent = styled.div<{
 
   .form-control-input-container {
     width: 100%;
+    z-index: 1;
 
     .wrapper-icon {
       height: 30px;
@@ -137,12 +146,18 @@ export const CellContent = styled.div<{
       .form-control-number,
       .form-control-textarea {
         height: 30px;
+        padding: 4px;
       }
 
       .form-control-text,
       .form-control-number,
       .form-control-textarea {
         text-align: ${({ $align }) => $align ?? 'center'};
+      }
+      
+      .form-control-text,
+      .form-control-number {
+        margin-top: -1px;
       }
 
       .help-text {
@@ -161,7 +176,7 @@ export const CellContent = styled.div<{
     }
 
     &.checkbox-group, &.switch-group, &.radio-group {
-      padding: 4px 8px;
+      padding: 6px 8px;
       .group-control-container {
         gap: 4px;
       }
@@ -171,14 +186,21 @@ export const CellContent = styled.div<{
   ${({ $isEditable }) => $isEditable ? `
     &:not(.custom-column) {
       cursor: pointer;
-      &:hover {
-        background-color: ${theme.colors.primary.pale};
-      }
     }
   ` : ''}
 
   ${({ $isCellSelected }) => $isCellSelected ? `
-    background-color: ${theme.colors.primary.pale};
+    &:after {
+      z-index: 0;
+      pointer-events: none;
+      content: "";
+      position: absolute;
+      top: 1px;
+      left: 1px;
+      right: 1px;
+      bottom: 1px;
+      border: 2px solid ${theme.colors.primary.base};
+    }
   ` : ''}
 `
 
@@ -197,4 +219,8 @@ export const ExpandedRowContainer = styled.div`
   background-color: ${theme.colors.default.pale};
   color: ${theme.colors.default.darker};
   font-size: 14px;
+`
+
+export const TooltipContent = styled.span`
+  white-space: pre-line;
 `

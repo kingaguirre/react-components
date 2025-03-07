@@ -1,0 +1,65 @@
+import { Meta } from '@storybook/blocks';
+
+<Meta title="Organisms/DataTable/Cell Editing - Custom Validations" />
+
+# Cell Editing with Custom Zod Validations
+
+In addition to the built-in Zod validations, the DataTable component now supports two custom validations: **.unique()** and **.required()**. These functions have been created to work just like Zod’s native validation methods, enabling you to seamlessly chain them with other validations.
+
+## Custom Validations Overview
+
+- **.unique()**:  
+  This custom validator checks if the input value is unique across the entire data set. To optimize performance, the unique validation is triggered **only when the user presses enter or when the data changes**. This means that during regular typing, the validator does not check against all data, avoiding potential performance issues (especially with large data sets).
+
+- **.required()**:  
+  This custom validator ensures that the input is not empty. Unlike the unique validation, the required validation is executed dynamically as the user types or changes the text. Since it only checks the input itself and does not query the entire data set, it provides immediate feedback.
+
+## How It Works
+
+- **Unique Validation (`.unique()`)**:  
+  - **When it triggers**: Only on enter or data change.
+  - **Why**: Because checking all entries in a large data set (imagine 100,000 records) could cause performance issues if executed on every keystroke.
+  - **Usage**: Chain it with other Zod validations just like any other method.
+
+- **Required Validation (`.required()`)**:  
+  - **When it triggers**: Immediately as the user types.
+  - **Why**: It only verifies the presence of a value, which is a lightweight operation that does not need to scan the entire data set.
+  - **Usage**: Easily chained with other validations, ensuring the field is not left empty.
+
+## Examples
+
+Below are examples of how to integrate these custom validations into your column configuration:
+
+```tsx
+// 1. Unique Validation for strings:
+//    - Ensures the input value is unique within the data set.
+//    - Triggers on enter or when the data changes.
+const uniqueStringValidation = (v) =>
+  v.string()
+    .unique("This value must be unique.");
+
+// 2. Required Validation for strings:
+//    - Ensures the field is not left empty.
+//    - Provides immediate feedback as the user types.
+const requiredStringValidation = (v) =>
+  v.string()
+    .required("This field is required.");
+
+// 3. Combining validations:
+//    - The input must be a non-empty string and unique in the data set.
+//    - The required() validation is executed dynamically, while the unique() check is optimized.
+const combinedValidation = (v) =>
+  v.string()
+    .required("This field is required.")
+    .unique("This value must be unique.");
+```
+
+## Performance Considerations
+- **Unique Validation:**
+   - Because the unique check must scan the entire data source, it is designed to trigger only when the user finalizes their input (e.g., pressing enter) or when the overall data changes. This design prevents performance bottlenecks that could occur if the check were executed on every keystroke in a large dataset.
+
+- **Required Validation:**
+  - Since it only inspects the current input value, it works dynamically and provides instant feedback, ensuring a responsive user experience without additional overhead.
+
+## Learn More
+By incorporating these custom validations into your DataTable component, you can efficiently enforce unique constraints and required fields, enhancing both performance and user experience.

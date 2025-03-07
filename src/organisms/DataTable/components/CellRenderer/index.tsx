@@ -11,6 +11,7 @@ export interface CellRendererProps {
   cell?: any
   globalFilter?: string
   columnFilters?: { id: string; value: string }[]
+  uniqueValueMaps?: Record<string, Record<string, number>>
 }
 
 const CellRendererComponent: React.FC<CellRendererProps> = ({
@@ -23,10 +24,12 @@ const CellRendererComponent: React.FC<CellRendererProps> = ({
   cell,
   globalFilter,
   columnFilters,
+  uniqueValueMaps
 }) => {
   const colMeta = column.columnDef.meta ?? {}
   const { validation, editor, columnId } = colMeta
-  const { type: editorType, options = [] } = editor ?? {}
+  const { type: editorType, options = [], disabled } = editor ?? {}
+  const isDisabled = typeof disabled === 'function' ? disabled(row.original) : disabled;
 
   // If the cell is in editing mode and an editor is allowed.
   if (
@@ -62,12 +65,16 @@ const CellRendererComponent: React.FC<CellRendererProps> = ({
         onCancel={() => setEditingCell(null)}
         name={`${row.original.__internalId}-${columnId}`}
         testId={`form-control-${row.id}-${column.id}`}
+        uniqueValueMaps={uniqueValueMaps}
+        columnId={column.id}
+        rowData={row.original}
+        disabled={isDisabled}
       />
     )
   }
 
   // If a custom cell renderer is provided, use it.
-  if (cell) {
+  if (cell && typeof cell === 'function') {
     return cell({ rowValue: row.original, index: row.index })
   }
 

@@ -12,6 +12,10 @@ export const DataTableWrapper = styled.div<{ $disabled?: boolean }>`
   
   * { box-sizing: border-box; }
 
+  button {
+    outline: none!important;
+  }
+
   ${({ $disabled }) => $disabled ? `
     &:after {
       content: "";

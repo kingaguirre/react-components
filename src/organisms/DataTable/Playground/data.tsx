@@ -11,11 +11,18 @@ const loremAddresses = [
   'Quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat',
 ]
 
+// Helper function for cryptographically secure random number generation.
+const secureRandom = () => {
+  const array = new Uint32Array(1);
+  window.crypto.getRandomValues(array);
+  return array[0] / (0xFFFFFFFF + 1);
+};
+
 // Generate 100 rows of sample data with all columns defined
-export const DATA_SOURCE = Array.from({ length: 100 }, (_, i) => ({
+export const DATA_SOURCE = Array.from({ length: 1000 }, (_, i) => ({
   id: i + 1,
   name: `Name ${i + 1}`,
-  age: Math.floor(Math.random() * 60) + 20,
+  age: Math.floor(secureRandom() * 60) + 20,
   active: i % 2 === 0,
   joined: new Date(2018, 0, 1 + i).toISOString().split('T')[0],
   tags: 'A, B',
@@ -26,35 +33,29 @@ export const DATA_SOURCE = Array.from({ length: 100 }, (_, i) => ({
   country: ['USA', 'UK', 'Canada', 'Australia'][i % 4],
   city: ['New York', 'London', 'Toronto', 'Sydney'][i % 4],
   birthdate: new Date(
-    1980 + Math.floor(Math.random() * 20),
-    Math.floor(Math.random() * 12),
-    Math.floor(Math.random() * 28) + 1
+    1980 + Math.floor(secureRandom() * 20),
+    Math.floor(secureRandom() * 12),
+    Math.floor(secureRandom() * 28) + 1
   )
     .toISOString()
     .split('T')[0],
   vacationDates: [
-    new Date(2023, 5, Math.floor(Math.random() * 8) + 1)
+    new Date(2023, 5, Math.floor(secureRandom() * 8) + 1)
       .toISOString()
       .split('T')[0],
     new Date(2023, 5, 28).toISOString().split('T')[0],
   ],
   department: ['HR', 'Engineering', 'Sales'][i % 3],
-  salary: Math.floor(Math.random() * 80000) + 40000,
+  salary: Math.floor(secureRandom() * 80000) + 40000,
   workingHours: [
-    String(Math.floor(Math.random() * 10) + 30),
-    String(Math.floor(Math.random() * 10) + 40),
+    String(Math.floor(secureRandom() * 10) + 30),
+    String(Math.floor(secureRandom() * 10) + 40),
   ],
-  // For radio-group, using fixed options: 'Option1' or 'Option2'
   gender: i % 2 === 0 ? 'Option1' : 'Option2',
-  // For switch, value is boolean.
   status: i % 2 === 0,
-  // For checkbox-group, we'll provide an array of options
   preferences: i % 3 === 0 ? ['Option1', 'Option2'] : ['Option2'],
-  // For switch-group, same as checkbox-group
   switchGroup: i % 2 === 0 ? ['Option1'] : ['Option2'],
   address: loremAddresses[i % loremAddresses.length],
-
-  // Additional deep nested object and array for testing purposes
   profile: {
     bio: `This is a short bio for Name ${i + 1}.`,
     social: {
@@ -68,14 +69,14 @@ export const DATA_SOURCE = Array.from({ length: 100 }, (_, i) => ({
     eventName: `Event ${i + 1}`,
     eventDate: new Date(
       2023,
-      Math.floor(Math.random() * 12),
-      Math.floor(Math.random() * 28) + 1
+      Math.floor(secureRandom() * 12),
+      Math.floor(secureRandom() * 28) + 1
     )
       .toISOString()
       .split('T')[0],
     details: {
       location: ['Conference Room A', 'Conference Room B', 'Auditorium'][i % 3],
-      participants: Math.floor(Math.random() * 100),
+      participants: Math.floor(secureRandom() * 100),
     }
   },
   metadata: {
@@ -90,7 +91,8 @@ export const DATA_SOURCE = Array.from({ length: 100 }, (_, i) => ({
       { action: 'updated', timestamp: new Date(2023, 1, 1 + i).toISOString() },
     ],
   },
-}))
+}));
+
 
 // Extra column settings covering every editor type
 export const COLUMN_SETTINGS: ColumnSetting[] = [
@@ -110,37 +112,48 @@ export const COLUMN_SETTINGS: ColumnSetting[] = [
     filter: false
   },
   {
-    // groupTitle: 'Profile',
+    groupTitle: 'Profile',
     title: 'Name',
     column: 'name',
     sort: 'asc',
-    pin: 'pin',
+    // pin: 'pin',
     align: 'left',
     order: 0,
+    disabled: (rowData) => rowData?.id === 2,
     // hidden: true,
     editor: {
-      validation: (v) =>
-        v.string().regex(
-          new RegExp('^(?!.*\\s{2,})[A-Za-z]+(?: [A-Za-z]+)*$'),
-          'Name can only contain letters and single spaces'
-        )
+      disabled: (rowData) => rowData?.id === 1,
+      // Conditional validation based in rowData
+      validation: (v, rowData) => {
+        return rowData?.id === 1 ? v.string().required().unique().max(10) :
+          v.string()
+            .required()
+            .unique()
+            .regex(
+              new RegExp('^(?!.*\\s{2,})[A-Za-z]+(?: [A-Za-z]+)*$'),
+              'Name can only contain letters and single spaces'
+            )
+            .max(10)
+      }
     }
   },
   {
-    // groupTitle: 'Profile',
+    groupTitle: 'Profile',
     title: 'Birthdate',
     column: 'birthdate',
     sort: 'desc',
     width: 160,
     order: 1,
+    disabled: true,
     editor: {
+      disabled: true,
       type: 'date',
       validation: (v) => v.string().nonempty('Birthdate required'),
     },
     filter: { type: 'date-range' }
   },
   {
-    // groupTitle: 'Others',
+    groupTitle: 'Others',
     title: 'Vacation Dates',
     column: 'vacationDates',
     sort: false,
@@ -148,6 +161,7 @@ export const COLUMN_SETTINGS: ColumnSetting[] = [
     draggable: false,
     width: 200,
     order: 5,
+    disabled: true,
     filter: {
       type: 'date',
       filterBy: 'includesString'
@@ -164,7 +178,7 @@ export const COLUMN_SETTINGS: ColumnSetting[] = [
     }
   },
   {
-    // groupTitle: 'Others',
+    groupTitle: 'Others',
     title: 'Department',
     column: 'department',
     pin: false,
