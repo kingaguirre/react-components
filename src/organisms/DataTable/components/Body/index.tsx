@@ -21,6 +21,7 @@ interface BodyProps<TData> {
   onRowClick?: (data: any, e: React.MouseEvent<HTMLElement>) => void
   onRowDoubleClick?: (data: any, e: React.MouseEvent<HTMLElement>) => void
   expandedRowContent?: (RowData: any) => React.ReactNode
+  uniqueValueMaps?: Record<string, Record<string, number>>
 }
 
 export const Body = <TData,>({
@@ -39,6 +40,7 @@ export const Body = <TData,>({
   onRowClick,
   onRowDoubleClick,
   expandedRowContent,
+  uniqueValueMaps
 }: BodyProps<TData>) => (
   <BodyContainer className='data-table-body-container' style={{ height, maxHeight }}>
     {columnError ? (
@@ -60,6 +62,7 @@ export const Body = <TData,>({
             selectedCell={selectedCell}
             setSelectedCell={setSelectedCell}
             columnOrder={columnOrder}
+            uniqueValueMaps={uniqueValueMaps}
           />
           {row.getIsExpanded() && !!expandedRowContent && (
             <ExpandedRowContainer>

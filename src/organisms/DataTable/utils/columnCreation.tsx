@@ -23,7 +23,8 @@ export function createColumnDef<T extends object>(col: ColumnSetting, index?: nu
       align: col.align ?? cellTextAlignment,
       headerAlign: col.headerAlign ?? col.align ?? cellTextAlignment,
       draggable: col.draggable,
-      order: col.order
+      order: col.order,
+      disabled: col.disabled
     } as ColumnDef<T, any>['meta'],
     cell: col.cell
       ? ({ rowValue, index }: any) => col.cell!({ rowValue, index })

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react'
+import { z } from 'zod'
 import {
   RowData,
   ColumnDef,
@@ -16,7 +17,7 @@ import {
   getFacetedUniqueValues,
   getFacetedMinMaxValues,
 } from '@tanstack/react-table'
-import { DataTableProps, SelectedCellType, EditingCellType, ColumnPinningType, DataRow } from './interface'
+import { DataTableProps, SelectedCellType, EditingCellType, ColumnPinningType, DataRow, ColumnSetting } from './interface'
 import { DataTableWrapper, DataTableContainer, DataTableContentContainer, RowsToDeleteText, TableTitle } from './styled'
 import * as UTILS from './utils'
 import * as UTILS_CS from './utils/columnSettings'
@@ -35,6 +36,7 @@ import { useDebouncedColumnSettingsChange } from './hooks/useDebouncedColumnSett
 import { useGlobalKeyNavigation } from './hooks/useGlobalKeyNavigation'
 import { Alert } from '../../molecules/Alert'
 import { ExpanderColumn } from './components/ExpanderColumn'
+import { jsonSchemaToZod } from './utils/validation'
 
 // needed for table body level scope DnD setup
 import {
@@ -95,6 +97,37 @@ export const DataTable = <T extends object>({
   )
 
   const [data, setData] = useState<DataRow[]>(() => initializeData(dataSource))
+  const uniqueValueMaps = useMemo(() => {
+    const maps: Record<string, Record<string, number>> = {}
+  
+    // Initialize maps for columns that support validation.
+    columnSettings.forEach((col: ColumnSetting) => {
+      if (col.editor !== false && col.editor?.validation) {
+        // Create an empty map for this column.
+        maps[col.column] = {}
+      }
+    })
+  
+    // For each row, check each column’s validation using the row data.
+    data.forEach((row: any) => {
+      columnSettings.forEach((col: ColumnSetting) => {
+        if (col.editor !== false && col.editor?.validation) {
+          const validatorHelper = { schema: jsonSchemaToZod, ...z }
+          // Pass the current row as the second argument.
+          const schema = col.editor.validation(validatorHelper, row)
+          if ((schema as any)._unique) {
+            // Only count if the unique flag applies for this row.
+            const value = row[col.column]
+            maps[col.column][value] = (maps[col.column][value] || 0) + 1
+          }
+        }
+      })
+    })
+  
+    return maps
+  }, [data, columnSettings])
+  
+
   const [editingCell, setEditingCell] = useState<EditingCellType>(null)
   const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(UTILS_CS.setDefaultColumnVisibility(columnSettings))
   const [rowSelection, setRowSelection] = useState({})
@@ -303,9 +336,17 @@ export const DataTable = <T extends object>({
             id: key,
           }
         }
+
         return {
           ...colDef,
           ...additionalProps,
+          // Add your custom meta property here.
+          meta: {
+            // Preserve any existing meta properties.
+            ...colDef.meta,
+            // Define isDisabledRow as a function that checks if the row is disabled.
+            isDisabledRow: (row: any) => disabledRows.includes(row.__internalId),
+          },
           cell: (cellProps: any) => (
             <CellRenderer
               {...cellProps}
@@ -315,6 +356,7 @@ export const DataTable = <T extends object>({
               handleCellCommit={handleCellCommit}
               columnFilters={columnFilters}
               globalFilter={globalFilter}
+              uniqueValueMaps={uniqueValueMaps}
             />
           )
         }
@@ -452,7 +494,7 @@ export const DataTable = <T extends object>({
           setColumnFilters([])
         }}
         isSettingsPanelOpen={showSettingsPanel}
-        onSettingsIconClick={() => setShowSettingsPanel(!showSettingsPanel)}
+        onSettingsIconClick={() => setShowSettingsPanel(true)}
         onAddBtnClick={handleAddRow}
         showDeleteIcon={enableSelectedRowDeleting && enableRowSelection && totalSelectedRows > 0}
         handleDeleteIconClick={() => setShowAlert(true)}
@@ -485,6 +527,7 @@ export const DataTable = <T extends object>({
               onRowClick={onRowClick}
               onRowDoubleClick={onRowDoubleClick}
               expandedRowContent={expandedRowContent}
+              uniqueValueMaps={uniqueValueMaps}
             />
           </DataTableContentContainer>
         </DataTableContainer>

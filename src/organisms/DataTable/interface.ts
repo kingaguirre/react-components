@@ -115,9 +115,11 @@ export interface ColumnSetting {
   align?: 'left' | 'center' | 'right'
   headerAlign?: 'left' | 'center' | 'right'
   cell?: ({ rowValue, index }: CellType) => JSX.Element | null // Optional custom cell renderer
+  disabled?: boolean | ((rowData: any) => boolean)
   editor?: {
+    disabled?: boolean | ((rowData: any) => boolean)
     type?: EditorType
-    validation?: (v: ValidatorHelper) => ZodSchema<any>
+    validation?: (v: ValidatorHelper, rowData: any) => ZodSchema<any>
     options?: DropdownOption[]
   } | false
   filter?: FilterType | undefined | false

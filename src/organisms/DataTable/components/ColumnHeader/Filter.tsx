@@ -23,7 +23,7 @@ export const Filter = ({ column }: { column: Column<any, unknown> }) => {
     if (!showFacetedValues) return []
 
     // Using the memoized facetedUniqueValues.
-    return Array.from(facetedUniqueValues.keys()).sort().slice(0, 5000)
+    return Array.from(facetedUniqueValues.keys()).sort((a, b) => a - b).slice(0, 5000)
   }, [facetedUniqueValues, filterType, showFacetedValues])
 
   return (

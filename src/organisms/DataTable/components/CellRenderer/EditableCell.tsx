@@ -27,6 +27,10 @@ interface EditableCellProps {
   validation?: (v: ValidatorHelper) => ZodSchema<any>
   name: string
   testId: string
+  columnId: string
+  uniqueValueMaps?: Record<string, Record<string, number>>
+  rowData: any
+  disabled?: boolean
 }
 
 export const EditableCell = (props: EditableCellProps) => {
@@ -41,8 +45,20 @@ export const EditableCell = (props: EditableCellProps) => {
     autoFocus,
     validation,
     name,
-    testId
+    testId,
+    uniqueValueMaps,
+    columnId,
+    rowData,
+    disabled
   } = props
+
+  const handleValidationError = (value, validation) => getValidationError(
+    value,
+    validation,
+    columnId,
+    uniqueValueMaps?.[columnId],
+    rowData
+  )
 
   // --------- Branch 1: Text-like editors (text, textarea, number) ---------
   if (['text', 'textarea', 'number'].includes(editorType)) {
@@ -52,7 +68,7 @@ export const EditableCell = (props: EditableCellProps) => {
 
     // Re-validate whenever the localValue changes.
     useEffect(() => {
-      setLocalError(getValidationError(localValue, validation))
+      setLocalError(handleValidationError?.(localValue, validation))
     }, [localValue]);
 
     useEffect(() => {
@@ -104,6 +120,7 @@ export const EditableCell = (props: EditableCellProps) => {
         helpText={localError}
         className='editable-element'
         testId={testId}
+        disabled={disabled}
       />
     )
   }
@@ -111,7 +128,7 @@ export const EditableCell = (props: EditableCellProps) => {
     // --------- Branch for date and date-range editors ---------
   if (editorType === 'date' || editorType === 'date-range') {
     const isRange = editorType === 'date-range'
-    const computedError = getValidationError(value, validation)
+    const computedError = handleValidationError?.(value, validation)
     const containerRef = useRef<HTMLDivElement>(null)
 
     useOnClickOutside(containerRef, () => onChange(value), { ignoreClassNames: 'react-datepicker-popper' })
@@ -126,6 +143,7 @@ export const EditableCell = (props: EditableCellProps) => {
           helpText={computedError}
           range={isRange}
           className='editable-element'
+          disabled={disabled}
         />
       </div>
     )
@@ -133,7 +151,7 @@ export const EditableCell = (props: EditableCellProps) => {
 
   // --------- Branch 2: Boolean-like editors (checkbox, radio, switch) ---------
   if (['checkbox', 'radio', 'switch'].includes(editorType)) {
-    const computedError = getValidationError(Boolean(value), validation);
+    const computedError = handleValidationError?.(Boolean(value), validation);
     const containerRef = useRef<HTMLDivElement>(null)
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -165,6 +183,7 @@ export const EditableCell = (props: EditableCellProps) => {
           simple
           name={name}
           className='editable-element'
+          disabled={disabled}
         />
       </div>
     );
@@ -172,7 +191,7 @@ export const EditableCell = (props: EditableCellProps) => {
 
   // --------- Branch 4: Select editor ---------
   if (editorType === 'dropdown') {
-    const computedError = getValidationError(value, validation)
+    const computedError = handleValidationError?.(value, validation)
     const containerRef = useRef<HTMLDivElement>(null)
 
     useOnClickOutside(containerRef, () => onChange(value), { ignoreClassNames: 'dropdown-list' })
@@ -188,6 +207,7 @@ export const EditableCell = (props: EditableCellProps) => {
           options={options ?? []}
           className='editable-element'
           hideOnScroll
+          disabled={disabled}
         />
       </div>
     )
@@ -205,7 +225,7 @@ export const EditableCell = (props: EditableCellProps) => {
     }, [value])
 
     useEffect(() => {
-      setLocalError(getValidationError(localValue, validation))
+      setLocalError(handleValidationError?.(localValue, validation))
     }, [localValue])
 
     useOnClickOutside(containerRef, () => onChange(localValue))
@@ -222,6 +242,7 @@ export const EditableCell = (props: EditableCellProps) => {
           options={options ?? []}
           simple
           name={name}
+          disabled={disabled}
         />
       </div>
     )

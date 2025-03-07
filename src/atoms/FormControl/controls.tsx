@@ -24,7 +24,7 @@ export const TextInput: React.FC<FormControlProps> = ({ variant, testId, ...rest
   />
 )
 
-export const TextAreaInput: React.FC<FormControlProps> = ({ variant, ...rest }) => <TextArea $variant={variant} {...rest} />
+export const TextAreaInput: React.FC<FormControlProps> = ({ variant, testId, ...rest }) => <TextArea data-testid={testId} $variant={variant} {...rest} />
 
 export const CheckboxRadioInput: React.FC<FormControlProps> = ({ disabled, text, size, testId, ...rest }) => (
   <TextContainer disabled={disabled} onClick={e => e.stopPropagation()}>
