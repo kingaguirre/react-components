@@ -52,7 +52,9 @@ export default defineConfig({
       ],
     }),
     react(),
-    cssInjectedByJsPlugin(), // inlines CSS into the JS bundle
+    cssInjectedByJsPlugin({
+      relativeCSSInjection: true 
+    }), // inlines CSS into the JS bundle
     fixDtsImports(), // custom plugin to fix absolute paths in .d.ts files
   ],
   resolve: {
