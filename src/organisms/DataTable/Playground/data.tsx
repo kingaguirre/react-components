@@ -19,80 +19,81 @@ const secureRandom = () => {
 };
 
 // Generate 100 rows of sample data with all columns defined
-export const DATA_SOURCE = Array.from({ length: 1000 }, (_, i) => ({
-  id: i + 1,
-  name: `Name ${i + 1}`,
-  age: Math.floor(secureRandom() * 60) + 20,
-  active: i % 2 === 0,
-  joined: new Date(2018, 0, 1 + i).toISOString().split('T')[0],
-  tags: 'A, B',
-  email: `user${i + 1}@example.com`,
-  out: i % 2 === 0,
-  in: i % 2 === 0,
-  phone: `555-010${(i % 10).toString().padStart(2, '0')}`,
-  country: ['USA', 'UK', 'Canada', 'Australia'][i % 4],
-  city: ['New York', 'London', 'Toronto', 'Sydney'][i % 4],
-  birthdate: new Date(
-    1980 + Math.floor(secureRandom() * 20),
-    Math.floor(secureRandom() * 12),
-    Math.floor(secureRandom() * 28) + 1
-  )
-    .toISOString()
-    .split('T')[0],
-  vacationDates: [
-    new Date(2023, 5, Math.floor(secureRandom() * 8) + 1)
-      .toISOString()
-      .split('T')[0],
-    new Date(2023, 5, 28).toISOString().split('T')[0],
-  ],
-  department: ['HR', 'Engineering', 'Sales'][i % 3],
-  salary: Math.floor(secureRandom() * 80000) + 40000,
-  workingHours: [
-    String(Math.floor(secureRandom() * 10) + 30),
-    String(Math.floor(secureRandom() * 10) + 40),
-  ],
-  gender: i % 2 === 0 ? 'Option1' : 'Option2',
-  status: i % 2 === 0,
-  preferences: i % 3 === 0 ? ['Option1', 'Option2'] : ['Option2'],
-  switchGroup: i % 2 === 0 ? ['Option1'] : ['Option2'],
-  address: loremAddresses[i % loremAddresses.length],
-  profile: {
-    bio: `This is a short bio for Name ${i + 1}.`,
-    social: {
-      twitter: `@user${i + 1}`,
-      linkedin: `https://linkedin.com/in/user${i + 1}`,
-    },
-    skills: ['JavaScript', 'React', 'TypeScript', 'Node.js'].slice(0, (i % 4) + 1),
-  },
-  events: {
-    eventId: `${i + 1}`,
-    eventName: `Event ${i + 1}`,
-    eventDate: new Date(
-      2023,
+export const dataSource = (length = 1000) => {
+  return Array.from({ length }, (_, i) => ({
+    id: i + 1,
+    name: `Name ${i + 1}`,
+    age: Math.floor(secureRandom() * 60) + 20,
+    active: i % 2 === 0,
+    joined: new Date(2018, 0, 1 + i).toISOString().split('T')[0],
+    tags: 'A, B',
+    email: `user${i + 1}@example.com`,
+    out: i % 2 === 0,
+    in: i % 2 === 0,
+    phone: `555-010${(i % 10).toString().padStart(2, '0')}`,
+    country: ['USA', 'UK', 'Canada', 'Australia'][i % 4],
+    city: ['New York', 'London', 'Toronto', 'Sydney'][i % 4],
+    birthdate: new Date(
+      1980 + Math.floor(secureRandom() * 20),
       Math.floor(secureRandom() * 12),
       Math.floor(secureRandom() * 28) + 1
     )
       .toISOString()
       .split('T')[0],
-    details: {
-      location: ['Conference Room A', 'Conference Room B', 'Auditorium'][i % 3],
-      participants: Math.floor(secureRandom() * 100),
-    }
-  },
-  metadata: {
-    createdBy: 'system',
-    lastUpdated: new Date().toISOString(),
-    flags: {
-      isVerified: i % 5 === 0,
-      isReviewed: i % 7 === 0,
-    },
-    history: [
-      { action: 'created', timestamp: new Date(2023, 0, 1 + i).toISOString() },
-      { action: 'updated', timestamp: new Date(2023, 1, 1 + i).toISOString() },
+    vacationDates: [
+      new Date(2023, 5, Math.floor(secureRandom() * 8) + 1)
+        .toISOString()
+        .split('T')[0],
+      new Date(2023, 5, 28).toISOString().split('T')[0],
     ],
-  },
-}));
-
+    department: ['HR', 'Engineering', 'Sales'][i % 3],
+    salary: Math.floor(secureRandom() * 80000) + 40000,
+    workingHours: [
+      String(Math.floor(secureRandom() * 10) + 30),
+      String(Math.floor(secureRandom() * 10) + 40),
+    ],
+    gender: i % 2 === 0 ? 'Option1' : 'Option2',
+    status: i % 2 === 0,
+    preferences: i % 3 === 0 ? ['Option1', 'Option2'] : ['Option2'],
+    switchGroup: i % 2 === 0 ? ['Option1'] : ['Option2'],
+    address: loremAddresses[i % loremAddresses.length],
+    profile: {
+      bio: `This is a short bio for Name ${i + 1}.`,
+      social: {
+        twitter: `@user${i + 1}`,
+        linkedin: `https://linkedin.com/in/user${i + 1}`,
+      },
+      skills: ['JavaScript', 'React', 'TypeScript', 'Node.js'].slice(0, (i % 4) + 1),
+    },
+    events: {
+      eventId: `${i + 1}`,
+      eventName: `Event ${i + 1}`,
+      eventDate: new Date(
+        2023,
+        Math.floor(secureRandom() * 12),
+        Math.floor(secureRandom() * 28) + 1
+      )
+        .toISOString()
+        .split('T')[0],
+      details: {
+        location: ['Conference Room A', 'Conference Room B', 'Auditorium'][i % 3],
+        participants: Math.floor(secureRandom() * 100),
+      }
+    },
+    metadata: {
+      createdBy: 'system',
+      lastUpdated: new Date().toISOString(),
+      flags: {
+        isVerified: i % 5 === 0,
+        isReviewed: i % 7 === 0,
+      },
+      history: [
+        { action: 'created', timestamp: new Date(2023, 0, 1 + i).toISOString() },
+        { action: 'updated', timestamp: new Date(2023, 1, 1 + i).toISOString() },
+      ],
+    },
+  }))
+};
 
 // Extra column settings covering every editor type
 export const COLUMN_SETTINGS: ColumnSetting[] = [

@@ -140,3 +140,12 @@ export const getDefaultSize = (columns: any, parentWidth: number) => {
 
   return columns
 }
+
+export const getFirstVisibleKey = (visibility, keyNames) => {
+  for (let i = 0; i < keyNames.length; i++) {
+    if (visibility[keyNames[i]] === true) {
+      return keyNames[i]
+    }
+  }
+  return null
+}

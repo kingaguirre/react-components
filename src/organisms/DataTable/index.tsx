@@ -126,7 +126,6 @@ export const DataTable = <T extends object>({
   
     return maps
   }, [data, columnSettings])
-  
 
   const [editingCell, setEditingCell] = useState<EditingCellType>(null)
   const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(UTILS_CS.setDefaultColumnVisibility(columnSettings))
@@ -143,6 +142,14 @@ export const DataTable = <T extends object>({
   const [showAlert, setShowAlert] = useState(false)
   const [columnError, setColumnError] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<ExpandedState>({})
+
+  // Memoize the transformed data from dataSource
+  const memoizedData = useMemo(() => initializeData(dataSource), [dataSource]);
+
+  // Only update local data state when memoizedData changes.
+  useEffect(() => {
+    setData(memoizedData);
+  }, [memoizedData]);
 
   // --- Sync column visibility and validate settings ---
   useEffect(() => {
@@ -266,19 +273,11 @@ export const DataTable = <T extends object>({
     setData((old) => [newRow, ...old] as DataRow[])
 
     // Find the first computed column based on its meta properties.
-    /* eslint-disable @typescript-eslint/no-explicit-any */
-    const firstVisibleColumn: any = columns.find((col: any) => (
-      col.meta?.columnId &&
-      col.meta.hidden !== true && 
-      col.meta.className !== 'custom-class'
-    ))
-
+    const firstVisibleColumn: string = UTILS.getFirstVisibleKey(columnVisibility, columnOrder)
     if (firstVisibleColumn) {
-      const colKey = firstVisibleColumn.meta!.columnId
       const newRowId = (newRow as any).__internalId
       setTimeout(() => {
-        // setEditingCell({ rowId: newRowId, columnId: colKey })
-        setSelectedCell({ rowId: newRowId, columnId: colKey })
+        setSelectedCell({ rowId: newRowId, columnId: `${firstVisibleColumn}-0` })
       }, 0)
     }
   }
