@@ -4,7 +4,6 @@ import path from 'node:path';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import dts from 'vite-plugin-dts';
 import commonjs from 'rollup-plugin-commonjs';
-import cssInjectedByJsPlugin from 'vite-plugin-css-injected-by-js';
 import fs from 'fs'
 
 function fixDtsImports() {
@@ -52,9 +51,6 @@ export default defineConfig({
       ],
     }),
     react(),
-    cssInjectedByJsPlugin({
-      relativeCSSInjection: true 
-    }), // inlines CSS into the JS bundle
     fixDtsImports(), // custom plugin to fix absolute paths in .d.ts files
   ],
   resolve: {

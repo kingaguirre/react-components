@@ -1,10 +1,10 @@
 @font-face {
   font-family: 'sc';
-  src:  url('../../../public/fonts/sc.eot?5emqtd');
-  src:  url('../../../public/fonts/sc.eot?5emqtd#iefix') format('embedded-opentype'),
-    url('../../../public/fonts/sc.ttf?5emqtd') format('truetype'),
-    url('../../../public/fonts/sc.woff?5emqtd') format('woff'),
-    url('../../../public/fonts/sc.svg?5emqtd#sc') format('svg');
+  src:  url('/fonts/sc.eot?5emqtd');
+  src:  url('/fonts/sc.eot?5emqtd#iefix') format('embedded-opentype'),
+    url('/fonts/sc.ttf?5emqtd') format('truetype'),
+    url('/fonts/sc.woff?5emqtd') format('woff'),
+    url('/fonts/sc.svg?5emqtd#sc') format('svg');
   font-weight: normal;
   font-style: normal;
   font-display: block;
