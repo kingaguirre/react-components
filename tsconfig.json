@@ -16,17 +16,16 @@
     "composite": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true,
     "jsx": "react",
     "strictNullChecks": true,
     "strictPropertyInitialization": true,
     "noUnusedParameters": true,
     "noUnusedLocals": true,
     "declaration": true,
-    "outDir": "./lib",
+    "outDir": "./dist",
     "noImplicitAny": false,
     "importHelpers": true,
-    "types": ["node"],
+    "types": ["vitest/globals", "node"]
   },
   "include": [
     "src/index.ts",
@@ -50,5 +49,4 @@
     "**/stories.tsx",
     "src/organisms/DataTable/_test-row-actions.e2e.ts",
   ],
-  "types": ["vitest/globals", "node"]
 }

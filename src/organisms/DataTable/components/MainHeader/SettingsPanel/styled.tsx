@@ -8,10 +8,15 @@ export const SettingsPanelContainer = styled.div<{ $hasTitle?: boolean }>`
   z-index: 20;
   top: ${({ $hasTitle }) => $hasTitle ? 65 : 38}px;
   max-height: calc(100% - ${({ $hasTitle }) => $hasTitle ? 132 : 105}px);
+  height: 100%;
   min-height: 115px;
   overflow-y: auto;
   border-left: 1px solid ${theme.colors.default.pale};
   ${fadeInOnMount}
+
+  .panel {
+    height: 100%;
+  }
 
   .panel-content {
     padding: 0;

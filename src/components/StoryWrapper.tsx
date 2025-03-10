@@ -36,6 +36,11 @@ const Container = styled.div`
   box-shadow: rgba(0, 0, 0, 0.10) 0 1px 3px 0;
   border: 1px solid hsla(203, 50%, 30%, 0.15);
 
+  @media screen and (max-width: 767px) {
+    padding: 16px;
+  }
+
+
   > .form-control-input-container + .button,
   > .button {
     margin-bottom: 12px;

@@ -1,5 +1,5 @@
 // src/molecules/Accordion/interface.ts
-import { ReactNode } from 'react';
+import React from 'react';
 import { ColorType } from '../../common/interface';
 
 export interface AccordionItemDetail {
@@ -16,9 +16,9 @@ export interface AccordionItemDetail {
 export interface AccordionItemProps {
   id?: string;
   title: string;
-  children: ReactNode;
+  children: React.ReactNode;
   color?: ColorType;
-  rightContent?: ReactNode;
+  rightContent?: React.ReactNode;
   rightDetails?: AccordionItemDetail[];
   open?: boolean;
 }

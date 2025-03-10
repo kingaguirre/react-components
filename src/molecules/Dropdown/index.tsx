@@ -260,37 +260,6 @@ export const Dropdown: React.FC<DropdownProps> = ({
     }
   }, [isOpen])
 
-  // NEW EFFECT: If filtering causes the current focused option to vanish,
-  // set focus to index 0 or revert to the previously focused item if available.
-  useEffect(() => {
-    if (!isOpen) return
-    if (filteredOptions?.length === 0) {
-      setFocusedIndex(-1)
-      return
-    }
-    if (
-      focusedIndex < 0 ||
-      focusedIndex >= filteredOptions?.length ||
-      (filteredOptions?.[focusedIndex]?.disabled)
-    ) {
-      setFocusedIndex(0)
-      return
-    }
-    if (lastFocusedValueRef.current) {
-      const lastIndex = filteredOptions.findIndex(
-        opt => opt.value === lastFocusedValueRef.current
-      )
-      if (lastIndex !== -1 && lastIndex !== focusedIndex) {
-        setFocusedIndex(lastIndex)
-      }
-    }
-  }, [filteredOptions, isOpen])
-
-  // Always scroll the focused item into view.
-  useEffect(() => {
-    scrollToFocusedItem()
-  }, [focusedIndex])
-
   const findNextFocusableIndex = (
     currentIndex: number,
     direction: 'up' | 'down',

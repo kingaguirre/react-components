@@ -1,0 +1,73 @@
+import { Meta } from '@storybook/blocks';
+
+<Meta title="Organisms/DataTable/Cell Editing - Conditional Validation & Disabled Input" />
+
+# Cell Editing with Conditional Validation and Input Disabling
+
+The DataTable component now offers advanced control over the cell editing experience by enabling conditional disabling of the editor and applying tailored validation rules based on each row's data. This allows you to lock specific rows for editing or enforce different validation logic depending on the context.
+
+## How It Works
+
+- **Conditional Input Disabling**:  
+  The editor can be disabled dynamically by evaluating the row data. For instance, if a row's `id` equals `1`, the input will be rendered in a non-editable state.
+
+- **Conditional Validation**:  
+  The validation schema can adapt according to the row data. In the example below, if `rowData.id` is `1`, a distinct set of validations is applied compared to other rows.
+
+## Example Setting
+
+Below is an example configuration that demonstrates conditional input disabling and conditional validation:
+
+```tsx
+editor: {
+  // Conditionally disable the editor based on rowData.
+  // You can either provide a function that returns a boolean, or simply pass true to disable all cells in the column.
+  disabled: (rowData) => rowData?.id === 1,
+  // Conditional validation based on rowData.
+  validation: (v, rowData) => {
+    return rowData?.id === 1
+      ? // For rowData with id of 1, apply this validation:
+        v.string()
+          .required()
+          .unique()
+          .max(10)
+      : // For all other rows, apply a different validation schema:
+        v.string()
+          .required()
+          .unique()
+          .regex(
+            new RegExp('^(?!.*\\s{2,})[A-Za-z]+(?: [A-Za-z]+)*$'),
+            'Name can only contain letters and single spaces'
+          )
+          .max(10)
+  }
+}
+```
+## Explanation
+- **Disabled Function:**
+  - The `disabled` property can accept either a function that evaluates `rowData` to determine if the cell should be disabled, or a static boolean value.
+  - In this example, the function disables the editor (making the input in the cell disabled) if `rowData.id` equals `1`. This is particularly useful for cells that require special treatment or should remain uneditable.
+  - Alternatively, setting **`disabled: true`** would disable editing for every cell in that column.
+
+- **Validation Function:**
+  - The `validation` function is provided with a Zod instance (`v`) and the current row's data (`rowData`).
+  - **For rows where `rowData.id` is `1`:**
+    - **Required:** The field must not be empty.
+    - **Unique:** The value must be unique across the data set.
+    - **Max Length:** The input is limited to 10 characters.
+
+  - **For all other rows:**
+    - **Required:** The field is mandatory.
+    - **Unique:** The value must be unique.
+    - **Regex Pattern:** The input must consist solely of letters with single spaces between words. The regular expression ensures that there are no consecutive spaces.
+    - **Max Length:** The input must not exceed 10 characters.
+
+## Use Cases
+- **Cell-specific Restrictions:**
+  Useful when certain cell represent system-critical or default entries that should not be modified, ensuring they remain locked from editing.
+
+- **Dynamic Data Validation:**
+  Allows different validation rules based on the row context. This helps maintain data integrity while providing a responsive user experience tailored to various scenarios.
+
+## Learn More
+By utilizing conditional input disabling and validation, you can create a more dynamic, context-aware DataTable that adapts to the specific requirements of your data.

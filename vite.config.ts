@@ -5,6 +5,32 @@ import tsconfigPaths from 'vite-tsconfig-paths';
 import dts from 'vite-plugin-dts';
 import commonjs from 'rollup-plugin-commonjs';
 import cssInjectedByJsPlugin from 'vite-plugin-css-injected-by-js';
+import fs from 'fs'
+
+function fixDtsImports() {
+  return {
+    name: 'fix-dts-imports',
+    closeBundle: async () => {
+      const dir = path.resolve(__dirname, 'dist');
+      
+      function traverseDirectory(directory: string) {
+        fs.readdirSync(directory).forEach((file: string) => {
+          const fullPath = path.join(directory, file);
+          if (fs.statSync(fullPath).isDirectory()) {
+            traverseDirectory(fullPath);
+          } else if (fullPath.endsWith('.d.ts')) {
+            let content = fs.readFileSync(fullPath, 'utf-8');
+            // This regex matches any import path that goes through one or more "../" segments into node_modules
+            content = content.replace(/(['"])(?:\.\.\/)+node_modules\/([^'"]+)\1/g, `$1$2$1`);
+            fs.writeFileSync(fullPath, content);
+          }
+        });
+      }
+      
+      traverseDirectory(dir);
+    },
+  };
+}
 
 export default defineConfig({
   logLevel: 'warn',
@@ -12,11 +38,13 @@ export default defineConfig({
     tsconfigPaths(),
     dts({
       insertTypesEntry: true,
+      rollupTypes: true,
+      entryRoot: 'src', // guide bundling from your source folder.
+      outDir: 'dist',   // explicit output directory.
       exclude: [
         'public/**',
         'node_module/**',
         'src/poc/**',
-        'src/components/**',
         '**/stories.ts',
         '**/stories.tsx',
         '**/_test.ts',
@@ -24,16 +52,18 @@ export default defineConfig({
       ],
     }),
     react(),
-    cssInjectedByJsPlugin(), // Inlines CSS into the JS bundle
+    cssInjectedByJsPlugin(), // inlines CSS into the JS bundle
+    fixDtsImports(), // custom plugin to fix absolute paths in .d.ts files
   ],
   resolve: {
     alias: {
-      // Ensure only one instance of React is used
+      // ensure only one instance of React is used
       'react': path.resolve('node_modules', 'react'),
       'react-dom': path.resolve('node_modules', 'react-dom'),
     },
   },
   build: {
+    assetsInlineLimit: 0,
     lib: {
       entry: path.resolve(__dirname, 'src/index.ts'),
       name: 'ReactComponentsLib',

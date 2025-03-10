@@ -18,6 +18,7 @@ export const Row: React.FC<{
   selectedCell: SelectedCellType
   setSelectedCell: (cell: SelectedCellType) => void
   columnOrder: string[]
+  uniqueValueMaps?: Record<string, Record<string, number>>
 }> = ({
   row,
   activeRow,
@@ -30,18 +31,19 @@ export const Row: React.FC<{
   selectedCell,
   setSelectedCell,
   columnOrder,
+  uniqueValueMaps
 }) => {
   const isActiveRow = activeRow && (row.original as any).__internalId === activeRow
   const isNewRow = (row.original as any).__isNewImported || (row.original as any).__isNew
-  const isDisabled = disabledRows?.includes((row.original as any).__internalId)
+  const isDisabledRow = disabledRows?.includes((row.original as any).__internalId)
   const clickHandlers = useClickAndDoubleClick({
-    onClick: !isDisabled
+    onClick: !isDisabledRow
       ? (e: React.MouseEvent<HTMLElement>) => {
           const { __internalId, ...cleanRow } = row.original
           onRowClick && onRowClick(cleanRow, e)
         }
       : undefined,
-    onDoubleClick: !isDisabled
+    onDoubleClick: !isDisabledRow
       ? (e: React.MouseEvent<HTMLElement>) => {
           const { __internalId, ...cleanRow } = row.original
           onRowDoubleClick && onRowDoubleClick(cleanRow, e)
@@ -54,23 +56,29 @@ export const Row: React.FC<{
       key={row.id}
       {...clickHandlers}
       $isActiveRow={!!isActiveRow}
-      $isDisabled={!!isDisabled}
+      $isDisabled={!!isDisabledRow}
       $isNewRow={!!isNewRow}
-      className={`data-table-row ${isNewRow ? 'new' : ''}${isActiveRow ? 'active' : ''} ${row.getIsSelected() ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}`}
+      className={`data-table-row ${isNewRow ? 'new' : ''}${isActiveRow ? 'active' : ''} ${row.getIsSelected() ? 'selected' : ''} ${isDisabledRow ? 'disabled' : ''}`}
       data-testid={`row-${row.id}`}
       role='row'
     >
       {row.getVisibleCells().map((cell: any, i: number) => {
         const colMeta = cell.column.columnDef.meta ?? {}
-        const { editor, validation, columnId, className } = colMeta
+        const { editor, validation, columnId, className, disabled } = colMeta
+        const isDisabled = typeof disabled === 'function' ? disabled(row.original) : disabled;
         const rawValue = cell.getValue()
         const isEditable = editor !== false
         const isNotEditMode = !editingCell ||
           editingCell.rowId !== (row.original as any).__internalId ||
           editingCell.columnId !== columnId
-        let errorMsg: string | null = null
 
-        errorMsg = getValidationError(rawValue, validation)
+        const errorMsg = getValidationError(
+          rawValue,
+          validation,
+          cell.column.id,
+          uniqueValueMaps?.[cell.column.id],
+          row.original
+        )
 
         const disableSelection = className === 'custom-column'
 
@@ -94,6 +102,7 @@ export const Row: React.FC<{
               rowId={rowId}
               columnId={columnId}
               errorMsg={errorMsg}
+              isDisabledRow={isDisabledRow}
               isDisabled={isDisabled}
               isEditable={isEditable}
               isEditMode={!isNotEditMode}

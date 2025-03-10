@@ -14,6 +14,7 @@ export const SelectRowContainer = styled.div`
   border-top: 1px solid ${theme.colors.default.pale};
   flex-wrap: wrap;
   gap: 8px;
+  min-height: 28px;
 `
 
 export const FooterDetailsContainer = styled.div`
