@@ -7,6 +7,7 @@ import React, {
   KeyboardEvent,
 } from 'react'
 import { ZodSchema } from 'zod'
+import { filterUniqueMap } from '../../utils'
 import { getValidationError } from '../../utils/validation'
 import { useOnClickOutside } from '../../hooks/useOnClickOutside'
 import { ValidatorHelper, EditorType } from '../../interface'
@@ -28,7 +29,7 @@ interface EditableCellProps {
   name: string
   testId: string
   columnId: string
-  uniqueValueMaps?: Record<string, Record<string, number>>
+  uniqueValueMaps?: Record<string, string[] | Record<string, number> | undefined>
   rowData: any
   disabled?: boolean
 }
@@ -52,11 +53,11 @@ export const EditableCell = (props: EditableCellProps) => {
     disabled
   } = props
 
-  const handleValidationError = (value, validation) => getValidationError(
-    value,
+  const handleValidationError = (localValue, validation) => getValidationError(
+    localValue,
     validation,
     columnId,
-    uniqueValueMaps?.[columnId],
+    filterUniqueMap(uniqueValueMaps?.[columnId] as string[], value),
     rowData
   )
 
@@ -69,7 +70,7 @@ export const EditableCell = (props: EditableCellProps) => {
     // Re-validate whenever the localValue changes.
     useEffect(() => {
       setLocalError(handleValidationError?.(localValue, validation))
-    }, [localValue]);
+    }, [localValue])
 
     useEffect(() => {
       setLocalValue(value)
@@ -151,22 +152,22 @@ export const EditableCell = (props: EditableCellProps) => {
 
   // --------- Branch 2: Boolean-like editors (checkbox, radio, switch) ---------
   if (['checkbox', 'radio', 'switch'].includes(editorType)) {
-    const computedError = handleValidationError?.(Boolean(value), validation);
+    const computedError = handleValidationError?.(Boolean(value), validation)
     const containerRef = useRef<HTMLDivElement>(null)
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === 'Enter') {
-        e.preventDefault();
+        e.preventDefault()
         if (editorType === 'radio') {
           // Only allow selection, not deselection for radio
           if (!value) {
-            onChange(true);
+            onChange(true)
           }
         } else {
-          onChange(!value);
+          onChange(!value)
         }
       }
-    };
+    }
   
     useOnClickOutside(containerRef, () => onChange(Boolean(value)))
 
@@ -186,7 +187,7 @@ export const EditableCell = (props: EditableCellProps) => {
           disabled={disabled}
         />
       </div>
-    );
+    )
   }
 
   // --------- Branch 4: Select editor ---------

@@ -149,3 +149,11 @@ export const getFirstVisibleKey = (visibility, keyNames) => {
   }
   return null
 }
+
+export const filterUniqueMap = (arr?: string[], value?: string) => {
+  const _arr = Array.isArray(arr) ? arr : undefined;
+  if (!_arr || value === undefined) return _arr;
+  const index = _arr.indexOf(value);
+  if (index === -1) return _arr;
+  return [..._arr.slice(0, index), ..._arr.slice(index + 1)];
+};

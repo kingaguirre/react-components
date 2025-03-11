@@ -21,7 +21,7 @@ interface BodyProps<TData> {
   onRowClick?: (data: any, e: React.MouseEvent<HTMLElement>) => void
   onRowDoubleClick?: (data: any, e: React.MouseEvent<HTMLElement>) => void
   expandedRowContent?: (RowData: any) => React.ReactNode
-  uniqueValueMaps?: Record<string, Record<string, number>>
+  uniqueValueMaps?: Record<string, string[] | Record<string, number> | undefined>
 }
 
 export const Body = <TData,>({
@@ -47,6 +47,10 @@ export const Body = <TData,>({
       <NoDataContainer $hasError>{columnError}</NoDataContainer>
     ) : (table.getRowModel().rows.length === 0 || table.getVisibleLeafColumns().length === 0) ? (
       <NoDataContainer>No data to display</NoDataContainer>
+    ) : (table.getFilteredRowModel().rows.length > 10000) ? (
+      <NoDataContainer>
+        <b>Notice</b>: Maximum rows set to 10,000. For improved performance on large datasets, consider implementing server-side pagination.
+      </NoDataContainer>
     ) : (
       table.getRowModel().rows.map((row: any) => (
         <Fragment key={row.id}>
@@ -63,7 +67,6 @@ export const Body = <TData,>({
             setSelectedCell={setSelectedCell}
             columnOrder={columnOrder}
             uniqueValueMaps={uniqueValueMaps}
-            isBottom={(table.getState().pagination.pageSize - 2) <= (row.original as any).__internalId}
           />
           {row.getIsExpanded() && !!expandedRowContent && (
             <ExpandedRowContainer>

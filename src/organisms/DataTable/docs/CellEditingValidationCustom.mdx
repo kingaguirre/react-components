@@ -9,10 +9,10 @@ In addition to the built-in Zod validations, the DataTable component now support
 ## Custom Validations Overview
 
 - **.unique()**:  
-  This custom validator checks if the input value is unique across the entire data set. To optimize performance, the unique validation is triggered **only when the user presses enter or when the data changes**. This means that during regular typing, the validator does not check against all data, avoiding potential performance issues (especially with large data sets).
+  This custom validator checks if the input value is unique across the entire data set. **The unique validation is triggered immediately as the user types**—just like any other validation. This means you get real-time feedback while maintaining consistency with other validations.
 
 - **.required()**:  
-  This custom validator ensures that the input is not empty. Unlike the unique validation, the required validation is executed dynamically as the user types or changes the text. Since it only checks the input itself and does not query the entire data set, it provides immediate feedback.
+  This custom validator ensures that the input is not empty. The required validation is executed dynamically as the user types or changes the text. Since it only checks the input itself and does not query the entire data set, it provides immediate feedback.
 
 ## How It Works
 
@@ -53,13 +53,6 @@ const combinedValidation = (v) =>
     .required("This field is required.")
     .unique("This value must be unique.");
 ```
-
-## Performance Considerations
-- **Unique Validation:**
-   - Because the unique check must scan the entire data source, it is designed to trigger only when the user finalizes their input (e.g., pressing enter) or when the overall data changes. This design prevents performance bottlenecks that could occur if the check were executed on every keystroke in a large dataset.
-
-- **Required Validation:**
-  - Since it only inspects the current input value, it works dynamically and provides instant feedback, ensuring a responsive user experience without additional overhead.
 
 ## Learn More
 By incorporating these custom validations into your DataTable component, you can efficiently enforce unique constraints and required fields, enhancing both performance and user experience.

@@ -18,8 +18,7 @@ export const Row: React.FC<{
   selectedCell: SelectedCellType
   setSelectedCell: (cell: SelectedCellType) => void
   columnOrder: string[]
-  uniqueValueMaps?: Record<string, Record<string, number>>
-  isBottom?: boolean
+  uniqueValueMaps?: Record<string, string[] | Record<string, number> | undefined>
 }> = ({
   row,
   activeRow,
@@ -33,7 +32,6 @@ export const Row: React.FC<{
   setSelectedCell,
   columnOrder,
   uniqueValueMaps,
-  isBottom
 }) => {
   const isActiveRow = activeRow && (row.original as any).__internalId === activeRow
   const isNewRow = (row.original as any).__isNewImported || (row.original as any).__isNew
@@ -60,7 +58,7 @@ export const Row: React.FC<{
       $isActiveRow={!!isActiveRow}
       $isDisabled={!!isDisabledRow}
       $isNewRow={!!isNewRow}
-      className={`data-table-row ${isNewRow ? 'new' : ''} ${isActiveRow ? 'active' : ''} ${row.getIsSelected() ? 'selected' : ''} ${isDisabledRow ? 'disabled' : ''} ${isBottom ? 'bottom' : ''}`}
+      className={`data-table-row ${isNewRow ? 'new' : ''} ${isActiveRow ? 'active' : ''} ${row.getIsSelected() ? 'selected' : ''} ${isDisabledRow ? 'disabled' : ''}`}
       data-testid={`row-${row.id}`}
       role='row'
     >
@@ -78,8 +76,9 @@ export const Row: React.FC<{
           rawValue,
           validation,
           cell.column.id,
-          uniqueValueMaps?.[cell.column.id],
-          row.original
+          uniqueValueMaps?.[cell.column.id] as string[],
+          row.original,
+          true
         )
 
         const disableSelection = className === 'custom-column'

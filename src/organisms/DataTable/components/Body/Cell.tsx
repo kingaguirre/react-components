@@ -42,7 +42,7 @@ export const Cell = memo(({
 
   const cellContent = (
     <CellContent
-      className={`cell-content ${colMeta?.className ?? ''} ${isDisabled ? 'disabled' : ''} ${isDisabledRow ? 'disabled-row' : ''}`}
+      className={`cell-content ${colMeta?.className ?? ''} ${isDisabled ? 'disabled' : ''} ${isDisabledRow ? 'disabled-row' : ''} ${isCellSelected ? 'selected' : ''}`}
       $isEditMode={!!isEditMode}
       $isCellSelected={isCellSelected}
       $align={colMeta?.align}
@@ -54,7 +54,7 @@ export const Cell = memo(({
   
   return (
     <CellContainer
-      className={`cell-container ${colMeta?.className ?? ''} ${isDisabled ? 'disabled' : ''} ${isDisabledRow ? 'disabled-row' : ''}`}
+      className={`cell-container ${colMeta?.className ?? ''} ${isDisabled ? 'disabled' : ''} ${isDisabledRow ? 'disabled-row' : ''} ${isCellSelected ? 'selected' : ''}`}
       ref={setNodeRef}
       $hasError={!!errorMsg}
       $isEditMode={!!isEditMode}

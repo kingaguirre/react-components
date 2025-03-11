@@ -104,8 +104,9 @@ export const getValidationError = <T = unknown>(
   value?: boolean | string | number,
   validation?: (v: ValidatorHelper, rowData: any) => ZodSchema<T>,
   columnId?: string,
-  uniqueMap?: Record<string, number>,
-  rowData?: any
+  uniqueMap?: string[],
+  rowData?: any,
+  isCell = false // determine if duplicate validation is in input or in cell
 ): string | null => {
   if (!validation) return null;
   const validatorHelper: ValidatorHelper = { schema: jsonSchemaToZod, ...z };
@@ -127,9 +128,18 @@ export const getValidationError = <T = unknown>(
       value !== null &&
       !(typeof value === 'string' && value.trim() === '')
     ) {
-      const key = String(value);
-      if (uniqueMap[key] > 1) {
-        errors.push((schema as any)._uniqueMessage || 'Duplicate value');
+      // Trim the value before comparing
+      const key = String(value).trim();
+      if (isCell) {
+        const occurrences = uniqueMap.filter(item => item.trim() === key).length;
+        if (occurrences >= 2) {
+          errors.push((schema as any)._uniqueMessage || 'Duplicate value');
+        }
+      } else {
+        // Use `some` to check for an exact match on the trimmed values.
+        if (uniqueMap.some(item => item.trim() === key)) {
+          errors.push((schema as any)._uniqueMessage || 'Duplicate value');
+        }
       }
     }
   }

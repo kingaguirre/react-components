@@ -98,34 +98,37 @@ export const DataTable = <T extends object>({
 
   const [data, setData] = useState<DataRow[]>(() => initializeData(dataSource))
   const uniqueValueMaps = useMemo(() => {
-    const maps: Record<string, Record<string, number>> = {}
+    // Create an empty array for each column that supports validation.
+    const maps: Record<string, string[] | undefined> = {};
   
-    // Initialize maps for columns that support validation.
     columnSettings.forEach((col: ColumnSetting) => {
       if (col.editor !== false && col.editor?.validation) {
-        // Create an empty map for this column.
-        maps[col.column] = {}
+        maps[col.column] = [];
       }
-    })
+    });
   
-    // For each row, check each column’s validation using the row data.
     data.forEach((row: any) => {
       columnSettings.forEach((col: ColumnSetting) => {
         if (col.editor !== false && col.editor?.validation) {
-          const validatorHelper = { schema: jsonSchemaToZod, ...z }
-          // Pass the current row as the second argument.
-          const schema = col.editor.validation(validatorHelper, row)
+          const validatorHelper = { schema: jsonSchemaToZod, ...z };
+          const schema = col.editor.validation(validatorHelper, row);
           if ((schema as any)._unique) {
-            // Only count if the unique flag applies for this row.
-            const value = row[col.column]
-            maps[col.column][value] = (maps[col.column][value] || 0) + 1
+            // Instead of counting, simply push the value.
+            maps[col.column]?.push(row[col.column]);
           }
         }
-      })
-    })
+      });
+    });
   
-    return maps
-  }, [data, columnSettings])
+    // Optionally, if you want to keep the property but signal "no values", set empty arrays to undefined.
+    Object.keys(maps).forEach((col) => {
+      if (maps[col]?.length === 0) {
+        maps[col] = undefined;
+      }
+    });
+
+    return maps;
+  }, [data, columnSettings]);
 
   const [editingCell, setEditingCell] = useState<EditingCellType>(null)
   const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(UTILS_CS.setDefaultColumnVisibility(columnSettings))
