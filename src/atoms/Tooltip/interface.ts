@@ -28,6 +28,7 @@ export interface TooltipProps {
   trigger?: 'hover' | 'click';
   /** Sets max width for tooltip */
   maxWidth?: number
+  minWidth?: number
   type?: 'tooltip' | 'title';
   testId?: string
 }

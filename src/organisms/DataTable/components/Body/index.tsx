@@ -63,6 +63,7 @@ export const Body = <TData,>({
             setSelectedCell={setSelectedCell}
             columnOrder={columnOrder}
             uniqueValueMaps={uniqueValueMaps}
+            isBottom={(table.getState().pagination.pageSize - 2) <= (row.original as any).__internalId}
           />
           {row.getIsExpanded() && !!expandedRowContent && (
             <ExpandedRowContainer>

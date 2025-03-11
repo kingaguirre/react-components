@@ -2,6 +2,7 @@
 import React, { useState } from 'react'
 import { FormControl } from '../../../atoms/FormControl'
 import { Dropdown } from '../../../molecules/Dropdown'
+import { dataSource } from './data'
 
 const FloatingSettingsPanel = ({ children }: { children: React.ReactNode }) => {
   return (
@@ -67,9 +68,11 @@ export const DataTablePlayground: React.FC<DataTablePlaygroundProps> = ({
   const [partialRowDeletionID, setPartialRowDeletionID] = useState('partialDelete')
   const [disabled, setDisabled] = useState(false)
   const [headerRightControls, setHeaderRightControls] = useState(true)
+  const [dataSourceLength, setDataSourceLength] = useState(1000)
 
   // Clone the child element to inject playground state as props
   const clonedChild = React.cloneElement(children, {
+    dataSource: dataSource(dataSourceLength),
     enableColumnFiltering,
     enableColumnPinning,
     enableColumnDragging,
@@ -129,6 +132,15 @@ export const DataTablePlayground: React.FC<DataTablePlaygroundProps> = ({
       {showSettings && (
         <FloatingSettingsPanel>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <FormControl
+              size='sm'
+              label='DataSource length (5,000 max)'
+              type='number'
+              max={5000}
+              step={500}
+              value={dataSourceLength}
+              onChange={(e) => setDataSourceLength(e.target.value)}
+            />
             <FormControl
               size='sm'
               label='Title'

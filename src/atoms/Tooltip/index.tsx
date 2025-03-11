@@ -12,6 +12,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
   trigger = 'hover',
   placement,
   maxWidth,
+  minWidth,
   type = 'tooltip', // default to tooltip
   testId,
 }) => {
@@ -34,7 +35,8 @@ export const Tooltip: React.FC<TooltipProps> = ({
     borderRadius: '2px',
     color: '#fff',
     zIndex: 998,
-    maxWidth
+    maxWidth,
+    minWidth
   }
   const tooltipStyle = isTitle
     ? {

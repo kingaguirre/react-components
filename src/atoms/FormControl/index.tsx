@@ -108,7 +108,6 @@ export const FormControl = forwardRef<HTMLInputElement | HTMLTextAreaElement, Fo
         $size={size}
         $type={type}
         className={`form-control-wrapper ${disabled ? 'disabled' : ''} ${isInvalid ? 'invalid' : ''}`}
-        title={value}
       >
         {(() => {
           const defaultProps = {

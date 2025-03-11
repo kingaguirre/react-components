@@ -4,7 +4,6 @@ import { CellContainer, CellContent, TooltipContent } from './styled'
 import { getColumnStyles } from '../../utils/columnSettings'
 import { Tooltip } from '../../../../atoms/Tooltip'
 import { useHasEllipsis } from '../../hooks/useHasEllipsis'
-
 // needed for row & cell level scope DnD setup
 import { useSortable } from '@dnd-kit/sortable'
 
@@ -38,7 +37,8 @@ export const Cell = memo(({
   const colMeta: any = colDef.meta
   const cellContext = flexRender(colDef.cell, cell.getContext())
   const { ref, hasEllipsis } = useHasEllipsis(cellContext);
-  const _cellContext = hasEllipsis ? <Tooltip maxWidth={150} content={cellContext} type='title'>{cellContext}</Tooltip> : cellContext
+
+  const _cellContext = hasEllipsis ? <Tooltip minWidth={150} maxWidth={cell.column.getSize()} content={cellContext} type='title'>{cellContext}</Tooltip> : cellContext
 
   const cellContent = (
     <CellContent

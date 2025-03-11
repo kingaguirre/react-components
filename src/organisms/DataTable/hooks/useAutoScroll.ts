@@ -11,33 +11,72 @@ export const useAutoScroll = (selectedCell: SelectedCellType) => {
     ) as HTMLElement | null
 
     if (cellEl) {
-      // Find the nearest scrollable container.
       const scrollParent = getScrollParent(cellEl)
+      // Set your sticky offsets.
+      const stickyHeaderHeight = 84   // adjust to your sticky header's height
+      const stickyFooterHeight = 12   // adjust to your sticky footer's height
+      const stickyLeftWidth = 125     // adjust to your sticky left element's width
+      const stickyRightWidth = 12     // adjust to your sticky right element's width
 
-      // Determine the visible bounds of the scroll container.
-      const containerRect =
-        scrollParent === window
-          ? {
-              top: 0,
-              left: 0,
-              bottom: window.innerHeight,
-              right: window.innerWidth,
-            }
-          : (scrollParent as HTMLElement).getBoundingClientRect()
+      // Get cell's bounding rectangle.
+      const cellRect = cellEl.getBoundingClientRect()
 
-      // Get the cell's bounding rectangle.
-      const rect = cellEl.getBoundingClientRect()
+      if (scrollParent === window) {
+        // For window scrolling, use window dimensions and scroll positions.
+        let newScrollY = window.scrollY
+        let newScrollX = window.scrollX
 
-      // Check if the entire cell is visible inside the container.
-      const isFullyVisible =
-        rect.top >= containerRect.top &&
-        rect.bottom <= containerRect.bottom &&
-        rect.left >= containerRect.left &&
-        rect.right <= containerRect.right
+        // Vertical logic:
+        if (cellRect.top < stickyHeaderHeight) {
+          // If the top of the cell is hidden behind the sticky header.
+          newScrollY = window.scrollY + (cellRect.top - stickyHeaderHeight)
+        } else if (cellRect.bottom > window.innerHeight - stickyFooterHeight) {
+          // If the bottom of the cell is hidden behind the sticky footer.
+          newScrollY = window.scrollY + (cellRect.bottom - (window.innerHeight - stickyFooterHeight))
+        }
 
-      if (!isFullyVisible) {
-        // Scroll just enough so that the entire element is in view.
-        cellEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
+        // Horizontal logic:
+        if (cellRect.left < stickyLeftWidth) {
+          // If the left side of the cell is hidden behind the sticky element.
+          newScrollX = window.scrollX + (cellRect.left - stickyLeftWidth)
+        } else if (cellRect.right > window.innerWidth - stickyRightWidth) {
+          // If the right side of the cell is hidden behind the sticky element.
+          newScrollX = window.scrollX + (cellRect.right - (window.innerWidth - stickyRightWidth))
+        }
+
+        window.scrollTo({ top: newScrollY, left: newScrollX, behavior: 'smooth' })
+      } else {
+        // For a scrollable container element.
+        const containerRect = (scrollParent as HTMLElement).getBoundingClientRect()
+        const currentScrollTop = (scrollParent as HTMLElement).scrollTop
+        const currentScrollLeft = (scrollParent as HTMLElement).scrollLeft
+
+        let offsetY = 0
+        let offsetX = 0
+
+        // Vertical adjustment.
+        if (cellRect.top < containerRect.top + stickyHeaderHeight) {
+          // Cell's top is above the visible area.
+          offsetY = cellRect.top - containerRect.top - stickyHeaderHeight
+        } else if (cellRect.bottom > containerRect.bottom - stickyFooterHeight) {
+          // Cell's bottom is below the visible area.
+          offsetY = cellRect.bottom - (containerRect.bottom - stickyFooterHeight)
+        }
+
+        // Horizontal adjustment.
+        if (cellRect.left < containerRect.left + stickyLeftWidth) {
+          // Cell's left is hidden.
+          offsetX = cellRect.left - containerRect.left - stickyLeftWidth
+        } else if (cellRect.right > containerRect.right - stickyRightWidth) {
+          // Cell's right is offscreen.
+          offsetX = cellRect.right - (containerRect.right - stickyRightWidth)
+        }
+
+        ;(scrollParent as HTMLElement).scrollTo({
+          top: currentScrollTop + offsetY,
+          left: currentScrollLeft + offsetX,
+          behavior: 'smooth',
+        })
       }
     }
   }, [selectedCell])

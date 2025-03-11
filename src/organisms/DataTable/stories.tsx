@@ -2,7 +2,7 @@ import React from 'react'
 import type { Meta } from '@storybook/react'
 import { DataTable } from './index'
 import { StoryWrapper, Title } from '../../components/StoryWrapper'
-import { COLUMN_SETTINGS, DATA_SOURCE } from './Playground/data'
+import { COLUMN_SETTINGS, dataSource } from './Playground/data'
 import { DataTablePlayground } from './Playground'
 
 // const DATA_SOURCE = makeData(50000)
@@ -25,7 +25,7 @@ export const Playground = {
       <Title>DataTable Feature Demo</Title>
       <DataTablePlayground>
         <DataTable
-          dataSource={DATA_SOURCE}
+          dataSource={dataSource()}
           columnSettings={COLUMN_SETTINGS}
           onChange={e => console.log(e)}
           expandedRowContent={rowData => rowData.id !== 5 ? <div style={{background: 'white'}}>{JSON.stringify(rowData)}</div> : null}
