@@ -16,6 +16,7 @@ export const SettingsPanelContainer = styled.div<{ $hasTitle?: boolean }>`
 
   .panel {
     height: 100%;
+    overflow: auto;
   }
 
   .panel-content {
@@ -25,6 +26,7 @@ export const SettingsPanelContainer = styled.div<{ $hasTitle?: boolean }>`
   .panel-header {
     position: sticky;
     top: 0;
+    z-index: 10;
 
     .right-header-icons-container .clear-icon {
       &:hover {

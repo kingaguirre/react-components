@@ -85,13 +85,13 @@ export const DataTableRow = styled.div<{
     ${({ $isDisabled }) => $isDisabled ? css`pointer-events: none;` : ''}
   }
 
-  &.bottom .help-text {
+  /* &.bottom .help-text {
     top: -2px!important;
     transform: translateY(-100%);
     box-shadow: 0 -2px 4px 2px rgba(0,0,0,0.3)!important;
     border-top-left-radius: 2px!important;
     border-top-right-radius: 2px!important;
-  }
+  } */
 `
 
 const getTextAlignment = (align?: string) => {

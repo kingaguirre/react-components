@@ -28,7 +28,7 @@ export const Playground = {
           dataSource={dataSource()}
           columnSettings={COLUMN_SETTINGS}
           onChange={e => console.log(e)}
-          expandedRowContent={rowData => rowData.id !== 5 ? <div style={{background: 'white'}}>{JSON.stringify(rowData)}</div> : null}
+          // expandedRowContent={rowData => rowData.id !== 5 ? <div style={{background: 'white'}}>{JSON.stringify(rowData)}</div> : null}
         />
       </DataTablePlayground>
     </StoryWrapper>
@@ -46,30 +46,30 @@ export const Test = {
       <Title>DataTable Test</Title>
         <DataTable
           dataSource={[
-            { id: '1', firstName: 'John', lastname: 'Doe', role: 'Admin' },
-            { id: '2', firstName: 'Jane', lastname: 'Smith', role: 'User' },
-            { id: '3', firstName: 'Alice', lastname: 'Johnson', role: 'User' },
-            { id: '4', firstName: 'Bob', lastname: 'Brown', role: 'User' },
-            { id: '5', firstName: 'Carol', lastname: 'Williams', role: 'Admin' },
-            { id: '6', firstName: 'David', lastname: 'Jones', role: 'User' },
-            { id: '7', firstName: 'Eva', lastname: 'Miller', role: 'User' },
-            { id: '8', firstName: 'Frank', lastname: 'Davis', role: 'Admin' },
-            { id: '9', firstName: 'Grace', lastname: 'Garcia', role: 'User' },
-            { id: '10', firstName: 'Henry', lastname: 'Martinez', role: 'User' },
+            { id: '0', firstName: 'John', lastname: 'Doe', role: 'Admin' },
+            { id: '1', firstName: 'Jane', lastname: 'Smith', role: 'User' },
+            { id: '2', firstName: 'Alice', lastname: 'Johnson', role: 'User' },
+            { id: '3', firstName: 'Bob', lastname: 'Brown', role: 'User' },
+            { id: '4', firstName: 'Carol', lastname: 'Williams', role: 'Admin' },
+            { id: '5', firstName: 'David', lastname: 'Jones', role: 'User' },
+            { id: '6', firstName: 'Eva', lastname: 'Miller', role: 'User' },
+            { id: '7', firstName: 'Frank', lastname: 'Davis', role: 'Admin' },
+            { id: '8', firstName: 'Grace', lastname: 'Garcia', role: 'User' },
+            { id: '9', firstName: 'Henry', lastname: 'Martinez', role: 'User' },
           ]}
           columnSettings={[
             {
               title: 'ID',
               column: 'id',
               // pin: 'pin',
-              sort: 'asc',
+              // sort: 'asc',
               draggable: true
             },
             {
               title: 'First Name',
               column: 'firstName',
               pin: 'unpin',
-              sort: 'desc',
+              // sort: 'desc',
               draggable: true,
               width: 300,
               filter: { type: 'text', filterBy: 'includesString' },
@@ -78,7 +78,7 @@ export const Test = {
                   v.string().regex(
                     new RegExp('^(?!.*\\s{2,})[A-Za-z]+(?: [A-Za-z]+)*$'),
                     'Name can only contain letters and single spaces'
-                  )
+                  ).required().unique()
               }
             },
             { title: 'Last Name', column: 'lastname', pin: false, sort: false, draggable: false },
