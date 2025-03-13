@@ -57,8 +57,8 @@ export const DataTablePlayground: React.FC<DataTablePlaygroundProps> = ({
   const [enableGlobalFiltering, setEnableGlobalFiltering] = useState(true)
   const [title, setTitle] = useState('DataTable Demo Title')
   const [cellTextAlignment, setCellTextAlignment] = useState<'left' | 'center' | 'right'>('center')
-  const [height, setHeight] = useState(undefined)
-  const [maxHeight, setMaxHeight] = useState('200px')
+  const [height, setHeight] = useState('300px')
+  const [maxHeight, setMaxHeight] = useState(undefined)
   const [pageSize, setPageSize] = useState<any>('10')
   const [pageIndex, setPageIndex] = useState(0)
   const [enableMultiRowSelection, setEnableMultiRowSelection] = useState(true)
@@ -68,11 +68,11 @@ export const DataTablePlayground: React.FC<DataTablePlaygroundProps> = ({
   const [partialRowDeletionID, setPartialRowDeletionID] = useState('partialDelete')
   const [disabled, setDisabled] = useState(false)
   const [headerRightControls, setHeaderRightControls] = useState(true)
-  const [dataSourceLength, setDataSourceLength] = useState(1000)
+  const [dataSourceLength, setDataSourceLength] = useState<string>('1000')
 
   // Clone the child element to inject playground state as props
   const clonedChild = React.cloneElement(children, {
-    dataSource: dataSource(dataSourceLength),
+    dataSource: dataSource(parseInt(dataSourceLength)),
     enableColumnFiltering,
     enableColumnPinning,
     enableColumnDragging,
@@ -132,14 +132,17 @@ export const DataTablePlayground: React.FC<DataTablePlaygroundProps> = ({
       {showSettings && (
         <FloatingSettingsPanel>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <FormControl
+            <Dropdown
               size='sm'
-              label='DataSource length (5,000 max)'
+              label='DataSource length'
               type='number'
-              max={5000}
-              step={500}
+              options={[
+                {value: '1000', text: '1,000 records'},
+                {value: '10000', text: '10,000 records'},
+                {value: '20000', text: '20,000 records'},
+              ]}
               value={dataSourceLength}
-              onChange={(e) => setDataSourceLength(e.target.value)}
+              onChange={(value) => setDataSourceLength(value as string)}
             />
             <FormControl
               size='sm'
@@ -278,6 +281,11 @@ export const DataTablePlayground: React.FC<DataTablePlaygroundProps> = ({
                 { value: '5', text: '5' },
                 { value: '10', text: '10' },
                 { value: '20', text: '20' },
+                { value: '50', text: '50' },
+                { value: '100', text: '100' },
+                { value: '1000', text: '1,000' },
+                { value: '10000', text: '10,000' },
+                { value: '20000', text: '20,000' },
               ]}
               value={pageSize}
               onChange={(value) => setPageSize(value)}
