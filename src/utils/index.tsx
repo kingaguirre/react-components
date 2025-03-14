@@ -42,7 +42,10 @@ export const getScrollParent = (element: HTMLElement | null): HTMLElement | Wind
   while (parent) {
     const { overflow, overflowY, overflowX } = getComputedStyle(parent)
     if (overflowRegex.test(overflow + overflowY + overflowX)) {
-      return parent
+      // Check if the element is actually scrollable vertically or horizontally
+      if (parent.scrollHeight > parent.clientHeight || parent.scrollWidth > parent.clientWidth) {
+        return parent
+      }
     }
     parent = parent.parentElement
   }

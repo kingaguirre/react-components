@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { memo } from 'react'
 import { DataTableRow } from './styled'
 import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable'
 import { Cell } from './Cell'
@@ -6,20 +6,7 @@ import { EditingCellType, SelectedCellType } from '../../interface'
 import { getValidationError } from '../../utils/validation'
 import { useClickAndDoubleClick } from '../../hooks/useClickAndDoubleClick'
 
-export const Row: React.FC<{
-  row: any
-  activeRow?: string
-  disabledRows?: string[]
-  onRowClick?: (data: any, e: React.MouseEvent<HTMLElement>) => void
-  onRowDoubleClick?: (data: any, e: React.MouseEvent<HTMLElement>) => void
-  enableCellEditing: boolean
-  editingCell: EditingCellType
-  setEditingCell: any
-  selectedCell: SelectedCellType
-  setSelectedCell: (cell: SelectedCellType) => void
-  columnOrder: string[]
-  uniqueValueMaps?: Record<string, string[] | Record<string, number> | undefined>
-}> = ({
+export const Row = memo(({
   row,
   activeRow,
   disabledRows,
@@ -32,6 +19,19 @@ export const Row: React.FC<{
   setSelectedCell,
   columnOrder,
   uniqueValueMaps,
+}: {
+  row: any
+  activeRow?: string
+  disabledRows?: string[]
+  onRowClick?: (data: any, e: React.MouseEvent<HTMLElement>) => void
+  onRowDoubleClick?: (data: any, e: React.MouseEvent<HTMLElement>) => void
+  enableCellEditing: boolean
+  editingCell: EditingCellType
+  setEditingCell: any
+  selectedCell: SelectedCellType
+  setSelectedCell: (cell: SelectedCellType) => void
+  columnOrder: string[]
+  uniqueValueMaps?: Record<string, string[] | Record<string, number> | undefined>
 }) => {
   const isActiveRow = activeRow && (row.original as any).__internalId === activeRow
   const isNewRow = (row.original as any).__isNewImported || (row.original as any).__isNew
@@ -49,7 +49,7 @@ export const Row: React.FC<{
           onRowDoubleClick && onRowDoubleClick(cleanRow, e)
         }
       : undefined,
-  })  
+  })
 
   return (
     <DataTableRow
@@ -65,7 +65,7 @@ export const Row: React.FC<{
       {row.getVisibleCells().map((cell: any, i: number) => {
         const colMeta = cell.column.columnDef.meta ?? {}
         const { editor, validation, columnId, className, disabled } = colMeta
-        const isDisabled = typeof disabled === 'function' ? disabled(row.original) : disabled;
+        const isDisabled = typeof disabled === 'function' ? disabled(row.original) : disabled
         const rawValue = cell.getValue()
         const isEditable = editor !== false
         const isNotEditMode = !editingCell ||
@@ -137,4 +137,4 @@ export const Row: React.FC<{
       })}
     </DataTableRow>
   )
-}
+})

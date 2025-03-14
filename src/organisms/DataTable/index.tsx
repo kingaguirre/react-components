@@ -17,6 +17,7 @@ import {
   getFacetedUniqueValues,
   getFacetedMinMaxValues,
 } from '@tanstack/react-table'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { DataTableProps, SelectedCellType, EditingCellType, ColumnPinningType, DataRow, ColumnSetting } from './interface'
 import { DataTableWrapper, DataTableContainer, DataTableContentContainer, RowsToDeleteText, TableTitle } from './styled'
 import * as UTILS from './utils'
@@ -99,36 +100,36 @@ export const DataTable = <T extends object>({
   const [data, setData] = useState<DataRow[]>(() => initializeData(dataSource))
   const uniqueValueMaps = useMemo(() => {
     // Create an empty array for each column that supports validation.
-    const maps: Record<string, string[] | undefined> = {};
+    const maps: Record<string, string[] | undefined> = {}
   
     columnSettings.forEach((col: ColumnSetting) => {
       if (col.editor !== false && col.editor?.validation) {
-        maps[col.column] = [];
+        maps[col.column] = []
       }
-    });
+    })
   
     data.forEach((row: any) => {
       columnSettings.forEach((col: ColumnSetting) => {
         if (col.editor !== false && col.editor?.validation) {
-          const validatorHelper = { schema: jsonSchemaToZod, ...z };
-          const schema = col.editor.validation(validatorHelper, row);
+          const validatorHelper = { schema: jsonSchemaToZod, ...z }
+          const schema = col.editor.validation(validatorHelper, row)
           if ((schema as any)._unique) {
             // Instead of counting, simply push the value.
-            maps[col.column]?.push(row[col.column]);
+            maps[col.column]?.push(row[col.column])
           }
         }
-      });
-    });
+      })
+    })
   
     // Optionally, if you want to keep the property but signal "no values", set empty arrays to undefined.
     Object.keys(maps).forEach((col) => {
       if (maps[col]?.length === 0) {
-        maps[col] = undefined;
+        maps[col] = undefined
       }
-    });
+    })
 
-    return maps;
-  }, [data, columnSettings]);
+    return maps
+  }, [data, columnSettings])
 
   const [editingCell, setEditingCell] = useState<EditingCellType>(null)
   const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(UTILS_CS.setDefaultColumnVisibility(columnSettings))
@@ -147,12 +148,12 @@ export const DataTable = <T extends object>({
   const [expanded, setExpanded] = useState<ExpandedState>({})
 
   // Memoize the transformed data from dataSource
-  const memoizedData = useMemo(() => initializeData(dataSource), [dataSource]);
+  const memoizedData = useMemo(() => initializeData(dataSource), [dataSource])
 
   // Only update local data state when memoizedData changes.
   useEffect(() => {
-    setData(memoizedData);
-  }, [memoizedData]);
+    setData(memoizedData)
+  }, [memoizedData])
 
   // --- Sync column visibility and validate settings ---
   useEffect(() => {
@@ -269,6 +270,7 @@ export const DataTable = <T extends object>({
 
   // --- Updated handleAddRow using meta.hidden and meta.className ---
   const handleAddRow = () => {
+    virtualizer.scrollToIndex(0)
     const newRow = { __isNew: true, __internalId: Date.now().toString() } as any as T
     columnSettings.forEach((col) => {
       newRow[col.column] = ''
@@ -320,8 +322,8 @@ export const DataTable = <T extends object>({
     }
     
     // Process non-group columns.
-    const key: any = colDef.accessorKey || colDef.id;
-    let additionalProps = {};
+    const key: any = colDef.accessorKey || colDef.id
+    let additionalProps = {}
     if (typeof key === 'string' && key.includes('.') && !colDef.accessorFn) {
       additionalProps = {
         accessorFn: (row: any) =>
@@ -480,6 +482,15 @@ export const DataTable = <T extends object>({
   )
 
   const totalSelectedRows = Object.keys(table.getState().rowSelection).filter((key) => rowSelection[key]).length
+  const showDeleteIcon = enableSelectedRowDeleting && enableRowSelection && totalSelectedRows > 0
+  const { rows } = table.getRowModel()
+
+  const virtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => tableContainerRef.current,
+    estimateSize: () => 32,
+    overscan: 10,
+  })
 
   return (
     <DataTableWrapper className='data-table-wrapper' $disabled={disabled}>
@@ -506,7 +517,7 @@ export const DataTable = <T extends object>({
         isSettingsPanelOpen={showSettingsPanel}
         onSettingsIconClick={() => setShowSettingsPanel(true)}
         onAddBtnClick={handleAddRow}
-        showDeleteIcon={enableSelectedRowDeleting && enableRowSelection && totalSelectedRows > 0}
+        showDeleteIcon={showDeleteIcon}
         handleDeleteIconClick={() => setShowAlert(true)}
         handleResetColumnSettings={handleResetColumnSettings}
         headerRightControls={headerRightControls}
@@ -517,7 +528,7 @@ export const DataTable = <T extends object>({
         onDragEnd={handleDragEnd}
         sensors={sensors}
       >
-        <DataTableContainer className='data-table-container' ref={tableContainerRef}>
+        <DataTableContainer className='data-table-container' ref={tableContainerRef} style={{ height, maxHeight }}>
           <DataTableContentContainer style={{ width: table.getCenterTotalSize() }}>
             <ColumnHeader table={table} columnOrder={columnOrder} enableColumnDragging={enableColumnDragging}/>
             <Body
@@ -529,8 +540,6 @@ export const DataTable = <T extends object>({
               enableCellEditing={enableCellEditing}
               selectedCell={selectedCell}
               setSelectedCell={setSelectedCell}
-              height={height}
-              maxHeight={maxHeight}
               activeRow={activeRow}
               disabledRows={disabledRows}
               enableColumnDragging={enableColumnDragging}
@@ -538,6 +547,7 @@ export const DataTable = <T extends object>({
               onRowDoubleClick={onRowDoubleClick}
               expandedRowContent={expandedRowContent}
               uniqueValueMaps={uniqueValueMaps}
+              virtualizer={virtualizer}
             />
           </DataTableContentContainer>
         </DataTableContainer>
@@ -547,21 +557,23 @@ export const DataTable = <T extends object>({
         disabledRows={disabledRows}
         enableRowSelection={enableRowSelection}
       />
-      <Alert
-        color='danger'
-        title='Confirm'
-        show={showAlert}
-        toast
-        placement='bottom-right'
-        closeable
-        animation='slide'
-        onClose={() => setShowAlert(false)}
-      >
-        <RowsToDeleteText>
-          Are you sure you want to delete <b>{totalSelectedRows}</b> row{totalSelectedRows > 1 ? 's' :''}?
-        </RowsToDeleteText>
-        <Button size='sm' color='danger' onClick={handleConfirmDelete}>Confirm Delete</Button>
-      </Alert>
+      {showDeleteIcon && (
+        <Alert
+          color='danger'
+          title='Confirm'
+          show={showAlert}
+          toast
+          placement='bottom-right'
+          closeable
+          animation='slide'
+          onClose={() => setShowAlert(false)}
+        >
+          <RowsToDeleteText>
+            Are you sure you want to delete <b>{totalSelectedRows}</b> row{totalSelectedRows > 1 ? 's' :''}?
+          </RowsToDeleteText>
+          <Button size='sm' color='danger' onClick={handleConfirmDelete}>Confirm Delete</Button>
+        </Alert>
+      )}
     </DataTableWrapper>
   )
 }

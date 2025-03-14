@@ -1,3 +1,4 @@
+import React from 'react'
 import styled from 'styled-components'
 
 const AppContainer = styled.div`
@@ -7,7 +8,7 @@ const AppContainer = styled.div`
   padding: 20px;
   background: #f7f9fc;
   min-height: 100vh;
-`;
+`
 
 const Header = styled.header`
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -15,22 +16,22 @@ const Header = styled.header`
   padding: 60px 20px;
   border-radius: 8px;
   margin-bottom: 40px;
-`;
+`
 
 const HeroTitle = styled.h1`
   font-size: 2.8rem;
   margin-bottom: 10px;
-`;
+`
 
 const HeroSubtitle = styled.p`
   font-size: 1.3rem;
-`;
+`
 
 const Main = styled.main`
   display: flex;
   flex-direction: column;
   gap: 20px;
-`;
+`
 
 const Section = styled.section`
   background: #fff;
@@ -38,13 +39,13 @@ const Section = styled.section`
   padding: 30px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   text-align: left;
-`;
+`
 
 const SectionTitle = styled.h2`
   margin-top: 0;
   margin-bottom: 15px;
   color: #444;
-`;
+`
 
 const CodeSnippet = styled.pre`
   background: #2d2d2d;
@@ -54,13 +55,13 @@ const CodeSnippet = styled.pre`
   text-align: left;
   overflow-x: auto;
   font-size: 0.9rem;
-`;
+`
 
 const Footer = styled.footer`
   margin-top: 40px;
   font-size: 0.9rem;
   color: #777;
-`;
+`
 
 function App() {
   return (

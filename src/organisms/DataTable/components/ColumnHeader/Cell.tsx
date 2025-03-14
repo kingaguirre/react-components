@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { memo } from 'react'
 import { Header, flexRender } from '@tanstack/react-table'
 import { CellContainer, CellContent, Resizer, IconContainer, DragHandle, LeftIconContainer, CellFilterPlaceholder } from '../ColumnHeader/styled'
 import { getColumnStyles, CUSTOM_COLUMN } from '../../utils/columnSettings'
@@ -7,7 +7,7 @@ import { useSortable } from '@dnd-kit/sortable'
 import { Icon } from '../../../../atoms/Icon'
 import { Tooltip } from '../../../../atoms/Tooltip'
 
-export const Cell = ({ header, table, enableColumnDragging }: {
+export const Cell = memo(({ header, table, enableColumnDragging }: {
   header: Header<unknown, unknown>
   table: any
   enableColumnDragging?: boolean
@@ -138,4 +138,4 @@ export const Cell = ({ header, table, enableColumnDragging }: {
       )}
     </CellContainer>
   )
-}
+})
