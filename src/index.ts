@@ -3,6 +3,7 @@ export { Badge } from './atoms/Badge'
 export { Button } from './atoms/Button'
 export { FormControl } from './atoms/FormControl'
 export { Grid } from './atoms/Grid'
+export { GridItem } from './atoms/Grid'
 export { Icon } from './atoms/Icon'
 export { Tooltip } from './atoms/Tooltip'
 
@@ -20,3 +21,6 @@ export { DataTable } from './organisms/DataTable'
 
 // Theme
 export { theme, GlobalStyles } from './styles'
+
+// Utls
+export { getScrollParent } from './utils'
