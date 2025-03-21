@@ -78,17 +78,11 @@ export default defineConfig({
       external: [
         'react',
         'react-dom',
-        'styled-components',
-        'react-datepicker',
-        'react-tooltip',
       ],
       output: {
         globals: {
           react: 'React',
           'react-dom': 'ReactDOM',
-          'styled-components': 'styled',
-          'react-datepicker': 'ReactDatePicker',
-          'react-tooltip': 'reactTooltip',
         },
       },
     },
