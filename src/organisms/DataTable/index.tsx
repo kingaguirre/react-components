@@ -490,6 +490,11 @@ export const DataTable = <T extends object>({
     getScrollElement: () => tableContainerRef.current,
     estimateSize: () => 32,
     overscan: 10,
+     measureElement:
+      typeof window !== 'undefined' &&
+      navigator.userAgent.indexOf('Firefox') === -1
+        ? element => element?.getBoundingClientRect().height
+        : undefined,
   })
 
   return (

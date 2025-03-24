@@ -54,17 +54,17 @@ export const Body = <TData,>({
           <b>Notice</b>: Maximum rows set to 100,000. For improved performance on large datasets, consider implementing server-side pagination.
         </NoDataContainer>
       ) : (
-        <div style={{ height: virtualizer.getTotalSize() }}>
-          {virtualizer.getVirtualItems().map((virtualRow, index) => {
+        <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
+          {virtualizer.getVirtualItems().map((virtualRow) => {
             const row = rows[virtualRow.index]
             return (
               <div
                 key={row.id}
+                data-index={virtualRow.index} //needed for dynamic row height measurement
+                ref={node => virtualizer.measureElement(node)} //measure dynamic row height
                 style={{
-                  height: `${virtualRow.size}px`,
-                  transform: `translateY(${
-                    virtualRow.start - index * virtualRow.size
-                  }px)`,
+                  position: 'absolute',
+                  transform: `translateY(${virtualRow.start}px)`, //this should always be a `style` as it changes on scroll
                 }}
               >
                 <Row
