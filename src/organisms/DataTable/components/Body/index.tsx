@@ -42,6 +42,31 @@ export const Body = <TData,>({
   virtualizer
 }: BodyProps<TData>) => {
   const { rows } = table.getRowModel()
+  const enableVirtualization = rows.length > 100
+
+  const rowContent = (row) => (
+    <>
+      <Row
+        row={row}
+        activeRow={activeRow}
+        disabledRows={disabledRows}
+        onRowClick={onRowClick}
+        onRowDoubleClick={onRowDoubleClick}
+        enableCellEditing={enableCellEditing}
+        editingCell={editingCell}
+        setEditingCell={setEditingCell}
+        selectedCell={selectedCell}
+        setSelectedCell={setSelectedCell}
+        columnOrder={columnOrder}
+        uniqueValueMaps={uniqueValueMaps}
+      />
+      {row.getIsExpanded() && !!expandedRowContent && (
+        <ExpandedRowContainer>
+          {expandedRowContent(row.original)}
+        </ExpandedRowContainer>
+      )}
+    </>
+  )
 
   return (
     <BodyContainer className='data-table-body-container'>
@@ -53,7 +78,7 @@ export const Body = <TData,>({
         <NoDataContainer>
           <b>Notice</b>: Maximum rows set to 100,000. For improved performance on large datasets, consider implementing server-side pagination.
         </NoDataContainer>
-      ) : (
+      ) : enableVirtualization ? (
         <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
           {virtualizer.getVirtualItems().map((virtualRow) => {
             const row = rows[virtualRow.index]
@@ -67,30 +92,12 @@ export const Body = <TData,>({
                   transform: `translateY(${virtualRow.start}px)`, //this should always be a `style` as it changes on scroll
                 }}
               >
-                <Row
-                  row={row}
-                  activeRow={activeRow}
-                  disabledRows={disabledRows}
-                  onRowClick={onRowClick}
-                  onRowDoubleClick={onRowDoubleClick}
-                  enableCellEditing={enableCellEditing}
-                  editingCell={editingCell}
-                  setEditingCell={setEditingCell}
-                  selectedCell={selectedCell}
-                  setSelectedCell={setSelectedCell}
-                  columnOrder={columnOrder}
-                  uniqueValueMaps={uniqueValueMaps}
-                />
-                {row.getIsExpanded() && !!expandedRowContent && (
-                  <ExpandedRowContainer>
-                    {expandedRowContent(row.original)}
-                  </ExpandedRowContainer>
-                )}
+                {rowContent(row)}
               </div>
             )
           })}
         </div>
-      )}
+      ): table.getRowModel().rows.map(row => rowContent(row))}
     </BodyContainer>
   )
 }
