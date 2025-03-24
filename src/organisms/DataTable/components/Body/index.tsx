@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo, useCallback } from 'react'
 import { Table } from '@tanstack/react-table'
 import { Virtualizer } from '@tanstack/react-virtual'
 import { BodyContainer, NoDataContainer, ExpandedRowContainer } from './styled'
@@ -41,55 +41,105 @@ export const Body = <TData,>({
   uniqueValueMaps,
   virtualizer
 }: BodyProps<TData>) => {
+  // Precompute values from the table
   const { rows } = table.getRowModel()
 
-  return (
-    <BodyContainer className='data-table-body-container'>
-      {columnError ? (
+  const filteredRowCount = useMemo(() => table.getFilteredRowModel().rows.length, [table])
+  const visibleColumns = useMemo(() => table.getVisibleLeafColumns(), [table])
+  const enableVirtualization = rows.length > 100
+
+  // Memoize the row rendering helper to prevent unnecessary re-creations.
+  const rowContent = useCallback(
+    (row: any) => (
+      <>
+        <Row
+          row={row}
+          activeRow={activeRow}
+          disabledRows={disabledRows}
+          onRowClick={onRowClick}
+          onRowDoubleClick={onRowDoubleClick}
+          enableCellEditing={enableCellEditing}
+          editingCell={editingCell}
+          setEditingCell={setEditingCell}
+          selectedCell={selectedCell}
+          setSelectedCell={setSelectedCell}
+          columnOrder={columnOrder}
+          uniqueValueMaps={uniqueValueMaps}
+        />
+        {row.getIsExpanded() && expandedRowContent && (
+          <ExpandedRowContainer>
+            {expandedRowContent(row.original)}
+          </ExpandedRowContainer>
+        )}
+      </>
+    ),
+    [
+      activeRow,
+      disabledRows,
+      onRowClick,
+      onRowDoubleClick,
+      enableCellEditing,
+      editingCell,
+      selectedCell,
+      setSelectedCell,
+      columnOrder,
+      uniqueValueMaps,
+      expandedRowContent,
+      setEditingCell
+    ]
+  )
+
+  // Handle error and no-data cases
+  if (columnError) {
+    return (
+      <BodyContainer className='data-table-body-container'>
         <NoDataContainer $hasError>{columnError}</NoDataContainer>
-      ) : (rows.length === 0 || table.getVisibleLeafColumns().length === 0) ? (
+      </BodyContainer>
+    )
+  }
+
+  if (rows.length === 0 || visibleColumns.length === 0) {
+    return (
+      <BodyContainer className='data-table-body-container'>
         <NoDataContainer>No data to display</NoDataContainer>
-      ) : (table.getFilteredRowModel().rows.length > 100000) ? (
+      </BodyContainer>
+    )
+  }
+
+  if (filteredRowCount > 100000) {
+    return (
+      <BodyContainer className='data-table-body-container'>
         <NoDataContainer>
           <b>Notice</b>: Maximum rows set to 100,000. For improved performance on large datasets, consider implementing server-side pagination.
         </NoDataContainer>
-      ) : (
+      </BodyContainer>
+    )
+  }
+
+  // Main render
+  return (
+    <BodyContainer className='data-table-body-container'>
+      {enableVirtualization ? (
         <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
           {virtualizer.getVirtualItems().map((virtualRow) => {
             const row = rows[virtualRow.index]
             return (
               <div
                 key={row.id}
-                data-index={virtualRow.index} //needed for dynamic row height measurement
-                ref={node => virtualizer.measureElement(node)} //measure dynamic row height
+                data-index={virtualRow.index}
+                ref={(node) => node && virtualizer.measureElement(node)}
                 style={{
                   position: 'absolute',
-                  transform: `translateY(${virtualRow.start}px)`, //this should always be a `style` as it changes on scroll
+                  transform: `translateY(${virtualRow.start}px)`
                 }}
               >
-                <Row
-                  row={row}
-                  activeRow={activeRow}
-                  disabledRows={disabledRows}
-                  onRowClick={onRowClick}
-                  onRowDoubleClick={onRowDoubleClick}
-                  enableCellEditing={enableCellEditing}
-                  editingCell={editingCell}
-                  setEditingCell={setEditingCell}
-                  selectedCell={selectedCell}
-                  setSelectedCell={setSelectedCell}
-                  columnOrder={columnOrder}
-                  uniqueValueMaps={uniqueValueMaps}
-                />
-                {row.getIsExpanded() && !!expandedRowContent && (
-                  <ExpandedRowContainer>
-                    {expandedRowContent(row.original)}
-                  </ExpandedRowContainer>
-                )}
+                {rowContent(row)}
               </div>
             )
           })}
         </div>
+      ) : (
+        rows.map((row) => rowContent(row))
       )}
     </BodyContainer>
   )
