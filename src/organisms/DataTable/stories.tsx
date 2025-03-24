@@ -46,6 +46,117 @@ export const Test = {
       <Title>DataTable Test</Title>
       <DataTable
         dataSource={[
+          {
+            id: '0',
+            textField: 'Text Value',
+            textareaField: 'Textarea Value',
+            dropdownField: 'Option1',
+            dateField: '2025-03-12',
+            dateRangeField: ['2025-03-10', '2025-03-12'],
+            radioField: 'OptionA',
+            checkboxField: true,
+            switchField: false,
+            checkboxGroupField: ['Option1', 'Option3'],
+            switchGroupField: ['Option2'],
+            radioGroupField: 'OptionB',
+          },
+        ]}
+        columnSettings={[
+          { title: 'ID', column: 'id' },
+          {
+            title: 'Text Field',
+            column: 'textField',
+            editor: { type: 'text' },
+          },
+          {
+            title: 'Textarea Field',
+            column: 'textareaField',
+            editor: { type: 'textarea' },
+          },
+          {
+            title: 'Dropdown Field',
+            column: 'dropdownField',
+            editor: {
+              type: 'dropdown',
+              options: [
+                { text: 'Option1', value: 'Option1' },
+                { text: 'Option2', value: 'Option2' },
+                { text: 'Option3', value: 'Option3' },
+              ],
+            },
+          },
+          {
+            title: 'Date Field',
+            column: 'dateField',
+            editor: { type: 'date' },
+          },
+          {
+            title: 'Date Range Field',
+            column: 'dateRangeField',
+            editor: { type: 'date-range' },
+          },
+          {
+            title: 'Radio Field',
+            column: 'radioField',
+            editor: {
+              type: 'radio',
+              options: [
+                { text: 'OptionA', value: 'OptionA' },
+                { text: 'OptionB', value: 'OptionB' },
+                { text: 'OptionC', value: 'OptionC' },
+              ],
+            },
+          },
+          {
+            title: 'Checkbox Field',
+            column: 'checkboxField',
+            editor: { type: 'checkbox' },
+          },
+          {
+            title: 'Switch Field',
+            column: 'switchField',
+            editor: { type: 'switch' },
+          },
+          {
+            title: 'Checkbox Group Field',
+            column: 'checkboxGroupField',
+            editor: {
+              type: 'checkbox-group',
+              options: [
+                { text: 'Option1', value: 'Option1' },
+                { text: 'Option2', value: 'Option2' },
+                { text: 'Option3', value: 'Option3' },
+              ],
+            },
+          },
+          {
+            title: 'Switch Group Field',
+            column: 'switchGroupField',
+            editor: {
+              type: 'switch-group',
+              options: [
+                { text: 'Option1', value: 'Option1' },
+                { text: 'Option2', value: 'Option2' },
+                { text: 'Option3', value: 'Option3' },
+              ],
+            },
+          },
+          {
+            title: 'Radio Group Field',
+            column: 'radioGroupField',
+            editor: {
+              type: 'radio-group',
+              options: [
+                { text: 'OptionA', value: 'OptionA' },
+                { text: 'OptionB', value: 'OptionB' },
+                { text: 'OptionC', value: 'OptionC' },
+              ],
+            },
+          },
+        ]}
+      />
+      <DataTable
+        dataSource={[
           { id: '0', firstName: 'John', lastname: 'Doe', role: 'Admin' },
           { id: '1', firstName: 'Jane', lastname: 'Smith', role: 'User' },
           { id: '2', firstName: 'Alice', lastname: 'Johnson', role: 'User' },
