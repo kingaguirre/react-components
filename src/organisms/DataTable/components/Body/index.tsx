@@ -51,7 +51,7 @@ export const Body = <TData,>({
   // Memoize the row rendering helper to prevent unnecessary re-creations.
   const rowContent = useCallback(
     (row: any) => (
-      <>
+      <React.Fragment key={row.id}>
         <Row
           row={row}
           activeRow={activeRow}
@@ -71,7 +71,7 @@ export const Body = <TData,>({
             {expandedRowContent(row.original)}
           </ExpandedRowContainer>
         )}
-      </>
+      </React.Fragment>
     ),
     [
       activeRow,
