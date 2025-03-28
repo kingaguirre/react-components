@@ -193,5 +193,5 @@ export const fadeInOnMount = `
       opacity: 1;
     }
   }
-  animation: fadeIn 0.3s ease-in-out;
+  animation: fadeIn 0.3s ease;
 `

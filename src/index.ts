@@ -18,6 +18,7 @@ export { Panel } from './molecules/Panel'
 export { Modal } from './organisms/Modal'
 export { Tabs } from './organisms/Tabs'
 export { DataTable } from './organisms/DataTable'
+export { AppShell } from './organisms/AppShell'
 
 // Theme
 export { theme, GlobalStyles } from './styles'

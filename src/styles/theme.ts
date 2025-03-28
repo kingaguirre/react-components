@@ -8,6 +8,14 @@ export const theme: any = {
       dark: '#0075b0',
       darker: '#005c84',
     },
+    secondary: {
+      base: '#6ac07a',
+      light: '#9dd29c',
+      lighter: '#9dd29c',
+      pale: '#c3e2c1',
+      dark: '#69be28',
+      darker: '#3f9c35',
+    },
     info: {
       base: '#17a2b8',
       light: '#5bc0de',
@@ -30,7 +38,7 @@ export const theme: any = {
       lighter: '#fff3cd',
       pale: '#fff8e5',
       dark: '#e0a800',
-      darker: '#c69500',
+      darker: '#ff991f',
     },
     danger: {
       base: '#dc3545',
