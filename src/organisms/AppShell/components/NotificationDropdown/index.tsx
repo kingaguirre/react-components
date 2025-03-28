@@ -109,11 +109,8 @@ export const NotificationDropdown: React.FC<Notifications> = ({
                 const baseColor = notification.color ? theme.colors[notification.color].base : undefined
                 const computedBorderStyle = notification.color
                   ? (notification.color === 'warning' || notification.color === 'danger'
-                      ? {
-                          border: `1px solid ${baseColor}`,
-                          borderLeft: `4px solid ${baseColor}`,
-                        }
-                      : { borderLeft: `4px solid ${baseColor}` })
+                      ? { borderColor: baseColor }
+                      : { borderLeftColor: baseColor })
                   : {}
 
                 if (notification.type === 'detailed') {
