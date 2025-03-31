@@ -1,0 +1,80 @@
+import { Meta } from '@storybook/blocks';
+import React from 'react';
+import { AppShell } from '../index';
+import { StoryWrapper, Title } from '../../../components/StoryWrapper';
+
+<Meta title="Organisms/AppShell/Profile Dropdown" component={AppShell} />
+
+# Profile Dropdown
+
+The `Profile` interface defines the structure for user profile information within the `AppShell` component. It lets you configure user details as well as the dropdown menu for profile-specific actions.
+
+## How Profile Works
+
+The interface includes the following properties:
+
+- **`name`** *(string)*  
+  The name of the user. This field is required.
+
+- **`userId`** *(string, optional)*  
+  A unique identifier for the user.
+
+- **`lastLoginTime`** *(string | Date, optional)*  
+  Indicates the last time the user logged in.
+
+- **`lastProfileUpdate`** *(string | Date, optional)*  
+  Shows when the profile was last updated.
+
+- **`dropdownItems`** *(array, optional)*  
+  An array of items to be rendered in the profile dropdown. Each dropdown item can have:
+  - **`icon`** *(string)*: The icon identifier.
+  - **`text`** *(string)*: The label to display.
+  - **`onItemClick`** *(function)*: Callback when the item is clicked.
+  - **`active`** *(boolean, optional)*: Marks the item as active if true.
+  - **`disabled`** *(boolean, optional)*: Disables the item if true.
+
+- **`dropdownCustomContent`** *(React.ReactNode, optional)*  
+  Provides custom React content to render within the dropdown.
+
+## Code Example
+
+Below is an example of how to implement the `Profile` interface in the `AppShell` component:
+
+```tsx
+import React from 'react';
+import { AppShell } from 'react-components-lib';
+
+export const AppShellDemo = () => {
+  const profile = {
+    name: 'Jane Doe',
+    userId: 'user-456',
+    lastLoginTime: new Date(),
+    lastProfileUpdate: new Date(),
+    dropdownItems: [
+      {
+        icon: 'user',
+        text: 'Profile',
+        onItemClick: () => console.log('Profile clicked'),
+      },
+      {
+        icon: 'logout',
+        text: 'Logout',
+        onItemClick: () => console.log('Logout clicked'),
+      },
+    ],
+    // dropdownCustomContent takes priority over dropdownItems.
+    // If dropdownCustomContent is defined, dropdownItems will not be rendered.
+    dropdownCustomContent: <div>Custom content here</div>,
+  };
+
+  return (
+    <AppShell
+      pageTitle="Dashboard"
+      profile={profile}
+      rightIcons={[]} // Add header icons as needed.
+      sideMenuItems={[]} // Provide side menu items as needed.
+    >
+      <div>Your application content goes here.</div>
+    </AppShell>
+  );
+};

@@ -1,0 +1,89 @@
+import { Meta } from '@storybook/blocks';
+import React from 'react';
+import { AppShell } from '../index';
+import { StoryWrapper, Title } from '../../../components/StoryWrapper';
+
+<Meta title="Organisms/AppShell/Layout & General Props" component={AppShell} />
+
+# AppShell Layout & General Props
+
+This section covers the remaining properties of the `AppShellProps` interface that are not part of the header icons, profile, side menu items, or notifications. These properties control the overall layout and behavior of the AppShell component.
+
+## Prop Details
+
+- **`pageTitle`** *(string)*  
+  The title of the page, prominently displayed in the AppShell header.
+
+- **`pageName`** *(string, optional)*  
+  A specific name for the page, used for additional context or navigation.
+
+- **`logo`** *(string, optional)*  
+  The URL or asset identifier for the main logo displayed in the header.
+
+- **`logoMinimal`** *(string, optional)*  
+  A compact version of the logo, ideal for collapsed menus or mobile views.
+
+- **`onToggle`** *(function, optional)*  
+  A callback function triggered when the side menu is toggled. It receives a boolean indicating the new visibility state of the side menu.
+
+- **`menuOverlay`** *(boolean, optional)*  
+  Determines whether the side menu should overlay the main content (`true`) or be displayed side-by-side (`false`).
+
+- **`activeMenu`** *(string, optional)*  
+  Represents the identifier of the currently active menu item.
+
+- **`children`** *(React.ReactNode, optional)*  
+  The primary content of your application that will be rendered within the AppShell layout.
+
+- **`showMenu`** *(boolean, optional)*  
+  Controls whether the side menu is visible.
+
+- **`collapsedMenu`** *(boolean, optional)*  
+  Indicates if the side menu should appear in a collapsed state.
+
+- **`showFooter`** *(boolean, optional)*  
+  Determines if the footer should be displayed.
+
+- **`footerContent`** *(React.ReactNode, optional)*  
+  Custom content to display in the footer. This can be text, links, or any other React element.
+
+- **`footerAlignment`** *('left' | 'center' | 'right', optional)*  
+  Specifies the alignment of the footer content. Defaults to center if not provided.
+
+- **`onClickLogo`** *(function, optional)*  
+  A callback function triggered when the logo is cliked.
+
+## Code Example
+
+Below is an example demonstrating the usage of these layout and general properties in the `AppShell` component:
+
+```tsx
+import React from 'react';
+import { AppShell } from 'react-components-lib';
+
+export const AppShellDemo = () => {
+  return (
+    <AppShell
+      pageTitle="Dashboard"
+      pageName="MainDashboard"
+      logo="https://example.com/logo.png"
+      logoMinimal="https://example.com/logo-min.png"
+      onToggle={(sideMenuVisible) =>
+        console.log('Side menu visibility:', sideMenuVisible)
+      }
+      menuOverlay={true}
+      activeMenu="dashboard"
+      showMenu={true}
+      collapsedMenu={false}
+      showFooter={true}
+      footerContent={<div>© 2025 Your Company</div>}
+      footerAlignment="center"
+      // Required props for other sections:
+      rightIcons={[]} 
+      sideMenuItems={[]} 
+      profile={{ name: 'John Doe' }}
+    >
+      <div>Your application content goes here.</div>
+    </AppShell>
+  );
+};

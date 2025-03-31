@@ -3,7 +3,7 @@ export interface IconProps {
   /** The icon class name */
   icon: string;
   /** Optional size of the icon (inherits from parent if not defined) */
-  size?: string;
+  size?: string | number;
   /** Optional color of the icon (inherits from parent if not defined) */
   color?: string;
   /** Whether the icon is disabled */

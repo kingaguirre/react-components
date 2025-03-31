@@ -1,0 +1,80 @@
+import { Meta } from '@storybook/blocks';
+import React from 'react';
+import { AppShell } from '../index';
+import { StoryWrapper, Title } from '../../../components/StoryWrapper';
+
+<Meta title="Organisms/AppShell/Side Menu" component={AppShell} />
+
+# Side Menu
+
+The `SideMenuItem` interface is used in the `sideMenuItems` prop of the `AppShell` component. It defines the structure for each menu item in the side navigation, allowing you to create both flat and hierarchical menus.
+
+## How SideMenuItem Works
+
+The interface includes the following properties:
+
+- **`id`** *(string, required)*  
+  A unique identifier for the menu item.
+
+- **`icon`** *(string)*  
+  Specifies the icon to be displayed with the menu item.
+
+- **`title`** *(string)*  
+  The display title of the menu item.
+
+- **`children`** *(SideMenuItem[], optional)*  
+  An array of nested menu items, which allows you to create sub-menus.
+
+- **`onClick`** *(function, optional)*  
+  Callback function that executes when the menu item is clicked.
+
+This flexible configuration lets you build a dynamic and interactive side menu that can handle both single-level and nested navigation.
+
+## Code Example
+
+Below is an example of how to use the `SideMenuItem` interface within the `AppShell` component:
+
+```tsx
+import React from 'react';
+import { AppShell } from 'react-components-lib';
+
+export const AppShellDemo = () => {
+  const sideMenuItems = [
+    {
+      id: 'home',
+      icon: 'home',
+      title: 'Home',
+      onClick: () => console.log('Home clicked'),
+    },
+    {
+      id: 'dashboard',
+      icon: 'dashboard',
+      title: 'Dashboard',
+      children: [
+        {
+          id: 'analytics',
+          icon: 'chart',
+          title: 'Analytics',
+          onClick: () => console.log('Analytics clicked'),
+        },
+        {
+          id: 'reports',
+          icon: 'report',
+          title: 'Reports',
+          onClick: () => console.log('Reports clicked'),
+        },
+      ],
+    },
+  ];
+
+  return (
+    <AppShell
+      pageTitle="Dashboard"
+      sideMenuItems={sideMenuItems}
+      rightIcons={[]} // Provide header icons as needed.
+      profile={{ name: 'John Doe' }} // Minimal profile example.
+    >
+      <div>Your AppShell content goes here.</div>
+    </AppShell>
+  );
+};

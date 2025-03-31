@@ -1,0 +1,120 @@
+import { Meta } from '@storybook/blocks';
+import React from 'react';
+import { AppShell } from '../index';
+import { StoryWrapper, Title } from '../../../components/StoryWrapper';
+
+<Meta title="Organisms/AppShell/Notifications" component={AppShell} />
+
+# Notifications
+
+The `Notifications` interface is used to configure the notifications area in the `AppShell` component. It lets you define a list of notifications and customize how they are displayed.
+
+## How Notifications Works
+
+The interface includes the following properties:
+
+- **`notifications`** *(array, optional)*  
+  An array of notification items defined by the `NotificationItem` interface.
+
+- **`totalNewNotifications`** *(number, optional)*  
+  The total count of new notifications.
+
+- **`showTotalCount`** *(boolean, optional)*  
+  Determines whether to display the total count of new notifications.
+
+- **`onShowAllClick`** *(function, optional)*  
+  Callback function triggered when the "Show All" action is invoked.
+
+- **`dropdownHeight`** *(string, optional)*  
+  Sets the maximum height for the notifications dropdown.
+
+## NotificationItem Interface
+
+Each notification in the `notifications` array is defined by the `NotificationItem` interface, which includes:
+
+- **`id`** *(string | number)*  
+  A unique identifier for the notification.
+
+- **`type`** *(string, optional)*  
+  The type of notification. It can be either `'default'` or `'detailed'`.
+
+- **`title`** *(string, optional)*  
+  The title of the notification.
+
+- **`message`** *(string)*  
+  The message content of the notification.
+
+- **`messageContent`** *(React.ReactNode, optional)*  
+  Custom React content to display additional details in the notification.
+
+- **`dateTime`** *(string | Date)*  
+  The date and time associated with the notification.
+
+- **`imageUrl`** *(string, optional)*  
+  URL of an image to display with the notification.
+
+- **`name`** *(string, optional)*  
+  The name associated with the notification, if applicable.
+
+- **`email`** *(string, optional)*  
+  The email address associated with the notification, if applicable.
+
+- **`isNew`** *(boolean, optional)*  
+  Indicates whether the notification is new.
+
+- **`onClick`** *(function, optional)*  
+  Callback function executed when the notification is clicked.
+
+- **`icon`** *(string, optional)*  
+  Icon identifier for the notification.
+
+- **`color`** *(ColorType, optional)*  
+  Specifies the color for the notification icon or text.
+
+## Code Example
+
+Below is an example of how to implement the `Notifications` interface within the `AppShell` component:
+
+```tsx
+import React from 'react';
+import { AppShell } from 'react-components-lib';
+
+export const AppShellDemo = () => {
+  const notifications = {
+    notifications: [
+      {
+        id: 'notif-1',
+        message: 'You have a new message',
+        dateTime: new Date(),
+        isNew: true,
+        onClick: () => console.log('Notification clicked'),
+      },
+      {
+        id: 'notif-2',
+        type: 'detailed',
+        title: 'System Alert',
+        message: 'Your system needs an update.',
+        dateTime: new Date(),
+        icon: 'alert',
+        color: 'error',
+        onClick: () => console.log('Alert clicked'),
+      },
+    ],
+    totalNewNotifications: 2,
+    showTotalCount: true,
+    onShowAllClick: () => console.log('Show all notifications'),
+    dropdownHeight: '300px',
+  };
+
+  return (
+    <AppShell
+      pageTitle="Dashboard"
+      notifications={notifications}
+      rightIcons={[]} // Add header icons as needed.
+      sideMenuItems={[]} // Provide side menu items as needed.
+      profile={{ name: 'John Doe' }} // Minimal profile example.
+    >
+      <div>Your AppShell content goes here.</div>
+    </AppShell>
+  );
+};

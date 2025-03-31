@@ -1,0 +1,78 @@
+import { Meta } from '@storybook/blocks';
+import React from 'react';
+import { AppShell } from '../index';
+import { StoryWrapper, Title } from '../../../components/StoryWrapper';
+
+<Meta title="Organisms/AppShell/Header Right Icon" component={AppShell} />
+
+# Header Right Icon
+
+The `HeaderRightIcon` interface is used in the `rightIcons` props of the `AppShellProps` to define clickable icons in the header area of the AppShell component.
+
+## How HeaderRightIcon Works
+
+The interface allows you to configure each header icon with the following properties:
+
+- **`icon`**: *(string)* – Specifies the icon identifier (e.g., `'settings'`, `'refresh'`, etc.).
+- **`color`**: *(ColorType, optional)* – Determines the color of the icon.
+- **`colorShade`**: *(string, optional)* – Allows selecting a specific shade of the color.
+- **`disabled`**: *(boolean, optional)* – If set to true, the icon is rendered in a disabled state.
+- **`leftDivider`**: *(boolean, optional)* – When true, adds a left divider to visually separate the icon.
+- **`text`**: *(string, optional)* – Provides additional text to display alongside the icon.
+- **`tooltip`**: *(string, optional)* – Defines the tooltip text shown on hover.
+- **`onClick`**: *(function)* – Callback function that executes when the icon is clicked.
+
+This flexible configuration lets you tailor each header icon to suit different actions or statuses in your application.
+
+## Code Example
+
+Below is an example of how to use the `HeaderRightIcon` interface by providing an array for the `rightIcons` prop in the `AppShell` component:
+
+```tsx
+import React from 'react';
+import { AppShell } from 'react-components-lib';
+
+export const AppShellDemo = () => {
+  const rightIcons = [
+    {
+      icon: 'settings',
+      onClick: () => alert('Settings clicked'),
+      leftDivider: true,
+      tooltip: 'Settings',
+      colorShade: 'darker'
+    },
+    {
+      icon: 'refresh',
+      onClick: () => alert('Refresh clicked'),
+      disabled: true,
+      tooltip: 'Refresh'
+    },
+    {
+      icon: 'info_outline',
+      onClick: () => alert('Info clicked'),
+      color: 'warning',
+      tooltip: 'Info'
+    },
+    {
+      icon: 'logout',
+      onClick: () => alert('Logout clicked'),
+      color: 'primary',
+      colorShade: 'darker',
+      leftDivider: true,
+      text: 'Logout'
+    },
+  ];
+
+  return (
+    <AppShell
+      pageTitle="Dashboard"
+      rightIcons={rightIcons}
+      sideMenuItems={[]} // Your side menu items here
+      profile={{ name: 'John Doe' }} // Minimal profile example
+    >
+      <div>Your AppShell content goes here.</div>
+    </AppShell>
+  );
+};
+```
+In this example, each object in the `rightIcons` array adheres to the `HeaderRightIcon` interface. This ensures that your header icons are interactive and display the necessary visual cues, such as tooltips and dividers, as defined in your interface.

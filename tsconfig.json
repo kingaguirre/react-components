@@ -38,7 +38,8 @@
     "src/common/*",
     "src/components/*",
     "src/utils/*",
-    "src/styles/*", 
+    "src/styles/*",
+    "types"
   ],
   "exclude": [
     "node_modules",

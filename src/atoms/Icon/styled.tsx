@@ -2,6 +2,8 @@ import styled from "styled-components";
 import { IconProps } from "./interface";
 import { ifElse } from "../../utils/index";
 
+const getSize = (s: IconProps["size"]) => typeof s === 'string' ? s : `${s}px`
+
 export const IconContainer = styled.span<{
   $size?: IconProps["size"];
   $color?: IconProps["color"];
@@ -10,7 +12,7 @@ export const IconContainer = styled.span<{
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: ${({ $size }) => ($size ?? "inherit")};
+  font-size: ${({ $size }) => getSize($size) ?? "inherit"};
   color: ${({ $color, $disabled }) => ifElse($disabled ?? false, "gray", $color ? `${$color}!important` : "inherit")};
   pointer-events: ${({ $disabled }) => ($disabled ? "none" : "auto")};
   opacity: ${({ $disabled }) => ($disabled ? 0.5 : 1)};
@@ -25,13 +27,14 @@ export const IconContainer = styled.span<{
 `;
 
 /* ✅ Fallback Box (Only Shown if Icon is Missing) */
-export const FallbackBox = styled.div<{ $size?: string }>`
+export const FallbackBox = styled.div<{ $size?: IconProps["size"] }>`
   display: flex;
   align-items: center;
   justify-content: center;
   background: #f8d7da;
   color: #721c24;
-  font-size: ${({ $size }) => $size ?? "inherit"};
+  font-size: ${({ $size }) => getSize($size) ?? "inherit"};
+  min-width: ${({ $size }) => $size ?? "1em"};
   width: ${({ $size }) => $size ?? "1em"};
   height: ${({ $size }) => $size ?? "1em"};
   border-radius: 4px;
