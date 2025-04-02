@@ -79,6 +79,7 @@ export const DropdownHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border-bottom: 1px solid #ddd;
 `
 
 export const HeaderTitle = styled.div`
@@ -139,8 +140,11 @@ export const NotificationItemWrapper = styled.div`
   display: flex;
   align-items: center;
   padding: 12px;
-  border-bottom: 1px solid #f0f0f0;
+  border-width: 1px 1px 1px 4px;
+  border-style: solid;
+  border-color: transparent;
   transition: all .3s ease;
+  border-bottom: 1px solid #f0f0f0;
   cursor: pointer;
   &:hover {
     background-color: ${theme.colors.primary.pale};
@@ -155,7 +159,6 @@ export const NotificationItemWrapper = styled.div`
 
 export const NotificationContent = styled.div`
   flex: 1;
-  margin-left: 0.75rem;
   overflow: hidden;
 `
 
@@ -185,11 +188,18 @@ export const NotificationTime = styled.div`
 
 export const DetailedNotificationItem = styled(NotificationItemWrapper)`
   flex-direction: row;
+  border-width: 1px 1px 1px 4px;
+  border-style: solid;
+  border-color: transparent;
+  border-bottom: 1px solid #f0f0f0;
 `
 
 export const NotificationImage = styled.div`
   width: 30px;
+  min-width: 30px;
+  max-width: 30px;
   height: 30px;
+  margin-right: 12px;
   background: #ccc;
   border-radius: 50%;
   flex-shrink: 0;
@@ -208,7 +218,6 @@ export const NotificationImageImg = styled.img`
 
 export const NotificationDetails = styled.div`
   flex: 1;
-  margin-left: 0.75rem;
   overflow: hidden;
 `
 
@@ -264,6 +273,9 @@ export const NewIndicator = styled.div`
 
 export const NotificationIconWrapper = styled.div`
   width: 30px;
+  min-width: 30px;
+  max-width: 30px;
+  margin-right: 12px;
   display: flex;
   align-items: center;
   justify-content: center;

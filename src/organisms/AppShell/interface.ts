@@ -78,4 +78,6 @@ export interface AppShellProps {
   footerContent?: React.ReactNode
   footerAlignment?: 'left' | 'center' | 'right'
   onClickLogo?: () => void
+  autoHideHeader?: boolean
+  autoHideHeaderDelay?: number
 }

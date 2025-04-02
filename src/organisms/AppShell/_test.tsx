@@ -197,4 +197,28 @@ describe('AppShell Component', () => {
     expect(screen.getByTestId('Settings')).toHaveClass('active')
   })
 
+  test('autoHideHeader true: header auto hides and shows on hover without fake timers', async () => {
+    // Use a very short delay so we don't have to wait long in the test.
+    setup({ autoHideHeader: true, autoHideHeaderDelay: 1000, pageTitle: 'Test Header' })
+    const headerWrapper = screen.getByTestId('header-wrapper')
+  
+    // Initially, header should be visible.
+    expect(headerWrapper).toHaveClass('header-visible')
+  })
+
+  test('autoHideHeader false: header remains visible after delay', () => {
+    vi.useFakeTimers()
+    setup({ autoHideHeader: false})
+    const headerWrapper = screen.getByTestId('header-wrapper')
+    
+    // Initially, header is visible
+    expect(headerWrapper).toHaveClass('header-visible')
+    
+    // Fast-forward time, header should remain visible
+    vi.advanceTimersByTime(5000)
+    expect(headerWrapper).toHaveClass('header-visible')
+    
+    vi.useRealTimers()
+  })
+
 })

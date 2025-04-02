@@ -21,6 +21,7 @@ export const Container = styled.div`
   min-width: 768px; // min-width for tablet portrait
   box-sizing: border-box;
   background-color: #e1e1e1;
+  overflow: hidden;
   * { box-sizing: border-box; }
 `
 
@@ -60,10 +61,17 @@ export const RightSection = styled.div`
   font-size: 10px;
 `
 
+export const HeaderWrapper = styled.div<{ $headerHidden: boolean }>`
+  height: 32px;
+  overflow: visible;
+  margin-top: ${({ $headerHidden }) =>
+    $headerHidden ? '-30px' : 0};
+  transition: margin-top 0.3s ease;
+`
+
 export const ContentWrapper = styled.div`
   display: flex;
   flex: 1;
-  height: calc(100vh - 120px);
   position: relative;
   overflow: hidden;
 `

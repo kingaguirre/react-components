@@ -58,7 +58,7 @@ export const Default: StoryObj<typeof meta> = {
         icon: 'refresh',
         onClick: () => alert('Refresh clicked'),
         disabled: true,
-        tooltip: 'Refresh'
+        tooltip: 'Refresh and Disabled'
       },
       {
         icon: 'info_outline',

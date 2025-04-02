@@ -1,8 +1,9 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   Container,
   ContentWrapper,
   Header,
+  HeaderWrapper,
   LeftSection,
   RightSection,
   IconButton,
@@ -44,10 +45,23 @@ export const AppShell: React.FC<AppShellProps> = ({
   logo,
   logoMinimal,
   showFooter = true,
-  onClickLogo
+  onClickLogo,
+  autoHideHeader = true,
+  autoHideHeaderDelay = 3000,
 }) => {
   const [menuVisible, setMenuVisible] = useState(showMenu)
   const [menuCollapsed, setMenuCollapsed] = useState(collapsedMenu)
+  const [headerHidden, setHeaderHidden] = useState(false)
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (autoHideHeader && !headerHidden) {
+      const timer = setTimeout(() => {
+        setHeaderHidden(true)
+      }, autoHideHeaderDelay)
+      return () => clearTimeout(timer)
+    }
+  }, [autoHideHeader, autoHideHeaderDelay])
 
   const toggleShowMenu = () => {
     setMenuVisible(!menuVisible)
@@ -60,43 +74,66 @@ export const AppShell: React.FC<AppShellProps> = ({
     setMenuCollapsed(!menuCollapsed)
   }
 
+  const handleHeaderMouseEnter = () => {
+    if (autoHideHeader) {
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current)
+      setHeaderHidden(false)
+    }
+  }
+
+  const handleHeaderMouseLeave = () => {
+    if (autoHideHeader) {
+      hideTimerRef.current = setTimeout(() => {
+        setHeaderHidden(true)
+      }, autoHideHeaderDelay)
+    }
+  }
+
   return (
     <Container className='app-shell' data-testid='app-shell'>
-      <Header>
-        <LeftSection>
-          <Hamburger show={menuVisible} onClick={toggleShowMenu}/>
-          <AnimatedIconWrapper $show={menuVisible} onClick={onClickLogo}>
-            <AnimatedIcon $show={menuVisible}>
-              <img src={logo ?? _logo} alt='Logo' />
-            </AnimatedIcon>
-            <AnimatedIcon $show={!menuVisible}>
-              <img src={logoMinimal ?? _logoMinimal} alt='Logo' />
-            </AnimatedIcon>
-          </AnimatedIconWrapper>
-          <AnimatedText expanded={!menuVisible}>{pageTitle}</AnimatedText>
-          <PageName>{pageName}</PageName>
-        </LeftSection>
-        <RightSection>
-          <ProfileDropdown {...profile} />
-          <NotificationDropdown {...notifications} />
-          {rightIcons.map((item, index) => (
-            <Tooltip key={index} type='title' content={item?.tooltip}>
-              <IconButton
-                onClick={() => !item.disabled && item.onClick()}
-                disabled={item.disabled}
-                $leftDivider={item.leftDivider}
-                $color={item.color}
-                $colorShade={item.colorShade}
-                data-testid={`header-icon-${item.icon}`}
-                data-color={item.color}
-              >
-                {item.text && <span className='text'>{item.text}</span>}
-                <Icon icon={item.icon} />
-              </IconButton>
-            </Tooltip>
-          ))}
-        </RightSection>
-      </Header>
+      <HeaderWrapper
+        className={headerHidden ? 'header-hidden' : 'header-visible'}
+        $headerHidden={headerHidden}
+        onMouseEnter={handleHeaderMouseEnter}
+        onMouseLeave={handleHeaderMouseLeave}
+        data-testid='header-wrapper'
+      >
+        <Header>
+          <LeftSection>
+            <Hamburger show={menuVisible} onClick={toggleShowMenu} />
+            <AnimatedIconWrapper $show={menuVisible} onClick={onClickLogo}>
+              <AnimatedIcon $show={menuVisible}>
+                <img src={logo ?? _logo} alt='Logo' />
+              </AnimatedIcon>
+              <AnimatedIcon $show={!menuVisible}>
+                <img src={logoMinimal ?? _logoMinimal} alt='Logo' />
+              </AnimatedIcon>
+            </AnimatedIconWrapper>
+            <AnimatedText expanded={!menuVisible}>{pageTitle}</AnimatedText>
+            <PageName>{pageName}</PageName>
+          </LeftSection>
+          <RightSection>
+            <ProfileDropdown {...profile} />
+            <NotificationDropdown {...notifications} />
+            {rightIcons.map((item, index) => (
+              <Tooltip key={index} type='title' content={item?.tooltip}>
+                <IconButton
+                  onClick={() => !item.disabled && item.onClick()}
+                  disabled={item.disabled}
+                  $leftDivider={item.leftDivider}
+                  $color={item.color}
+                  $colorShade={item.colorShade}
+                  data-testid={`header-icon-${item.icon}`}
+                  data-color={item.color}
+                >
+                  {item.text && <span className='text'>{item.text}</span>}
+                  <Icon icon={item.icon} />
+                </IconButton>
+              </Tooltip>
+            ))}
+          </RightSection>
+        </Header>
+      </HeaderWrapper>
       <ContentWrapper>
         <SideMenuContainer
           $visible={menuVisible}
@@ -122,7 +159,7 @@ export const AppShell: React.FC<AppShellProps> = ({
         </SideMenuContainer>
         <MainContent>{children}</MainContent>
       </ContentWrapper>
-      {showFooter && <Footer alignment={footerAlignment} content={footerContent}/>}
+      {showFooter && <Footer alignment={footerAlignment} content={footerContent} />}
     </Container>
   )
 }
