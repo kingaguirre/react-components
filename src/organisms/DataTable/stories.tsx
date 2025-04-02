@@ -4,7 +4,7 @@ import { DataTable } from './index'
 import { StoryWrapper, Title } from '../../components/StoryWrapper'
 import { COLUMN_SETTINGS, dataSource } from './Playground/data'
 import { DataTablePlayground } from './Playground'
-import { GridExample } from './Playground/AgGrid'
+// import { GridExample } from './Playground/AgGrid'
 
 // const DATA_SOURCE = makeData(50000)
 const meta: Meta<typeof DataTable> = {
@@ -15,6 +15,19 @@ const meta: Meta<typeof DataTable> = {
 
 export default meta
 
+const HeartbeatDisplay = React.memo(() => {
+  const [heartbeat, setHeartbeat] = React.useState(0)
+  React.useEffect(() => {
+    const interval = setInterval(() => setHeartbeat(prev => prev + 1), 100)
+    return () => clearInterval(interval)
+  }, [])
+  return (
+    <div>
+      <strong>Heartbeat:</strong> {heartbeat}
+    </div>
+  )
+})
+
 /** ✅ Demo Story */
 export const Playground = {
   tags: ['!autodocs'],
@@ -24,6 +37,7 @@ export const Playground = {
       subTitle='This interactive demonstration tool allows you to experiment with a variety of DataTable configurations in real time. Use the controls accessible via the gear icon at the top-right corner to adjust settings such as filtering, sorting, and more. The DataTable displayed below will update dynamically, enabling you to observe firsthand how each property influences its behavior and appearance.'
     >
       <Title>DataTable Feature Demo</Title>
+      {/* <HeartbeatDisplay/> */}
       <DataTablePlayground>
         <DataTable
           dataSource={dataSource()}
@@ -32,7 +46,7 @@ export const Playground = {
           // expandedRowContent={rowData => rowData.id !== 5 ? <div style={{background: 'white'}}>{JSON.stringify(rowData)}</div> : null}
         />
       </DataTablePlayground>
-      <GridExample />
+      {/* <GridExample /> */}
     </StoryWrapper>
   ),
 }

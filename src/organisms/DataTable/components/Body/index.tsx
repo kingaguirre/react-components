@@ -1,6 +1,5 @@
 import React, { useMemo, useCallback } from 'react'
 import { Table } from '@tanstack/react-table'
-import { Virtualizer } from '@tanstack/react-virtual'
 import { BodyContainer, NoDataContainer, ExpandedRowContainer } from './styled'
 import { EditingCellType, SelectedCellType } from '../../interface'
 import { Row } from './Row'
@@ -21,7 +20,6 @@ interface BodyProps<TData> {
   onRowDoubleClick?: (data: any, e: React.MouseEvent<HTMLElement>) => void
   expandedRowContent?: (RowData: any) => React.ReactNode
   uniqueValueMaps?: Record<string, string[] | Record<string, number> | undefined>
-  virtualizer: Virtualizer<HTMLDivElement, Element>
 }
 
 export const Body = <TData,>({
@@ -39,14 +37,12 @@ export const Body = <TData,>({
   onRowDoubleClick,
   expandedRowContent,
   uniqueValueMaps,
-  virtualizer
 }: BodyProps<TData>) => {
   // Precompute values from the table
   const { rows } = table.getRowModel()
 
   const filteredRowCount = useMemo(() => table.getFilteredRowModel().rows.length, [table])
   const visibleColumns = useMemo(() => table.getVisibleLeafColumns(), [table])
-  const enableVirtualization = rows.length > 100
 
   // Memoize the row rendering helper to prevent unnecessary re-creations.
   const rowContent = useCallback(
@@ -119,28 +115,7 @@ export const Body = <TData,>({
   // Main render
   return (
     <BodyContainer className='data-table-body-container'>
-      {enableVirtualization ? (
-        <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
-          {virtualizer.getVirtualItems().map((virtualRow) => {
-            const row = rows[virtualRow.index]
-            return (
-              <div
-                key={row.id}
-                data-index={virtualRow.index}
-                ref={(node) => node && virtualizer.measureElement(node)}
-                style={{
-                  position: 'absolute',
-                  transform: `translateY(${virtualRow.start}px)`
-                }}
-              >
-                {rowContent(row)}
-              </div>
-            )
-          })}
-        </div>
-      ) : (
-        rows.map((row) => rowContent(row))
-      )}
+      {rows.map((row) => rowContent(row))}
     </BodyContainer>
   )
 }

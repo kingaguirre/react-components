@@ -50,7 +50,7 @@ export const Row = memo(({
         }
       : undefined,
   })
-
+  
   return (
     <DataTableRow
       key={row.id}
