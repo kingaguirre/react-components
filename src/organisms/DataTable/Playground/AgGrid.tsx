@@ -1,19 +1,19 @@
-'use client';
-import React, { useState, useEffect } from "react";
-import type { ColDef } from "ag-grid-community";
-import { AllCommunityModule, ModuleRegistry } from "ag-grid-community";
-import { AgGridReact } from "ag-grid-react";
+'use client'
+import React, { useState, useEffect } from "react"
+import type { ColDef } from "ag-grid-community"
+import { AllCommunityModule, ModuleRegistry } from "ag-grid-community"
+import { AgGridReact } from "ag-grid-react"
 
 // Register all community modules
-ModuleRegistry.registerModules([AllCommunityModule]);
+ModuleRegistry.registerModules([AllCommunityModule])
 
 // Dummy secureRandom function and sample addresses
-const secureRandom = () => Math.random();
+const secureRandom = () => Math.random()
 const loremAddresses = [
   "123 Main St, City, Country",
   "456 Elm St, City, Country",
   "789 Maple Ave, City, Country",
-];
+]
 
 // Generate 1000 rows of sample data
 const dataSource = (length = 1000) => {
@@ -85,8 +85,8 @@ const dataSource = (length = 1000) => {
         { action: "updated", timestamp: new Date(2023, 1, 1 + i).toISOString() },
       ],
     },
-  }));
-};
+  }))
+}
 
 // Your COLUMN_SETTINGS definition
 const COLUMN_SETTINGS = [
@@ -157,10 +157,10 @@ const COLUMN_SETTINGS = [
     column: "preferences",
     filter: { type: "dropdown" },
     cell: (params: any) => {
-      const preferences = params.value;
+      const preferences = params.value
       const prefArray = Array.isArray(preferences)
         ? preferences
-        : String(preferences).split(",").filter(Boolean);
+        : String(preferences).split(",").filter(Boolean)
       return prefArray.length ? (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
           {prefArray.map((item: string) => (
@@ -169,7 +169,7 @@ const COLUMN_SETTINGS = [
             </span>
           ))}
         </div>
-      ) : null;
+      ) : null
     },
   },
   {
@@ -209,25 +209,25 @@ const COLUMN_SETTINGS = [
       <button>{params.data.name} {params.rowIndex}</button>
     ),
   },
-];
+]
 
 // Helper to map our custom filter types to AG Grid filters
 const mapFilterToAgGridFilter = (filter: any) => {
-  if (!filter) return false;
+  if (!filter) return false
   switch (filter.type) {
     case "dropdown":
-      return "agSetColumnFilter";
+      return "agSetColumnFilter"
     case "date-range":
     case "date":
-      return "agDateColumnFilter";
+      return "agDateColumnFilter"
     case "number-range":
-      return "agNumberColumnFilter";
+      return "agNumberColumnFilter"
     case "text":
-      return "agTextColumnFilter";
+      return "agTextColumnFilter"
     default:
-      return true;
+      return true
   }
-};
+}
 
 // Transform COLUMN_SETTINGS into AG Grid ColDef array
 const transformColumnSettingsToAgGridDefs = (settings: any[]): ColDef[] => {
@@ -242,28 +242,26 @@ const transformColumnSettingsToAgGridDefs = (settings: any[]): ColDef[] => {
     filter: setting.filter ? mapFilterToAgGridFilter(setting.filter) : false,
     cellRenderer: setting.cell ? setting.cell : undefined,
     cellStyle: setting.align ? { textAlign: setting.align } : undefined,
-  }));
-};
+  }))
+}
 
 export const GridExample = () => {
-  const [rowData, setRowData] = useState<any[]>([]);
-  const [colDefs, setColDefs] = useState<ColDef[]>([]);
+  const [colDefs, setColDefs] = useState<ColDef[]>([])
 
   useEffect(() => {
-    setRowData(dataSource(1000));
-    setColDefs(transformColumnSettingsToAgGridDefs(COLUMN_SETTINGS));
-  }, []);
+    setColDefs(transformColumnSettingsToAgGridDefs(COLUMN_SETTINGS))
+  }, [])
 
   const defaultColDef: ColDef = {
     flex: 1,
     resizable: true,
     filter: true,
-  };
+  }
 
   return (
-    <div className="ag-theme-alpine" style={{ width: "100%", height: "200px" }}>
+    <div className="ag-theme-alpine" style={{ width: "100%", height: "300px" }}>
       <AgGridReact
-        rowData={rowData}
+        rowData={dataSource(1000)}
         columnDefs={colDefs}
         defaultColDef={defaultColDef}
         rowSelection={{
@@ -271,5 +269,5 @@ export const GridExample = () => {
         }}
       />
     </div>
-  );
-};
+  )
+}

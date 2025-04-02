@@ -2,7 +2,6 @@
 import React, { useState } from 'react'
 import { FormControl } from '../../../atoms/FormControl'
 import { Dropdown } from '../../../molecules/Dropdown'
-import { dataSource } from './data'
 
 const FloatingSettingsPanel = ({ children }: { children: React.ReactNode }) => {
   return (
@@ -68,11 +67,9 @@ export const DataTablePlayground: React.FC<DataTablePlaygroundProps> = ({
   const [partialRowDeletionID, setPartialRowDeletionID] = useState('partialDelete')
   const [disabled, setDisabled] = useState(false)
   const [headerRightControls, setHeaderRightControls] = useState(true)
-  const [dataSourceLength, setDataSourceLength] = useState<string>('1000')
 
   // Clone the child element to inject playground state as props
   const clonedChild = React.cloneElement(children, {
-    dataSource: dataSource(parseInt(dataSourceLength)),
     enableColumnFiltering,
     enableColumnPinning,
     enableColumnDragging,
@@ -132,18 +129,6 @@ export const DataTablePlayground: React.FC<DataTablePlaygroundProps> = ({
       {showSettings && (
         <FloatingSettingsPanel>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <Dropdown
-              size='sm'
-              label='DataSource length'
-              type='number'
-              options={[
-                {value: '1000', text: '1,000 records'},
-                {value: '10000', text: '10,000 records'},
-                {value: '20000', text: '20,000 records'},
-              ]}
-              value={dataSourceLength}
-              onChange={(value) => setDataSourceLength(value as string)}
-            />
             <FormControl
               size='sm'
               label='Title'
@@ -282,10 +267,6 @@ export const DataTablePlayground: React.FC<DataTablePlaygroundProps> = ({
                 { value: '10', text: '10' },
                 { value: '20', text: '20' },
                 { value: '50', text: '50' },
-                { value: '100', text: '100' },
-                { value: '1000', text: '1,000' },
-                { value: '10000', text: '10,000' },
-                { value: '20000', text: '20,000' },
               ]}
               value={pageSize}
               onChange={(value) => setPageSize(value)}
