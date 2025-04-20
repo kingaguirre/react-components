@@ -90,6 +90,10 @@ export const ButtonContainer = styled.button<{
     text-overflow: ellipsis;
     overflow: hidden;
     color: white;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
   }
 
   ${({ $variant, $color }) => getVariantStyles({ $variant, $color, _theme: theme })}

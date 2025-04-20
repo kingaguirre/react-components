@@ -134,7 +134,7 @@ export const AppShell: React.FC<AppShellProps> = ({
           </RightSection>
         </Header>
       </HeaderWrapper>
-      <ContentWrapper>
+      <ContentWrapper className='app-shell-content-wrapper'>
         <SideMenuContainer
           $visible={menuVisible}
           $collapsed={menuCollapsed}

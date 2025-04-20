@@ -31,6 +31,7 @@ const sampleItems: AccordionItemProps[] = [
     rightDetails: [
       { value: '2', icon: 'check', text: 'Detail 1', onClick: () => alert('Detail 1 clicked') },
     ],
+    disabled: true
   },
   {
     title: 'Accordion Item 2',
@@ -68,13 +69,23 @@ const AccordionExamples = () => {
   const [allowMultiple, setAllowMultiple] = useState(false)
 
   // Colors Accordion: one item per allowed color.
-  const colors: AccordionItemProps[] = ['primary', 'info', 'success', 'warning', 'danger', 'default'].map(
-    (col) => ({
-      title: `Accordion ${col.charAt(0).toUpperCase() + col.slice(1)}`,
-      children: <div>This is a {col} accordion item.</div>,
-      color: col as AccordionItemProps['color'],
+  const colors: AccordionItemProps[] = ['primary', 'info', 'success', 'warning', 'danger', 'default']
+    .flatMap((col) => {
+      const title = `Accordion ${col.charAt(0).toUpperCase() + col.slice(1)}`
+      return [
+        {
+          title,
+          children: <div>This is a {col} accordion item.</div>,
+          color: col as AccordionItemProps['color'],
+        },
+        {
+          title: `${title} (disabled)`,
+          children: <div>This is a disabled {col} accordion item.</div>,
+          color: col as AccordionItemProps['color'],
+          disabled: true,
+        },
+      ]
     })
-  )
 
   // RightDetails Examples: various configurations.
   const detailExamples: AccordionItemProps[] = [
@@ -148,6 +159,21 @@ const AccordionExamples = () => {
 
       <Title>RightDetails Accordion</Title>
       <Accordion items={detailExamples} allowMultiple={true} />
+
+      <Title>Callbacks Accordion</Title>
+      <Accordion
+        items={[
+          {
+            title: 'Try Me',
+            children: <div>Watch the console and alerts.</div>,
+            color: 'info',
+            onClick: () => console.log('[Accordion] header clicked'),
+            onOpen: () => alert('[Accordion] just opened'),
+            onClose: () => alert('[Accordion] just closed'),
+          },
+        ]}
+        allowMultiple={false}
+      />
     </StoryWrapper>
   )
 }

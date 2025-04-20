@@ -5,6 +5,7 @@ import { Button as FooterButton } from '../Footer/styled'
 import { Icon } from '../../../../atoms/Icon'
 import { Tooltip } from '../../../../atoms/Tooltip'
 import { Button } from '../../../../atoms/Button'
+import { DataTableProps } from '../../interface'
 
 interface MainHeaderProps {
   value?: string
@@ -22,6 +23,7 @@ interface MainHeaderProps {
   showDeleteIcon?: boolean
   handleResetColumnSettings?: () => void
   headerRightControls?: boolean
+  headerRightButtons?: DataTableProps['headerRightButtons']
 }
 
 export const MainHeader: React.FC<MainHeaderProps> = ({
@@ -39,7 +41,8 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
   handleDeleteIconClick,
   showDeleteIcon,
   handleResetColumnSettings,
-  headerRightControls
+  headerRightControls,
+  headerRightButtons
 }) => {
   const inputRef = React.useRef<HTMLInputElement | null>(null)
 
@@ -73,6 +76,17 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
       )}
 
       <RightDetailsContainer className='right-details-container'>
+        {headerRightButtons?.map(b => (
+          <Button size='sm'
+            color={b.color}
+            variant={b.variant}
+            disabled={b.disabled}
+            className={b.className}
+            onClick={b.onClick}
+          >
+          {b.text} {b?.icon && <Icon icon={b.icon}/>}
+        </Button>
+        ))}
         {enableRowAdding && (
           <Button data-testid='add-row-button' size='sm' disabled={isAddBtnDisabled || isSettingsPanelOpen} {...!isAddBtnDisabled ? { onClick: onAddBtnClick } : {}}>
             Add New <Icon icon='add_circle_outline'/>
@@ -81,6 +95,7 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
         <IconContainer className='container-icon'>
           {showDeleteIcon && (
             <RightIconButton
+              testId="bulk-delete-button"
               icon='delete_forever'
               title='Delete Selected Rows'
               onClick={handleDeleteIconClick}
@@ -121,18 +136,20 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
   ) : null
 }
 
-const RightIconButton = ({ onClick, title, icon, className, isAction, disabled }: {
+const RightIconButton = ({ onClick, title, icon, className, isAction, disabled, testId }: {
   onClick?: () => void
   title?: string
   icon: string
   className?: string
   isAction?: boolean
   disabled?: boolean
+  testId?: string
 }) => (
   <Tooltip content={title} type='title'>
     <RightIconButtonContainer
       {...!disabled ? { onClick } : {}}
       className={`${className ?? ''} ${isAction ? 'active' : ''} ${disabled ? 'disabled' : ''}`}
+      data-testid={testId}
     >
       <Icon icon={icon}/>
     </RightIconButtonContainer>

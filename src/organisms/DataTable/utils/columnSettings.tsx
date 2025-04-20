@@ -120,7 +120,10 @@ export const getInitialColumnOrder = (columns: ColumnWithMeta[]): string[] => {
 
   // Array to store non-custom columns (those that don't have className 'custom-column').
   // We'll capture the column itself and, if available, its numeric order.
-  const nonCustomColumns: { col: ColumnWithMeta; order?: number }[] = []
+  const nonCustomColumns: {
+    col: ColumnWithMeta
+    order?: number
+  }[] = []
 
   // One pass to separate non-custom columns.
   // Custom columns (meta.className === 'custom-column') are left in place.
@@ -164,6 +167,26 @@ export const getInitialColumnOrder = (columns: ColumnWithMeta[]): string[] => {
 
 export const setDefaultColumnVisibility = (columnSettings: ColumnSetting[]): Record<string, boolean> =>
   columnSettings.reduce((acc, col) => {
-    acc[col.column] = col.hidden === true ? false : true;
-    return acc;
-  }, {} as Record<string, boolean>);
+    acc[col.column] = col.hidden === true ? false : true
+    return acc
+  }, {} as Record<string, boolean>)
+
+// Helper function to remove functions from columnSettings.
+export const makeSerializableColumnSettings = (columnSettings: any[]) => {
+  return columnSettings.map(col => {
+    // Create a shallow copy omitting any function values.
+    const serializableCol = { ...col }
+    if (serializableCol.editor && typeof serializableCol.editor.validation === 'function') {
+      // Replace the function with a flag or a key that indicates which validation to use.
+      // For example, you might store the name of the validator.
+      serializableCol.editor = {
+        ...serializableCol.editor,
+        // You might want to define a mapping in the worker based on this key.
+        validationKey: 'defaultValidator', 
+        // Remove the actual function.
+        validation: undefined,
+      }
+    }
+    return serializableCol
+  })
+}

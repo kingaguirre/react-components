@@ -120,11 +120,11 @@ export const Filter = ({ column }: { column: Column<any, unknown> }) => {
           default:
             return (
               <>
-                <datalist id={column.id + 'list'}>
+                {/* <datalist id={column.id + 'list'}>
                   {sortedUniqueValues.map((value: any, i: number) => (
                     <option value={value} key={`${value}-${i}`} />
                   ))}
-                </datalist>
+                </datalist> */}
                 <DebouncedInput
                   onChange={value => column.setFilterValue(value)}
                   type='text'

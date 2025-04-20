@@ -24,7 +24,7 @@ const CellRendererComponent: React.FC<CellRendererProps> = ({
   cell,
   globalFilter,
   columnFilters,
-  uniqueValueMaps
+  uniqueValueMaps,
 }) => {
   const colMeta = column.columnDef.meta ?? {}
   const { validation, editor, columnId } = colMeta

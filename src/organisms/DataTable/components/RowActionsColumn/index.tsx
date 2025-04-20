@@ -34,17 +34,25 @@ export const RowActionsColumn = ({
   cell: ({ row }) => {
     const rowData = row.original as any
     const isDisabled = disabledRows?.includes((row.original as any).__internalId)
-  
+
     if (rowData.__isNew) {
+      const getDisabledStatus = (disabled) => typeof disabled === 'function' ? disabled(rowData) : disabled
 
       const hasError = columnSettings.some((col: ColumnSetting) =>
         col.editor !== false &&
         col.editor?.validation &&
-        getValidationError(getDeepValue(rowData, col.column), col.editor.validation))
+        (!getDisabledStatus(col.disabled) &&
+        getValidationError(getDeepValue(rowData, col.column), col.editor.validation)))
 
       return (
         <ActionContainer>
-          <button data-testid={`save-row-button-${row.id}`} disabled={isDisabled || hasError} className='save' title='Save' onClick={() => handleSaveRow(rowData.__internalId)}>
+          <button
+            data-testid={`save-row-button-${row.id}`}
+            disabled={isDisabled || hasError}
+            className='save'
+            title='Save'
+            onClick={() => handleSaveRow(rowData.__internalId)}
+          >
             <Icon icon='check'/>
           </button>
           <button data-testid={`cancel-row-button-${row.id}`} disabled={isDisabled} className='cancel' title='Cancel' onClick={() => handleCancelRow(rowData.__internalId)}>

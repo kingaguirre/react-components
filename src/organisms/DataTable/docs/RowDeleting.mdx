@@ -15,9 +15,15 @@ Row deleting allows users to remove rows from the table, simplifying data manage
 
 When enabled via the `enableRowDeleting` prop, users can remove individual rows from the data source.
 
-## Code Example
+### Partial Row Deletion
 
-Below is an example of how to implement row deleting in the DataTable component:
+You can optionally use the `partialRowDeletionID` prop to enable *partial* deletion instead of permanent removal.
+
+- When provided, deleted rows will not be removed from the data entirely.
+- Instead, the row will be marked with a new key (`partialRowDeletionID`) set to `true`.
+- This is useful when you want to visually remove rows but retain them in the backend or for later processing.
+
+## Code Example
 
 ```tsx
 import React from 'react';
@@ -26,7 +32,8 @@ import { DataTable } from 'react-components-lib';
 export const RowDeletingDemo = () => (
   <DataTable
     dataSource={[
-      { id: "1", firstName: "John", lastname: "Doe" }
+      { id: "1", firstName: "John", lastname: "Doe" },
+      { id: "2", firstName: "Jane", lastname: "Smith" }
     ]}
     columnSettings={[
       { title: "ID", column: "id" },
@@ -34,8 +41,10 @@ export const RowDeletingDemo = () => (
       { title: "Last Name", column: "lastname" }
     ]}
     enableRowDeleting
+    partialRowDeletionID="markedDeleted"
   />
 );
 ```
+
 ## API
 For detailed API usage and configuration examples, please refer to the interactive **demo** story. The demo provides a comprehensive example of how to configure and utilize the **DataTable** with row deleting.

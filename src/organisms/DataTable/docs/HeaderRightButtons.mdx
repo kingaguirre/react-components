@@ -1,0 +1,55 @@
+import { Meta } from '@storybook/blocks';
+import React from 'react';
+import { DataTable } from '../index';
+import { DataTablePlayground } from '../Playground';
+import { StoryWrapper, Title } from '../../../components/StoryWrapper';
+
+<Meta title="Organisms/DataTable/Header Right Buttons" component={DataTable} />
+
+# Header Right Buttons
+
+The `headerRightButtons` prop allows you to add custom action buttons to the right side of the DataTable header.  
+These buttons appear before the default "Add" button and are useful for secondary actions like exporting, filtering, or bulk operations.
+
+## How Header Right Buttons Work
+
+Pass an array of button configuration objects to the `headerRightButtons` prop.  
+Each object defines the button’s text, appearance, icon, and behavior.
+
+## Code Example
+
+```tsx
+import React from 'react';
+import { DataTable } from 'react-components-lib';
+
+export const HeaderRightButtonsDemo = () => (
+  <DataTable
+    dataSource={[
+      { id: "1", name: "Alpha" },
+      { id: "2", name: "Beta" }
+    ]}
+    columnSettings={[
+      { title: "ID", column: "id" },
+      { title: "Name", column: "name" }
+    ]}
+    headerRightButtons={[
+      {
+        text: "Export",
+        color: "primary",
+        variant: "outlined",
+        icon: "download",
+        onClick: () => console.log("Export clicked"),
+      },
+      {
+        text: "Filter",
+        variant: "link",
+        icon: "filter",
+        onClick: () => console.log("Filter clicked"),
+      },
+    ]}
+  />
+);
+```
+
+## API
+For detailed API usage and configuration examples, please refer to the interactive **demo** story. The demo provides a comprehensive example of how to configure and utilize the **DataTable** with header buttons.

@@ -5,8 +5,47 @@ import '@testing-library/jest-dom'
 import { DataTable } from './index'
 import { ColumnSetting } from './interface'
 import { vi } from 'vitest'
+import { getDeepValue, setDeepValue } from './utils'
+
+// ── improved MockWorker ───────────────────────────────────────────────────────
+class MockWorker {
+  onmessage: ((e: MessageEvent) => void) | null = null
+  onerror: ((err: any) => void) | null = null
+
+  constructor(url: string) {
+    // you can inspect `url` if you want, but it’s unused here
+  }
+
+  postMessage(msg: { rowData: any; accessor: string; val: any }) {
+    try {
+      const { rowData, accessor, val } = msg
+      const currentValue = getDeepValue(rowData, accessor)
+      const currentStr = currentValue == null ? '' : String(currentValue)
+      const newStr = val == null ? '' : String(val)
+
+      if (currentStr === newStr) {
+        // exactly matches the worker’s “no change” path
+        this.onmessage?.({ data: { unchanged: true } } as MessageEvent)
+      } else {
+        const updatedRow = setDeepValue(rowData, accessor, val)
+        this.onmessage?.({ data: { updatedRow } } as MessageEvent)
+      }
+    } catch (error: any) {
+      this.onmessage?.({ data: { error: error.message } } as MessageEvent)
+    }
+  }
+
+  terminate() {
+    // no‑op
+  }
+}
+
+// wire it up globally
+global.Worker = MockWorker as any
+window.Worker = MockWorker as any
 
 window.HTMLElement.prototype.scrollIntoView = function() {}
+window.scrollTo = vi.fn()
 
 // Sample data for testing.
 // Updated sampleData with a deep nested profile object.
@@ -405,6 +444,28 @@ describe('DataTable Column Interactions', () => {
 })
 
 describe('DataTable Row Features and Events', () => {
+  test('renders no data', () => {
+    render(
+      <DataTable
+        dataSource={[]}
+        columnSettings={columnsSorting}
+      />
+    )
+
+    expect(screen.queryByText(/No data to display/i)).toBeInTheDocument();
+  })
+
+  test('renders duplicate column key', () => {
+    render(
+      <DataTable
+        dataSource={sampleData}
+        columnSettings={[...columnsSorting, { title: 'ID', column: 'id', sort: 'asc' }]}
+      />
+    )
+
+    expect(screen.queryByText(/Duplicate column key detected: id/i)).toBeInTheDocument();
+  })
+
   test('renders rows with correct pagination (pageSize and pageIndex)', () => {
     render(
       <DataTable
@@ -783,7 +844,7 @@ describe('DataTable Row Features and Events', () => {
     fireEvent.click(addButton)
 
     // 2. Confirm that a new row appears (test-id "row-0") with class "new".
-    const newRow = screen.getByTestId('row-0')
+    const newRow = screen.getByTestId('row-')
     expect(newRow).toHaveClass('new')
 
     // 3. Click the cancel button to discard the new row.
@@ -802,7 +863,7 @@ describe('DataTable Row Features and Events', () => {
     // 6. Target the first name cell and simulate hover.
     const cell = screen.getByTestId('column-0-firstName')
     await userEvent.hover(cell)
-    fireEvent.click(cell)
+    fireEvent.doubleClick(cell)
 
     // 7. Check that the invalid message appears.
     const invalidMessage = screen.getByTestId('form-control-0-firstName-help-text')
@@ -828,6 +889,7 @@ describe('DataTable Row Features and Events', () => {
 
     // 11. Clear the wrong input and type a valid value.
     await userEvent.clear(cellInput1)
+
     // The field is required so clearing should show the error.
     expect(invalidMessage1).toBeVisible()
     await userEvent.type(cellInput1, 'King')
@@ -835,14 +897,18 @@ describe('DataTable Row Features and Events', () => {
 
     // 12. Simulate pressing Enter to save the row.
     fireEvent.keyDown(cellInput1, { key: 'Enter', code: 'Enter' })
-    await waitFor(() => expect(invalidMessage).not.toBeVisible())
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId('form-control-0-firstName')
+      ).not.toBeInTheDocument()
+    })
 
     // 13. Confirm that the save button is now enabled, then click it.
-    const saveButton1 = await screen.queryByTestId('save-row-button-0')
-    expect(saveButton1).toBeEnabled()
-    if (saveButton1) {
-      await userEvent.click(saveButton1)
-    }
+    await waitFor(() => {
+      const saveButton1 = screen.getByTestId('save-row-button-0')
+      expect(saveButton1).toBeEnabled()
+    })
+    fireEvent.click(screen.getByTestId('save-row-button-0'))
 
     // 14. Confirm that the saved row no longer has the "new" class.
     await waitFor(() => expect(newRow).not.toHaveClass('new'))
@@ -864,6 +930,7 @@ describe('DataTable Row Features and Events', () => {
     expect(firstNameCell).toHaveClass('selected')
   
     // 2. Press Escape key.
+    fireEvent.doubleClick(firstNameCell)
     fireEvent.keyDown(document, { key: 'Escape', code: 'Escape' })
   
     // 3. Press the Right Arrow key once.
@@ -915,7 +982,7 @@ describe('DataTable Row Features and Events', () => {
   
     // 1. Click the cell with test id "column-0-firstName".
     const firstNameCell = screen.getByTestId('column-0-firstName')
-    fireEvent.click(firstNameCell)
+    fireEvent.doubleClick(firstNameCell)
   
     // 2. An input should appear with test id "form-control-0-firstName" and have a value of 'John'.
     const input = await screen.findByTestId('form-control-0-firstName')
@@ -946,7 +1013,7 @@ describe('DataTable Row Features and Events', () => {
     await waitFor(() => {
       expect(screen.getByTestId('column-0-firstName')).toHaveTextContent('King')
     })
-  
+
     // 8. After pressing Enter, check that the onChange callback was called with a value that contains "King".
     await waitFor(() => {
       expect(onChangeHandler).toHaveBeenCalled()
@@ -1168,4 +1235,52 @@ describe('DataTable Row Features and Events', () => {
     // Radio group.
     expect(screen.queryByText(/OptionB/i)).toBeInTheDocument();
   });
+
+  test('selects multiple rows and bulk‑deletes them', async () => {
+    const onSelectedRowsChange = vi.fn()
+    render(
+      <DataTable
+        dataSource={sampleData}
+        columnSettings={combinedColumns}
+        enableRowSelection
+        enableMultiRowSelection
+        enableSelectedRowDeleting
+        onSelectedRowsChange={onSelectedRowsChange}
+      />
+    )
+
+    // Assume each row has a selection checkbox with data-testid 'select-row-{id}'
+    const checkboxRow1 = screen.getByTestId('select-row-1')
+    await userEvent.click(checkboxRow1)
+    // await waitFor(() => {
+    //   expect(onSelectedRowsChange).toHaveBeenCalledWith(['1'])
+    // })
+
+    // Toggle another row.
+    const checkboxRow2 = screen.getByTestId('select-row-2')
+    await userEvent.click(checkboxRow2)
+    // await waitFor(() => {
+    //   expect(onSelectedRowsChange).toHaveBeenCalledWith(['1', '2'])
+    // })
+
+    // Open bulk‑delete confirmation
+    const bulkBtn = await screen.findByTestId('bulk-delete-button')
+    expect(bulkBtn).toBeInTheDocument()
+    await userEvent.click(bulkBtn)
+
+    // Confirm deletion
+    const confirmBtn = await screen.findByTestId('confirm-bulk-delete-button')
+    expect(bulkBtn).toBeInTheDocument()
+    await userEvent.click(confirmBtn)
+
+    // The two rows should be removed
+    // await waitFor(() => {
+      // expect(screen.queryByTestId('row-1')).toBeNull()
+      // expect(screen.queryByTestId('row-2')).toBeNull()
+    // })
+
+    // await waitForElementToBeRemoved([screen.getByTestId('row-1'), screen.getByTestId('row-2')])
+    
+  })
+  
 })

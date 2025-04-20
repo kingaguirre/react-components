@@ -1,0 +1,50 @@
+import { Meta } from '@storybook/blocks';
+import React from 'react';
+import { DataTable } from '../index';
+
+<Meta title="Organisms/DataTable/Cell Custom Renderer" component={DataTable} />
+
+# Custom Cell Renderer
+
+The `cell` property in `columnSettings` allows rendering a fully customized JSX output for each cell.  
+This is useful when you need advanced rendering like formatting, icons, buttons, or conditional content.
+
+## How It Works
+
+Pass a function to the `cell` property that returns a JSX element or null.
+
+## Code Example
+
+```tsx
+import React from 'react';
+import { DataTable } from 'react-components-lib';
+
+export const CustomCellRendererDemo = () => (
+  <DataTable
+    dataSource={[
+      { id: "1", status: "active" },
+      { id: "2", status: "inactive" }
+    ]}
+    columnSettings={[
+      {
+        title: "Status",
+        column: "status",
+        cell: ({ rowValue }) => (
+          <span style={{ color: rowValue === "active" ? "green" : "red" }}>
+            {rowValue}
+          </span>
+        )
+      }
+    ]}
+  />
+);
+```
+
+## Use Cases
+
+- Render badges, tags, or icons inside cells.
+- Format raw values (dates, currency, etc.).
+- Provide inline buttons, toggles, or indicators.
+
+## API
+For detailed API usage and configuration examples, please refer to the interactive **demo** story. The demo provides a comprehensive example of how to configure and utilize the **DataTable** with custom cell render.

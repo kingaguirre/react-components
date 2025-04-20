@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react'
-import { z } from 'zod'
 import {
   RowData,
   ColumnDef,
@@ -17,8 +16,7 @@ import {
   getFacetedUniqueValues,
   getFacetedMinMaxValues,
 } from '@tanstack/react-table'
-import { useVirtualizer } from '@tanstack/react-virtual'
-import { DataTableProps, SelectedCellType, EditingCellType, ColumnPinningType, DataRow, ColumnSetting } from './interface'
+import { DataTableProps, SelectedCellType, EditingCellType, ColumnPinningType, DataRow } from './interface'
 import { DataTableWrapper, DataTableContainer, DataTableContentContainer, RowsToDeleteText, TableTitle } from './styled'
 import * as UTILS from './utils'
 import * as UTILS_CS from './utils/columnSettings'
@@ -35,9 +33,9 @@ import { useRowActions } from './hooks/useRowActions'
 import { useAutoScroll } from './hooks/useAutoScroll'
 import { useDebouncedColumnSettingsChange } from './hooks/useDebouncedColumnSettingsChange'
 import { useGlobalKeyNavigation } from './hooks/useGlobalKeyNavigation'
+import { useUniqueValueMaps } from './hooks/useUniqueValueMaps'
 import { Alert } from '../../molecules/Alert'
 import { ExpanderColumn } from './components/ExpanderColumn'
-import { jsonSchemaToZod } from './utils/validation'
 
 // needed for table body level scope DnD setup
 import {
@@ -83,6 +81,7 @@ export const DataTable = <T extends object>({
   partialRowDeletionID,
   disabledRows = [],
   disabled = false,
+  headerRightButtons,
   onRowClick,
   onRowDoubleClick,
   onColumnSettingsChange,
@@ -98,38 +97,6 @@ export const DataTable = <T extends object>({
   )
 
   const [data, setData] = useState<DataRow[]>(() => initializeData(dataSource))
-  const uniqueValueMaps = useMemo(() => {
-    // Create an empty array for each column that supports validation.
-    const maps: Record<string, string[] | undefined> = {}
-  
-    columnSettings.forEach((col: ColumnSetting) => {
-      if (col.editor !== false && col.editor?.validation) {
-        maps[col.column] = []
-      }
-    })
-  
-    data.forEach((row: any) => {
-      columnSettings.forEach((col: ColumnSetting) => {
-        if (col.editor !== false && col.editor?.validation) {
-          const validatorHelper = { schema: jsonSchemaToZod, ...z }
-          const schema = col.editor.validation(validatorHelper, row)
-          if ((schema as any)._unique) {
-            // Instead of counting, simply push the value.
-            maps[col.column]?.push(row[col.column])
-          }
-        }
-      })
-    })
-  
-    // Optionally, if you want to keep the property but signal "no values", set empty arrays to undefined.
-    Object.keys(maps).forEach((col) => {
-      if (maps[col]?.length === 0) {
-        maps[col] = undefined
-      }
-    })
-
-    return maps
-  }, [data, columnSettings])
 
   const [editingCell, setEditingCell] = useState<EditingCellType>(null)
   const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(UTILS_CS.setDefaultColumnVisibility(columnSettings))
@@ -146,9 +113,11 @@ export const DataTable = <T extends object>({
   const [showAlert, setShowAlert] = useState(false)
   const [columnError, setColumnError] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<ExpandedState>({})
+  const [cellLoading, setCellLoading] = useState(false)
 
   // Memoize the transformed data from dataSource
   const memoizedData = useMemo(() => initializeData(dataSource), [dataSource])
+  const uniqueValueMaps = useUniqueValueMaps(data, columnSettings)
 
   // Only update local data state when memoizedData changes.
   useEffect(() => {
@@ -197,14 +166,19 @@ export const DataTable = <T extends object>({
           // Cancel cell editing if active.
           setEditingCell(null)
         } else {
-          // If no cell is being edited, cancel the 'add row' by removing any new rows.
-          setData((old) => old.filter((row) => !(row as any).__isNew))
+          // Check if any row in the data state has __isNew before updating.
+          if (data.some((row) => (row as any).__isNew)) {
+            setData(data.filter((row) => !(row as any).__isNew))
+          }
         }
       }
     }
+  
     document.addEventListener('keydown', handleEscape)
-    return () => document.removeEventListener('keydown', handleEscape)
-  }, [editingCell])
+    return () => {
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [editingCell, data])
 
   // --- Update TanStack Table state if parent pageIndex/pageSize props change ---
   // (Note: initialState only applies on first load.)
@@ -218,26 +192,96 @@ export const DataTable = <T extends object>({
 
   // Updated handleCellCommit using setDeepValue and getDeepValue.
   const handleCellCommit = (rowId: string, accessor: string, val: any) => {
-    setEditingCell(null)
-    setData((old) => {
-      const rowIndex = old.findIndex((r) => (r as any).__internalId === rowId)
-      if (rowIndex === -1) return old
+    // Set the cell to a loading state.
+    setCellLoading(true)
   
-      // Use getDeepValue to retrieve the current value.
-      const currentValue = UTILS.getDeepValue(old[rowIndex], accessor)
-      const currentValueStr = currentValue == null ? '' : String(currentValue)
-      const newValueStr = val == null ? '' : String(val)
-      if (currentValueStr === newValueStr) return old
+    // Find the target row index.
+    const rowIndex = data.findIndex((r) => r.__internalId === rowId)
+    if (rowIndex === -1) {
+      // Row not found exit early.
+      setCellLoading(false)
+      return
+    }
+
+    const rowData = data[rowIndex]
   
-      // Use setDeepValue to update the row with the new value.
-      const updatedRow = UTILS.setDeepValue(old[rowIndex], accessor, val)
-      const updated = old.map((r, i) => (i === rowIndex ? updatedRow : r))
-      if (!((updated[rowIndex] as any).__isNew) && onChange) {
-        const sanitized = updated.map(({ __internalId, ...rest }) => rest)
-        onChange(sanitized)
+    // Create a new worker instance.
+    const worker = new Worker(
+      new URL('./workers/cellCommitWorker.ts', import.meta.url),
+      { type: 'module' }
+    )
+    // Handle the worker's response.
+    worker.onmessage = (e) => {
+      if (e.data.error) {
+        console.error("Worker error:", e.data.error)
+        // Fallback to synchronous update if needed.
+        setData((old) => {
+          const idx = old.findIndex((r) => r.__internalId === rowId)
+          if (idx === -1) return old
+          const currentValue = UTILS.getDeepValue(old[idx], accessor)
+          const currentValueStr = currentValue == null ? '' : String(currentValue)
+          const newValueStr = val == null ? '' : String(val)
+          if (currentValueStr === newValueStr) return old
+          const updatedRow = UTILS.setDeepValue(old[idx], accessor, val)
+          const updated = old.map((r, i) => (i === idx ? updatedRow : r))
+          if (!updated[idx].__isNew && onChange) {
+            const sanitized = updated.map(({ __internalId, ...rest }) => rest)
+            onChange(sanitized)
+          }
+          return updated
+        })
+      } else if (e.data.unchanged) {
+        // No change was needed.
+      } else if (e.data.updatedRow) {
+        // Update the state by replacing the specific row.
+        const { updatedRow } = e.data
+        setData((old) => {
+          const updated = [...old]
+          updated[rowIndex] = updatedRow
+          return updated
+        })
+        // Optionally call onChange.
+        if (!rowData.__isNew && onChange) {
+          setData((old) => {
+            const updated = [...old]
+            updated[rowIndex] = updatedRow
+            const sanitized = updated.map(({ __internalId, ...rest }) => rest)
+            onChange(sanitized)
+            return updated
+          })
+        }
       }
-      return updated
-    })
+      // In any case, clear editing state and loading indicator.
+      setEditingCell(null)
+      setCellLoading(false)
+      worker.terminate()
+    }
+  
+    worker.onerror = (error) => {
+      console.error("Worker encountered an error:", error)
+      // Fallback to synchronous update.
+      setData((old) => {
+        const idx = old.findIndex((r) => r.__internalId === rowId)
+        if (idx === -1) return old
+        const currentValue = UTILS.getDeepValue(old[idx], accessor)
+        const currentValueStr = currentValue == null ? '' : String(currentValue)
+        const newValueStr = val == null ? '' : String(val)
+        if (currentValueStr === newValueStr) return old
+        const updatedRow = UTILS.setDeepValue(old[idx], accessor, val)
+        const updated = old.map((r, i) => (i === idx ? updatedRow : r))
+        if (!updated[idx].__isNew && onChange) {
+          const sanitized = updated.map(({ __internalId, ...rest }) => rest)
+          onChange(sanitized)
+        }
+        return updated
+      })
+      setEditingCell(null)
+      setCellLoading(false)
+      worker.terminate()
+    }
+  
+    // Send only the target row data and update details to the worker.
+    worker.postMessage({ rowData, accessor, val })
   }
 
   const handleRowSelectionChange = (updaterOrValue: RowSelectionState | ((prev: RowSelectionState) => RowSelectionState)) => {
@@ -270,7 +314,6 @@ export const DataTable = <T extends object>({
 
   // --- Updated handleAddRow using meta.hidden and meta.className ---
   const handleAddRow = () => {
-    virtualizer.scrollToIndex(0)
     const newRow = { __isNew: true, __internalId: Date.now().toString() } as any as T
     columnSettings.forEach((col) => {
       newRow[col.column] = ''
@@ -331,7 +374,7 @@ export const DataTable = <T extends object>({
         id: key,
       }
     }
-    
+
     return {
       ...colDef,
       ...additionalProps,
@@ -344,6 +387,7 @@ export const DataTable = <T extends object>({
         <CellRenderer
           {...cellProps}
           {...colDef}
+          cellLoading={cellLoading}
           editingCell={editingCell}
           setEditingCell={setEditingCell}
           handleCellCommit={handleCellCommit}
@@ -375,7 +419,18 @@ export const DataTable = <T extends object>({
       ...actionColumns,
       ...transformedColumns?.map(transformColDef),
     ]
-  }, [transformedColumns, editingCell, columnSettings, disabledRows, expanderCol, actionColumns, columnFilters, globalFilter, handleCellCommit])
+  }, [
+    transformedColumns,
+    editingCell,
+    cellLoading,
+    columnSettings,
+    disabledRows,
+    expanderCol,
+    actionColumns,
+    columnFilters,
+    globalFilter,
+    handleCellCommit
+  ])
 
   const [columnOrder, setColumnOrder] = useState<string[]>(() => UTILS_CS.getInitialColumnOrder(columns))
 
@@ -483,19 +538,6 @@ export const DataTable = <T extends object>({
 
   const totalSelectedRows = Object.keys(table.getState().rowSelection).filter((key) => rowSelection[key]).length
   const showDeleteIcon = enableSelectedRowDeleting && enableRowSelection && totalSelectedRows > 0
-  const { rows } = table.getRowModel()
-
-  const virtualizer = useVirtualizer({
-    count: rows.length,
-    getScrollElement: () => tableContainerRef.current,
-    estimateSize: () => 32,
-    overscan: 10,
-     measureElement:
-      typeof window !== 'undefined' &&
-      navigator.userAgent.indexOf('Firefox') === -1
-        ? element => element?.getBoundingClientRect().height
-        : undefined,
-  })
 
   return (
     <DataTableWrapper className='data-table-wrapper' $disabled={disabled}>
@@ -526,6 +568,7 @@ export const DataTable = <T extends object>({
         handleDeleteIconClick={() => setShowAlert(true)}
         handleResetColumnSettings={handleResetColumnSettings}
         headerRightControls={headerRightControls}
+        headerRightButtons={headerRightButtons}
       />
       <DndContext
         collisionDetection={closestCenter}
@@ -552,7 +595,6 @@ export const DataTable = <T extends object>({
               onRowDoubleClick={onRowDoubleClick}
               expandedRowContent={expandedRowContent}
               uniqueValueMaps={uniqueValueMaps}
-              virtualizer={virtualizer}
             />
           </DataTableContentContainer>
         </DataTableContainer>
@@ -576,7 +618,7 @@ export const DataTable = <T extends object>({
           <RowsToDeleteText>
             Are you sure you want to delete <b>{totalSelectedRows}</b> row{totalSelectedRows > 1 ? 's' :''}?
           </RowsToDeleteText>
-          <Button size='sm' color='danger' onClick={handleConfirmDelete}>Confirm Delete</Button>
+          <Button size='sm' data-testid='confirm-bulk-delete-button' color='danger' onClick={handleConfirmDelete}>Confirm Delete</Button>
         </Alert>
       )}
     </DataTableWrapper>
