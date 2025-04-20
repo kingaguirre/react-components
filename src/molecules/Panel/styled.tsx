@@ -10,7 +10,7 @@ export const PanelContainer = styled.div<{
   background-color: white;
   border-radius: 2px;
   box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.16), 0 0 6px rgba(0, 0, 0, 0.08);
-  opacity: ${({ $disabled }) => ($disabled ? 0.6 : 1)};
+  /* opacity: ${({ $disabled }) => ($disabled ? 0.6 : 1)}; */
   pointer-events: ${({ $disabled }) => ($disabled ? "none" : "auto")};
   overflow: hidden;
   font-family: ${theme.fontFamily};
@@ -25,10 +25,13 @@ export const PanelHeader = styled.div<{
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background-color: ${({ $color }) => theme.colors[$color].dark };
+  /* background-color: ${({ $color }) => theme.colors[$color].dark }; */
   padding: 10px 12px;
   height: 32px;
   box-sizing: border-box;
+  
+  background: ${({ $disabled, $color }) =>
+    $disabled ? theme.colors[$color].pale : theme.colors[$color].base};
   * {
     box-sizing: border-box;
   }
@@ -36,7 +39,9 @@ export const PanelHeader = styled.div<{
   .title {
     flex: 1;
     text-align: left;
-    color: white; /* Title is always white */
+    /* color: white; */
+    color: ${({ $disabled }) => $disabled ? theme.colors.default.dark : 'white'};
+    cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'default')};
     padding-left: ${({ $hasLeftIcon }) => ($hasLeftIcon ? "8px" : "0")};
     padding-right: ${({ $hasRightIcons }) => ($hasRightIcons ? "8px" : "0")};
     font-size: 12px;

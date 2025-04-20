@@ -59,7 +59,7 @@ export const Row = memo(({
       $isDisabled={!!isDisabledRow}
       $isNewRow={!!isNewRow}
       className={`data-table-row ${isNewRow ? 'new' : ''} ${isActiveRow ? 'active' : ''} ${row.getIsSelected() ? 'selected' : ''} ${isDisabledRow ? 'disabled' : ''}`}
-      data-testid={`row-${row.id}`}
+      data-testid={`row-${row.original.id}`}
       role='row'
     >
       {row.getVisibleCells().map((cell: any, i: number) => {
@@ -113,6 +113,13 @@ export const Row = memo(({
                   e.stopPropagation()
                   return
                 }
+                setSelectedCell({ rowId, columnId })
+              }}
+              onDoubleClick={(e: React.MouseEvent<HTMLSpanElement>) => {
+                if (disableSelection) {
+                  e.stopPropagation()
+                  return
+                }
 
                 // Allow editing if global editing is enabled OR if this row is newly added.
                 if ((enableCellEditing || (row.original as any).__isNew) && isEditable) {
@@ -124,7 +131,6 @@ export const Row = memo(({
                       return
                     }
                   }
-                  setSelectedCell({ rowId, columnId })
                   setEditingCell({
                     rowId: (row.original as any).__internalId,
                     columnId,

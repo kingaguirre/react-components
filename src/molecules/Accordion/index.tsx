@@ -1,3 +1,4 @@
+// index.tsx
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { AccordionProps, AccordionItemProps, AccordionItemDetail } from './interface'
 import {
@@ -14,28 +15,24 @@ import { Icon } from '../../atoms/Icon'
 import { Badge } from '../../atoms/Badge'
 
 export const Accordion: React.FC<AccordionProps> = ({ items, allowMultiple = false }) => {
-  // openItems maps each item index to its open state.
   const [openItems, setOpenItems] = useState<Record<number, boolean>>(() => {
     const init: Record<number, boolean> = {}
     items.forEach((item, idx) => {
-      // Use the new `open` prop instead of `defaultOpen`. Default to false.
       init[idx] = item.open ?? false
     })
     return init
   })
 
   const toggleItem = (index: number) => {
-    setOpenItems((prev) => {
-      const newState = { ...prev }
+    setOpenItems(prev => {
+      const next = { ...prev }
       if (allowMultiple) {
-        newState[index] = !prev[index]
+        next[index] = !prev[index]
       } else {
-        Object.keys(newState).forEach((key) => {
-          newState[Number(key)] = false
-        })
-        newState[index] = !prev[index]
+        Object.keys(next).forEach(k => (next[+k] = false))
+        next[index] = !prev[index]
       }
-      return newState
+      return next
     })
   }
 
@@ -43,9 +40,9 @@ export const Accordion: React.FC<AccordionProps> = ({ items, allowMultiple = fal
     <AccordionContainer>
       {items.map((item, idx) => (
         <AccordionItem
-          key={`${item.id}-${idx}`}
-          {...item} // Spread item props first
-          open={!!openItems[idx]} // Then override open and toggle
+          key={`${item.id ?? idx}-${idx}`}
+          {...item}
+          open={!!openItems[idx]}
           toggle={() => toggleItem(idx)}
         />
       ))}
@@ -66,6 +63,10 @@ const AccordionItem: React.FC<AccordionItemInternalProps> = ({
   rightDetails,
   open,
   toggle,
+  disabled = false,
+  onClick,
+  onOpen,
+  onClose,
 }) => {
   const contentRef = useRef<HTMLDivElement>(null)
   const [maxHeight, setMaxHeight] = useState(0)
@@ -78,55 +79,68 @@ const AccordionItem: React.FC<AccordionItemInternalProps> = ({
 
   useEffect(() => {
     updateHeight()
-    const ro = new ResizeObserver(() => {
-      updateHeight()
-    })
-    if (contentRef.current) {
-      ro.observe(contentRef.current)
-    }
-    return () => {
-      ro.disconnect()
-    }
+    const ro = new ResizeObserver(updateHeight)
+    if (contentRef.current) ro.observe(contentRef.current)
+    return () => ro.disconnect()
   }, [updateHeight])
 
-  return (
-    <AccordionItemWrapper className='accordion-item-wrapper'>
-      <AccordionHeader className='accordion-header' $open={open} $color={color} onClick={toggle}>
-        <Icon icon={open ? 'remove' : 'add'} />
-        <AccordionTitle className='accordion-title' $color={color}>{title}</AccordionTitle>
-        {rightContent && <AccordionRightContent className='accordion-right-content'>{rightContent}</AccordionRightContent>}
-        {rightDetails?.map((detail: AccordionItemDetail, idx: number) => {
-            // Only render if at least one property is defined.
-            if (!detail.icon && !detail.value && !detail.text) return null
+  // fire all callbacks in the right order
+  const handleHeaderClick = (e: React.MouseEvent) => {
+    if (disabled) return
+    e.stopPropagation()
+    toggle()
+    onClick?.()
+    if (!open) {
+      onOpen?.()
+    } else {
+      onClose?.()
+    }
+  }
 
-            return (
-              <AccordionDetailContainer
-                key={`${detail?.icon}-${idx}`}
-                className='accordion-detail-container'
-                onClick={(e) => {
-                  e.stopPropagation()
-                  detail.onClick?.()
-                }}
-              >
-                {detail.value && (
-                  <Badge color={detail.valueColor ?? detail.color ?? color}>
-                    {detail.value}
-                  </Badge>
-                )}
-                {detail.icon && (
-                  <Icon icon={detail.icon} color={detail.iconColor ?? detail.color ?? color} />
-                )}
-                {detail.text && (
-                  <span style={{ color: detail.textColor ?? detail.color ?? color }}>
-                    {detail.text}
-                  </span>
-                )}
-              </AccordionDetailContainer>
-            )
-          })}
+  return (
+    <AccordionItemWrapper tabIndex={disabled ? undefined : 0} $color={color} $disabled={disabled}>
+      <AccordionHeader className='accordion-header' $open={open} $color={color} $disabled={disabled} onClick={handleHeaderClick}>
+        <Icon icon={open ? 'remove' : 'add'} />
+        <AccordionTitle $disabled={disabled}>{title}</AccordionTitle>
+
+        {rightContent && (
+          <AccordionRightContent $disabled={disabled}>{rightContent}</AccordionRightContent>
+        )}
+
+        {rightDetails?.map((detail: AccordionItemDetail, i: number) => {
+          if (!detail.icon && !detail.text && detail.value == null) return null
+          return (
+            <AccordionDetailContainer
+              $disabled={disabled}
+              key={i}
+              onClick={e => {
+                e.stopPropagation()
+                detail.onClick?.()
+              }}
+            >
+              {detail.value != null && (
+                <Badge color={detail.valueColor ?? detail.color ?? color}>
+                  {detail.value}
+                </Badge>
+              )}
+              {detail.icon && (
+                <Icon
+                  icon={detail.icon}
+                  color={detail.iconColor ?? detail.color ?? color}
+                />
+              )}
+              {detail.text && (
+                <span style={{ color: detail.textColor ?? detail.color ?? color }}>
+                  {detail.text}
+                </span>
+              )}
+            </AccordionDetailContainer>
+          )
+        })}
       </AccordionHeader>
-      <AccordionContentWrapper className='accordion-content-wrapper' $expanded={open} $maxHeight={maxHeight}>
-        <AccordionContentInner className='accordion-content-inner' ref={contentRef}>{children}</AccordionContentInner>
+
+      <AccordionContentWrapper className='accordion-body' $color={color} $expanded={open} $maxHeight={maxHeight}>
+        <AccordionContentInner ref={contentRef}>{children}</AccordionContentInner>
       </AccordionContentWrapper>
     </AccordionItemWrapper>
   )

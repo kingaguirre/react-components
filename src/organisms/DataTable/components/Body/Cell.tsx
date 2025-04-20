@@ -16,6 +16,7 @@ export const Cell = memo(({
   isDisabled,
   isDisabledRow,
   onClick,
+  onDoubleClick,
   columnId,
   rowId,
   testId
@@ -28,6 +29,7 @@ export const Cell = memo(({
   isDisabled?: boolean
   isDisabledRow?: boolean
   onClick?: (e: React.MouseEvent<HTMLSpanElement>) => void
+  onDoubleClick?: (e: React.MouseEvent<HTMLSpanElement>) => void
   columnId?: string
   rowId?: string
   testId?: string
@@ -57,15 +59,17 @@ export const Cell = memo(({
       className={`cell-container ${colMeta?.className ?? ''} ${isDisabled ? 'disabled' : ''} ${isDisabledRow ? 'disabled-row' : ''} ${isCellSelected ? 'selected' : ''}`}
       ref={setNodeRef}
       $hasError={!!errorMsg}
+      $isDisabled={isDisabled}
       $isEditMode={!!isEditMode}
       $isPinned={!!cell.column.getIsPinned()}
       style={getColumnStyles(cell.column, isDragging, transform)}
       data-row-id={rowId}
       data-col-id={columnId}
+      onDoubleClick={!isDisabled ? onDoubleClick : undefined}
       onClick={!isDisabled ? onClick : undefined}
       data-testid={testId}
     >
-      {!!errorMsg && !isEditMode ? (
+      {!!errorMsg && !isEditMode && !isDisabled ? (
         <Tooltip testId={`${testId}-tooltip`} content={<TooltipContent>{errorMsg}</TooltipContent>} color='danger' maxWidth={150}>{cellContent}</Tooltip>
       ) : cellContent}
     </CellContainer>

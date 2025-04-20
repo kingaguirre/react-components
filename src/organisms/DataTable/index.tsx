@@ -81,6 +81,7 @@ export const DataTable = <T extends object>({
   partialRowDeletionID,
   disabledRows = [],
   disabled = false,
+  headerRightButtons,
   onRowClick,
   onRowDoubleClick,
   onColumnSettingsChange,
@@ -201,7 +202,7 @@ export const DataTable = <T extends object>({
       setCellLoading(false)
       return
     }
-    
+
     const rowData = data[rowIndex]
   
     // Create a new worker instance.
@@ -209,7 +210,6 @@ export const DataTable = <T extends object>({
       new URL('./workers/cellCommitWorker.ts', import.meta.url),
       { type: 'module' }
     )
-  
     // Handle the worker's response.
     worker.onmessage = (e) => {
       if (e.data.error) {
@@ -568,6 +568,7 @@ export const DataTable = <T extends object>({
         handleDeleteIconClick={() => setShowAlert(true)}
         handleResetColumnSettings={handleResetColumnSettings}
         headerRightControls={headerRightControls}
+        headerRightButtons={headerRightButtons}
       />
       <DndContext
         collisionDetection={closestCenter}
@@ -617,7 +618,7 @@ export const DataTable = <T extends object>({
           <RowsToDeleteText>
             Are you sure you want to delete <b>{totalSelectedRows}</b> row{totalSelectedRows > 1 ? 's' :''}?
           </RowsToDeleteText>
-          <Button size='sm' color='danger' onClick={handleConfirmDelete}>Confirm Delete</Button>
+          <Button size='sm' data-testid='confirm-bulk-delete-button' color='danger' onClick={handleConfirmDelete}>Confirm Delete</Button>
         </Alert>
       )}
     </DataTableWrapper>

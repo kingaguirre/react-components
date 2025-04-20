@@ -25,3 +25,26 @@ export { theme, GlobalStyles } from './styles'
 
 // Utls
 export { getScrollParent } from './utils'
+
+// Interfaces -------------------------------------
+// Atoms
+export * from './atoms/Badge/interface'
+export * from './atoms/Button/interface'
+export * from './atoms/FormControl/interface'
+export * from './atoms/Grid/interface'
+export * from './atoms/Grid/interface'
+export * from './atoms/Icon/interface'
+export * from './atoms/Tooltip/interface'
+
+// Molecules
+export * from './molecules/Accordion/interface'
+export * from './molecules/Alert/interface'
+export * from './molecules/DatePicker/interface'
+export * from './molecules/Dropdown/interface'
+export * from './molecules/Panel/interface'
+
+// Organisms
+export * from './organisms/Modal/interface'
+export * from './organisms/Tabs/interface'
+export * from './organisms/DataTable/interface'
+export * from './organisms/AppShell/interface'

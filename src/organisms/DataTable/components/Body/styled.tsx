@@ -4,7 +4,12 @@ import { ifElse } from '../../../../utils'
 
 export const BodyContainer = styled.div``
 
-export const CellContainer = styled.div<{ $hasError?: boolean; $isEditMode?: boolean; $isPinned?: boolean }>`
+export const CellContainer = styled.div<{
+  $hasError?: boolean
+  $isEditMode?: boolean
+  $isPinned?: boolean
+  $isDisabled?: boolean
+}>`
   background-color: white;
   height: auto;
   position: relative;
@@ -14,12 +19,13 @@ export const CellContainer = styled.div<{ $hasError?: boolean; $isEditMode?: boo
   flex-direction: column;
   ${({ $isEditMode, $isPinned }) => $isEditMode ? `z-index: ${ifElse(!!$isPinned, 14, 10)}!important;` : ''}
   box-shadow: 0 0 0 1px ${theme.colors.default.pale};
-  &.disabled {
+
+  &.disabled.disabled {
     cursor: not-allowed;
-    background-color: ${theme.colors.default.pale}!important;
+    background-color: #e9e9e9!important;
   }
 
-  ${({ $hasError }) => $hasError ? `
+  ${({ $hasError, $isDisabled }) => $hasError && !$isDisabled ? `
     &:before {
       content: "";
       top: 1px;

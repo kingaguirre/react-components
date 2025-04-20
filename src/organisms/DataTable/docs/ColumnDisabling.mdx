@@ -1,0 +1,53 @@
+import { Meta } from '@storybook/blocks';
+import React from 'react';
+import { DataTable } from '../index';
+
+<Meta title="Organisms/DataTable/Column Disabling" component={DataTable} />
+
+# Column Disabling
+
+The `disabled` property in `columnSettings` allows conditional or static disabling of a column's cells from being edited.  
+This is useful for protecting certain cells from being modified based on row-specific criteria.
+
+## How It Works
+
+You can pass a boolean or a function to the `disabled` property:
+
+- **`true`**: disables all cells in the column.
+- **`(rowData) => boolean`**: dynamically disables cells based on row data.
+
+## Code Example
+
+```tsx
+import React from 'react';
+import { DataTable } from 'react-components-lib';
+
+export const ColumnDisablingDemo = () => (
+  <DataTable
+    dataSource={[
+      { id: "1", name: "System Entry" },
+      { id: "2", name: "Editable Entry" }
+    ]}
+    columnSettings={[
+      {
+        title: "ID",
+        column: "id",
+        disabled: true // disables editing of column for all rows
+      },
+      {
+        title: "Name",
+        column: "name",
+        disabled: (rowData) => rowData?.id === "1" // disables column based on row condition
+      }
+    ]}
+  />
+);
+```
+
+## Use Cases
+
+- Prevent editing for system-generated rows.
+- Apply fine-grained control for edit permissions per row.
+
+## API
+For detailed API usage and configuration examples, please refer to the interactive **demo** story. The demo provides a comprehensive example of how to configure and utilize the **DataTable** with column disabling.

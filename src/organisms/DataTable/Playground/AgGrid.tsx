@@ -260,8 +260,9 @@ export const GridExample = () => {
 
   return (
     <div className="ag-theme-alpine" style={{ width: "100%", height: "300px" }}>
+      <HeartbeatDisplay/>
       <AgGridReact
-        rowData={dataSource(1000)}
+        rowData={dataSource(100000)}
         columnDefs={colDefs}
         defaultColDef={defaultColDef}
         rowSelection={{
@@ -271,3 +272,18 @@ export const GridExample = () => {
     </div>
   )
 }
+
+
+const HeartbeatDisplay = React.memo(() => {
+  const [heartbeat, setHeartbeat] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => setHeartbeat(prev => prev + 1), 100);
+    return () => clearInterval(interval);
+  }, []);
+  return (
+    <div>
+      <strong>Heartbeat:</strong> {heartbeat}
+    </div>
+  );
+});
+

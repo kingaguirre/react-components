@@ -1,4 +1,5 @@
 import { z, ZodSchema, ZodTypeAny } from 'zod'
+import { ColorType } from 'src/common/interface'
 import { DropdownOption } from '../../molecules/Dropdown/interface'
 
 export interface DataTableProps {
@@ -48,6 +49,16 @@ export interface DataTableProps {
   disabled?: boolean
   /** Enable header right control icons */
   headerRightControls?: boolean
+  /** Adds button in the right part of header before the add button */
+  headerRightButtons?: {
+    text: string
+    color?: ColorType
+    variant?: "default" | "outlined" | "link"
+    disabled?: boolean
+    className?: string
+    icon?: string
+    onClick?: (e: any) => void
+  }[]
   /** Key of the currently active row */
   activeRow?: string
   /** Array of keys identifying selected rows */
