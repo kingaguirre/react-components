@@ -36,6 +36,7 @@ import { useGlobalKeyNavigation } from './hooks/useGlobalKeyNavigation'
 import { useUniqueValueMaps } from './hooks/useUniqueValueMaps'
 import { Alert } from '../../molecules/Alert'
 import { ExpanderColumn } from './components/ExpanderColumn'
+import CellCommitWorker from "./workers/cellCommitWorker?worker&inline";
 
 // needed for table body level scope DnD setup
 import {
@@ -206,10 +207,7 @@ export const DataTable = <T extends object>({
     const rowData = data[rowIndex]
   
     // Create a new worker instance.
-    const worker = new Worker(
-      new URL('./workers/cellCommitWorker.ts', import.meta.url),
-      { type: 'module' }
-    )
+    const worker = new CellCommitWorker();
     // Handle the worker's response.
     worker.onmessage = (e) => {
       if (e.data.error) {

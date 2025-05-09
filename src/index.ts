@@ -5,6 +5,7 @@ export { FormControl } from './atoms/FormControl'
 export { Grid } from './atoms/Grid'
 export { GridItem } from './atoms/Grid'
 export { Icon } from './atoms/Icon'
+export { Loader } from './atoms/Loader'
 export { Tooltip } from './atoms/Tooltip'
 
 // Molecules
@@ -32,8 +33,8 @@ export * from './atoms/Badge/interface'
 export * from './atoms/Button/interface'
 export * from './atoms/FormControl/interface'
 export * from './atoms/Grid/interface'
-export * from './atoms/Grid/interface'
 export * from './atoms/Icon/interface'
+export * from './atoms/Loader/interface'
 export * from './atoms/Tooltip/interface'
 
 // Molecules
