@@ -173,6 +173,7 @@ export const COLUMN_SETTINGS: ColumnSetting[] = [
         v.string()
           .nonempty('String cannot be empty')
           .refine((val) => {
+            console.log(val)
             const parts = val.split(',').map(s => s.trim())
             return parts.length === 2 && parts[0] !== ' && parts[1] !== '
           }, 'Must be two non-empty strings separated by a comma')
@@ -190,7 +191,7 @@ export const COLUMN_SETTINGS: ColumnSetting[] = [
         { text: 'HR', value: 'HR' },
         { text: 'Engineering', value: 'Engineering' },
         { text: 'Sales', value: 'Sales' }
-      ]
+      ],
     },
     filter: { type: 'dropdown' },
   },
@@ -199,7 +200,39 @@ export const COLUMN_SETTINGS: ColumnSetting[] = [
     column: 'salary',
     pin: false,
     align: 'right',
-    editor: { type: 'number' },
+    editor: {
+      type: 'number',
+      validation: (v, rowData) => {
+        return v.preprocess(
+          (val) => {
+            /**
+             * WHY preprocess is used:
+             * - Form inputs always return strings — even for number fields.
+             * - Zod's `v.number()` expects a real number, not a string.
+             * - If you pass an empty string (`""`) directly into `v.number()`, 
+             *   Zod will throw: "Expected number, received string".
+             * 
+             * WHAT preprocess does here:
+             * - If the input is empty (`""`, `null`, or `undefined`), return `undefined`
+             *   so that `.optional()` will skip validation.
+             * - Otherwise, if it’s a string, convert it to a number using `parseFloat`.
+             */
+            if (val === '' || val === null || val === undefined) return undefined
+            return typeof val === 'string' ? parseFloat(val) : val
+          },
+          (
+            rowData?.department === 'Engineering'
+              // Specific validation rule for Engineering department
+              ? v.number()
+                  .min(100000, 'Engineer must have at least 100,000 salary')
+                  .max(200000, 'Engineer salary too high')
+              // Default validation for other departments
+              : v.number()
+                  .refine((val) => val > 100000, 'Salary must be at least 100,000')
+          ).optional() // Allow undefined (from empty inputs) to bypass validation
+        )
+      }
+    },
     filter: { type: 'number-range' }
   },
   {

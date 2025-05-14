@@ -52,6 +52,8 @@ export interface FormControlProps {
   className?: string;
   /** Attach test-id in the input */
   testId?: string;
+  /** Add loader */
+  loading?: boolean;
   /** Any additional attributes */
   /* eslint-disable @typescript-eslint/no-explicit-any */
   [key: string]: any;

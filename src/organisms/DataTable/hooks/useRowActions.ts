@@ -74,11 +74,18 @@ export function useRowActions({
         if (deletedIndex === -1) return old
         if (partialRowDeletionID) {
           const updated = old.map((row) => {
-            if (row.__internalId === rowId) {
-              return { ...row, [partialRowDeletionID]: true }
+          if (row.__internalId === rowId) {
+            const isAlreadyMarked = row[partialRowDeletionID] === true
+            const updatedRow = { ...row }
+            if (isAlreadyMarked) {
+              delete updatedRow[partialRowDeletionID] // revert soft delete
+            } else {
+              updatedRow[partialRowDeletionID] = true // mark as soft deleted
             }
-            return row
-          })
+            return updatedRow
+          }
+          return row
+        })
           if (onChange) onChange(sanitizeData(updated))
           return updated
         } else {

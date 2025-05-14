@@ -7,6 +7,7 @@ import {
 } from './controls'
 import { getInvalidForCustomGroupControl, mergeRefs } from './utils'
 import { Icon } from '../../atoms/Icon'
+import { Loader } from '../../atoms/Loader'
 
 export const FormControl = forwardRef<HTMLInputElement | HTMLTextAreaElement, FormControlProps>(({
   label,
@@ -26,6 +27,7 @@ export const FormControl = forwardRef<HTMLInputElement | HTMLTextAreaElement, Fo
   iconRight,
   className,
   simple,
+  loading,
   ...rest
 }, ref) => {
 
@@ -151,32 +153,33 @@ export const FormControl = forwardRef<HTMLInputElement | HTMLTextAreaElement, Fo
               return null
           }
         })()}
-      {(iconRight?.length > 0 && !isCustomControl && !isGroupCustomControl) && (
-        <IconWrapper
-          className='wrapper-icon'
-          $size={size}
-          $color={color}
-          $disabled={disabled}
-        >
-          {iconRight
-            .filter((obj: IconRight) => Object.keys(obj).length)
-            .slice(0, 2)
-            .map((icon: IconRight, idx: number) => (
-            <IconContainer
-              key={`${icon.icon}-${idx}`}
-              onClick={icon?.onClick}
-              data-testid={icon.className}
-              className={`container-icon ${icon.className ?? ''}`}
-              $disabled={icon.disabled}
-              $size={size}
-              $color={icon.color ?? color}
-              $hoverColor={icon.hoverColor ?? color}
-            >
-              <Icon icon={icon.icon} />
-            </IconContainer>
-          ))}
-        </IconWrapper>
-      )}
+        {(iconRight?.length > 0 && !isCustomControl && !isGroupCustomControl) && (
+          <IconWrapper
+            className='wrapper-icon'
+            $size={size}
+            $color={color}
+            $disabled={disabled}
+          >
+            {iconRight
+              .filter((obj: IconRight) => Object.keys(obj).length)
+              .slice(0, 2)
+              .map((icon: IconRight, idx: number) => (
+              <IconContainer
+                key={`${icon.icon}-${idx}`}
+                onClick={icon?.onClick}
+                data-testid={icon.className}
+                className={`container-icon ${icon.className ?? ''}`}
+                $disabled={icon.disabled}
+                $size={size}
+                $color={icon.color ?? color}
+                $hoverColor={icon.hoverColor ?? color}
+              >
+                <Icon icon={icon.icon} />
+              </IconContainer>
+            ))}
+          </IconWrapper>
+        )}
+        {loading && <Loader size={16} thickness={3}/>}
       </FormControlWrapper>
       {helpText && (
         <HelpText

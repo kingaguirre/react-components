@@ -43,7 +43,14 @@ export const Playground = {
           dataSource={dataSource()}
           columnSettings={COLUMN_SETTINGS}
           onChange={e => console.log(e)}
-          // expandedRowContent={rowData => rowData.id !== 5 ? <div style={{background: 'white'}}>{JSON.stringify(rowData)}</div> : null}
+          headerRightButtons={[{
+            text: 'Custom Button',
+            color: 'success',
+            onClick: () => {
+              alert('Custom Button button clicked!')
+            }
+          }]}
+          expandedRowContent={rowData => rowData.id !== 5 ? <div style={{background: 'white'}}>{JSON.stringify(rowData)}</div> : null}
         />
       </DataTablePlayground>
       {/* <GridExample /> */}
