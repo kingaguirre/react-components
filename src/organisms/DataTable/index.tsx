@@ -407,6 +407,7 @@ export const DataTable = <T extends object>({
       handleDelete,
       enableRowDeleting,
       disabledRows,
+      partialRowDeletionID
     })] : []
   ].filter(Boolean) as ColumnDef<RowData, any>[]
 

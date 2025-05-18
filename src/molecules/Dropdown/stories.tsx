@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
 import { Dropdown } from './index'
 import { StoryWrapper, Title } from '../../components/StoryWrapper'
@@ -43,6 +43,41 @@ export const Default: StoryObj<typeof meta> = {
     options: DEFAULT_OPTIONS
   },
   tags: ['!dev'],
+}
+
+const AsyncFilterDropdown = () => {
+  const [options, setOptions] = useState<{ value: string; text: string }[]>([])
+  const [loading, setLoading] = useState(false)
+
+  const handleFilterChange = useCallback(async (filterText: string) => {
+    setLoading(true)
+    // Example: fetch users from JSONPlaceholder and filter by name
+    const res = await fetch('https://jsonplaceholder.typicode.com/users')
+    const users = await res.json()
+    const filtered = users
+      .filter((u: any) =>
+        u.name.toLowerCase().includes(filterText.toLowerCase())
+      )
+      .map((u: any) => ({
+        value: u.id.toString(),
+        text: u.name,
+      }))
+    setOptions(filtered)
+    setLoading(false)
+  }, [])
+
+  return (
+    <div style={{ width: 300 }}>
+      <Dropdown
+        label='Async Filter Dropdown'
+        options={options}
+        filter
+        loading={loading}
+        placeholder={loading ? 'Loading...' : 'Type to search users'}
+        onFilterChange={handleFilterChange}
+      />
+    </div>
+  )
 }
 
 const ExamplesComponent: React.FC = () => {
@@ -189,6 +224,13 @@ const ExamplesComponent: React.FC = () => {
           <Button size='sm' onClick={removeDynamicOption} color='danger'>
             Remove Option
           </Button>
+        </GridItem>
+      </Grid>
+
+      <Title>Aync Filter Dropdown</Title>
+      <Grid>
+        <GridItem xs={12} sm={6} md={4}>
+          <AsyncFilterDropdown/>
         </GridItem>
       </Grid>
     </StoryWrapper>

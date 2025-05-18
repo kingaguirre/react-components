@@ -58,9 +58,9 @@ export const FormControlWrapper = styled.div<{
       let paddingRight = '';
 
       if (iconCount === 1) {
-        paddingRight = `> *:not(.wrapper-icon) { padding-right: ${$size === 'sm' ? 22 : 32}px!important; }`;
+        paddingRight = `> *:not(.wrapper-icon):not(svg) { padding-right: ${$size === 'sm' ? 22 : 32}px!important; }`;
       } else if (iconCount > 1) {
-        paddingRight = `> *:not(.wrapper-icon) { padding-right: ${$size === 'sm' ? 44 : 60}px!important; }`;
+        paddingRight = `> *:not(.wrapper-icon):not(svg) { padding-right: ${$size === 'sm' ? 44 : 60}px!important; }`;
       }
 
       return `
@@ -76,6 +76,15 @@ export const FormControlWrapper = styled.div<{
       `;
     }
   }}
+
+  > svg {
+    position: absolute;
+    right: 8px;
+    top: 8px;
+    pointer-events: none;
+    background-color: white;
+    border-radius: 50%;
+  }
 `;
 
 export const Label = styled.span<{

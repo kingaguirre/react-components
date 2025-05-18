@@ -77,8 +77,8 @@ export const EditableCell = (props: EditableCellProps) => {
     }, [value])
 
     const handleChange = (e: any) => {
-      const newVal = e.currentTarget.value
-      setLocalValue(newVal)
+      const value = e.currentTarget.value
+      setLocalValue(editorType === 'number' && !isNaN(value) && !isNaN(parseFloat(value)) ? +value : value)
     }
 
     // Helper to trim the value before committing.

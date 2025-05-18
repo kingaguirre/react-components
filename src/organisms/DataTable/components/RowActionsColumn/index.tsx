@@ -3,6 +3,7 @@ import { getValidationError } from '../../utils/validation'
 import { getDeepValue } from '../../utils'
 import { ColumnSetting } from '../../interface'
 import { Icon } from '../../../../atoms/Icon'
+import { Tooltip } from '../../../../atoms/Tooltip'
 import { ActionContainer } from './styled'
 
 export const DATA_TABLE_ROW_ACTION_ID = 'data-table-row-action'
@@ -14,6 +15,7 @@ interface RowActionsProps {
   handleDelete: (rowId: string) => void
   enableRowDeleting?: boolean
   disabledRows?: string[]
+  partialRowDeletionID?: string
 }
 
 export const RowActionsColumn = ({
@@ -22,7 +24,8 @@ export const RowActionsColumn = ({
   handleCancelRow,
   handleDelete,
   enableRowDeleting,
-  disabledRows
+  disabledRows,
+  partialRowDeletionID
 }: RowActionsProps) => ({
   id: DATA_TABLE_ROW_ACTION_ID,
   header: 'Actions',
@@ -34,6 +37,7 @@ export const RowActionsColumn = ({
   cell: ({ row }) => {
     const rowData = row.original as any
     const isDisabled = disabledRows?.includes((row.original as any).__internalId)
+    const partiallyDeleted = partialRowDeletionID ? rowData?.[partialRowDeletionID] : false
 
     if (rowData.__isNew) {
       const getDisabledStatus = (disabled) => typeof disabled === 'function' ? disabled(rowData) : disabled
@@ -46,27 +50,37 @@ export const RowActionsColumn = ({
 
       return (
         <ActionContainer>
-          <button
-            data-testid={`save-row-button-${row.id}`}
-            disabled={isDisabled || hasError}
-            className='save'
-            title='Save'
-            onClick={() => handleSaveRow(rowData.__internalId)}
-          >
-            <Icon icon='check'/>
-          </button>
-          <button data-testid={`cancel-row-button-${row.id}`} disabled={isDisabled} className='cancel' title='Cancel' onClick={() => handleCancelRow(rowData.__internalId)}>
-            <Icon icon='clear'/>
-          </button>
+          <Tooltip content='Save' type='title'>
+            <button
+              data-testid={`save-row-button-${row.id}`}
+              disabled={isDisabled || hasError}
+              className='save'
+              onClick={() => handleSaveRow(rowData.__internalId)}
+            >
+              <Icon icon='check'/>
+            </button>
+          </Tooltip>
+          <Tooltip content='Cancel' type='title'>
+            <button data-testid={`cancel-row-button-${row.id}`} disabled={isDisabled} className='cancel' onClick={() => handleCancelRow(rowData.__internalId)}>
+              <Icon icon='clear'/>
+            </button>
+          </Tooltip>
         </ActionContainer>
       )
     }
 
     return enableRowDeleting ? (
       <ActionContainer>
-        <button data-testid={`delete-row-button-${row.id}`} disabled={isDisabled} className='delete' title='Delete'onClick={() => handleDelete(rowData.__internalId)}>
-          <Icon icon='delete_forever'/>
-        </button>
+        <Tooltip content={partiallyDeleted ? 'Undo' : 'Delete'} type='title'>
+          <button
+            data-testid={`delete-row-button-${row.id}`}
+            disabled={isDisabled}
+            className={partiallyDeleted ? 'undo' : 'delete'}
+            onClick={() => handleDelete(rowData.__internalId)}
+          >
+            <Icon icon={partiallyDeleted ? 'rotate_left' : 'delete_forever'}/>
+          </button>
+        </Tooltip>
       </ActionContainer>
     ) : '#'
   },

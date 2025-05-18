@@ -29,6 +29,8 @@ export const Dropdown: React.FC<DropdownProps> = ({
   dropdownWidth,
   hideOnScroll = false,
   onBlur,
+  onFilterChange,
+  loading,
   ...rest
 }) => {
   const isMulti = !!multiselect
@@ -505,6 +507,14 @@ export const Dropdown: React.FC<DropdownProps> = ({
     ] : []
   }
 
+  const handleFilterChange = (text: string) => {
+    setFilterText(text)
+    setHasTyped(true)
+    if (onFilterChange) {
+      onFilterChange(text)
+    }
+  }
+
   const dropdownContent = (
     <DropdownList
       ref={listRef}
@@ -528,8 +538,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
             value={filterText}
             size='sm'
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-              setFilterText(e.target.value)
-              setHasTyped(true)
+              handleFilterChange(e.target.value)
             }}
             onKeyDown={handleKeyDown}
           />
@@ -580,8 +589,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
         onChange={
           filter && !isMulti
             ? (e: React.ChangeEvent<HTMLInputElement>) => {
-                setFilterText(e.target.value)
-                setHasTyped(true)
+                handleFilterChange(e.target.value)
               }
             : undefined
         }
@@ -590,6 +598,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
           ...(!clearable ? getClearIcon() : []),
           { icon: 'keyboard_arrow_down', onClick: () => setIsOpen(true) },
         ]}
+        loading={loading}
       />
       {isOpen && ReactDOM.createPortal(dropdownContent, document.body)}
     </DropdownContainer>

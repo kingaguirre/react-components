@@ -7,7 +7,7 @@ export const ActionContainer = styled.div`
   justify-content: center;
   gap: 6px;
 
-  > button {
+  button {
     transition: ${theme.transition};
     border: transparent;
     background-color: ${theme.colors.default.pale};
@@ -19,6 +19,9 @@ export const ActionContainer = styled.div`
     font-size: 16px;
     cursor: pointer;
     backface-visibility: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
     &.delete,
     &.cancel {
@@ -31,6 +34,7 @@ export const ActionContainer = styled.div`
       }
     }
 
+    &.undo,
     &.save {
       &:hover:not(:disabled) {
         color: ${theme.colors.success.base};

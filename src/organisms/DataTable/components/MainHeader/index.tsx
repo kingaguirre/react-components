@@ -46,7 +46,7 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
 }) => {
   const inputRef = React.useRef<HTMLInputElement | null>(null)
 
-  return (enableGlobalFiltering || enableRowAdding || showDeleteIcon || headerRightControls) ? (
+  return (enableGlobalFiltering || enableRowAdding || showDeleteIcon || headerRightControls || headerRightButtons) ? (
     <MainHeadercontainer className='main-header-container'>
       {enableGlobalFiltering && (
         <SearhContainer className='search-container'>

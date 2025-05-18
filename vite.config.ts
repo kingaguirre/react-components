@@ -5,7 +5,6 @@ import tsconfigPaths from 'vite-tsconfig-paths';
 import dts from 'vite-plugin-dts';
 import commonjs from 'rollup-plugin-commonjs';
 import cssInjectedByJsPlugin from 'vite-plugin-css-injected-by-js';
-import webWorkerLoader from 'rollup-plugin-web-worker-loader';
 import fs from 'fs'
 
 function fixDtsImports() {
@@ -55,10 +54,6 @@ export default defineConfig({
     react(),
     cssInjectedByJsPlugin(), // inlines CSS into the JS bundle
     fixDtsImports(), // custom plugin to fix absolute paths in .d.ts files
-    webWorkerLoader({
-      inline: true,            // embed the worker as a base64 blob
-      preserveTypeModule: true // preserves ESM syntax so you can still use `type: 'module'`
-    }),
   ],
   resolve: {
     alias: {
