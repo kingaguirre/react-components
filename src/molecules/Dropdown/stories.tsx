@@ -113,7 +113,7 @@ const ExamplesComponent: React.FC = () => {
             <Dropdown
               label={color}
               options={DEFAULT_OPTIONS}
-              color={color}
+              color={color as any}
               helpText={`Color variant example (${color}).`}
               clearable={color === 'info'}
               hideOnScroll={color === 'info'}

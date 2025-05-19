@@ -49,7 +49,11 @@ export const CheckboxGroup: React.FC<FormControlProps> = ({
   testId,
   ...rest 
 }) => (
-  <GroupControlContainer $isVerticalOptions={isVerticalOptions} className='group-control-container checkbox-group'>
+  <GroupControlContainer
+    $gap={rest.size === 'sm' ? 6 : 12}
+    $isVerticalOptions={isVerticalOptions}
+    className='group-control-container checkbox-group'
+  >
     {options?.length > 0 ? options.map((option) => (
       <TextContainer key={option.value} disabled={option.disabled}>
         <CheckboxRadioInput
@@ -79,7 +83,11 @@ export const RadioGroup: React.FC<FormControlProps> = ({
   testId,
   ...rest
 }) => (
-  <GroupControlContainer $isVerticalOptions={isVerticalOptions} className={`group-control-container radio-group ${isInvalid ? 'invalid' : ''}`}>
+  <GroupControlContainer
+    $gap={rest.size === 'sm' ? 6 : 12}
+    $isVerticalOptions={isVerticalOptions}
+    className={`group-control-container radio-group ${isInvalid ? 'invalid' : ''}`}
+  >
     {options?.length > 0 ? options.map((option) => (
       <CheckboxRadioInput
         {...rest}

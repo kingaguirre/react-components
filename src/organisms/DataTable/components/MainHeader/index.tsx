@@ -6,6 +6,7 @@ import { Icon } from '../../../../atoms/Icon'
 import { Tooltip } from '../../../../atoms/Tooltip'
 import { Button } from '../../../../atoms/Button'
 import { DataTableProps } from '../../interface'
+import { HeaderRightElementRenderer } from './HeaderRightElementRenderer'
 
 interface MainHeaderProps {
   value?: string
@@ -23,7 +24,7 @@ interface MainHeaderProps {
   showDeleteIcon?: boolean
   handleResetColumnSettings?: () => void
   headerRightControls?: boolean
-  headerRightButtons?: DataTableProps['headerRightButtons']
+  headerRightElements?: DataTableProps['headerRightElements']
 }
 
 export const MainHeader: React.FC<MainHeaderProps> = ({
@@ -42,11 +43,11 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
   showDeleteIcon,
   handleResetColumnSettings,
   headerRightControls,
-  headerRightButtons
+  headerRightElements
 }) => {
   const inputRef = React.useRef<HTMLInputElement | null>(null)
 
-  return (enableGlobalFiltering || enableRowAdding || showDeleteIcon || headerRightControls || headerRightButtons) ? (
+  return (enableGlobalFiltering || enableRowAdding || showDeleteIcon || headerRightControls || headerRightElements) ? (
     <MainHeadercontainer className='main-header-container'>
       {enableGlobalFiltering && (
         <SearhContainer className='search-container'>
@@ -76,17 +77,8 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
       )}
 
       <RightDetailsContainer className='right-details-container'>
-        {headerRightButtons?.map(b => (
-          <Button size='sm'
-            color={b.color}
-            variant={b.variant}
-            disabled={b.disabled}
-            className={b.className}
-            onClick={b.onClick}
-          >
-          {b.text} {b?.icon && <Icon icon={b.icon}/>}
-        </Button>
-        ))}
+        <HeaderRightElementRenderer elements={headerRightElements} />
+
         {enableRowAdding && (
           <Button data-testid='add-row-button' size='sm' disabled={isAddBtnDisabled || isSettingsPanelOpen} {...!isAddBtnDisabled ? { onClick: onAddBtnClick } : {}}>
             Add New <Icon icon='add_circle_outline'/>

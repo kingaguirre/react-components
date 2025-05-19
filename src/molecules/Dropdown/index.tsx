@@ -24,7 +24,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
   size = 'md',
   disabled = false,
   multiselect,
-  clearable = false,
+  clearable = true,
   dropdownHeight,
   dropdownWidth,
   hideOnScroll = false,
@@ -42,6 +42,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
   const [selectedValues, setSelectedValues] = useState<string[]>(
     isMulti && Array.isArray(value) ? value : []
   )
+
 
   // displayValue: text shown when dropdown is closed.
   const [displayValue, setDisplayValue] = useState('')
@@ -76,7 +77,9 @@ export const Dropdown: React.FC<DropdownProps> = ({
   useEffect(() => {
     if (isMulti) {
       if (!Array.isArray(value)) return
-      setSelectedValues(value)
+      if (onChange) {
+        setSelectedValues(value)
+      }
       const text =
         value.length > 0
           ? `${value.length} selected ${ifElse(value.length === 1, 'item', 'items')}`
@@ -84,26 +87,25 @@ export const Dropdown: React.FC<DropdownProps> = ({
       setDisplayValue(text)
       return
     }
-  
-    // Use the external value if defined (even if empty), otherwise fall back to our internal selectedValue.
-    const currentVal = value != null ? (value as string) : selectedValue
-  
-    if (!currentVal) {
-      setDisplayValue('')
-      setSelectedValue(undefined)
-      previousDisplayRef.current = ''
-      return
+
+    if (onChange) {
+      const currentVal = value != null ? (value as string) : ''
+      const selectedOption = options.find((opt) => opt.value === currentVal)
+
+      if (!currentVal) {
+        setDisplayValue('')
+        setSelectedValue(undefined)
+        previousDisplayRef.current = ''
+      } else if (selectedOption) {
+        setDisplayValue(selectedOption.text)
+        previousDisplayRef.current = selectedOption.text
+      } else {
+        setDisplayValue(previousDisplayRef.current)
+      }
+
+      setSelectedValue(currentVal)
     }
-  
-    const selectedOption = options.find((opt) => opt.value === currentVal)
-    if (selectedOption) {
-      setDisplayValue(selectedOption.text)
-      previousDisplayRef.current = selectedOption.text
-    } else {
-      setDisplayValue(previousDisplayRef.current)
-    }
-    setSelectedValue(currentVal)
-  }, [value, options, isMulti, selectedValue])
+  }, [value, options, isMulti, onChange])
   // --- END SYNC EFFECT ---
 
   // Filtering effect.
@@ -453,12 +455,16 @@ export const Dropdown: React.FC<DropdownProps> = ({
     }
     // Otherwise highlight all occurrences.
     const regex = new RegExp(`(${filterText})`, 'gi')
-    return text.split(regex).map((part, i: number) =>
-      part.toLowerCase() === filterText.toLowerCase() ? (
-        <HighlightedText key={`key-${part}-${i}`}>{part}</HighlightedText>
-      ) : (
-        part
-      )
+    return (
+      <span>
+        {text.split(regex).map((part, i: number) =>
+          part.toLowerCase() === filterText.toLowerCase() ? (
+            <HighlightedText key={`key-${part}-${i}`}>{part}</HighlightedText>
+          ) : (
+            part
+          )
+        )}
+      </span>
     )
   }
 
@@ -545,29 +551,70 @@ export const Dropdown: React.FC<DropdownProps> = ({
         </DropdownFilterContainer>
       )}
       {filteredOptions?.length > 0 ? (
-        filteredOptions.map(({ value, text, disabled }, index) => (
+        <>
+        {isMulti && (
           <DropdownItem
             $size={size}
-            key={`${value}-${index}`}
-            data-testid={text}
-            disabled={disabled}
-            onMouseDown={(e) => e.preventDefault()} 
-            className={getSelectedClass(index, value)}
-            onClick={(e: React.MouseEvent<HTMLLIElement, MouseEvent>) => !disabled && handleSelect(value, e)}
+            key="select-all"
+            data-testid="select-all"
+            className={`select-all ${selectedValues.length === options.filter(o => !o.disabled).length ? 'selected' : ''}`}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              const allSelected = selectedValues.length === options.filter(o => !o.disabled).length
+
+              const newValues = allSelected
+                ? []
+                : options.filter(o => !o.disabled).map(o => o.value)
+
+              setSelectedValues(newValues)
+              setDisplayValue(
+                newValues.length > 0
+                  ? `${newValues.length} selected ${ifElse(newValues.length === 1, 'item', 'items')}`
+                  : ''
+              )
+              onChange?.(newValues)
+              // Refocus the filter input if needed
+              if (filter) {
+                setTimeout(() => {
+                  filterInputRef.current?.focus()
+                  setFocusedIndex(0)
+                  scrollToFocusedItem()
+                }, 0)
+              }
+            }}
           >
-            {isMulti && (
-              <FormControl
-                type='checkbox'
-                readOnly
-                checked={selectedValues.includes(value)}
-                simple
-                disabled={disabled}
-              />
-            )}
-            {highlightMatch(text)}
+            <FormControl
+              type="checkbox"
+              readOnly
+              checked={selectedValues.length === options.filter(o => !o.disabled).length}
+              simple
+            />
+            Select All
           </DropdownItem>
-        ))
-      ) : <NoOptionsContainer>No options found</NoOptionsContainer>}
+        )}
+          {filteredOptions.map(({ value, text, disabled }, index) => (
+            <DropdownItem
+              $size={size}
+              key={`${value}-${index}`}
+              data-testid={text}
+              disabled={disabled}
+              onMouseDown={(e) => e.preventDefault()} 
+              className={getSelectedClass(index, value)}
+              onClick={(e: React.MouseEvent<HTMLLIElement, MouseEvent>) => !disabled && handleSelect(value, e)}
+            >
+              {isMulti && (
+                <FormControl
+                  type='checkbox'
+                  readOnly
+                  checked={selectedValues.includes(value)}
+                  simple
+                  disabled={disabled}
+                />
+              )}
+              {highlightMatch(text)}
+            </DropdownItem>
+          ))}
+        </>) : <NoOptionsContainer>No options found</NoOptionsContainer>}
     </DropdownList>
   )
 
@@ -595,7 +642,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
         }
         onKeyDown={handleKeyDown}
         iconRight={[
-          ...(!clearable ? getClearIcon() : []),
+          ...((clearable || isMulti) ? getClearIcon() : []),
           { icon: 'keyboard_arrow_down', onClick: () => setIsOpen(true) },
         ]}
         loading={loading}

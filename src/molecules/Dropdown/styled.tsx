@@ -31,7 +31,7 @@ export const DropdownItem = styled.li<{
   $size: keyof typeof theme.sizes.boxSize
 }>`
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: flex-start;
   line-height: 1.2;
   padding: ${({ $size }) => $size === 'sm' ? 4 : 6}px 8px;
@@ -65,10 +65,12 @@ export const DropdownItem = styled.li<{
   .form-control-input-container {
     height: 16px;
     margin-right: 8px;
+    pointer-events: none;
   }
 `;
 
 export const HighlightedText = styled.span`
+  display: inline-block;
   background-color: yellow;
   font-weight: bold;
 `;

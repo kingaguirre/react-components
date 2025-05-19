@@ -1,0 +1,117 @@
+
+import { Meta } from '@storybook/blocks';
+import React from 'react';
+import { DataTable } from '../index';
+import { DataTablePlayground } from '../Playground';
+import { StoryWrapper, Title } from '../../../components/StoryWrapper';
+
+<Meta title="Organisms/DataTable/Header Right Elements" component={DataTable} />
+
+# Header Right Elements
+
+The `headerRightElements` prop allows you to render **custom elements** on the right side of the DataTable header.  
+This replaces the older `headerRightButtons` and supports more flexible use cases including buttons, inputs, dropdowns, and date pickers.
+
+These elements appear before the default **Add** button and are useful for actions like exporting, filtering, or inline search.
+
+## How `headerRightElements` Work
+
+Each element is an object in an array with a required `type` and other type-specific props:
+
+### Supported `type` values:
+
+- `"button"` – Renders a **Button**
+- `"text"` – Renders a **Text input**
+- `"number"` – Renders a **Number input**
+- `"checkbox"` – Renders a **Checkbox**
+- `"switch"` – Renders a **Switch toggle**
+- `"radio"` – Renders a **Radio input**
+- `"checkbox-group"` – Renders a **Checkbox group**
+- `"radio-group"` – Renders a **Radio group**
+- `"radio-button-group"` – Renders a **Radio button-style group**
+- `"switch-group"` – Renders a **Switch group**
+- `"dropdown"` – Renders a **Dropdown** (single or multi-select)
+- `"date"` – Renders a **Date picker**
+
+### Common props:
+
+- **`type`**: *(string, required)* – The type of element to render.
+- **`width`**: *(string | number, optional)* – Sets a fixed width for the element (default is `100px`).
+- **`className`**: *(string, optional)* – Custom styling.
+- **`onChange`** / **`onClick`**: – Event handlers depending on the control.
+
+Other props depend on the `type`. For example:
+- `"button"` uses `text`, `color`, `variant`, `icon`, `onClick`.
+- `"dropdown"` uses `options`, `value`, `multiselect`, `onChange`.
+- `"text"` uses `name`, `value`, `placeholder`, `onChange`.
+
+---
+
+## Code Example
+
+```tsx
+import React from 'react';
+import { DataTable } from 'react-components-lib';
+
+export const HeaderRightElementsDemo = () => (
+  <DataTable
+    dataSource={[
+      { id: "1", name: "Alpha" },
+      { id: "2", name: "Beta" }
+    ]}
+    columnSettings={[
+      { title: "ID", column: "id" },
+      { title: "Name", column: "name" }
+    ]}
+    headerRightElements={[
+      {
+        type: "button",
+        text: "Export",
+        color: "primary",
+        variant: "outlined",
+        icon: "download",
+        onClick: () => console.log("Export clicked"),
+        width: 120,
+      },
+      {
+        type: "text",
+        name: "search",
+        placeholder: "Search by name",
+        value: "",
+        onChange: val => console.log("Searching:", val),
+        width: 200,
+      },
+      {
+        type: "dropdown",
+        name: "filterStatus",
+        options: [
+          { text: "All", value: "all" },
+          { text: "Active", value: "active" },
+          { text: "Inactive", value: "inactive" },
+        ],
+        value: "all",
+        onChange: val => console.log("Filter changed:", val),
+        width: 160,
+      },
+      {
+        type: "date",
+        name: "createdAt",
+        value: new Date(),
+        onChange: val => console.log("Date changed:", val),
+        width: 160,
+      }
+    ]}
+  />
+);
+```
+
+---
+
+## API & Customization
+
+For full configurability:
+- Every element supports `className` and `width`.
+- `FormControl`, `Dropdown`, and `DatePicker` props are automatically inferred from your component API.
+- Rendering logic is centralized via `HeaderRightElementRenderer`, ensuring consistency and extendability.
+
+Try the interactive **Playground** story for advanced configurations and live editing.

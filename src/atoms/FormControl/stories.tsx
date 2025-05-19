@@ -32,6 +32,7 @@ const meta: Meta<typeof FormControl> = {
         'checkbox-group',
         'radio-group',
         'switch-group',
+        'radio-button-group',
         'switch',
         'textarea',
       ],
@@ -60,6 +61,7 @@ export const Default: StoryObj<typeof meta> = {
     text: '',
     placeholder: 'Enter text here...',
     isVerticalOptions: false,
+    value: undefined
   },
   tags: ['!dev'],
 }
@@ -235,6 +237,7 @@ const FormPropsStories: React.FC<{ type: string }> = ({ type }) => {
                 label={`${type} with text`}
                 helpText={`This ${type} has a text prop`}
                 text='Click me!'
+                val
               />
             ) : (
               <FormControl

@@ -1,5 +1,5 @@
 // src/molecules/Dropdown/interface.ts
-import { SizeType } from '../../common/interface'
+import { SizeType, ColorType } from '../../common/interface'
 
 export interface DropdownOption {
   value: string
@@ -20,7 +20,7 @@ export interface DropdownProps {
   multiselect?: boolean
   label?: string
   required?: boolean
-  color?: string
+  color?: ColorType
   helpText?: string | null
   clearable?: boolean
   dropdownHeight?: number

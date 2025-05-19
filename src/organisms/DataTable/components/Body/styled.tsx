@@ -58,6 +58,7 @@ export const DataTableRow = styled.div<{
   $isNewRow?: boolean
   $isDisabled?: boolean
 }>`
+  position: relative;
   background-color: white;
   width: fit-content;
   display: flex;
@@ -89,6 +90,20 @@ export const DataTableRow = styled.div<{
       $isDisabled = false
     }) => getCellBgColor($isActiveRow, $isNewRow, $isDisabled)};
     ${({ $isDisabled }) => $isDisabled ? css`pointer-events: none;` : ''}
+  }
+
+  &.active {
+    &:after {
+      content: "";
+      position: absolute;
+      top: 1px;
+      left: 1px;
+      right: 1px;
+      bottom: 1px;
+      pointer-events: none;
+      border: 1px solid ${theme.colors.primary.base};
+      z-index: 19;
+    }
   }
 
   /* &.bottom .help-text {
@@ -228,11 +243,12 @@ export const NoDataContainer = styled.div<{ $hasError?: boolean }>`
   min-width: 250px;
 `
 
-export const ExpandedRowContainer = styled.div`
-  padding: 12px 0 12px 30px;
+export const ExpandedRowContainer = styled.div<{ $expandedRowRightOffset?: number }>`
+  padding: 12px;
   background-color: ${theme.colors.default.pale};
   color: ${theme.colors.default.darker};
   font-size: 14px;
+  width: calc(100% + ${({ $expandedRowRightOffset }) => $expandedRowRightOffset ?? 0}px);
 `
 
 export const TooltipContent = styled.span`
