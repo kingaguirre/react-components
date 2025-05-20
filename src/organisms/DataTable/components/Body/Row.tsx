@@ -1,4 +1,4 @@
-import React, { memo } from 'react'
+import React from 'react'
 import { DataTableRow } from './styled'
 import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable'
 import { Cell } from './Cell'
@@ -6,7 +6,7 @@ import { EditingCellType, SelectedCellType } from '../../interface'
 import { getValidationError } from '../../utils/validation'
 import { useClickAndDoubleClick } from '../../hooks/useClickAndDoubleClick'
 
-export const Row = memo(({
+export const Row = ({
   row,
   activeRow,
   disabledRows,
@@ -50,7 +50,7 @@ export const Row = memo(({
         }
       : undefined,
   })
-  
+
   return (
     <DataTableRow
       key={row.id}
@@ -143,4 +143,4 @@ export const Row = memo(({
       })}
     </DataTableRow>
   )
-})
+}

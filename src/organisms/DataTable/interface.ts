@@ -1,6 +1,8 @@
 import { z, ZodSchema, ZodTypeAny } from 'zod'
-import { ColorType } from 'src/common/interface'
-import { DropdownOption } from '../../molecules/Dropdown/interface'
+import { FormControlProps } from "../../atoms/FormControl/interface"
+import { ButtonProps } from "../../atoms/Button/interface"
+import { DropdownProps, DropdownOption } from '../../molecules/Dropdown/interface'
+import { DatePickerProps } from "../../molecules/DatePicker/interface"
 
 export interface DataTableProps {
   /** Data to display in the table */
@@ -49,16 +51,8 @@ export interface DataTableProps {
   disabled?: boolean
   /** Enable header right control icons */
   headerRightControls?: boolean
-  /** Adds button in the right part of header before the add button */
-  headerRightButtons?: {
-    text: string
-    color?: ColorType
-    variant?: "default" | "outlined" | "link"
-    disabled?: boolean
-    className?: string
-    icon?: string
-    onClick?: (e: any) => void
-  }[]
+  /** Adds elements in the right part of header before the add button */
+  headerRightElements?: HeaderRightElement[]
   /** Key of the currently active row */
   activeRow?: string
   /** Array of keys identifying selected rows */
@@ -85,6 +79,83 @@ export interface DataTableProps {
   /** Function to use to render collapsible row content */
   expandedRowContent?: (RowData: any) => React.ReactNode
 }
+
+export type FormControlType =
+  | "text"
+  | "number"
+  | "checkbox"
+  | "switch"
+  | "radio"
+  | "checkbox-group"
+  | "radio-group"
+  | "switch-group"
+  | "radio-button-group"
+
+export type HeaderRightElement =
+  | ({
+    type: "button"
+    text: string
+    width?: string | number
+  } & Omit<
+    ButtonProps,
+    "children" // Exclude children since we're using `text`
+  >)
+  | ({
+    type: FormControlType
+    width?: string | number
+  } & Partial<Pick<
+    FormControlProps,
+    | "name"
+    | "value"
+    | "placeholder"
+    | "disabled"
+    | "onChange"
+    | "options"
+    | "color"
+    | "variant"
+    | "required"
+    | "readOnly"
+    | "loading"
+    | "pattern"
+    | "text"
+    | "iconRight"
+    | "checked"
+    | "testId"
+  >>)
+  | ({
+    type: "dropdown"
+    width?: string | number
+  } & Partial<Pick<
+    DropdownProps,
+    | "name"
+    | "options"
+    | "value"
+    | "multiselect"
+    | "disabled"
+    | "onChange"
+    | "onFilterChange"
+    | "placeholder"
+    | "clearable"
+    | "loading"
+    | "color"
+    | "testId"
+  >>)
+  | ({
+    type: "date"
+    width?: string | number
+  } & Partial<Pick<
+    DatePickerProps,
+    | "name"
+    | "value"
+    | "disabled"
+    | "onChange"
+    | "placeholder"
+    | "required"
+    | "color"
+    | "range"
+    | "testId"
+  >>)
+
 
 export type EditorType = 
   | 'text'

@@ -1,5 +1,5 @@
 import React from 'react'
-import { ColumnSetting } from '../interface'
+import { ColumnSetting, HeaderRightElement } from '../interface'
 import { Badge } from '../../../atoms/Badge'
 
 const loremAddresses = [
@@ -13,10 +13,10 @@ const loremAddresses = [
 
 // Helper function for cryptographically secure random number generation.
 const secureRandom = () => {
-  const array = new Uint32Array(1);
-  window.crypto.getRandomValues(array);
-  return array[0] / (0xFFFFFFFF + 1);
-};
+  const array = new Uint32Array(1)
+  window.crypto.getRandomValues(array)
+  return array[0] / (0xFFFFFFFF + 1)
+}
 
 // Generate 100 rows of sample data with all columns defined
 export const dataSource = (length = 1000) => {
@@ -93,7 +93,7 @@ export const dataSource = (length = 1000) => {
       ],
     },
   }))
-};
+}
 
 // Extra column settings covering every editor type
 export const COLUMN_SETTINGS: ColumnSetting[] = [
@@ -388,4 +388,109 @@ export const COLUMN_SETTINGS: ColumnSetting[] = [
       return <button>{rowValue.name} {index}</button>
     },
   },
+]
+
+export const HEADER_RIGHT_ELEMENTS: HeaderRightElement[] = [
+  // Button
+  {
+    type: 'button',
+    text: 'Save',
+    color: 'primary',
+    variant: 'default',
+    icon: 'save',
+    onClick: () => alert('Save clicked'),
+    disabled: false,
+  },
+  /** Uncomment below for more example */
+  // Text input
+  // {
+  //   type: 'text',
+  //   name: 'username',
+  //   value: 'king',
+  //   placeholder: 'Enter username',
+  //   onChange: val => console.log('Text input changed:', val),
+  //   required: true,
+  //   testId: "header-search"
+  // },
+  // // Checkbox
+  // {
+  //   type: 'checkbox',
+  //   name: 'subscribe',
+  //   checked: true,
+  //   onChange: val => console.log('Checkbox toggled:', val),
+  //   text: 'Subscribe to newsletter',
+  // },
+  // // Radio group
+  // {
+  //   type: 'radio-group',
+  //   name: 'gender',
+  //   options: [
+  //     { value: 'male', text: 'Male' },
+  //     { value: 'female', text: 'Female' },
+  //   ],
+  //   value: 'male',
+  //   onChange: val => console.log('Radio group changed:', val),
+  // },
+  // // Switch group
+  // {
+  //   type: 'switch-group',
+  //   name: 'gender',
+  //   options: [
+  //     { value: 'male', text: 'Male' },
+  //     { value: 'female', text: 'Female' },
+  //   ],
+  //   value: 'male',
+  //   onChange: val => console.log('Radio group changed:', val),
+  // },
+  //  // Radio button group
+  // {
+  //   type: 'radio-button-group',
+  //   name: 'gender',
+  //   options: [
+  //     { value: 'male', text: 'Male' },
+  //     { value: 'female', text: 'Female' },
+  //   ],
+  //   value: 'male',
+  //   onChange: val => console.log('Radio group changed:', val),
+  // },
+  // // Dropdown (single select)
+  // {
+  //   type: 'dropdown',
+  //   name: 'country',
+  //   options: [
+  //     { value: 'us', text: 'United States' },
+  //     { value: 'ca', text: 'Canada' },
+  //     { value: 'mx', text: 'Mexico', disabled: true },
+  //   ],
+  //   value: 'us',
+  //   onChange: val => console.log('Dropdown changed:', val),
+  //   placeholder: 'Select country',
+  //   width: 120
+  // },
+  // // Dropdown (multiselect)
+  // {
+  //   type: 'dropdown',
+  //   name: 'fruits',
+  //   options: [
+  //     { value: 'apple', text: 'Apple' },
+  //     { value: 'banana', text: 'Banana' },
+  //     { value: 'cherry', text: 'Cherry' },
+  //   ],
+  //   value: ['apple', 'cherry'],
+  //   onChange: val => console.log('Multi-dropdown changed:', val),
+  //   multiselect: true,
+  //   placeholder: 'Select fruits',
+  // },
+  // // Date picker (single)
+  // {
+  //   type: 'date',
+  //   range: true,
+  //   name: 'startDate',
+  //   value: new Date(),
+  //   onChange: val => console.log('Date changed:', val),
+  //   placeholder: 'Select start date',
+  //   required: true,
+  //   color: 'primary',
+  //   width: 100
+  // },
 ]

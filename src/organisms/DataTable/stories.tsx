@@ -2,7 +2,7 @@ import React from 'react'
 import type { Meta } from '@storybook/react'
 import { DataTable } from './index'
 import { StoryWrapper, Title } from '../../components/StoryWrapper'
-import { COLUMN_SETTINGS, dataSource } from './Playground/data'
+import { COLUMN_SETTINGS, HEADER_RIGHT_ELEMENTS, dataSource } from './Playground/data'
 import { DataTablePlayground } from './Playground'
 // import { GridExample } from './Playground/AgGrid'
 
@@ -43,13 +43,7 @@ export const Playground = {
           dataSource={dataSource()}
           columnSettings={COLUMN_SETTINGS}
           onChange={e => console.log(e)}
-          headerRightButtons={[{
-            text: 'Custom Button',
-            color: 'success',
-            onClick: () => {
-              alert('Custom Button button clicked!')
-            }
-          }]}
+          headerRightElements={HEADER_RIGHT_ELEMENTS}
           expandedRowContent={rowData => rowData.id !== 5 ? <div style={{background: 'white'}}>{JSON.stringify(rowData)}</div> : null}
         />
       </DataTablePlayground>

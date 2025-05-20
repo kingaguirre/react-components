@@ -36,7 +36,7 @@ import { useGlobalKeyNavigation } from './hooks/useGlobalKeyNavigation'
 import { useUniqueValueMaps } from './hooks/useUniqueValueMaps'
 import { Alert } from '../../molecules/Alert'
 import { ExpanderColumn } from './components/ExpanderColumn'
-import CellCommitWorker from "./workers/cellCommitWorker?worker&inline";
+import CellCommitWorker from "./workers/cellCommitWorker?worker&inline"
 
 // needed for table body level scope DnD setup
 import {
@@ -82,7 +82,7 @@ export const DataTable = <T extends object>({
   partialRowDeletionID,
   disabledRows = [],
   disabled = false,
-  headerRightButtons,
+  headerRightElements = [],
   onRowClick,
   onRowDoubleClick,
   onColumnSettingsChange,
@@ -207,7 +207,7 @@ export const DataTable = <T extends object>({
     const rowData = data[rowIndex]
   
     // Create a new worker instance.
-    const worker = new CellCommitWorker();
+    const worker = new CellCommitWorker()
     // Handle the worker's response.
     worker.onmessage = (e) => {
       if (e.data.error) {
@@ -535,6 +535,19 @@ export const DataTable = <T extends object>({
     useSensor(KeyboardSensor, {})
   )
 
+  const getExpandedRowRightOffset = () => {
+    let offset = 30
+    if (enableRowSelection) {
+      offset += 30 // Width of the selection column
+    }
+
+    if (enableRowAdding || enableRowDeleting) {
+      offset += 65 // Width of the expander column
+    }
+
+    return offset
+  }
+
   const totalSelectedRows = Object.keys(table.getState().rowSelection).filter((key) => rowSelection[key]).length
   const showDeleteIcon = enableSelectedRowDeleting && enableRowSelection && totalSelectedRows > 0
 
@@ -567,7 +580,7 @@ export const DataTable = <T extends object>({
         handleDeleteIconClick={() => setShowAlert(true)}
         handleResetColumnSettings={handleResetColumnSettings}
         headerRightControls={headerRightControls}
-        headerRightButtons={headerRightButtons}
+        headerRightElements={headerRightElements}
       />
       <DndContext
         collisionDetection={closestCenter}
@@ -594,6 +607,7 @@ export const DataTable = <T extends object>({
               onRowDoubleClick={onRowDoubleClick}
               expandedRowContent={expandedRowContent}
               uniqueValueMaps={uniqueValueMaps}
+              expandedRowRightOffset={getExpandedRowRightOffset()}
             />
           </DataTableContentContainer>
         </DataTableContainer>

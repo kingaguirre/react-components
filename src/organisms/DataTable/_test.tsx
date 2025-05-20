@@ -1283,4 +1283,55 @@ describe('DataTable Row Features and Events', () => {
     
   })
   
+  test('renders headerRightElements correctly', async () => {
+    render(
+      <DataTable
+        dataSource={sampleData}
+        columnSettings={columnsSorting}
+        headerRightElements={[
+          {
+            type: "button",
+            text: "Export",
+            onClick: vi.fn()
+          },
+          {
+            type: "text",
+            name: "search",
+            value: "",
+            placeholder: "Search...",
+            testId: "header-search"
+          },
+          {
+            type: "dropdown",
+            name: "roleFilter",
+            options: [
+              { text: "Admin", value: "Admin" },
+              { text: "User", value: "User" }
+            ],
+            value: "User",
+            testId: "header-dropdown"
+          },
+          {
+            type: "date",
+            name: "startDate",
+            value: "2025-01-01",
+            testId: "header-date"
+          }
+        ]}
+      />
+    )
+
+    // ✅ Button: match by visible text
+    expect(screen.getByText("Export")).toBeInTheDocument()
+
+    // ✅ Text input: match by test ID
+    expect(screen.getByTestId("header-search")).toBeInTheDocument()
+
+    // ✅ Dropdown
+    expect(screen.getByTestId("header-dropdown")).toBeInTheDocument()
+
+    // ✅ Date Picker
+    expect(screen.getByTestId("header-date")).toBeInTheDocument()
+  })
+
 })

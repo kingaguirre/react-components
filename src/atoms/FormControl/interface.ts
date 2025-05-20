@@ -10,6 +10,7 @@ export type FormControlType =
   | "checkbox-group"
   | "radio-group"
   | "switch-group"
+  | "radio-button-group"
   | "switch"
   | "textarea";
 

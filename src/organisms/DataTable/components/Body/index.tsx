@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react'
+import React, { useCallback } from 'react'
 import { Table } from '@tanstack/react-table'
 import { BodyContainer, NoDataContainer, ExpandedRowContainer } from './styled'
 import { EditingCellType, SelectedCellType } from '../../interface'
@@ -15,6 +15,7 @@ interface BodyProps<TData> {
   editingCell: EditingCellType
   selectedCell: SelectedCellType
   enableColumnDragging?: boolean
+  expandedRowRightOffset?: number
   setSelectedCell: (cell: SelectedCellType) => void
   onRowClick?: (data: any, e: React.MouseEvent<HTMLElement>) => void
   onRowDoubleClick?: (data: any, e: React.MouseEvent<HTMLElement>) => void
@@ -37,12 +38,13 @@ export const Body = <TData,>({
   onRowDoubleClick,
   expandedRowContent,
   uniqueValueMaps,
+  expandedRowRightOffset
 }: BodyProps<TData>) => {
   // Precompute values from the table
   const { rows } = table.getRowModel()
 
-  const filteredRowCount = useMemo(() => table.getFilteredRowModel().rows.length, [table])
-  const visibleColumns = useMemo(() => table.getVisibleLeafColumns(), [table])
+  const filteredRowCount = table.getFilteredRowModel().rows.length
+  const visibleColumns = table.getVisibleLeafColumns()
 
   // Memoize the row rendering helper to prevent unnecessary re-creations.
   const rowContent = useCallback(
@@ -63,7 +65,7 @@ export const Body = <TData,>({
           uniqueValueMaps={uniqueValueMaps}
         />
         {row.getIsExpanded() && expandedRowContent && (
-          <ExpandedRowContainer>
+          <ExpandedRowContainer $expandedRowRightOffset={expandedRowRightOffset}>
             {expandedRowContent(row.original)}
           </ExpandedRowContainer>
         )}
