@@ -56,7 +56,8 @@ export const theme: any = {
       dark: '#6d6e71',
       darker: '#202020',
     },
-    lightA: "#f2f2f2"
+    lightA: "#f2f2f2",
+    lightB: "#f8f8f8"
   },
   sizes: {
     label: {

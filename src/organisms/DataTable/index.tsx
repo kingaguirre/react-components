@@ -36,7 +36,7 @@ import { useGlobalKeyNavigation } from './hooks/useGlobalKeyNavigation'
 import { useUniqueValueMaps } from './hooks/useUniqueValueMaps'
 import { Alert } from '../../molecules/Alert'
 import { ExpanderColumn } from './components/ExpanderColumn'
-import CellCommitWorker from "./workers/cellCommitWorker?worker&inline"
+import CellCommitWorker from "./workers/cellCommitWorker?worker"
 
 // needed for table body level scope DnD setup
 import {

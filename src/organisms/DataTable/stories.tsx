@@ -1,5 +1,6 @@
 import React from 'react'
 import type { Meta } from '@storybook/react'
+import { FormControl } from '../../atoms/FormControl'
 import { DataTable } from './index'
 import { StoryWrapper, Title } from '../../components/StoryWrapper'
 import { COLUMN_SETTINGS, HEADER_RIGHT_ELEMENTS, dataSource } from './Playground/data'

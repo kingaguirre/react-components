@@ -147,6 +147,7 @@ const generateSizeStories = (type: string, md = 4) => (
 
 const FormPropsStories: React.FC<{ type: string }> = ({ type }) => {
   const inputRef = useRef<HTMLInputElement | null>(null)
+  const [inputValue, setInputValue] = useState('')
   const handleFocus = () => {
     if (inputRef.current) {
       inputRef.current.focus()
@@ -237,7 +238,6 @@ const FormPropsStories: React.FC<{ type: string }> = ({ type }) => {
                 label={`${type} with text`}
                 helpText={`This ${type} has a text prop`}
                 text='Click me!'
-                val
               />
             ) : (
               <FormControl
