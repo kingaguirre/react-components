@@ -37,32 +37,55 @@ export const AccordionHeader = styled.div<{
   display: flex;
   align-items: center;
   padding: 6px 12px;
-  /* if disabled: force header text to #333, else use theme color */
-  color: ${({ $disabled }) =>
-    $disabled ? theme.colors.default.dark : 'white'};
-  background: ${({ $disabled, $color }) =>
-    $disabled ? theme.colors[$color].pale : theme.colors[$color].base};
+  /* color: ${({ $disabled }) => $disabled ? theme.colors.default.dark : 'white'}; */
+  /* color: ${({ $color = 'primary' }) =>  theme.colors[$color].dark}; */
+  background: ${({ $disabled, $color }) => $disabled ? theme.colors[$color].pale : theme.colors.lightB};
   box-shadow: 0 0 1px 0 ${({ $color }) => theme.colors[$color].base};
   cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'pointer')};
   user-select: none;
   transition: all 0.3s ease;
 
-  /* only hover when not disabled */
-  &:hover {
-    ${({ $disabled, $color }) =>
-      $disabled ? '' : `background: ${theme.colors[$color].dark};`}
+  .icon,
+  .accordion-title,
+  .accordion-detail > span,
+  .accordion-right-content > * {
+    transition: all 0.3s ease;
   }
 
-  &:active {
-    ${({ $disabled, $color }) =>
-      $disabled ? '' : `background: ${theme.colors[$color].darker};`}
+  .icon,
+  .accordion-title {
+    color: ${({ $disabled, $color }) => $disabled ? theme.colors.default.base : theme.colors[$color].dark}
+  }
+
+  /* only hover when not disabled */
+  &:hover {
+    ${({ $disabled, $color }) => $disabled ? '' : `
+      background: ${theme.colors[$color].pale};
+      .icon,
+      .accordion-title {
+        color: ${theme.colors[$color].darker};
+      }
+    `}
   }
 
   /* open state styling—only if not disabled */
-  ${({ $open, $color, $disabled }) =>
-    $open && !$disabled
-      ? `background: ${theme.colors[$color].dark};`
-      : ''}
+  ${({ $open, $color, $disabled }) => $open && !$disabled ? `
+    background: ${theme.colors[$color].pale};
+    .icon,
+    .accordion-title,
+    .accordion-detail > span:not(.badge),
+    .accordion-right-content > * {
+      color: ${theme.colors[$color].dark};
+    }
+    &:hover {
+      .icon,
+      .accordion-title,
+      .accordion-detail > span:not(.badge),
+      .accordion-right-content > * {
+        color: ${theme.colors[$color].darker};
+      }
+    }
+  ` : ''}
 `
 
 export const AccordionTitle = styled.div<{
@@ -70,9 +93,8 @@ export const AccordionTitle = styled.div<{
 }>`
   flex-grow: 1;
   font-weight: bold;
-  color: ${({ $disabled }) => $disabled ? theme.colors.default.dark : 'white'};
+  color: ${({ $disabled }) => $disabled ? theme.colors.default.base : theme.colors.default.dark};
   margin-left: 8px;
-  transition: all .3s ease;
   font-size: 12px;
   text-transform: uppercase;
 `;
@@ -84,9 +106,9 @@ export const AccordionRightContent = styled.div<{
   display: flex;
   align-items: center;
   font-size: 12px;
-  color: ${({ $disabled }) => $disabled ? theme.colors.default.dark : 'white'};
+  color: ${({ $disabled }) => $disabled ? theme.colors.default.base : theme.colors.default.dark};
   * {
-    color: ${({ $disabled }) => $disabled ? theme.colors.default.dark : 'white'};
+    color: ${({ $disabled }) => $disabled ? theme.colors.default.base : theme.colors.default.dark};
   }
 `;
 
@@ -98,15 +120,16 @@ export const AccordionDetailContainer = styled.div<{
   margin-left: 8px;
   cursor: pointer;
   font-size: 12px;
-  color: ${({ $disabled }) => $disabled ? theme.colors.default.dark : 'white'};
+  color: ${({ $disabled }) => $disabled ? theme.colors.default.base : theme.colors.default.dark};
 
   .badge {
     box-shadow: 0 0 2px 1px rgba(255, 255, 255, 0.6);
     color: white;
   }
+
   & > span {
     margin-left: 4px;
-    color: ${({ $disabled }) => $disabled ? theme.colors.default.dark : 'white'};
+    color: ${({ $disabled }) => $disabled ? theme.colors.default.base : theme.colors.default.dark};
   }
 `;
 
@@ -127,7 +150,7 @@ export const AccordionContentWrapper = styled.div<{
     right: 0;
     bottom: 0;
     z-index: 1;
-    border: 1px solid ${({ $color }) => theme.colors[$color].dark};
+    border: 1px solid ${({ $color }) => theme.colors[$color].pale};
     pointer-events: none;
   }
 `;

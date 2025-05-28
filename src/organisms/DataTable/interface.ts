@@ -80,7 +80,7 @@ export interface DataTableProps {
   expandedRowContent?: (RowData: any) => React.ReactNode
 }
 
-export type FormControlType =
+export type DataTableFormControlType =
   | "text"
   | "number"
   | "checkbox"
@@ -101,7 +101,7 @@ export type HeaderRightElement =
     "children" // Exclude children since we're using `text`
   >)
   | ({
-    type: FormControlType
+    type: DataTableFormControlType
     width?: string | number
   } & Partial<Pick<
     FormControlProps,

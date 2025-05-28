@@ -5,7 +5,7 @@ import { Button } from '../../../../atoms/Button'
 import { FormControl } from '../../../../atoms/FormControl'
 import { Dropdown } from '../../../../molecules/Dropdown'
 import { DatePicker } from '../../../../molecules/DatePicker'
-import type { HeaderRightElement, FormControlType } from "../../interface"
+import type { HeaderRightElement, DataTableFormControlType } from "../../interface"
 
 interface Props {
   elements?: HeaderRightElement[]
@@ -101,7 +101,7 @@ export const HeaderRightElementRenderer: React.FC<Props> = ({ elements }) => {
             return (
               <Wrapper key={i} width={el.width}>
                 <FormControl
-                  type={el.type as FormControlType}
+                  type={el.type as DataTableFormControlType}
                   name={el.name}
                   value={el.value}
                   placeholder={el.placeholder}

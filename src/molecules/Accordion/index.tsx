@@ -101,16 +101,17 @@ const AccordionItem: React.FC<AccordionItemInternalProps> = ({
     <AccordionItemWrapper tabIndex={disabled ? undefined : 0} $color={color} $disabled={disabled}>
       <AccordionHeader className='accordion-header' $open={open} $color={color} $disabled={disabled} onClick={handleHeaderClick}>
         <Icon icon={open ? 'remove' : 'add'} />
-        <AccordionTitle $disabled={disabled}>{title}</AccordionTitle>
+        <AccordionTitle className='accordion-title' $disabled={disabled}>{title}</AccordionTitle>
 
         {rightContent && (
-          <AccordionRightContent $disabled={disabled}>{rightContent}</AccordionRightContent>
+          <AccordionRightContent className='accordion-right-content' $disabled={disabled}>{rightContent}</AccordionRightContent>
         )}
 
         {rightDetails?.map((detail: AccordionItemDetail, i: number) => {
           if (!detail.icon && !detail.text && detail.value == null) return null
           return (
             <AccordionDetailContainer
+              className='accordion-detail'
               $disabled={disabled}
               key={i}
               onClick={e => {

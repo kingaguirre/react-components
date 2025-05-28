@@ -25,13 +25,11 @@ export const PanelHeader = styled.div<{
   display: flex;
   align-items: center;
   justify-content: space-between;
-  /* background-color: ${({ $color }) => theme.colors[$color].dark }; */
   padding: 10px 12px;
   height: 32px;
   box-sizing: border-box;
   
-  background: ${({ $disabled, $color }) =>
-    $disabled ? theme.colors[$color].pale : theme.colors[$color].base};
+  background: ${({ $disabled, $color }) => $disabled ? theme.colors[$color].pale : theme.colors[$color].dark};
   * {
     box-sizing: border-box;
   }
@@ -39,7 +37,6 @@ export const PanelHeader = styled.div<{
   .title {
     flex: 1;
     text-align: left;
-    /* color: white; */
     color: ${({ $disabled }) => $disabled ? theme.colors.default.dark : 'white'};
     cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'default')};
     padding-left: ${({ $hasLeftIcon }) => ($hasLeftIcon ? "8px" : "0")};
