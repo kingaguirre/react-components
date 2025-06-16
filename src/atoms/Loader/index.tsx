@@ -41,6 +41,7 @@ export const Loader: React.FC<LoaderProps> = ({
   thickness,
   color,
   className,
+  label
 }) => {
   const [parent, setParent] = useState<HTMLElement | null>(null);
 
@@ -140,7 +141,12 @@ export const Loader: React.FC<LoaderProps> = ({
   if (appendTo) {
     return parent
       ? ReactDOM.createPortal(
-          <Overlay>{CircleContent}</Overlay>,
+          <Overlay>
+            <div>
+              {CircleContent}
+              <div className='loader-label'>{label}</div>
+            </div>
+          </Overlay>,
           parent
         )
       : null;

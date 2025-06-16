@@ -77,9 +77,11 @@ export const CloseIconButton = styled.button`
   cursor: pointer;
   position: absolute;
   top: 12px;
-  right: 4px;
+  right: 10px;
   transition: all .3s ease;
   color: ${theme.colors.primary.base};
+  font-size: 14px;
+  padding: 0;
   &:hover {
     color: ${theme.colors.danger.base};
   }

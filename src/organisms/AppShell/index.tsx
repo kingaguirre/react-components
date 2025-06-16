@@ -115,7 +115,7 @@ export const AppShell: React.FC<AppShellProps> = ({
           <RightSection>
             <ProfileDropdown {...profile} />
             <NotificationDropdown {...notifications} />
-            {rightIcons.map((item, index) => (
+            {rightIcons?.map((item, index) => (
               <Tooltip key={index} type='title' content={item?.tooltip}>
                 <IconButton
                   onClick={() => !item.disabled && item.onClick()}
@@ -157,7 +157,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             <Icon icon={menuCollapsed ? 'arrow_forward' : 'arrow_back'} />
           </CollapseToggleContainer>
         </SideMenuContainer>
-        <MainContent>{children}</MainContent>
+        <MainContent className='app-shell-main-content'>{children}</MainContent>
       </ContentWrapper>
       {showFooter && <Footer alignment={footerAlignment} content={footerContent} />}
     </Container>

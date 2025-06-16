@@ -46,7 +46,9 @@ export const NotificationDropdown: React.FC<Notifications> = ({
   const [localNotifications, setLocalNotifications] = useState<NotificationItem[]>(notifications)
 
   useEffect(() => {
-    setLocalNotifications(notifications)
+    if (notifications?.length > 0) {
+      setLocalNotifications(notifications)
+    }
   }, [notifications])
 
   const toggleDropdown = () => {
@@ -82,7 +84,7 @@ export const NotificationDropdown: React.FC<Notifications> = ({
       ? '9+'
       : totalNewNotifications?.toString()
 
-  return (
+  return notifications?.length > 0 ? (
     <NotificationContainer ref={containerRef}>
       <BellButton onClick={toggleDropdown} data-testid="notification-dropdown-button" className={dropdownOpen ? 'open' : ''}>
         <Icon icon="bell" />
@@ -227,5 +229,5 @@ export const NotificationDropdown: React.FC<Notifications> = ({
         </DropdownMenu>
       )}
     </NotificationContainer>
-  )
+  ) : null
 }

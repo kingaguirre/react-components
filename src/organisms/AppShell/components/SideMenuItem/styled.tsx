@@ -40,6 +40,7 @@ export const MenuItemTitle = styled.span`
   text-overflow: ellipsis;
   color: white;
   font-size: 14px;
+  text-transform: capitalize;
 `
 
 export const MenuItemWrapper = styled.div<{ $active?: boolean }>`
@@ -161,4 +162,5 @@ export const FloatingHeader = styled.div`
   font-size: 13px;
   background-color: ${theme.colors.primary.darker};
   cursor: default;
+  text-transform: capitalize;
 `

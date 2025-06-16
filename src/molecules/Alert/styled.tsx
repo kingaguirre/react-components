@@ -98,7 +98,7 @@ export const IconWrapper = styled.div<{ $color: ColorType }>`
   color: ${({ $color }) => theme.colors[$color].base};
 `;
 
-export const CloseButton = styled.button`
+export const CloseButton = styled.span`
   background: transparent;
   border: none;
   cursor: pointer;
