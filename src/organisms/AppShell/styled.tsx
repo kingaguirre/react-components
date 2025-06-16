@@ -97,6 +97,7 @@ export const IconButton = styled.button<{ $leftDivider?: boolean, $color?: Color
   transition: all .3s ease;
   padding: 0;
   padding-right: 12px;
+  line-height: 1;
   &:hover {
     opacity: 1;
   }
@@ -110,6 +111,7 @@ export const IconButton = styled.button<{ $leftDivider?: boolean, $color?: Color
     padding-left: 12px;
   `}
   > span {
+    line-height: 1.4;
     color: ${({ $color = 'default', $colorShade = 'base' }) => theme.colors[$color]?.[$colorShade]};
     &.text {
       margin-right: 4px;

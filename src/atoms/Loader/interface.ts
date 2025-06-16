@@ -20,4 +20,6 @@ export interface LoaderProps {
   color?: ColorType;
   /** Extra className */
   className?: string;
+  /** Optional label */
+  label?: string;
 }

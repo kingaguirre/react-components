@@ -293,7 +293,7 @@ const InlineAlertExample = () => {
   const [show, setShow] = useState(false)
   return (
     <>
-      <Button size='sm' onClick={() => setShow(true)}>
+      <Button size='sm' onClick={() => setShow(!show)}>
         Show Inline Alert
       </Button>
       <Alert

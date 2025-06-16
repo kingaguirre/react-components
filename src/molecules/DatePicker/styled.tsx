@@ -15,7 +15,7 @@ export const DatePickerGlobalStyles = createGlobalStyle`
   }
 
   .react-datepicker-popper {
-    z-index: 999!important;
+    z-index: 1001!important;
   }
 
   .react-components-datepicker {

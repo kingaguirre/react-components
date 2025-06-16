@@ -28,8 +28,9 @@ export const Alert: React.FC<AlertProps> = ({
   placement = 'top-right',
   animation = 'grow',
   onClose,
-  ...rest
 }) => {
+  const exitTimerRef = useRef<number | null>(null)
+
   // Determine if the alert is controlled (i.e. onClose provided)
   const isControlled = onClose !== undefined
   // internalShow controls whether the alert is rendered.
@@ -46,14 +47,22 @@ export const Alert: React.FC<AlertProps> = ({
         setIsExiting(false)
       } else if (internalShow && !isExiting) {
         setIsExiting(true)
-        const timer = setTimeout(() => {
+
+        exitTimerRef.current = window.setTimeout(() => {
           setInternalShow(false)
-          // No need to reset isExiting here since the alert will unmount
+          exitTimerRef.current = null
         }, ANIMATION_DURATION)
-        return () => clearTimeout(timer)
       }
     }
   }, [show, internalShow, isControlled, isExiting])
+
+  useEffect(() => {
+    return () => {
+      if (exitTimerRef.current) {
+        clearTimeout(exitTimerRef.current)
+      }
+    }
+  }, [])
 
   // Auto-close timer for toast mode (only enabled when closeable is false).
   const timerRef = useRef<number | null>(null)
@@ -130,7 +139,6 @@ export const Alert: React.FC<AlertProps> = ({
       className={isExiting ? 'closing' : ''}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      {...rest}
     >
       {icon && (
         <IconWrapper $color={color}>

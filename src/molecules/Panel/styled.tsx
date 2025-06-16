@@ -37,7 +37,7 @@ export const PanelHeader = styled.div<{
   .title {
     flex: 1;
     text-align: left;
-    color: ${({ $disabled }) => $disabled ? theme.colors.default.dark : 'white'};
+    color: ${({ $disabled }) => $disabled ? theme.colors.default.base : 'white'};
     cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'default')};
     padding-left: ${({ $hasLeftIcon }) => ($hasLeftIcon ? "8px" : "0")};
     padding-right: ${({ $hasRightIcons }) => ($hasRightIcons ? "8px" : "0")};

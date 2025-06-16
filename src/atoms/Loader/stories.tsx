@@ -237,9 +237,9 @@ export const Examples: StoryObj<LoaderProps> = {
               >
                 {showLoader && (
                   <Loader
-                  
                     color="danger"
                     appendTo=".append-demo-circle"
+                    label='Loading...'
                   />
                 )}
                 <div style={{ marginTop: 6 }}>

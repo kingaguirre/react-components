@@ -155,4 +155,9 @@ export const Overlay = styled.div`
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  text-align: center;
+  font-size: 14px;
+  .loader-label {
+    margin-top: 6px;
+  }
 `;
