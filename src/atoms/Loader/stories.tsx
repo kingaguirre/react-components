@@ -82,7 +82,7 @@ export const Examples: StoryObj<LoaderProps> = {
           <Grid>
             <GridItem xs={12}>
               <Loader
-              
+
                 value={val}
                 valueBuffer={buf}
                 size="lg"
@@ -182,72 +182,75 @@ export const Examples: StoryObj<LoaderProps> = {
         <Title>Line Loader</Title>
         <Grid>
           <GridItem xs={12}>
-            {COLORS.map((col) => (
-              <React.Fragment key={col}>
-                <div style={{ marginBottom: 12, textAlign: 'left' }}>
-                  <Loader type="line" color={col as ColorType} />
-                  <div>{col}</div>
-                </div>
-              </React.Fragment>
-            ))}
+            <div style={{ overflow: 'hidden' }}>
+              {COLORS.map((col) => (
+                <React.Fragment key={col}>
+                  <div style={{ marginBottom: 12, textAlign: 'left' }}>
+                    <Loader type="line" color={col as ColorType} />
+                    <div>{col}</div>
+                  </div>
+                </React.Fragment>
+              ))}
+            </div>
           </GridItem>
         </Grid>
 
         <DynamicDemo />
 
         <Title>Append To</Title>
-          <Button
-            onClick={() => setShowLoader((s) => !s)}
-            style={{ margin: '16px 0' }}
-          >
-            {showLoader ? 'Hide' : 'Show'} Loader
-          </Button>
+        <Button
+          onClick={() => setShowLoader((s) => !s)}
+          style={{ margin: '16px 0' }}
+        >
+          {showLoader ? 'Hide' : 'Show'} Loader
+        </Button>
 
-          <Grid>
-            <GridItem xs={12}>
-              <div
-                className="append-demo-line"
-                style={{
-                  position: 'relative',
-                  height: 60,
-                  background: '#e0f7fa',
-                  padding: 12,
-                  marginBottom: 12,
-                }}
-              >
-                {showLoader && (
-                  <Loader
-                    type="line"
-                    appendTo=".append-demo-line"
-                    color="info"
-                  />
-                )}
-                <div style={{ marginTop: 6 }}>
-                  Line loader (appendTo) in container
-                </div>
+        <Grid>
+          <GridItem xs={12}>
+            <div
+              className="append-demo-line"
+              style={{
+                position: 'relative',
+                height: 60,
+                background: '#e0f7fa',
+                padding: 12,
+                marginBottom: 12,
+                overflow: 'hidden',
+              }}
+            >
+              {showLoader && (
+                <Loader
+                  type="line"
+                  appendTo=".append-demo-line"
+                  color="info"
+                />
+              )}
+              <div style={{ marginTop: 6 }}>
+                Line loader (appendTo) in container
               </div>
-              <div
-                className="append-demo-circle"
-                style={{
-                  position: 'relative',
-                  height: 80,
-                  background: '#fce4ec',
-                  padding: 12,
-                }}
-              >
-                {showLoader && (
-                  <Loader
-                    color="danger"
-                    appendTo=".append-demo-circle"
-                    label='Loading...'
-                  />
-                )}
-                <div style={{ marginTop: 6 }}>
-                  Circle loader (appendTo) with overlay & centered
-                </div>
+            </div>
+            <div
+              className="append-demo-circle"
+              style={{
+                position: 'relative',
+                height: 80,
+                background: '#fce4ec',
+                padding: 12,
+              }}
+            >
+              {showLoader && (
+                <Loader
+                  color="danger"
+                  appendTo=".append-demo-circle"
+                  label='Loading...'
+                />
+              )}
+              <div style={{ marginTop: 6 }}>
+                Circle loader (appendTo) with overlay & centered
               </div>
-            </GridItem>
-          </Grid>
+            </div>
+          </GridItem>
+        </Grid>
 
         <Title>Within button</Title>
         <Button>

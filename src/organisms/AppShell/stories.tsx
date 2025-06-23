@@ -35,11 +35,9 @@ export default meta
 
 export const Default: StoryObj<typeof meta> = {
   args: {
-    pageTitle: 'Module',
+    pageTitle: 'module',
     pageName: 'Page Name',
-    collapsedMenu: true,
     showFooter: true,
-    showMenu: true,
     menuOverlay: true,
     // logo: '', // should be string src for img
     // logoMinimal: '', // should be string src for img
@@ -150,6 +148,9 @@ export const Default: StoryObj<typeof meta> = {
         <p>This is an example of the main content area within the AppShell layout.</p>
       </div>
     ),
+    // autoHideHeader: true,
+    // showMenu: true,
+    // collapsedMenu: false,
   },
   tags: ['!dev'],
 }

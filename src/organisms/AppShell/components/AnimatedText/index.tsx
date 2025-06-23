@@ -12,7 +12,7 @@ const AnimatedTextWrapper = styled.div<{
   /* If expanded, use the measured width; if not, collapse to 0 */
   max-width: ${({ $expanded, $width }) => ($expanded ? `${$width}px` : 0)};
   background-color: ${theme.colors.primary.dark};
-  height: 30px;
+  height: 32px;
   box-sizing: border-box;
   * { box-sizing: border-box; }
 `
@@ -24,6 +24,7 @@ const Text = styled.div<{ $expanded?: boolean }>`
   padding: 7px 8px;
   transition: all .3s ease;
   opacity: ${({ $expanded }) => ($expanded ? 1 : 0)};
+  text-transform: capitalize;
 `
 
 export const AnimatedText = ({ children, expanded }) => {

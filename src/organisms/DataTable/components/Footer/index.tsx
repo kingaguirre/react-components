@@ -124,7 +124,7 @@ export const Footer = <TData,>({
             size='sm'
             value={table.getState().pagination.pageSize.toString()}
             onChange={(value) => table.setPageSize(Number(value))}
-            clearable
+            clearable={false}
             options={[
               { text: '5', value: '5' },
               { text: '10', value: '10' },
