@@ -1,17 +1,6 @@
 import { ColorType } from 'src/common/interface'
 import { scrollStyle, theme } from 'src/styles'
-import styled, { keyframes } from 'styled-components'
-
-/* Animations */
-const slideInFromLeft = keyframes`
-  from { transform: translateX(-100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
-`
-
-const slideOutToLeft = keyframes`
-  from { transform: translateX(0); opacity: 1; }
-  to { transform: translateX(-100%); opacity: 0; }
-`
+import styled from 'styled-components'
 
 export const Container = styled.div`
   display: flex;
@@ -64,8 +53,7 @@ export const RightSection = styled.div`
 export const HeaderWrapper = styled.div<{ $headerHidden: boolean }>`
   height: 32px;
   overflow: visible;
-  margin-top: ${({ $headerHidden }) =>
-    $headerHidden ? '-30px' : 0};
+  margin-top: ${({ $headerHidden }) => $headerHidden ? '-30px' : 0};
   transition: margin-top 0.3s ease;
 `
 
@@ -125,12 +113,13 @@ export const PageName = styled.div`
   margin: 0;
   padding: 4px 16px;
   color: ${theme.colors.primary.darker};
+  text-transform: capitalize;
 `
 
 export const SideMenuContainer = styled.aside<{
-  $collapsed: boolean;
-  $overlay?: boolean;
-  $visible: boolean;
+  $collapsed: boolean
+  $overlay?: boolean
+  $visible: boolean
 }>`
   width: ${({ $collapsed }) => ($collapsed ? '50px' : '170px')};
   height: 100%;
@@ -138,13 +127,16 @@ export const SideMenuContainer = styled.aside<{
   color: white;
   display: flex;
   flex-direction: column;
-  transition: width 0.3s ease;
+  transition: width 0.3s ease, transform 0.3s ease, opacity 0.3s ease;
   overflow: visible;
   position: ${({ $overlay }) => ($overlay ? 'absolute' : 'relative')};
   top: 0;
   left: 0;
+  transform: translateX(-100%);
+  opacity: 0;
   z-index: ${({ $overlay }) => ($overlay ? '101' : '1')};
-  animation: ${({ $visible }) => ($visible ? slideInFromLeft : slideOutToLeft)} 0.3s ease forwards;
+  transform: translateX(${({ $visible }) => ($visible ? '0' : '-100%')});
+  opacity: ${({ $visible }) => ($visible ? 1 : 0)};
 `
 
 export const CollapseToggleContainer = styled.div`
@@ -159,7 +151,7 @@ export const CollapseToggleContainer = styled.div`
 export const AnimatedIconWrapper = styled.div<{ $show: boolean }>`
   position: relative;
   width: ${({ $show }) => ($show ? 140 : 38)}px;
-  height: 30px;
+  height: 32px;
   background-color: ${theme.colors.primary.darker};
   color: white;
   transition: all .3s ease;

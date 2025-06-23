@@ -25,7 +25,7 @@ export const LineContainer = styled.div<{
   $isInline?: boolean;
 }>`
   ${fadeInOnMount}
-  overflow: hidden;
+  /* overflow: hidden; */
   width: 100%;
   height: 4px;
   pointer-events: none;
@@ -59,15 +59,33 @@ export const LineBuffer = styled.div<{
   opacity: 0.4;
   z-index: 1;
   width: ${({ $value = 0 }) => `${$value}%`};
+  border-top-right-radius: 12px;
+  border-bottom-right-radius: 12px;
 `;
 
 export const Line = styled.div<{
   $color?: ColorType;
   $value?: number;
 }>`
-  ${({ $color = 'primary' }) => lineStyle($color)}
+  position: relative;
   z-index: 2;
+  ${({ $color = 'primary' }) => lineStyle($color)}
+  border-top-right-radius: 12px;
+  border-bottom-right-radius: 12px;
 
+  /* the glowing pseudo-element */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    height: 100%;
+    width: 30px;
+    box-shadow: ${({ $color = 'primary' }) => `8px 0 12px 1px ${theme.colors[$color].base}`};
+    right: 0;
+    border-radius: 50%;
+  }
+
+  /* your width / animation logic */
   ${({ $value }) =>
     typeof $value === 'number'
       ? css`
@@ -78,6 +96,7 @@ export const Line = styled.div<{
           animation: ${slide} 1s ease-in-out infinite;
         `}
 `;
+
 
 /** ─── CIRCLE ────────────────────────────────────────────────────────────── */
 const spin = keyframes`

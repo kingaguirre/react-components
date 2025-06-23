@@ -103,7 +103,7 @@ export const FormControl = forwardRef<HTMLInputElement | HTMLTextAreaElement, Fo
 
   return (
     <FormControInputContainer className={`form-control-input-container ${type ?? ''} ${className ?? ''} ${disabled ? 'disabled' : ''} ${isInvalid ? 'invalid' : ''}`}>
-      {label && <Label color={color} size={size}>{required && <span>*</span>}{label}</Label>}
+      {label && <Label className='form-control-label' color={color} size={size}>{required && <span>*</span>}{label}</Label>}
       <FormControlWrapper
         $simple={simple}
         $iconRight={iconRight}

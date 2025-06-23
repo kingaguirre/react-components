@@ -235,6 +235,13 @@ const sharedInputStyles = css<{
   &:placeholder {
     color: ${theme.colors.default.base};
   }
+
+  ${({ $variant, color = 'primary' }) => $variant === 'outlined' ? `
+    background-color: ${theme.colors[color].pale};
+    &:focus:not(:disabled) {
+      background-color: white;
+    }
+  ` : ''}
 `;
 
 export const Input = styled.input<{

@@ -38,7 +38,7 @@ export const AppShell: React.FC<AppShellProps> = ({
   footerAlignment = 'left',
   activeMenu,
   children,
-  showMenu = true,
+  showMenu = false,
   collapsedMenu = true,
   profile,
   notifications,
@@ -46,7 +46,7 @@ export const AppShell: React.FC<AppShellProps> = ({
   logoMinimal,
   showFooter = true,
   onClickLogo,
-  autoHideHeader = true,
+  autoHideHeader = false,
   autoHideHeaderDelay = 3000,
 }) => {
   const [menuVisible, setMenuVisible] = useState(showMenu)
@@ -67,6 +67,13 @@ export const AppShell: React.FC<AppShellProps> = ({
     setMenuVisible(!menuVisible)
     if (onToggle) {
       onToggle(!menuVisible)
+    }
+  }
+
+  const closeMenu = () => {
+    setMenuVisible(false)
+    if (onToggle) {
+      onToggle(false)
     }
   }
 
@@ -150,6 +157,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                 delay={index * 0.05}
                 activeMenu={activeMenu}
                 menuCollapsed={menuCollapsed}
+                onMenuItemClick={toggleShowMenu}
               />
             ))}
           </SideMenuList>
@@ -157,7 +165,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             <Icon icon={menuCollapsed ? 'arrow_forward' : 'arrow_back'} />
           </CollapseToggleContainer>
         </SideMenuContainer>
-        <MainContent className='app-shell-main-content'>{children}</MainContent>
+        <MainContent onClick={closeMenu} className='app-shell-main-content'>{children}</MainContent>
       </ContentWrapper>
       {showFooter && <Footer alignment={footerAlignment} content={footerContent} />}
     </Container>

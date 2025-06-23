@@ -19,6 +19,7 @@ interface SideMenuItemProps {
   floating?: boolean
   delay?: number
   level?: number
+  onMenuItemClick?: () => void
 }
 
 export const SideMenuItem: React.FC<SideMenuItemProps> = ({
@@ -28,6 +29,7 @@ export const SideMenuItem: React.FC<SideMenuItemProps> = ({
   floating = false,
   delay = 0,
   level = 0,
+  onMenuItemClick,
 }) => {
   // Helper function to check active status recursively
   const checkActive = (item: ISideMenuItem): boolean => {
@@ -56,9 +58,11 @@ export const SideMenuItem: React.FC<SideMenuItemProps> = ({
     e.stopPropagation()
     if (!menuCollapsed && item.children) {
       setOpen(prev => !prev)
-    }
-    if (item.onClick) {
-      item.onClick()
+    } else {
+      if (item.onClick) {
+        item.onClick()
+      }
+      onMenuItemClick?.()
     }
   }
 
@@ -159,6 +163,7 @@ export const SideMenuItem: React.FC<SideMenuItemProps> = ({
                     level={level + 1}
                     activeMenu={activeMenu}
                     menuCollapsed={menuCollapsed}
+                    onMenuItemClick={onMenuItemClick}
                   />
                 ))}
               </SideMenuList>
@@ -175,6 +180,7 @@ export const SideMenuItem: React.FC<SideMenuItemProps> = ({
                   level={level + 1}
                   activeMenu={activeMenu}
                   menuCollapsed={menuCollapsed}
+                  onMenuItemClick={onMenuItemClick}
                 />
               ))}
             </SideMenuList>

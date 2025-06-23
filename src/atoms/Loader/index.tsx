@@ -54,10 +54,6 @@ export const Loader: React.FC<LoaderProps> = ({
     }
   }, [appendTo]);
 
-  if (appendTo && !parent) {
-    console.error(`Error: Cannot find ${appendTo} element.`)
-  }
-
   // ─── LINE ────────────────────────────────────────────────────────────────
   if (type === 'line') {
     const LineLoader = (
