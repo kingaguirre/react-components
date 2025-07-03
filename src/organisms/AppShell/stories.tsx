@@ -96,16 +96,19 @@ export const Default: StoryObj<typeof meta> = {
         icon: 'home',
         title: 'Home',
         onClick: () => alert('Home clicked'),
+        badge: { value: 1 }
       },
       {
         id: 'projects',
         icon: 'folder',
         title: 'Projects',
+        badge: { icon: 'fiber_new', color: 'success' },
         children: [
           {
             id: 'proj-a',
             icon: 'upload_file',
             title: 'Project A',
+            badge: { value: 2, color: 'danger' },
             children: [
               {
                 id: 'sub-a1',
@@ -117,6 +120,7 @@ export const Default: StoryObj<typeof meta> = {
                 id: 'sub-a2',
                 icon: 'upload_file',
                 title: 'Subproject A2',
+                badge: { icon: 'fiber_new', color: 'success' },
                 onClick: () => alert('Subproject A2 clicked'),
               },
             ],
@@ -137,7 +141,12 @@ export const Default: StoryObj<typeof meta> = {
       },
     ],
     notifications: {
-      notifications: NOTIFICATIONS,
+      notifications: [{
+          id: 1,
+          title: 'Info Notification',
+          message: 'This is an info notification. With custom button rendered.',
+          dateTime: new Date().toISOString(), // current time
+        }],
       // showTotalCount: false,
       totalNewNotifications: 3,
       onShowAllClick: () => alert('Show all notifications clicked'),

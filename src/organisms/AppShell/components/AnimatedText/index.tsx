@@ -25,6 +25,10 @@ const Text = styled.div<{ $expanded?: boolean }>`
   transition: all .3s ease;
   opacity: ${({ $expanded }) => ($expanded ? 1 : 0)};
   text-transform: capitalize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
 `
 
 export const AnimatedText = ({ children, expanded }) => {

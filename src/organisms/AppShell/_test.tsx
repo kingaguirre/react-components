@@ -32,17 +32,17 @@ describe('AppShell Component', () => {
   test('checks if pageTitle is defined after animation delay when showMenu is updated to false', () => {
     const pageTitle = 'Dashboard Page'
     vi.useFakeTimers()
-  
+
     // Initial render with default props (default showMenu is true)
-    setup({ pageTitle })
+    setup({ pageTitle, showMenu: true })
     const elements = screen.getAllByText(pageTitle)
     const lastElement = elements[elements.length - 1]
     expect(lastElement).not.toBeVisible()
-  
+
     // Second render with showMenu set to false using setup
     setup({ pageTitle, showMenu: false })
     vi.advanceTimersByTime(300)
-  
+
     const elements1 = screen.getAllByText(pageTitle)
     const lastElement1 = elements1[elements1.length - 1]
     expect(lastElement1).toBeVisible()
@@ -79,7 +79,7 @@ describe('AppShell Component', () => {
       { icon: 'settings', color: 'blue', tooltip: 'Settings' },
     ]
     setup({ rightIcons })
-  
+
     for (const { icon, color, tooltip } of rightIcons) {
       // Assuming each icon has a test id in the format: header-icon-{icon}
       const iconElement = screen.getByTestId(`header-icon-${icon}`)
@@ -117,13 +117,22 @@ describe('AppShell Component', () => {
     const notifCloseButton = screen.getByTestId('notification-dropdown-close-button')
     expect(notifCloseButton).toBeInTheDocument()
     fireEvent.click(notifCloseButton)
-    
+
     // Wait for the notification element to be removed
     await waitForElementToBeRemoved(() => screen.queryByText('Info Notification'))
   })
 
   test('checks if notification count is visible when showTotalCount is true', () => {
-    setup({notifications: { showTotalCount: true, totalNewNotifications: 3 }})
+    setup({
+      notifications: {
+        showTotalCount: true, totalNewNotifications: 3, notifications: [{
+          id: 1,
+          title: 'Info Notification',
+          message: 'This is an info notification. With custom button rendered.',
+          dateTime: new Date().toISOString(), // current time
+        }]
+      }
+    })
     // Expect that the notification count (as text) is visible
     expect(screen.getByText('3')).toBeVisible()
   })
@@ -201,23 +210,23 @@ describe('AppShell Component', () => {
     // Use a very short delay so we don't have to wait long in the test.
     setup({ autoHideHeader: true, autoHideHeaderDelay: 1000, pageTitle: 'Test Header' })
     const headerWrapper = screen.getByTestId('header-wrapper')
-  
+
     // Initially, header should be visible.
     expect(headerWrapper).toHaveClass('header-visible')
   })
 
   test('autoHideHeader false: header remains visible after delay', () => {
     vi.useFakeTimers()
-    setup({ autoHideHeader: false})
+    setup({ autoHideHeader: false })
     const headerWrapper = screen.getByTestId('header-wrapper')
-    
+
     // Initially, header is visible
     expect(headerWrapper).toHaveClass('header-visible')
-    
+
     // Fast-forward time, header should remain visible
     vi.advanceTimersByTime(5000)
     expect(headerWrapper).toHaveClass('header-visible')
-    
+
     vi.useRealTimers()
   })
 

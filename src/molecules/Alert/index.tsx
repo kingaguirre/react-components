@@ -150,7 +150,7 @@ export const Alert: React.FC<AlertProps> = ({
         <Content>{children}</Content>
       </div>
       {closeIcon && (
-        <CloseButton onClick={handleClose} aria-label='Close Alert'>
+        <CloseButton data-testid='alert-close-icon' onClick={handleClose} aria-label='Close Alert'>
           <Icon icon='clear' />
         </CloseButton>
       )}

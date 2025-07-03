@@ -88,7 +88,7 @@ export const FormControlWrapper = styled.div<{
 `;
 
 export const Label = styled.span<{
-  size: FormControlProps['size'];  // Reuse the type for size
+  size?: FormControlProps['size'];  // Reuse the type for size
 }>`
   display: block;
   position: relative;

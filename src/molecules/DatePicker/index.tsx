@@ -94,6 +94,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         required={required}
         autoFocus={autoFocus}
         calendarContainer={CustomCalendarContainer}
+        name={rest.name}
         customInput={
           <CustomInput
             {...rest}

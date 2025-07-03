@@ -22,7 +22,7 @@ describe('Alert Component', () => {
         Content
       </Alert>
     );
-    const closeButton = screen.getByRole('button', { name: /close alert/i });
+    const closeButton = screen.getByTestId('alert-close-icon');
     fireEvent.click(closeButton);
     expect(onClose).toHaveBeenCalled();
   });
