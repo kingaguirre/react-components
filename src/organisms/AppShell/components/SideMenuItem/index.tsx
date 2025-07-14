@@ -63,11 +63,10 @@ export const SideMenuItem: React.FC<SideMenuItemProps> = ({
     if (!menuCollapsed && item.children) {
       setOpen(prev => !prev)
     } else {
-      if (item.onClick) {
-        item.onClick()
-      }
       onMenuItemClick?.()
     }
+
+    item?.onClick?.()
   }
 
   const handleMouseEnter = () => {
@@ -149,7 +148,10 @@ export const SideMenuItem: React.FC<SideMenuItemProps> = ({
           {menuCollapsed ? (
             (hovered || floating) && (
               (item.children || floating) ? (
-                isSubMenu ? <MenuItemTitle><div>{item.title}</div> {!item.children ? getBadge(item.badge) : ""}</MenuItemTitle> : null
+                isSubMenu ? (
+                  <MenuItemTitle $menuCollapsed={menuCollapsed}>
+                    <div>{item.title}</div> {!item.children ? getBadge(item.badge) : ""}
+                  </MenuItemTitle>) : null
               ) : (
                 <FloatingSubMenu $open={open}>
                   <FloatingHeader>{item.title} {getBadge(item.badge)}</FloatingHeader>
@@ -170,7 +172,7 @@ export const SideMenuItem: React.FC<SideMenuItemProps> = ({
         menuCollapsed ? (
           showSubMenu && (
             <FloatingSubMenu $open={open}>
-              <FloatingHeader>{item.title} {getBadge(item.badge)}</FloatingHeader>
+              <FloatingHeader><div>{item.title}</div> {getBadge(item.badge)}</FloatingHeader>
               <SideMenuList $isSubMenu>
                 {item.children.map((child, index) => (
                   <SideMenuItem

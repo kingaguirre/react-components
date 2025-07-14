@@ -1,7 +1,7 @@
 {
   "name": "react-components-lib.eaa",
   "private": false,
-  "version": "1.0.2",
+  "version": "1.0.3",
   "type": "module",
   "main": "./dist/react-components-lib.cjs",
   "module": "./dist/react-components-lib.es.js",

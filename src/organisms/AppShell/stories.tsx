@@ -79,7 +79,7 @@ export const Default: StoryObj<typeof meta> = {
       lastLoginTime: '2024-02-20T10:25:24',
       lastProfileUpdate: '10-05-2024',
       dropdownCustomContent: (
-        <div style={{ backgroundColor: '#fff'}}>
+        <div style={{ backgroundColor: '#fff' }}>
           <h4>Custom Content</h4>
           <p>This content is fully customizable!</p>
         </div>
@@ -92,61 +92,137 @@ export const Default: StoryObj<typeof meta> = {
     },
     sideMenuItems: [
       {
-        id: 'home',
-        icon: 'home',
-        title: 'Home',
-        onClick: () => alert('Home clicked'),
-        badge: { value: 1 }
+        "id": "dashboard",
+        "title": "Executive Dashboard",
+        "icon": "dashboard",
+        "badge": { "value": 5 },
+        onClick: () => alert('Dashboard clicked'),
       },
       {
-        id: 'projects',
-        icon: 'folder',
-        title: 'Projects',
-        badge: { icon: 'fiber_new', color: 'success' },
-        children: [
+        "id": "analytics",
+        "title": "Performance Analytics",
+        "icon": "bar_chart",
+        "badge": { "icon": "insights", "color": "primary" },
+        onClick: () => alert('Analytics clicked'),
+        "children": [
           {
-            id: 'proj-a',
-            icon: 'upload_file',
-            title: 'Project A',
-            badge: { value: 2, color: 'danger' },
-            children: [
+            "id": "user-trends",
+            "title": "User Trends",
+            "icon": "trending_up",
+            "badge": { "value": 3 },
+            "children": [
               {
-                id: 'sub-a1',
-                icon: 'upload_file',
-                title: 'Subproject A1',
-                onClick: () => alert('Subproject A1 clicked'),
+                "id": "daily-active",
+                "title": "Daily Active Users",
+                "icon": "today"
               },
               {
-                id: 'sub-a2',
-                icon: 'upload_file',
-                title: 'Subproject A2',
-                badge: { icon: 'fiber_new', color: 'success' },
-                onClick: () => alert('Subproject A2 clicked'),
-              },
-            ],
+                "id": "user-demographics",
+                "title": "Demographics Breakdown",
+                "icon": "supervised_user_circle",
+                "badge": { "icon": "group", "color": "success" },
+                "children": [
+                  {
+                    "id": "age-groups",
+                    "title": "By Age Group",
+                    "badge": { "value": 2 }
+                  },
+                  {
+                    "id": "geography",
+                    "title": "By Geography",
+                    "badge": { "icon": "public" }
+                  }
+                ]
+              }
+            ]
           },
           {
-            id: 'proj-b',
-            icon: 'upload_file',
-            title: 'Project B',
-            onClick: () => alert('Project B clicked'),
-          },
-        ],
+            "id": "revenue",
+            "title": "Revenue Streams",
+            "icon": "attach_money",
+            "children": [
+              {
+                "id": "subscription-rev",
+                "title": "Subscription Revenue",
+                "icon": "repeat",
+                "badge": { "value": 7, "color": "warning" },
+                "children": [
+                  {
+                    "id": "monthly-sub",
+                    "title": "Monthly Subscriptions"
+                  },
+                  {
+                    "id": "annual-sub",
+                    "title": "Annual Subscriptions",
+                  }
+                ]
+              },
+              {
+                "id": "one-time-purchases",
+                "title": "One-Time Purchases",
+                "icon": "add_shopping_cart",
+                "badge": { "value": 1 }
+              },
+              {
+                "id": "revenue-forecast",
+                "title": "Forecast & Projections",
+                "icon": "show_chart",
+              }
+            ]
+          }
+        ]
       },
       {
-        id: 'settings',
-        icon: 'settings',
-        title: 'Settings',
-        onClick: () => alert('Settings clicked'),
-      },
+        "id": "settings",
+        "title": "System Settings",
+        "icon": "settings",
+        "badge": { "icon": "new_releases", "color": "success" },
+        "children": [
+          {
+            "id": "user-management",
+            "title": "User Management",
+            "icon": "supervisor_account",
+            "children": [
+              {
+                "id": "roles-permissions",
+                "title": "Roles & Permissions",
+                "icon": "security",
+                "badge": { "value": 4 },
+                "children": [
+                  {
+                    "id": "add-role",
+                    "title": "Add New Role"
+                  },
+                  {
+                    "id": "edit-roles",
+                    "title": "Edit Existing Roles",
+                    "badge": { "icon": "edit", "color": "primary" }
+                  }
+                ]
+              },
+              {
+                "id": "account-settings",
+                "title": "Account Settings",
+                "icon": "account_circle"
+              }
+            ]
+          },
+          {
+            "id": "system-preferences",
+            "title": "Preferences",
+            "icon": "tune",
+            "badge": { "value": 2, "color": "secondary" }
+          }
+        ]
+      }
     ],
     notifications: {
       notifications: [{
-          id: 1,
-          title: 'Info Notification',
-          message: 'This is an info notification. With custom button rendered.',
-          dateTime: new Date().toISOString(), // current time
-        }],
+        id: 1,
+        title: 'Info Notification',
+        message: 'This is an info notification. With custom button rendered.',
+        dateTime: new Date().toISOString(), // current time
+      }],
       // showTotalCount: false,
       totalNewNotifications: 3,
       onShowAllClick: () => alert('Show all notifications clicked'),

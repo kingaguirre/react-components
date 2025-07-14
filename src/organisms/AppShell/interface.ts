@@ -29,7 +29,7 @@ export interface Profile {
 
 export interface SideMenuItem {
   id: string
-  icon: string
+  icon?: string
   title: string
   children?: SideMenuItem[]
   onClick?: () => void

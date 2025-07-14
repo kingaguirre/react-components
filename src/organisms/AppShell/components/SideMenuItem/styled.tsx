@@ -28,7 +28,7 @@ export const MenuItemContent = styled.div`
   width: 100%;
 `
 
-export const MenuItemTitle = styled.div<{ $hasChild?: boolean }>`
+export const MenuItemTitle = styled.div<{ $hasChild?: boolean, $menuCollapsed?: boolean }>`
   flex: 1;
   white-space: nowrap;
   overflow: hidden;
@@ -44,6 +44,7 @@ export const MenuItemTitle = styled.div<{ $hasChild?: boolean }>`
     text-overflow: ellipsis;
     color: white;
     font-size: 14px;
+    padding-right: ${({ $menuCollapsed }) => $menuCollapsed ? 12 : 4}px
   }
   .icon {
     font-size: 18px;
@@ -122,7 +123,7 @@ export const ArrowIconWrapper = styled.div`
   position: absolute;
   right: 8px;
   &.collapsed {
-    right: 4px;
+    right: 2px;
   }
 `
 
@@ -158,6 +159,13 @@ export const FloatingHeader = styled.div`
   text-transform: capitalize;
   display: flex;
   justify-content: space-between;
+  > div {
+    color: #dfdfdf;
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: 4px;
+  }
   .icon {
     font-size: 18px;
   }
