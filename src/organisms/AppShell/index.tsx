@@ -149,7 +149,7 @@ export const AppShell: React.FC<AppShellProps> = ({
           data-testid='app-shell-side-menu'
           className={menuCollapsed ? 'collapsed' : ''}
         >
-          <SideMenuList>
+          <SideMenuList $collapsed={menuCollapsed}>
             {sideMenuItems.map((item, index) => (
               <SideMenuItem
                 key={item.id ?? index}

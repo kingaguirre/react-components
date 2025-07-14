@@ -13,6 +13,7 @@ import {
 import { Icon } from 'src/atoms/Icon'
 import { Badge } from 'src/atoms/Badge'
 import { theme } from 'src/styles'
+import OverflowTooltip  from '../OverflowTooltip'
 
 interface SideMenuItemProps {
   item: ISideMenuItem
@@ -150,7 +151,7 @@ export const SideMenuItem: React.FC<SideMenuItemProps> = ({
               (item.children || floating) ? (
                 isSubMenu ? (
                   <MenuItemTitle $menuCollapsed={menuCollapsed}>
-                    <div>{item.title}</div> {!item.children ? getBadge(item.badge) : ""}
+                    <OverflowTooltip>{item.title}</OverflowTooltip> {!item.children ? getBadge(item.badge) : ""}
                   </MenuItemTitle>) : null
               ) : (
                 <FloatingSubMenu $open={open}>
@@ -159,7 +160,7 @@ export const SideMenuItem: React.FC<SideMenuItemProps> = ({
               )
             )
           ) : (
-            <MenuItemTitle $hasChild={!!item.children}><div>{item.title}</div> {getBadge(item.badge)}</MenuItemTitle>
+            <MenuItemTitle $hasChild={!!item.children}><OverflowTooltip>{item.title}</OverflowTooltip> {getBadge(item.badge)}</MenuItemTitle>
           )}
           {item.children && (
             <ArrowIconWrapper className={menuCollapsed ? 'collapsed' : ''}>
@@ -172,7 +173,7 @@ export const SideMenuItem: React.FC<SideMenuItemProps> = ({
         menuCollapsed ? (
           showSubMenu && (
             <FloatingSubMenu $open={open}>
-              <FloatingHeader><div>{item.title}</div> {getBadge(item.badge)}</FloatingHeader>
+              <FloatingHeader><OverflowTooltip>{item.title}</OverflowTooltip> {getBadge(item.badge)}</FloatingHeader>
               <SideMenuList $isSubMenu>
                 {item.children.map((child, index) => (
                   <SideMenuItem

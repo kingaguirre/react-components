@@ -64,7 +64,7 @@ export const MenuItemWrapper = styled.div<{ $active?: boolean }>`
     border-bottom: 1px solid ${theme.colors.primary.dark};
   }
 
-  ${MenuItemTitle},
+  ${MenuItemTitle} .menu-text,
   > .icon {
     transition: all .3s ease;
     color: #dfdfdf;
@@ -76,7 +76,7 @@ export const MenuItemWrapper = styled.div<{ $active?: boolean }>`
 
   &:hover {
     background-color: ${theme.colors.primary.dark};
-    ${MenuItemTitle},
+    ${MenuItemTitle} .menu-text,
     > .icon {
       color: white;
     }
@@ -89,7 +89,7 @@ export const MenuItemWrapper = styled.div<{ $active?: boolean }>`
   }
 `
 
-export const SideMenuList = styled.ul<{ $isSubMenu?: boolean }>`
+export const SideMenuList = styled.ul<{ $isSubMenu?: boolean, $collapsed?: boolean }>`
   list-style: none;
   padding: 0;
   margin: 0;
@@ -106,13 +106,19 @@ export const SideMenuList = styled.ul<{ $isSubMenu?: boolean }>`
         &.active.collapsed,
         &.active:not(.has-child) {
           ${MenuItemTitle} > div,
+          ${MenuItemTitle} > div .menu-text,
           > .icon {
             color: #7bc6f7;
           }
         }
       }
     }
-  ` : ``}
+  ` : ''}
+
+  ${({ $collapsed, $isSubMenu }) => !$isSubMenu && !$collapsed ? `
+      overflow: hidden;
+      overflow-y: auto;
+    ` : ''}
 `
 
 export const ArrowIconWrapper = styled.div`
@@ -161,10 +167,13 @@ export const FloatingHeader = styled.div`
   justify-content: space-between;
   > div {
     color: #dfdfdf;
-    font-size: 13px;
     overflow: hidden;
     text-overflow: ellipsis;
     padding-right: 4px;
+    .menu-text {
+      color: #dfdfdf;
+      font-size: 13px;
+    }
   }
   .icon {
     font-size: 18px;

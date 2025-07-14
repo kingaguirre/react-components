@@ -43,7 +43,7 @@ export const Default: StoryObj<typeof meta> = {
     // logoMinimal: '', // should be string src for img
     footerContent: 'Copyright @ 2020 Standard Chartered Bank | TradeXpress',
     // footerAlignment: 'right',
-    activeMenu: 'sub-a2',
+    activeMenu: 'age-groups',
     rightIcons: [
       {
         icon: 'settings',
