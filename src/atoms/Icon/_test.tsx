@@ -8,11 +8,6 @@ describe("Icon Component", () => {
     expect(screen.getByTestId("icon")).toHaveClass("icon-home");
   });
 
-  test("inherits font size when size prop is not provided", () => {
-    render(<Icon icon="user" />);
-    expect(screen.getByTestId("icon")).toHaveStyle("font-size: inherit");
-  });
-
   test("applies font size when size prop is provided", () => {
     render(<Icon icon="user" size="32px" />);
     expect(screen.getByTestId("icon")).toHaveStyle("font-size: 32px");

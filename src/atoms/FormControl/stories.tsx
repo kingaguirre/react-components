@@ -147,7 +147,7 @@ const generateSizeStories = (type: string, md = 4) => (
 
 const FormPropsStories: React.FC<{ type: string }> = ({ type }) => {
   const inputRef = useRef<HTMLInputElement | null>(null)
-  const [inputValue, setInputValue] = useState('')
+
   const handleFocus = () => {
     if (inputRef.current) {
       inputRef.current.focus()
@@ -218,7 +218,6 @@ const FormPropsStories: React.FC<{ type: string }> = ({ type }) => {
               ref={inputRef}
               label='Username'
               helpText='Enter your username (alphanumeric only)'
-              required
               pattern='^[a-zA-Z0-9]+$'
               placeholder='Enter username'
             />

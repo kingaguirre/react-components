@@ -62,6 +62,15 @@ export default defineConfig({
       'react-dom': path.resolve('node_modules', 'react-dom'),
     },
   },
+  server: {
+    proxy: {
+      '/api/chat': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/chat/, '/chat'),
+      },
+    },
+  },
   build: {
     // assetsInlineLimit: 0,
     lib: {

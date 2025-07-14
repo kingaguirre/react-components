@@ -1,3 +1,4 @@
+// .storybook/main.ts
 import type { StorybookConfig } from "@storybook/react-vite";
 
 const config: StorybookConfig = {
@@ -19,5 +20,21 @@ const config: StorybookConfig = {
     name: "@storybook/react-vite",
     options: {},
   },
+  // <<<< Add this block to inject your proxy into Storybook’s Vite server
+  viteFinal: async (config, { configType }) => {
+    // ensure config.server exists
+    config.server = config.server || {};
+    // merge your proxy setting
+    config.server.proxy = {
+      ...(config.server.proxy || {}),
+      "/api/chat": {
+        target: "http://localhost:3001",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/chat/, "/chat"),
+      },
+    };
+    return config;
+  },
 };
+
 export default config;

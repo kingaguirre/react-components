@@ -1,9 +1,9 @@
 import React, { forwardRef, useState, useRef, useEffect } from 'react'
 import { FormControInputContainer, FormControlWrapper, Label, HelpText, IconWrapper, IconContainer } from './styled'
 import { FormControlProps, IconRight } from './interface'
-import { 
-  TextInput, TextAreaInput, CheckboxRadioInput, SwitchInput, 
-  CheckboxGroup, RadioGroup, SwitchGroup , RadioButtonGroup
+import {
+  TextInput, TextAreaInput, CheckboxRadioInput, SwitchInput,
+  CheckboxGroup, RadioGroup, SwitchGroup, RadioButtonGroup
 } from './controls'
 import { getInvalidForCustomGroupControl, mergeRefs } from './utils'
 import { Icon } from '../../atoms/Icon'
@@ -39,7 +39,7 @@ export const FormControl = forwardRef<HTMLInputElement | HTMLTextAreaElement, Fo
   const isCustomControl = type === 'checkbox' || type === 'radio' || type === 'switch'
   const isGroupCustomControl = type === 'checkbox-group' || type === 'radio-group' || type === 'switch-group' || type === 'radio-button-group'
   const isFirstRender = useRef(true) // Track initial mount
-  
+
   // Merge the forwarded ref and internal ref
   const combinedRef = mergeRefs(ref, inputRef)
 
@@ -63,7 +63,7 @@ export const FormControl = forwardRef<HTMLInputElement | HTMLTextAreaElement, Fo
       if (type === 'radio-group' || type === 'radio-button-group') {
         const selectedValues = typeof value === 'string' ? value.split(',') : value || []
         const processedValue = selectedValues.length > 0 ? selectedValues[0] : null
-    
+
         setSelectedValue(processedValue)
         setIsInvalid(selectedValues.length === 0 && required)
       } else {
@@ -90,11 +90,29 @@ export const FormControl = forwardRef<HTMLInputElement | HTMLTextAreaElement, Fo
     onChange?.(optionValue)
   }
 
-  const handleValidation = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { value, validity } = event.target as HTMLInputElement
-    setIsInvalid(!validity.valid || (!value && required))
-    if (onChange) onChange(event)
-  }
+  const handleValidation = (
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const target = event.target as HTMLInputElement;
+    const { validity, type } = target;
+    const rawValue = target.value;
+
+    // mark invalid if browser validity fails or required and empty
+    setIsInvalid(!validity.valid || (!rawValue && required));
+
+    if (!onChange) return;
+
+    if (type === 'number') {
+      // valueAsNumber will be NaN if the field is empty or invalid
+      const num = target.valueAsNumber;
+      // mimic an onChange signature that expects a number
+      onChange(num as any);
+    } else {
+      // pass through the original event for everything else
+      onChange(event);
+    }
+  };
+
 
   const handleBooleanValidation = (event: React.ChangeEvent<HTMLInputElement>) => {
     setIsInvalid(!event.target.checked && required)
@@ -137,19 +155,19 @@ export const FormControl = forwardRef<HTMLInputElement | HTMLTextAreaElement, Fo
             case 'textarea':
               return <TextAreaInput {...{ ...defaultProps, ...rest, onChange: handleValidation }} />
             case 'checkbox':
-            case 'radio': 
+            case 'radio':
               return <CheckboxRadioInput {...{ ...defaultProps, ...rest, text, onChange: handleBooleanValidation }} />
-            case 'switch': 
+            case 'switch':
               return <SwitchInput {...{ ...defaultProps, ...rest, text, onChange: handleBooleanValidation }} />
-            case 'checkbox-group': 
+            case 'checkbox-group':
               return <CheckboxGroup {...customCheckboxGroupProps} />
-            case 'radio-group': 
+            case 'radio-group':
               return <RadioGroup {...customRadioGroupProps} />
-            case 'radio-button-group': 
+            case 'radio-button-group':
               return <RadioButtonGroup {...customRadioGroupProps} />
-            case 'switch-group': 
+            case 'switch-group':
               return <SwitchGroup {...customCheckboxGroupProps} />
-            default: 
+            default:
               return null
           }
         })()}
@@ -164,22 +182,22 @@ export const FormControl = forwardRef<HTMLInputElement | HTMLTextAreaElement, Fo
               .filter((obj: IconRight) => Object.keys(obj).length)
               .slice(0, 2)
               .map((icon: IconRight, idx: number) => (
-              <IconContainer
-                key={`${icon.icon}-${idx}`}
-                onClick={icon?.onClick}
-                data-testid={icon.className}
-                className={`container-icon ${icon.className ?? ''}`}
-                $disabled={icon.disabled}
-                $size={size}
-                $color={icon.color ?? color}
-                $hoverColor={icon.hoverColor ?? color}
-              >
-                <Icon icon={icon.icon} />
-              </IconContainer>
-            ))}
+                <IconContainer
+                  key={`${icon.icon}-${idx}`}
+                  onClick={icon?.onClick}
+                  data-testid={icon.className}
+                  className={`container-icon ${icon.className ?? ''}`}
+                  $disabled={icon.disabled}
+                  $size={size}
+                  $color={icon.color ?? color}
+                  $hoverColor={icon.hoverColor ?? color}
+                >
+                  <Icon icon={icon.icon} />
+                </IconContainer>
+              ))}
           </IconWrapper>
         )}
-        {loading && <Loader size={16} thickness={3}/>}
+        {loading && <Loader size={16} thickness={3} />}
       </FormControlWrapper>
       {helpText && (
         <HelpText
@@ -189,5 +207,6 @@ export const FormControl = forwardRef<HTMLInputElement | HTMLTextAreaElement, Fo
         >{helpText}</HelpText>
       )}
     </FormControInputContainer>
-  )}
+  )
+}
 )

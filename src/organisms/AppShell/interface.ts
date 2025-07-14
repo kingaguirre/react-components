@@ -29,10 +29,16 @@ export interface Profile {
 
 export interface SideMenuItem {
   id: string
-  icon: string
+  icon?: string
   title: string
   children?: SideMenuItem[]
   onClick?: () => void
+  badge?: {
+    icon?: string
+    color?: string
+    value?: string | number
+    outlined?: boolean
+  }
 }
 
 export interface Notifications {

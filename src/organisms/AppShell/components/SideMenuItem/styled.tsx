@@ -18,11 +18,6 @@ export const SideMenuItemContainer = styled.li<{
   color: white;
   opacity: 0;
   animation: ${itemSlideIn} 0.3s ease forwards;
-  ${({ $sideMenuCollapsed }) => !$sideMenuCollapsed ? `
-    * {
-      padding-right: 0;
-    }
-  ` : ''}
 `
 
 export const MenuItemContent = styled.div`
@@ -33,7 +28,7 @@ export const MenuItemContent = styled.div`
   width: 100%;
 `
 
-export const MenuItemTitle = styled.span`
+export const MenuItemTitle = styled.div<{ $hasChild?: boolean, $menuCollapsed?: boolean }>`
   flex: 1;
   white-space: nowrap;
   overflow: hidden;
@@ -41,6 +36,19 @@ export const MenuItemTitle = styled.span`
   color: white;
   font-size: 14px;
   text-transform: capitalize;
+  display: flex;
+  justify-content: space-between;
+  ${({ $hasChild }) => $hasChild ? 'padding-right: 14px;' : ''}
+  > div {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: white;
+    font-size: 14px;
+    padding-right: ${({ $menuCollapsed }) => $menuCollapsed ? 12 : 4}px
+  }
+  .icon {
+    font-size: 18px;
+  }
 `
 
 export const MenuItemWrapper = styled.div<{ $active?: boolean }>`
@@ -56,7 +64,7 @@ export const MenuItemWrapper = styled.div<{ $active?: boolean }>`
     border-bottom: 1px solid ${theme.colors.primary.dark};
   }
 
-  ${MenuItemTitle},
+  ${MenuItemTitle} .menu-text,
   > .icon {
     transition: all .3s ease;
     color: #dfdfdf;
@@ -68,7 +76,7 @@ export const MenuItemWrapper = styled.div<{ $active?: boolean }>`
 
   &:hover {
     background-color: ${theme.colors.primary.dark};
-    ${MenuItemTitle},
+    ${MenuItemTitle} .menu-text,
     > .icon {
       color: white;
     }
@@ -81,13 +89,13 @@ export const MenuItemWrapper = styled.div<{ $active?: boolean }>`
   }
 `
 
-export const SideMenuList = styled.ul<{ $isSubMenu?: boolean }>`
+export const SideMenuList = styled.ul<{ $isSubMenu?: boolean, $collapsed?: boolean }>`
   list-style: none;
   padding: 0;
   margin: 0;
   max-width: 100%;
   width: 100%;
-  ${({ $isSubMenu }) => !!$isSubMenu ? `
+  ${({ $isSubMenu }) => $isSubMenu ? `
     ${SideMenuItemContainer} {
       padding-left: 12px;
 
@@ -95,30 +103,22 @@ export const SideMenuList = styled.ul<{ $isSubMenu?: boolean }>`
         background-color: transparent;
         border: none;
 
-        ${MenuItemTitle} {
-          display: block!important;
-        }
-
         &.active.collapsed,
         &.active:not(.has-child) {
-          ${MenuItemTitle},
+          ${MenuItemTitle} > div,
+          ${MenuItemTitle} > div .menu-text,
           > .icon {
             color: #7bc6f7;
           }
         }
       }
     }
-  ` : `
-    ${SideMenuItemContainer} {
-      ${MenuItemWrapper} {
-        &.collapsed {
-          ${MenuItemTitle} {
-            display: none;
-          }
-        }
-      }
-    }
-  `}
+  ` : ''}
+
+  ${({ $collapsed, $isSubMenu }) => !$isSubMenu && !$collapsed ? `
+      overflow: hidden;
+      overflow-y: auto;
+    ` : ''}
 `
 
 export const ArrowIconWrapper = styled.div`
@@ -129,7 +129,7 @@ export const ArrowIconWrapper = styled.div`
   position: absolute;
   right: 8px;
   &.collapsed {
-    right: 4px;
+    right: 2px;
   }
 `
 
@@ -163,4 +163,19 @@ export const FloatingHeader = styled.div`
   background-color: ${theme.colors.primary.darker};
   cursor: default;
   text-transform: capitalize;
+  display: flex;
+  justify-content: space-between;
+  > div {
+    color: #dfdfdf;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: 4px;
+    .menu-text {
+      color: #dfdfdf;
+      font-size: 13px;
+    }
+  }
+  .icon {
+    font-size: 18px;
+  }
 `

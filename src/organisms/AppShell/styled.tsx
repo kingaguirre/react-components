@@ -11,7 +11,10 @@ export const Container = styled.div`
   box-sizing: border-box;
   background-color: #e1e1e1;
   overflow: hidden;
-  * { box-sizing: border-box; }
+  * {
+    box-sizing: border-box;
+    ${scrollStyle}
+  }
 `
 
 export const Header = styled.header`

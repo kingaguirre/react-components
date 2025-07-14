@@ -38,7 +38,7 @@ export const Badge = styled.div<{ $showTotalCount?: boolean }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  ${({ $showTotalCount }) => !!$showTotalCount ? `
+  ${({ $showTotalCount }) => $showTotalCount ? `
     top: 6px;
     right: 6px;
     font-size: 5px;

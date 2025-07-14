@@ -20,6 +20,7 @@ export const TextInput: React.FC<FormControlProps> = ({ variant, testId, ...rest
     data-testid={testId}
     autoComplete='off'
     $variant={variant}
+    step="any"
     role='textbox'
   />
 )
