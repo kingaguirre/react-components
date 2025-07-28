@@ -21,14 +21,17 @@ const Text = styled.div<{ $expanded?: boolean }>`
   font-size: 12px;
   font-weight: bold;
   color: white;
-  padding: 7px 8px;
+  padding: 8px;
   transition: all .3s ease;
   opacity: ${({ $expanded }) => ($expanded ? 1 : 0)};
   text-transform: capitalize;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
   height: 32px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+  cursor: default;
 `
 
 export const AnimatedText = ({ children, expanded }) => {
@@ -58,7 +61,7 @@ export const AnimatedText = ({ children, expanded }) => {
     </div>
 
     <AnimatedTextWrapper $expanded={expanded} $width={width}>
-      <Text $expanded={expanded}>{children}</Text>
+      <Text $expanded={expanded} title={children}>{children}</Text>
     </AnimatedTextWrapper>
   </>
   )

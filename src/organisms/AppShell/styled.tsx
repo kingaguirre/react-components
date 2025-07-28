@@ -42,6 +42,7 @@ export const LeftSection = styled.div`
   display: flex;
   align-items: center;
   justify-content: flex-start;
+  max-width: calc(100% - 400px);
 `;
 
 export const RightSection = styled.div`
@@ -117,6 +118,10 @@ export const PageName = styled.div`
   padding: 4px 16px;
   color: ${theme.colors.primary.darker};
   text-transform: capitalize;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: default;
 `
 
 export const SideMenuContainer = styled.aside<{
@@ -153,7 +158,7 @@ export const CollapseToggleContainer = styled.div`
 /* New styled components for animated logo transition */
 export const AnimatedIconWrapper = styled.div<{ $show: boolean }>`
   position: relative;
-  width: ${({ $show }) => ($show ? 140 : 38)}px;
+  min-width: ${({ $show }) => ($show ? 140 : 38)}px;
   height: 32px;
   background-color: ${theme.colors.primary.darker};
   color: white;

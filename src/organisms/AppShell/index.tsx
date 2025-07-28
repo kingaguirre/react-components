@@ -117,7 +117,7 @@ export const AppShell: React.FC<AppShellProps> = ({
               </AnimatedIcon>
             </AnimatedIconWrapper>
             <AnimatedText expanded={!menuVisible}>{pageTitle}</AnimatedText>
-            <PageName>{pageName}</PageName>
+            <PageName title={pageName}>{pageName}</PageName>
           </LeftSection>
           <RightSection>
             <ProfileDropdown {...profile} />
