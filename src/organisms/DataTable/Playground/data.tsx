@@ -143,7 +143,7 @@ export const COLUMN_SETTINGS: ColumnSetting[] = [
     title: 'Birthdate',
     column: 'birthdate',
     sort: 'desc',
-    width: 160,
+    // width: 160,
     order: 1,
     disabled: true,
     editor: {

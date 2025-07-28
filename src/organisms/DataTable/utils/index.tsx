@@ -115,32 +115,6 @@ export const getDeepValue = (obj: any, path: string): any => {
 export const sanitizeData = <T extends { __internalId: string }>(data: T[]): Omit<T, '__internalId'>[] => 
   data.map(({ __internalId, ...rest }) => rest)
 
-export const getDefaultSize = (columns: any, parentWidth: number) => {
-  let totalDefinedWidth = 0
-  const columnsWithoutSize: any = []
-
-  // Calculate the total defined sizes and gather columns that lack a size.
-  columns.forEach(column => {
-    if (typeof column.size === 'number') {
-      totalDefinedWidth += column.size
-    } else {
-      columnsWithoutSize.push(column)
-    }
-  })
-
-  // Compute the remaining width.
-  const remainingWidth = parentWidth - totalDefinedWidth
-  // Distribute remaining width evenly among columns without a size.
-  const extraWidthPerColumn = columnsWithoutSize.length > 0 ? remainingWidth / columnsWithoutSize.length : 0
-
-  // Assign the calculated size to columns missing a size.
-  columnsWithoutSize.forEach(column => {
-    column.size = extraWidthPerColumn > 150 ? extraWidthPerColumn : 150
-  })
-
-  return columns
-}
-
 export const getFirstVisibleKey = (visibility, keyNames) => {
   for (let i = 0; i < keyNames.length; i++) {
     if (visibility[keyNames[i]] === true) {

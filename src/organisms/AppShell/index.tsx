@@ -48,6 +48,7 @@ export const AppShell: React.FC<AppShellProps> = ({
   onClickLogo,
   autoHideHeader = false,
   autoHideHeaderDelay = 3000,
+  sideMenuWidth = 170
 }) => {
   const [menuVisible, setMenuVisible] = useState(showMenu)
   const [menuCollapsed, setMenuCollapsed] = useState(collapsedMenu)
@@ -143,6 +144,7 @@ export const AppShell: React.FC<AppShellProps> = ({
       </HeaderWrapper>
       <ContentWrapper className='app-shell-content-wrapper'>
         <SideMenuContainer
+          $sideMenuWidth={sideMenuWidth}
           $visible={menuVisible}
           $collapsed={menuCollapsed}
           $overlay={menuOverlay}

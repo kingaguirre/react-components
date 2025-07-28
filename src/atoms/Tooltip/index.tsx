@@ -68,7 +68,6 @@ export const Tooltip: React.FC<TooltipProps> = ({
           id={tooltipId}
           openOnClick={trigger === 'click'}
           delayShow={isTitle ? 0 : undefined}
-          border={tooltipStyle ? 'none' : `1px solid ${theme.colors[color].base}`}
           style={tooltipStyle}
           className={testId}
           /* eslint-disable @typescript-eslint/no-explicit-any */

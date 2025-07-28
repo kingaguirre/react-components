@@ -232,10 +232,6 @@ const sharedInputStyles = css<{
     }
   }
 
-  &:placeholder {
-    color: ${theme.colors.default.base};
-  }
-
   ${({ $variant, color = 'primary' }) => $variant === 'outlined' ? `
     background-color: ${theme.colors[color].pale};
     &:focus:not(:disabled) {
@@ -251,6 +247,10 @@ export const Input = styled.input<{
 }>`
   ${sharedInputStyles};
   height: ${({ size = 'md' }) => `${theme.sizes.boxSize[size]}px`};
+
+  &::placeholder {
+    color: ${theme.colors.default.base};
+  }
 `;
 
 export const TextArea = styled.textarea<{
@@ -262,6 +262,9 @@ export const TextArea = styled.textarea<{
   resize: vertical;
   min-height: 80px; /* Default height for TextArea */
   max-width: 100%;
+  &::placeholder {
+    color: ${theme.colors.default.base};
+  }
 `;
 
 const getCustomCheckboxRadio = ({

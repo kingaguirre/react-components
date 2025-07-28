@@ -85,11 +85,23 @@ const VirtualizedItem: React.FC<VirtualizedItemProps> = ({
       }
     }
 
+    // 7) NEW: watch for child‑list changes so hiding the table triggers a visibility check
+    const mutationObserver = new MutationObserver(handler);
+    // observe the same container you’re scrolling:
+    const parentToWatch = scrollContainer instanceof HTMLElement
+      ? scrollContainer
+      : document.body;
+    mutationObserver.observe(parentToWatch, {
+      childList: true,
+      subtree: true,
+    });
+
     return () => {
       scrollContainer.removeEventListener('scroll', handler);
       window.removeEventListener('resize', handler);
       window.removeEventListener('orientationchange', handler);
       if (ro) ro.disconnect();
+      mutationObserver.disconnect();
     };
   }, [offsetTop, offsetBottom, measuredHeight, fieldKey]);
 

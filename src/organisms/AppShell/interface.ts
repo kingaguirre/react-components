@@ -73,6 +73,7 @@ export interface AppShellProps {
   onToggle?: (sideMenuVisible: boolean) => void
   rightIcons: HeaderRightIcon[]
   sideMenuItems: SideMenuItem[]
+  sideMenuWidth?: number
   profile: Profile
   notifications?: Notifications
   menuOverlay?: boolean

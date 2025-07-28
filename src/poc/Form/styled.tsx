@@ -3,12 +3,17 @@ import { theme } from '../../styles/theme';
 
 export const FormWrapper = styled.form`
   position: relative;
-  .fields-wrapper + .main-header {
-    /* margin-top: 12px; */
+  margin-bottom: 24px;
+
+  .data-table-wrapper-section > div,
+  > div {
+    &:not(.header) {
+      margin-bottom: 24px;
+    }
   }
 
-  .grid-item + .sub-header {
-    margin-top: 12px;
+  .accordion-body .header {
+    top: initial;
   }
 `;
 
@@ -52,7 +57,9 @@ export const TabsWrapper = styled.div`
 
 export const FieldsWrapper = styled.div<{ $hasHeader?: boolean }>`
   ${({ $hasHeader }) => $hasHeader ? 'padding: 0 12px;' : ''}
-  padding-bottom: 24px;
+  &:not(:last-child) {
+    margin-bottom: 16px;
+  }
 `;
 
 export const Description = styled.p`
@@ -60,3 +67,22 @@ export const Description = styled.p`
   font-size: 14px;
   color: ${theme.colors.default.dark};
 `;
+
+export const SectionWrapper = styled.div<{ $hasHeader?: boolean }>`
+  padding: 0 ${({ $hasHeader }) => $hasHeader ? 12 : 0}px 0;
+
+  .data-table-wrapper-section + * {
+    margin-top: 24px;
+  }
+`
+
+export const ButtonContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  > button {
+    width: 75px;
+  }
+`

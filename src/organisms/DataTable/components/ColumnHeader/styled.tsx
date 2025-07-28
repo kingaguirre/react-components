@@ -13,12 +13,14 @@ export const CellContent = styled(CellContentStyles)<{
   $hasPin?: boolean
   $hasSort?: boolean
 }>`
-  font-size: 12px;
+  font-size: 11px;
   min-height: 25px;
   align-items: flex-end;
 
   > span {
     cursor: default;
+    color: ${theme.colors.default.darker};
+    font-weight: bolder;
   }
 
   * {

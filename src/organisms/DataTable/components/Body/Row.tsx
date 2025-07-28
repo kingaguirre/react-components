@@ -2,7 +2,7 @@ import React from 'react'
 import { DataTableRow } from './styled'
 import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable'
 import { Cell } from './Cell'
-import { EditingCellType, SelectedCellType } from '../../interface'
+import { EditingCellType, SelectedCellType, DataTableProps } from '../../interface'
 import { getValidationError } from '../../utils/validation'
 import { useClickAndDoubleClick } from '../../hooks/useClickAndDoubleClick'
 
@@ -23,8 +23,8 @@ export const Row = ({
   row: any
   activeRow?: string
   disabledRows?: string[]
-  onRowClick?: (data: any, e: React.MouseEvent<HTMLElement>) => void
-  onRowDoubleClick?: (data: any, e: React.MouseEvent<HTMLElement>) => void
+  onRowClick?: DataTableProps['onRowClick']
+  onRowDoubleClick?: DataTableProps['onRowDoubleClick']
   enableCellEditing: boolean
   editingCell: EditingCellType
   setEditingCell: any
@@ -40,13 +40,13 @@ export const Row = ({
     onClick: !isDisabledRow
       ? (e: React.MouseEvent<HTMLElement>) => {
           const { __internalId, ...cleanRow } = row.original
-          onRowClick && onRowClick(cleanRow, e)
+          onRowClick && onRowClick(cleanRow, row.original.__internalId, e)
         }
       : undefined,
     onDoubleClick: !isDisabledRow
       ? (e: React.MouseEvent<HTMLElement>) => {
           const { __internalId, ...cleanRow } = row.original
-          onRowDoubleClick && onRowDoubleClick(cleanRow, e)
+          onRowDoubleClick && onRowDoubleClick(cleanRow, row.original.__internalId, e)
         }
       : undefined,
   })

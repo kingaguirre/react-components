@@ -77,17 +77,65 @@ export const getInitialPinning = (columnSettings: ColumnSetting[]): ColumnPinnin
   return { left: [...CUSTOM_COLUMN, ...initialPinnedColumn] }
 }
 
-interface WidthSize {
-  [key: string]: number
+interface SizeOptions {
+  enableCellEditing?: boolean
+  enableRowAdding?: boolean
+  enableRowDeleting?: boolean
+  enableRowSelection?: boolean
+  hasExpandedContent?: boolean
 }
 
-export const getInitialWidthSize = (columnSettings: ColumnSetting[]): WidthSize => {
-  return columnSettings.reduce((acc: WidthSize, col) => {
-    if (col.width !== undefined) {
-      acc[col.column] = col.width
+export const getInitialSize = (
+  columns: any[],
+  parentWidth: number,
+  columnVisibility: Record<string, boolean>,
+  opts: SizeOptions = {}
+): Record<string, number> => {
+  // 0) compute built‑in offset
+  let offset = 0
+  if (opts.enableCellEditing || opts.enableRowAdding || opts.enableRowDeleting) {
+    offset += 65
+  }
+  if (opts.enableRowSelection) {
+    offset += 30
+  }
+  if (opts.hasExpandedContent) {
+    offset += 30
+  }
+
+  const availableWidth = parentWidth - offset
+
+  // 1) Only size visible columns
+  const visibleCols = columns.filter(col => columnVisibility[col.column])
+
+  // 2) sum defined widths
+  const totalDefined = visibleCols
+    .filter(c => typeof c.width === 'number')
+    .reduce((sum, c) => sum + (c.width as number), 0)
+
+  // 3) figure out how many still need sizing
+  const flexCols = visibleCols.filter(c => typeof c.width !== 'number')
+  const flexCount = flexCols.length
+
+  // 4) split leftover (never under 150)
+  const leftover = availableWidth - totalDefined
+  const share = flexCount > 0
+    ? Math.max(150, leftover / flexCount)
+    : 0
+
+  // 5) build your map (hidden → 0)
+  const result: Record<string, number> = {}
+  columns.forEach(col => {
+    if (!columnVisibility[col.column]) {
+      result[col.column] = 0
+    } else if (typeof col.width === 'number') {
+      result[col.column] = col.width
+    } else {
+      result[col.column] = share
     }
-    return acc
-  }, {})
+  })
+
+  return result
 }
 
 interface ColumnWithMeta {

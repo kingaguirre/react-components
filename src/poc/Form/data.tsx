@@ -20,6 +20,103 @@ const dateValidation = (z) => z.union([
 // Demo fieldSettings & dataSource (updated)
 // ---------------------------------------------
 export const demoSettings: SettingsItem[] = [
+  /** ── Data‑Table demo ────────────────────────────────────────────── */
+  {
+    name: 'demoTable.mode',
+    label: 'Table Mode',
+    placeholder: 'Select Table Mode',
+    type: 'dropdown',
+    options: [
+      { value: 'enabled',       text: 'Editable Table (click rows to load)' },
+      { value: 'disabled',      text: 'Read‑Only Table (rows greyed‑out)' },
+      { value: 'fieldsHidden',  text: 'Hide Fields Below Table (Additional Details)' },
+      { value: 'fieldsDisabled',text: 'Disable Only Fields Below Table' },
+      { value: 'hidden',        text: 'Hide Table & All Fields Below' },
+    ],
+    validation: (z) => z.enum(['enabled','disabled','fieldsHidden','fieldsDisabled','hidden']),
+    col: { xs: 12, sm: 6 },
+  },
+  {
+    dataTable: {
+      header: 'Recent Maker‑Checker Actions',
+      description: 'Click a row to load its Maker & Checker comments below.',
+      config: {
+        dataSource: 'demoTable.rows',
+        columnSettings: [
+          { title: 'Maker',   column: 'maker' },
+          { title: 'Checker', column: 'checker' },
+          { title: 'Status',  column: 'status' },
+        ],
+      },
+      disabled: (v) => v.demoTable.mode === 'disabled',
+      hidden:   (v) => v.demoTable.mode === 'hidden',
+      fields: [
+        {
+          label: 'Maker Comments',
+          name: 'bcaTerms.makerComments',
+          placeholder: 'Enter Maker Comments',
+          type: 'textarea',
+          validation: (z) => z.string().min(1),
+          disabled:(v) => v.demoTable.mode === 'fieldsDisabled',
+        },
+        {
+          label: 'Checker Comments',
+          name: 'bcaTerms.checkerComments',
+          placeholder: 'Enter Checker Comments',
+          type: 'textarea',
+          validation: (z) => z.string().min(1),
+          disabled:(v) => v.demoTable.mode === 'fieldsDisabled',
+        },
+        {
+          label: 'Approval Status',
+          name: 'bcaTerms.status',
+          placeholder: 'Enter Approval Status',
+          type: 'text',
+          validation: (z) => z.string().optional(),
+          disabled:(v) => v.demoTable.mode === 'fieldsDisabled',
+        },
+        {
+          header: 'Additional Details',
+          isSubHeader: true,
+          hidden:   (v) => v.demoTable.mode === 'hidden' || v.demoTable.mode === 'fieldsHidden',
+          fields: [
+            {
+              label: 'Review Comments',
+              name: 'bcaTerms.reviewComments',
+              placeholder: 'Enter review comments',
+              type: 'textarea',
+              validation: (z) => z.string().optional(),
+              disabled: (v) => v.demoTable.mode === 'fieldsDisabled',
+            },
+            {
+              label: 'Follow‑up Notes',
+              name: 'bcaTerms.followUpNotes',
+              placeholder: 'Enter follow‑up notes',
+              type: 'textarea',
+              validation: (z) => z.string().optional(),
+              disabled: (v) => v.demoTable.mode === 'fieldsDisabled',
+            },
+            {
+              label: 'Escalation Status',
+              name: 'bcaTerms.escalationStatus',
+              placeholder: 'Enter escalation status',
+              type: 'text',
+              validation: (z) => z.string().optional(),
+              disabled: (v) => v.demoTable.mode === 'fieldsDisabled',
+            },
+            {
+              label: 'Handling Instructions',
+              name: 'bcaTerms.handlingInstructions',
+              placeholder: 'Enter handling instructions',
+              type: 'textarea',
+              validation: (z) => z.string().optional(),
+              disabled: (v) => v.demoTable.mode === 'fieldsDisabled',
+            },
+          ],
+        },
+      ],
+    },
+  },
   // Initial demo fields before personal section
   {
     name: 'transaction.id',
@@ -219,6 +316,124 @@ export const demoSettings: SettingsItem[] = [
     validation: z => z.enum(['Active', 'Inactive']),
     col: { md: 4 }
   },
+
+  // Accordion section for extended product details
+  {
+    header: 'Optional Services',
+    isSubHeader: true,
+    description: 'Configure on‑site or remote support options for this facility.',
+    accordion: [
+      {
+        title: 'Onsite Support',
+        fields: [
+          {
+            name: 'services.onsite.engineer',
+            label: 'Engineer Name',
+            placeholder: 'e.g. Jane Doe',
+            type: 'text',
+            validation: z => z.string().min(2),
+            col: { md: 6 }
+          },
+          {
+            name: 'services.onsite.phone',
+            label: 'Engineer Phone',
+            placeholder: 'e.g. +628123456781',
+            type: 'text',
+            validation: z => z.string().regex(/^\+?[0-9\-]{7,15}$/, 'Invalid phone number'),
+            col: { md: 6 }
+          },
+          {
+            name: 'services.onsite.responseTime',
+            label: 'Response Time (hrs)',
+            placeholder: 'e.g. 2',
+            type: 'number',
+            validation: z => z.number().min(1),
+            col: { md: 6 }
+          }
+        ]
+      },
+      {
+        title: 'Remote Support',
+        fields: [
+          {
+            name: 'services.remote.url',
+            label: 'Support URL',
+            placeholder: 'e.g. https://support.acme.com',
+            type: 'text',
+            validation: z => z.string().url(),
+            col: { md: 6 }
+          },
+          {
+            name: 'services.remote.contactHours',
+            label: 'Support Hours',
+            placeholder: 'e.g. 24/7 or 9am–5pm',
+            type: 'text',
+            validation: z => z.string().min(3),
+            col: { md: 6 }
+          }
+        ]
+      }
+    ],
+    allowMultiple: true
+  },
+  {
+    header: 'Compliance & Safety',
+    description: 'Ensure this facility meets all safety and regulatory standards.',
+    accordion: [
+      {
+        title: 'Regulatory Records',
+        // inside this accordion panel we use FieldGroup-style headers
+        fields: [
+          {
+            header: 'Certification Details',
+            isSubHeader: false,
+            fields: [
+              {
+                name: 'compliance.certAuthority',
+                label: 'Certifying Authority',
+                placeholder: 'e.g. ISO Safety Board',
+                type: 'text',
+                validation: z => z.string().min(1),
+                col: { md: 6 }
+              },
+              {
+                name: 'compliance.certDate',
+                label: 'Certification Date',
+                placeholder: 'Select date',
+                type: 'date',
+                validation: dateValidation,
+                col: { md: 6 }
+              }
+            ]
+          },
+          {
+            header: 'Inspection Summary',
+            isSubHeader: true,
+            fields: [
+              {
+                name: 'compliance.lastInspection',
+                label: 'Last Inspection Date',
+                placeholder: 'Select date',
+                type: 'date',
+                validation: dateValidation,
+                col: { md: 6 }
+              },
+              {
+                name: 'compliance.inspectorName',
+                label: 'Inspector Name',
+                placeholder: 'e.g. Jane Auditor',
+                type: 'text',
+                validation: z => z.string().min(2),
+                col: { md: 6 }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    allowMultiple: false
+  },
+
   {
     header: 'BCA Terms',
     tabs: [
@@ -231,7 +446,7 @@ export const demoSettings: SettingsItem[] = [
             fields: [
               {
                 label: 'Family Purpose',
-                id: 'bcaTerms.productInfo.familyPurpose',
+                name: 'bcaTerms.productInfo.familyPurpose',
                 placeholder: 'Enter Family Purpose',
                 type: 'textarea',
                 validation: (z) => z.string().min(1),
@@ -239,7 +454,7 @@ export const demoSettings: SettingsItem[] = [
               },
               {
                 label: 'Supply Chain Program',
-                id: 'bcaTerms.productInfo.supplyChainProgram',
+                name: 'bcaTerms.productInfo.supplyChainProgram',
                 placeholder: 'Select Supply Chain Program',
                 type: 'dropdown',
                 options: [
@@ -252,7 +467,7 @@ export const demoSettings: SettingsItem[] = [
               },
               {
                 label: 'Facility Date',
-                id: 'bcaTerms.productInfo.facilityDate',
+                name: 'bcaTerms.productInfo.facilityDate',
                 placeholder: 'Select Facility Date',
                 type: 'date',
                 validation: dateValidation,
@@ -260,7 +475,7 @@ export const demoSettings: SettingsItem[] = [
               },
               {
                 label: 'Facility Code',
-                id: 'bcaTerms.productInfo.facilityCode',
+                name: 'bcaTerms.productInfo.facilityCode',
                 placeholder: 'Enter Facility Code',
                 type: 'text',
                 validation: (z) => z.string().regex(/^[A-Z0-9]{4,}$/),
@@ -274,7 +489,7 @@ export const demoSettings: SettingsItem[] = [
             fields: [
               {
                 label: 'Finance Percentage',
-                id: 'bcaTerms.financeDetails.financePct',
+                name: 'bcaTerms.financeDetails.financePct',
                 placeholder: 'Enter Finance Percentage',
                 type: 'number',
                 validation: (z) => z.number().min(0).max(100),
@@ -282,7 +497,7 @@ export const demoSettings: SettingsItem[] = [
               },
               {
                 label: 'Interest Rate (%)',
-                id: 'bcaTerms.financeDetails.interestRate',
+                name: 'bcaTerms.financeDetails.interestRate',
                 placeholder: 'Enter Interest Rate',
                 type: 'number',
                 validation: (z) => z.number().min(0).max(50),
@@ -290,7 +505,7 @@ export const demoSettings: SettingsItem[] = [
               },
               {
                 label: 'Loan Start Date',
-                id: 'bcaTerms.financeDetails.loanStart',
+                name: 'bcaTerms.financeDetails.loanStart',
                 placeholder: 'Select Loan Start Date',
                 type: 'date',
                 validation: dateValidation,
@@ -298,7 +513,7 @@ export const demoSettings: SettingsItem[] = [
               },
               {
                 label: 'Loan End Date',
-                id: 'bcaTerms.financeDetails.loanEnd',
+                name: 'bcaTerms.financeDetails.loanEnd',
                 placeholder: 'Select Loan End Date',
                 type: 'date',
                 validation: dateValidation,
@@ -306,7 +521,7 @@ export const demoSettings: SettingsItem[] = [
               },
               {
                 label: 'Collateral Value',
-                id: 'bcaTerms.financeDetails.collateralValue',
+                name: 'bcaTerms.financeDetails.collateralValue',
                 placeholder: 'Enter Collateral Value',
                 type: 'number',
                 validation: (z) => z.number().min(0),
@@ -314,7 +529,7 @@ export const demoSettings: SettingsItem[] = [
               },
               {
                 label: 'Currency',
-                id: 'bcaTerms.financeDetails.currency',
+                name: 'bcaTerms.financeDetails.currency',
                 placeholder: 'Enter Currency (e.g. USD)',
                 type: 'text',
                 validation: (z) => z.string().length(3),
@@ -325,7 +540,7 @@ export const demoSettings: SettingsItem[] = [
           // Additional single fields in Main
           {
             label: 'Customer Name',
-            id: 'bcaTerms.customerName',
+            name: 'bcaTerms.customerName',
             placeholder: 'Enter Customer Name',
             type: 'text',
             validation: (z) => z.string().min(2),
@@ -333,7 +548,7 @@ export const demoSettings: SettingsItem[] = [
           },
           {
             label: 'Customer Email',
-            id: 'bcaTerms.customerEmail',
+            name: 'bcaTerms.customerEmail',
             placeholder: 'Enter Customer Email',
             type: 'email',
             validation: (z) => z.string().email(),
@@ -341,7 +556,7 @@ export const demoSettings: SettingsItem[] = [
           },
           {
             label: 'Customer Phone',
-            id: 'bcaTerms.customerPhone',
+            name: 'bcaTerms.customerPhone',
             placeholder: 'Enter Customer Phone',
             type: 'text',
             validation: (z) => z.string().regex(/^\+?[0-9\-]{7,15}$/, 'Invalid Phone number'),
@@ -349,7 +564,7 @@ export const demoSettings: SettingsItem[] = [
           },
           {
             label: 'Quantity',
-            id: 'bcaTerms.quantity',
+            name: 'bcaTerms.quantity',
             placeholder: 'Enter Quantity',
             type: 'number',
             validation: (z) => z.number().int().min(1),
@@ -357,7 +572,7 @@ export const demoSettings: SettingsItem[] = [
           },
           {
             label: 'Is Active',
-            id: 'bcaTerms.isActive',
+            name: 'bcaTerms.isActive',
             placeholder: '', // N/A for checkbox
             type: 'checkbox',
             validation: (z) => z.boolean(),
@@ -365,7 +580,7 @@ export const demoSettings: SettingsItem[] = [
           },
           {
             label: 'Priority',
-            id: 'bcaTerms.priority',
+            name: 'bcaTerms.priority',
             placeholder: 'Select Priority',
             type: 'radio-group',
             options: [
@@ -378,7 +593,7 @@ export const demoSettings: SettingsItem[] = [
           },
           {
             label: 'Features',
-            id: 'bcaTerms.features',
+            name: 'bcaTerms.features',
             placeholder: 'Select Features',
             type: 'checkbox-group',
             options: [
@@ -408,7 +623,7 @@ export const demoSettings: SettingsItem[] = [
           },
           {
             label: 'Mode',
-            id: 'bcaTerms.mode',
+            name: 'bcaTerms.mode',
             placeholder: 'Select Mode',
             type: 'radio-button-group',
             options: [
@@ -420,7 +635,7 @@ export const demoSettings: SettingsItem[] = [
           },
           {
             label: 'Notifications',
-            id: 'bcaTerms.notifications',
+            name: 'bcaTerms.notifications',
             placeholder: 'Select Notifications',
             type: 'switch-group',
             options: [
@@ -450,7 +665,7 @@ export const demoSettings: SettingsItem[] = [
           },
           {
             label: 'Enable Feature X',
-            id: 'bcaTerms.enableX',
+            name: 'bcaTerms.enableX',
             placeholder: '', // N/A for switch
             type: 'switch',
             validation: (z) => z.boolean(),
@@ -463,7 +678,7 @@ export const demoSettings: SettingsItem[] = [
         fields: [
           {
             label: 'API Endpoint',
-            id: 'bcaTerms.apiEndpoint',
+            name: 'bcaTerms.apiEndpoint',
             placeholder: 'Enter API Endpoint',
             type: 'text',
             validation: (z) => z.string().url(),
@@ -471,7 +686,7 @@ export const demoSettings: SettingsItem[] = [
           },
           {
             label: 'Payload Sample',
-            id: 'bcaTerms.payloadSample',
+            name: 'bcaTerms.payloadSample',
             placeholder: 'Enter Payload Sample',
             type: 'textarea',
             validation: (z) => z.string().min(1),
@@ -479,7 +694,7 @@ export const demoSettings: SettingsItem[] = [
           },
           {
             label: 'Use Sandbox',
-            id: 'bcaTerms.useSandbox',
+            name: 'bcaTerms.useSandbox',
             placeholder: '', // N/A for checkbox
             type: 'checkbox',
             validation: (z) => z.boolean(),
@@ -487,7 +702,7 @@ export const demoSettings: SettingsItem[] = [
           },
           {
             label: 'Max Retries',
-            id: 'bcaTerms.maxRetries',
+            name: 'bcaTerms.maxRetries',
             placeholder: 'Enter Max Retries',
             type: 'number',
             validation: (z) => z.number().min(0).max(10),
@@ -495,7 +710,7 @@ export const demoSettings: SettingsItem[] = [
           },
           {
             label: 'Timeout (ms)',
-            id: 'bcaTerms.timeout',
+            name: 'bcaTerms.timeout',
             placeholder: 'Enter Timeout (ms)',
             type: 'number',
             validation: (z) => z.number().min(100).max(60000),
@@ -503,7 +718,7 @@ export const demoSettings: SettingsItem[] = [
           },
           {
             label: 'Logging Level',
-            id: 'bcaTerms.loggingLevel',
+            name: 'bcaTerms.loggingLevel',
             placeholder: 'Select Logging Level',
             type: 'radio-group',
             validation: (z) => z.enum(['debug', 'info', 'warn', 'error']),
@@ -516,7 +731,7 @@ export const demoSettings: SettingsItem[] = [
         fields: [
           {
             label: 'Extra Notes',
-            id: 'bcaTerms.extraNotes',
+            name: 'bcaTerms.extraNotes',
             placeholder: 'Enter Extra Notes',
             type: 'textarea',
             validation: (z) => z.string().max(500),
@@ -524,7 +739,7 @@ export const demoSettings: SettingsItem[] = [
           },
           {
             label: 'Effective Date',
-            id: 'bcaTerms.effectiveDate',
+            name: 'bcaTerms.effectiveDate',
             placeholder: 'Select Effective Date',
             type: 'date',
             // ensure valid date string format
@@ -533,7 +748,7 @@ export const demoSettings: SettingsItem[] = [
           },
           {
             label: 'Expiration Date',
-            id: 'bcaTerms.expirationDate',
+            name: 'bcaTerms.expirationDate',
             placeholder: 'Select Expiration Date',
             type: 'date',
             validation: (z) => z.string().refine((s) => !isNaN(Date.parse(s))),
@@ -541,7 +756,7 @@ export const demoSettings: SettingsItem[] = [
           },
           {
             label: 'Custom Flag',
-            id: 'bcaTerms.customFlag',
+            name: 'bcaTerms.customFlag',
             placeholder: '', // N/A for switch
             type: 'switch',
             validation: (z) => z.boolean(),
@@ -549,7 +764,7 @@ export const demoSettings: SettingsItem[] = [
           },
           {
             label: 'Additional Percentage',
-            id: 'bcaTerms.additionalPct',
+            name: 'bcaTerms.additionalPct',
             placeholder: 'Enter Additional Percentage',
             type: 'number',
             validation: (z) => z.number().min(0).max(100),
@@ -562,7 +777,7 @@ export const demoSettings: SettingsItem[] = [
         fields: [
           {
             label: 'Maker Comments',
-            id: 'bcaTerms.makerComments',
+            name: 'bcaTerms.makerComments',
             placeholder: 'Enter Maker Comments',
             type: 'textarea',
             validation: (z) => z.string().min(1),
@@ -570,11 +785,47 @@ export const demoSettings: SettingsItem[] = [
           },
           {
             label: 'Checker Comments',
-            id: 'bcaTerms.checkerComments',
+            name: 'bcaTerms.checkerComments',
             placeholder: 'Enter Checker Comments',
             type: 'textarea',
             validation: (z) => z.string().min(1),
             col: { xs: 12, sm: 12, md: 12, lg: 12 },
+          },
+        ],
+      },
+      {
+        title: 'Demo Table',
+        fields: [
+          {
+            dataTable: {
+              header: 'Inner Demo Table',
+              description: 'This table lives inside the new Demo Table tab.',
+              config: {
+                dataSource: 'innerRows',
+                columnSettings: [
+                  { title: 'Column A', column: 'a' },
+                  { title: 'Column B', column: 'b' },
+                  { title: 'Inner Field 1', column: 'demoInner.field1' },
+                  { title: 'Inner Field 2', column: 'demoInner.field2' },
+                ],
+              },
+              fields: [
+                {
+                  label: 'Inner Field 1',
+                  name: 'demoInner.field1',
+                  placeholder: 'Value for Inner Field 1',
+                  type: 'text',
+                  validation: (z: any) => z.string().optional(),
+                },
+                {
+                  label: 'Inner Field 2',
+                  name: 'demoInner.field2',
+                  placeholder: 'Value for Inner Field 2',
+                  type: 'number',
+                  validation: (z: any) => z.number().optional(),
+                },
+              ],
+            },
           },
         ],
       },
@@ -648,6 +899,46 @@ export const demoSettings: SettingsItem[] = [
         validation: z => z.string().optional(),
         col: { xs: 12 },
       },
+      {
+        hidden: values => values?.conditional?.validationOption !== 'advanced',
+        accordion: [
+          {
+            title: 'Advanced Mode Controls',
+            fields: [
+              {
+                header: 'Expert Controls',
+                isSubHeader: true,
+                fields: [
+                  {
+                    name: 'conditional.customSectionNote',
+                    label: 'Custom Section Note',
+                    placeholder: 'Enter a note for Custom mode…',
+                    type: 'textarea',
+                    validation: z => z.string().min(10, 'At least 10 characters'),
+                    col: { xs: 12 }
+                  },
+                  {
+                    name: 'conditional.expertFlag',
+                    label: 'Enable Expert Flag',
+                    type: 'switch',
+                    validation: z => z.boolean(),
+                    col: { sm: 6 }
+                  },
+                  {
+                    name: 'conditional.expertNotes',
+                    label: 'Expert Notes',
+                    placeholder: 'Detailed feedback for advanced mode…',
+                    type: 'textarea',
+                    validation: z => z.string().min(15, 'At least 15 characters'),
+                    col: { xs: 12 }
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        allowMultiple: false
+      },
     ],
   },
 
@@ -706,6 +997,275 @@ export const demoSettings: SettingsItem[] = [
       },
     ],
   },
+
+  // Custom input component demo
+  {
+    header: 'Custom Input Component',
+    description:
+      'Two custom inputs: a switch that toggles “ID editing” on/off, and a Transaction ID field that ' +
+      'upper‑cases its value and only becomes editable when the switch is on.',
+    fields: [
+      // 1) toggle to enable/disable ID editing
+      {
+        name: 'custom.enableIdEdit',
+        label: 'Enable ID Editing',
+         validation: z => z.boolean(),
+
+        render: ({ common, fieldState }) => (
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{ display: 'block', fontWeight: 500, marginBottom: 4 }}>
+              {common.label}
+            </label>
+            <input
+              type="checkbox"
+              name={common.name}
+              checked={common.value}
+              onChange={e => common.onChange(e.target.checked)}
+              onBlur={common.onBlur}
+              disabled={common.disabled}
+            />
+            {fieldState.error && (
+              <div style={{ color: 'var(--danger)', marginTop: 4, fontSize: '13px' }}>
+                {fieldState.error.message}
+              </div>
+            )}
+          </div>
+        ),
+      },
+
+      // 2) the upper‑casing Transaction ID
+      {
+        name: 'custom.id',
+        label: 'Custom ID',
+        placeholder: 'e.g. ABCD-1234‑EFGH',
+        validation: z => z.string().uuid({ message: 'Must be a valid UUID' }),
+        // now driven by our switch
+        disabled: values => !values?.custom?.enableIdEdit,
+
+        render: ({ common, fieldState }) => {
+          const upper = (common.value ?? '').toUpperCase();
+          return (
+            <div style={{ marginBottom: '1rem' }}>
+              <label
+                htmlFor={common.name}
+                style={{ display: 'block', fontWeight: 500, marginBottom: 4 }}
+              >
+                {common.label}
+              </label>
+              <input
+                name={common.name}
+                id={common.name}
+                value={upper}
+                onChange={e => common.onChange(e.target.value)}
+                onBlur={common.onBlur}
+                placeholder={common.placeholder}
+                disabled={common.disabled}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                  borderRadius: '4px',
+                  border: '1px solid #ccc',
+                  background: common.disabled ? '#f5f5f5' : 'white'
+                }}
+              />
+              {fieldState.error && (
+                <div style={{ color: 'red', marginTop: 4, fontSize: '13px' }}>
+                  {fieldState.error.message}
+                </div>
+              )}
+            </div>
+          );
+        },
+      },
+    ],
+  },
+  // Nested Table & Sections Demo (enhanced)
+  {
+    header: 'Nested Table & Sections Demo',
+    description: 'Shows a parent table with nested child tables, multiple accordion panels and tabs per row.',
+    dataTable: {
+      header: 'Parent Table',
+      description: 'Each row has its own child tables, accordion panels, and tab panels.',
+      config: {
+        dataSource: 'nestedTable.rows',
+        columnSettings: [
+          { title: 'ID', column: 'id' },
+          { title: 'Name', column: 'name' },
+          { title: 'Status', column: 'status' },
+          { title: 'Email', column: 'email' },
+          { title: 'Role', column: 'role' },
+        ],
+      },
+      fields: [
+        {
+          label: 'Name',
+          name: 'name',
+          type: 'text',
+          placeholder: 'Enter Name',
+        },
+        {
+          label: 'Email',
+          name: 'email',
+          type: 'text',
+          placeholder: 'Enter Email',
+          validation: (z) => z.string().email(),
+        },
+        {
+          label: 'Role',
+          name: 'role',
+          type: 'dropdown',
+          placeholder: 'Select Role',
+          options: [
+            { value: 'admin', text: 'Admin' },
+            { value: 'user', text: 'User' },
+            { value: 'guest', text: 'Guest' },
+          ],
+          validation: (z) => z.enum(['admin', 'user', 'guest']),
+        },
+        // {
+        //   dataTable: {
+        //     header: 'Child Table',
+        //     description: 'Details for this parent row.',
+        //     config: {
+        //       dataSource: 'childRows',
+        //       columnSettings: [
+        //         { title: 'Key', column: 'key' },
+        //         { title: 'Value', column: 'value' },
+        //         { title: 'Timestamp', column: 'timestamp' },
+        //       ],
+        //     },
+        //     fields: [
+        //       {
+        //         label: 'Key',
+        //         name: 'key',
+        //         type: 'text',
+        //         placeholder: 'Enter Key',
+        //         validation: (z) => z.string().optional(),
+        //       },
+        //       {
+        //         label: 'Value',
+        //         name: 'value',
+        //         type: 'text',
+        //         placeholder: 'Enter Value',
+        //         validation: (z) => z.string().optional(),
+        //       },
+        //       {
+        //         label: 'Timestamp',
+        //         name: 'timestamp',
+        //         type: 'date',
+        //         placeholder: 'Select Timestamp',
+        //         validation: dateValidation,
+        //       },
+        //     ],
+        //   },
+        // },
+        {
+          accordion: [
+            {
+              title: 'More Info',
+              fields: [
+                {
+                  name: 'moreInfo.notes',
+                  label: 'Notes',
+                  type: 'textarea',
+                  placeholder: 'Enter Notes',
+                  validation: (z) => z.string().optional(),
+                },
+                {
+                  name: 'moreInfo.flag',
+                  label: 'Flagged',
+                  type: 'switch',
+                  placeholder: '',
+                  validation: (z) => z.boolean(),
+                },
+              ],
+            },
+            {
+              title: 'Statistics',
+              fields: [
+                {
+                  name: 'stats.calls',
+                  label: 'Call Count',
+                  type: 'number',
+                  placeholder: 'Enter Call Count',
+                  validation: (z) => z.number().min(0),
+                },
+                {
+                  name: 'stats.duration',
+                  label: 'Total Duration (min)',
+                  type: 'number',
+                  placeholder: 'Enter Duration',
+                  validation: (z) => z.number().min(0),
+                },
+                {
+                  name: 'stats.lastCalled',
+                  label: 'Last Called',
+                  type: 'date',
+                  placeholder: 'Select Date',
+                  validation: dateValidation,
+                },
+              ],
+            },
+          ],
+          allowMultiple: true,
+        },
+        {
+          tabs: [
+            {
+              title: 'Summary',
+              fields: [
+                {
+                  name: 'tabs.summary',
+                  label: 'Summary',
+                  type: 'textarea',
+                  placeholder: 'Enter Summary',
+                  validation: (z) => z.string().optional(),
+                },
+              ],
+            },
+            {
+              title: 'Details',
+              fields: [
+                {
+                  name: 'tabs.detail',
+                  label: 'Detail',
+                  type: 'text',
+                  placeholder: 'Enter Detail',
+                  validation: (z) => z.string().optional(),
+                },
+                {
+                  name: 'tabs.extraDetail',
+                  label: 'Extra Detail',
+                  type: 'textarea',
+                  placeholder: 'Enter Extra Detail',
+                  validation: (z) => z.string().optional(),
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  },
+];
+
+const makers = ['Alice', 'Charlie', 'Eve', 'Grace', 'Ivan'];
+const checkers = ['Bob', 'Dana', 'Frank', 'Heidi', 'Judy'];
+const statuses = ['Pending', 'Approved', 'Rejected', 'Pending Review', 'In Progress'];
+const makerComments = [
+  'Please review Q1 figures.',
+  'Updated with new rates.',
+  'Missing collateral docs.',
+  'Add supporting documents.',
+  'Processing changes.',
+];
+const checkerComments = [
+  'Looks OK, pending sign‑off.',
+  'Verified and approved.',
+  'Incomplete, send back to maker.',
+  'Awaiting response.',
+  'In progress.',
 ];
 
 export const demoData = {
@@ -729,7 +1289,24 @@ export const demoData = {
     facilityCode: 'ABCD',
     facilityManager: 'Bob Smith',
     facilityCapacity: 120,
-    facilityStatus: 'Active'
+    facilityStatus: 'Active',
+  },
+  services: {
+    onsite: {
+      engineer: 'Jane Doe',
+      phone: '+628123456781',
+      responseTime: 2
+    },
+    remote: {
+      url: 'https://support.acme.com',
+      contactHours: '24/7'
+    }
+  },
+  compliance: {
+    certAuthority: 'ISO Safety Board',
+    certDate: '2025-01-20',
+    lastInspection: '2025-07-01',
+    inspectorName: 'Jane Auditor'
   },
   financeDetails: {
     financePct: 75,
@@ -797,5 +1374,112 @@ export const demoData = {
     standardDetail1:      '',
     customDetail1:        '',
     advancedDetail:       '',
-  }
+    // ← new values for the accordion panels
+    customSectionNote:   '',
+    expertFlag:          false,
+    expertNotes:         ''
+  },
+  custom: {
+    enableIdEdit: false,   // start with ID editing turned off
+    id: '3fa85f64-5717-4562-b3fc-2c963f66afa6'
+  },
+  demoTable: {
+    mode: 'enabled',
+    rows: Array.from({ length: 100 }, (_, i) => {
+      const idx = i % makers.length;
+      return {
+        maker: makers[idx],
+        checker: checkers[idx],
+        status: statuses[idx],
+        bcaTerms: {
+          makerComments: makerComments[idx],
+          checkerComments: checkerComments[idx],
+          status: statuses[idx],
+          reviewComments: `Reviewed: ${makerComments[idx]}`,
+          followUpNotes: `Follow-up: ${checkerComments[idx]}`,
+          escalationStatus: statuses[idx] === 'Rejected' ? 'Escalated' : 'Normal',
+          handlingInstructions: 'Proceed with review.',
+        },
+      };
+    }),
+  },
+  innerRows: Array.from({ length: 3 }, (_, i) => ({
+    a: `A${i + 1}`,
+    b: `B${i + 1}`,
+    demoInner: { field1: `F1-${i + 1}`, field2: i + 1 },
+  })),
+  nestedTable: {
+    rows: [
+      {
+        id: 'P1',
+        name: 'Parent One',
+        status: 'Active',
+        email: 'parent1@example.com',
+        role: 'admin',
+        childRows: [
+          { key: 'a', value: 'Alpha', timestamp: new Date('2025-07-10') },
+          { key: 'b', value: 'Beta',  timestamp: new Date('2025-07-11') },
+        ],
+        moreInfo: { notes: 'First parent row', flag: false },
+        stats: { calls: 12, duration: 45, lastCalled: new Date('2025-07-12') },
+        tabs: { summary: 'Sum 1', detail: 'Det 1', extraDetail: 'Extra A' },
+      },
+      {
+        id: 'P2',
+        name: 'Parent Two',
+        status: 'Inactive',
+        email: 'parent2@example.com',
+        role: 'user',
+        childRows: [
+          { key: 'x', value: 'X-ray', timestamp: new Date('2025-07-13') },
+          { key: 'y', value: 'Yankee', timestamp: new Date('2025-07-14') },
+        ],
+        moreInfo: { notes: 'Second parent row', flag: true },
+        stats: { calls: 8, duration: 30, lastCalled: new Date('2025-07-15') },
+        tabs: { summary: 'Sum 2', detail: 'Det 2', extraDetail: 'Extra B' },
+      },
+      {
+        id: 'P3',
+        name: 'Parent Three',
+        status: 'Pending',
+        email: 'parent3@example.com',
+        role: 'guest',
+        childRows: [
+          { key: 'm', value: 'Mike', timestamp: new Date('2025-07-16') },
+          { key: 'n', value: 'November', timestamp: new Date('2025-07-17') },
+        ],
+        moreInfo: { notes: 'Third parent row', flag: false },
+        stats: { calls: 5, duration: 20, lastCalled: new Date('2025-07-18') },
+        tabs: { summary: 'Sum 3', detail: 'Det 3', extraDetail: 'Extra C' },
+      },
+      {
+        id: 'P4',
+        name: 'Parent Four',
+        status: 'Active',
+        email: 'parent4@example.com',
+        role: 'user',
+        childRows: [
+          { key: 'c', value: 'Charlie', timestamp: new Date('2025-07-19') },
+          { key: 'd', value: 'Delta',   timestamp: new Date('2025-07-20') },
+        ],
+        moreInfo: { notes: 'Fourth parent row', flag: true },
+        stats: { calls: 7, duration: 25, lastCalled: new Date('2025-07-21') },
+        tabs: { summary: 'Sum 4', detail: 'Det 4', extraDetail: 'Extra D' },
+      },
+      {
+        id: 'P5',
+        name: 'Parent Five',
+        status: 'Inactive',
+        email: 'parent5@example.com',
+        role: 'guest',
+        childRows: [
+          { key: 'e', value: 'Echo',    timestamp: new Date('2025-07-22') },
+          { key: 'f', value: 'Foxtrot', timestamp: new Date('2025-07-23') },
+        ],
+        moreInfo: { notes: 'Fifth parent row', flag: false },
+        stats: { calls: 3, duration: 15, lastCalled: new Date('2025-07-24') },
+        tabs: { summary: 'Sum 5', detail: 'Det 5', extraDetail: 'Extra E' },
+      },
+    ],
+  },
 };

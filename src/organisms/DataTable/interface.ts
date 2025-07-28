@@ -65,9 +65,9 @@ export interface DataTableProps {
    */
   partialRowDeletionID?: string
   /** Callback when a row is clicked */
-  onRowClick?: (rowData: any) => void
+  onRowClick?: (rowData: any, __internalId: string, e: React.MouseEvent<HTMLElement>) => void
   /** Callback when a row is double-clicked */
-  onRowDoubleClick?: (rowData: any) => void
+  onRowDoubleClick?: (rowData: any, __internalId: string, e: React.MouseEvent<HTMLElement>) => void
   /** Callback when column settings change */
   onColumnSettingsChange?: (newColumnSettings: ColumnSetting[]) => void
   /** Callback when page size changes */
@@ -78,6 +78,8 @@ export interface DataTableProps {
   onSelectedRowsChange?: (selectedRows: any[]) => void
   /** Function to use to render collapsible row content */
   expandedRowContent?: (RowData: any) => React.ReactNode
+  /** Callback when the active row changes */
+  onActiveRowChange?: (rowData: any, __internalId?: string) => void
 }
 
 export type DataTableFormControlType =

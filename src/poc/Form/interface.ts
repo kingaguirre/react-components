@@ -1,6 +1,9 @@
 // src/poc/Form/interface.ts
 
 import { ZodTypeAny } from 'zod';
+import { ColorType } from '../../common/interface';
+import { ControllerRenderProps,  ControllerFieldState } from 'react-hook-form';
+import { ColumnSetting } from '../../organisms/DataTable/interface';
 
 export interface ColSpan {
   xs?: number;
@@ -31,7 +34,6 @@ export interface SelectOption {
 
 export interface FieldSetting {
   name?: string;
-  id?: string;
   label?: string;
 
   // mutually exclusive group
@@ -49,6 +51,49 @@ export interface FieldSetting {
   disabled?: boolean | ((values?: Record<string, any>) => boolean);
   hidden?: boolean | ((values?: Record<string, any>) => boolean);
   placeholder?: string;
+
+  /**
+   * If provided, this will be used instead of the built‑in DatePicker/Dropdown/FormControl.
+   * You get the RHF field + fieldState + a `common` props object (value/onChange/label/etc).
+   */
+  render?: (params: {
+    field: ControllerRenderProps;
+    fieldState:  ControllerFieldState;
+    common: {
+      name: string;
+      value: any;
+      onChange: (v: any) => void;
+      onBlur: () => void;
+      label?: string;
+      placeholder?: string;
+      helpText?: string;
+      required?: boolean;
+      color?: string;
+      disabled?: boolean;
+      [key: string]: any;
+    };
+  }) => React.ReactNode;
+}
+
+export interface AccordionSection {
+  title: string;
+  fields: SettingsItem[];
+  hidden?: boolean | ((values?: Record<string, any>) => boolean);
+  disabled?: boolean | ((values?: Record<string, any>) => boolean);
+  id?: string;
+  rightContent?: React.ReactNode;
+  open?: boolean;
+  onClick?: () => void;
+  rightDetails?: {
+    value?: string;
+    icon?: string;
+    text?: string;
+    color?: ColorType;
+    iconColor?: ColorType;
+    valueColor?: ColorType;
+    textColor?: ColorType;
+    onClick?: () => void;
+  }[];
 }
 
 export interface TabConfig {
@@ -58,15 +103,39 @@ export interface TabConfig {
 }
 
 export interface FieldGroup {
-  header: string;
+  header?: string;
   isSubHeader?: boolean;
   description?: string;
+
+  // now supports either fields, tabs, or accordion
   fields?: SettingsItem[];
   tabs?: TabConfig[];
+  accordion?: AccordionSection[];
+  allowMultiple?: boolean; // allows multiple collapsed sections in the accordion
+
   hidden?: boolean | ((values?: Record<string, any>) => boolean);
 }
 
-export type SettingsItem = FieldSetting | FieldGroup;
+export interface DataTableSection {
+  header?: string;
+  isSubHeader?: boolean;
+  description?: string;
+  config: {
+    dataSource: string;
+    columnSettings: ColumnSetting[];
+  };
+  /**
+   * Allow nested settings: individual fields or groups below table
+   */
+  fields: SettingsItem[];
+  disabled?: boolean | ((values?: Record<string, any>) => boolean);
+  hidden?: boolean | ((values?: Record<string, any>) => boolean);
+}
+
+export type SettingsItem =
+  | FieldSetting
+  | FieldGroup
+  | { header?: string; dataTable: DataTableSection };
 
 export interface SubmitResult<T> {
   valid: boolean;

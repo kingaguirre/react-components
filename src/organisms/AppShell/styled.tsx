@@ -128,8 +128,9 @@ export const SideMenuContainer = styled.aside<{
   $collapsed: boolean
   $overlay?: boolean
   $visible: boolean
+  $sideMenuWidth: number
 }>`
-  width: ${({ $collapsed }) => ($collapsed ? '50px' : '170px')};
+  width: ${({ $collapsed, $sideMenuWidth }) => ($collapsed ? '50px' : `${$sideMenuWidth}px`)};
   height: 100%;
   background-color: ${theme.colors.primary.darker};
   color: white;

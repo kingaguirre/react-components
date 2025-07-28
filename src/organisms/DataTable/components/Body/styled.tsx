@@ -48,7 +48,7 @@ const getCellBgColor = (isActiveRow: boolean, isNewRow: boolean, isDisabled: boo
     } else if (isDisabled) {
       return `${theme.colors.default.pale}!important`
     } else {
-      return theme.colors.lightA
+      return 'white'
     }
   }
 }
@@ -64,7 +64,7 @@ export const DataTableRow = styled.div<{
   display: flex;
   justify-content: flex-start;
   align-items: stretch;
-  background-color: ${theme.colors.lightA};
+  background-color: white;
   ${({ $isDisabled }) => $isDisabled ? css`
     cursor: not-allowed;
     opacity: 0.6;
@@ -102,7 +102,7 @@ export const DataTableRow = styled.div<{
       bottom: 1px;
       pointer-events: none;
       border: 1px solid ${theme.colors.primary.base};
-      z-index: 19;
+      z-index: 11;
     }
   }
 
@@ -130,7 +130,7 @@ export const CellContent = styled.div<{
   $align?: string
 }>`
   color: ${theme.colors.default.darker};
-  font-size: 14px;
+  font-size: 12px;
   line-height: 1.2;
   padding: ${({ $isEditMode }) => $isEditMode ? '0' : '4px'};
   flex: 1;

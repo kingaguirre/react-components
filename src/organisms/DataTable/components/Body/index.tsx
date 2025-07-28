@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react'
 import { Table } from '@tanstack/react-table'
 import { BodyContainer, NoDataContainer, ExpandedRowContainer } from './styled'
-import { EditingCellType, SelectedCellType } from '../../interface'
+import { EditingCellType, SelectedCellType, DataTableProps } from '../../interface'
 import { Row } from './Row'
 
 interface BodyProps<TData> {
@@ -17,8 +17,8 @@ interface BodyProps<TData> {
   enableColumnDragging?: boolean
   expandedRowRightOffset?: number
   setSelectedCell: (cell: SelectedCellType) => void
-  onRowClick?: (data: any, e: React.MouseEvent<HTMLElement>) => void
-  onRowDoubleClick?: (data: any, e: React.MouseEvent<HTMLElement>) => void
+  onRowClick?: DataTableProps['onRowClick']
+  onRowDoubleClick?: DataTableProps['onRowDoubleClick']
   expandedRowContent?: (RowData: any) => React.ReactNode
   uniqueValueMaps?: Record<string, string[] | Record<string, number> | undefined>
 }

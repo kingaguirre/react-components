@@ -17,6 +17,9 @@ export const DataTableWrapper = styled.div<{ $disabled?: boolean }>`
   }
 
   ${({ $disabled }) => $disabled ? `
+    * {
+      pointer-events: none;
+    }
     &:after {
       content: "";
       position: absolute;

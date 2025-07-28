@@ -7,6 +7,8 @@ interface GlobalKeyNavigationParams {
   enableCellEditing: boolean
   setSelectedCell: (cell: SelectedCellType) => void
   setEditingCell: (cell: EditingCellType) => void
+  activeRowId: string | undefined
+  setActiveRowId: (rowId: string) => void
 }
 
 export const useGlobalKeyNavigation = ({
@@ -15,6 +17,8 @@ export const useGlobalKeyNavigation = ({
   enableCellEditing,
   setSelectedCell,
   setEditingCell,
+  activeRowId,
+  setActiveRowId
 }: GlobalKeyNavigationParams) => {
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
@@ -30,6 +34,12 @@ export const useGlobalKeyNavigation = ({
         const rows = table.getRowModel().rows
         const row = rows.find((r: any) => (r.original as any).__internalId === selectedCell.rowId)
         if (!row) return
+
+        const newRowId = selectedCell.rowId
+        if (newRowId !== activeRowId) {
+          setActiveRowId(newRowId)
+        }
+
         const cell = row.getVisibleCells().find((c: any) => {
           const columnId = (c.column.columnDef.meta as any)?.columnId || ''
           return columnId === selectedCell.columnId
@@ -49,6 +59,7 @@ export const useGlobalKeyNavigation = ({
       }
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
         e.preventDefault()
+        e.stopPropagation()
         const rows = table.getRowModel().rows
         const currentRowIndex = rows.findIndex(
           (r: any) => (r.original as any).__internalId === selectedCell.rowId
