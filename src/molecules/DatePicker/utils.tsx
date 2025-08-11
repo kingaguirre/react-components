@@ -1,6 +1,5 @@
-import { DatePickerProps } from './interface';
+import { DatePickerProps } from "./interface";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const formatDate = (input: any): string | null => {
   if (!input) return null;
 
@@ -20,7 +19,7 @@ export const formatDate = (input: any): string | null => {
 };
 
 export const parseDateRange = (
-  input?: DatePickerProps["selectedDate"]
+  input?: DatePickerProps["selectedDate"],
 ): string | [string, string] | null => {
   if (!input) return null;
 
@@ -67,7 +66,6 @@ export const parseDateRange = (
   return start && end ? [start, end] : null;
 };
 
-
 // Helper function to parse various date formats
 const parseCustomDate = (date: string | Date): Date | null => {
   if (date instanceof Date && !isNaN(date.getTime())) return date; // Already a valid Date object
@@ -93,8 +91,18 @@ const parseCustomDate = (date: string | Date): Date | null => {
 // Helper function to attempt parsing based on format
 const tryParseDate = (dateStr: string, format: string): Date | null => {
   const monthNames = {
-    Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5,
-    Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11,
+    Jan: 0,
+    Feb: 1,
+    Mar: 2,
+    Apr: 3,
+    May: 4,
+    Jun: 5,
+    Jul: 6,
+    Aug: 7,
+    Sep: 8,
+    Oct: 9,
+    Nov: 10,
+    Dec: 11,
   };
 
   let day: number, month: number, year: number;
@@ -109,7 +117,11 @@ const tryParseDate = (dateStr: string, format: string): Date | null => {
       break;
     case "MMM-DD-YYYY":
     case "MMM/DD/YYYY":
-      [month, day, year] = [monthNames[match[0] as keyof typeof monthNames], Number(match[1]), Number(match[2])];
+      [month, day, year] = [
+        monthNames[match[0] as keyof typeof monthNames],
+        Number(match[1]),
+        Number(match[2]),
+      ];
       break;
     case "DD-MM-YYYY":
     case "DD/MM/YYYY":
@@ -118,7 +130,11 @@ const tryParseDate = (dateStr: string, format: string): Date | null => {
       break;
     case "DD-MMM-YYYY":
     case "DD/MMM/YYYY":
-      [day, month, year] = [Number(match[0]), monthNames[match[1] as keyof typeof monthNames], Number(match[2])];
+      [day, month, year] = [
+        Number(match[0]),
+        monthNames[match[1] as keyof typeof monthNames],
+        Number(match[2]),
+      ];
       break;
     default:
       return null;
@@ -135,4 +151,3 @@ const isValidDate = (date: Date): boolean => !isNaN(date.getTime());
 const formatToYYYYMMDD = (date: Date) => {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 };
-

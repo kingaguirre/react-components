@@ -1,39 +1,44 @@
 // src/components/Panel/index.tsx
-import React from 'react'
-import { PanelContainer, PanelHeader, PanelContent, IconWrapper, Text } from './styled'
-import { PanelProps, IconObject } from './interface'
-import { Icon } from '../../atoms/Icon'
-import { Tooltip } from '../../atoms/Tooltip'
+import React from "react";
+import {
+  PanelContainer,
+  PanelHeader,
+  PanelContent,
+  IconWrapper,
+  Text,
+} from "./styled";
+import { PanelProps, IconObject } from "./interface";
+import { Icon } from "../../atoms/Icon";
+import { Tooltip } from "../../atoms/Tooltip";
 
 export const Panel: React.FC<PanelProps> = ({
   title,
   children,
   leftIcon,
   rightIcons = [],
-  color = 'primary',
+  color = "primary",
   disabled = false,
 }) => {
-  const isHeadless = !title && !leftIcon && rightIcons.length === 0
+  const isHeadless = !title && !leftIcon && rightIcons.length === 0;
 
   return (
-    <PanelContainer $color={color} $disabled={disabled} className={`panel ${disabled ? 'panel-disabled' : ''}`.trim()}>
+    <PanelContainer
+      $color={color}
+      $disabled={disabled}
+      className={`panel ${disabled ? "panel-disabled" : ""}`.trim()}
+    >
       {!isHeadless && (
         <PanelHeader
-          className='panel-header'
+          className="panel-header"
           $color={color}
           $disabled={disabled}
           $hasLeftIcon={!!leftIcon}
           $hasRightIcons={rightIcons.length > 0}
         >
-          {leftIcon && (
-            <IconComponent
-              disabled={disabled}
-              icon={leftIcon}
-            />
-          )}
-          <div className='title'>{title}</div>
+          {leftIcon && <IconComponent disabled={disabled} icon={leftIcon} />}
+          <div className="title">{title}</div>
           {rightIcons.length > 0 && (
-            <div className='right-header-icons-container'>
+            <div className="right-header-icons-container">
               {rightIcons.map((icon) => (
                 <IconComponent
                   key={`key-${icon.icon}-${icon.color}`}
@@ -45,17 +50,17 @@ export const Panel: React.FC<PanelProps> = ({
           )}
         </PanelHeader>
       )}
-      <PanelContent className='panel-content'>{children}</PanelContent>
+      <PanelContent className="panel-content">{children}</PanelContent>
     </PanelContainer>
-  )
-}
+  );
+};
 
 interface IconComponentProps {
-  disabled?: PanelProps["disabled"]
-  icon: IconObject
+  disabled?: PanelProps["disabled"];
+  icon: IconObject;
 }
 const IconComponent = (props: IconComponentProps) => {
-  const { icon, disabled } = props
+  const { icon, disabled } = props;
 
   const iconDetails = (
     <IconWrapper
@@ -65,7 +70,7 @@ const IconComponent = (props: IconComponentProps) => {
       {icon.text && <Text>{icon.text}</Text>}
       <Icon icon={icon.icon} />
     </IconWrapper>
-  )
+  );
 
   return icon.tooltip ? (
     <Tooltip
@@ -73,7 +78,10 @@ const IconComponent = (props: IconComponentProps) => {
       color={icon.tooltipColor}
       type={icon.tooltipType}
       placement={icon.tooltipPlacement}
-    >{iconDetails}</Tooltip>
-
-    ) : iconDetails
-}
+    >
+      {iconDetails}
+    </Tooltip>
+  ) : (
+    iconDetails
+  );
+};

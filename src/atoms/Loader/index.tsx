@@ -1,8 +1,8 @@
 // src/components/Loader/index.tsx
-import * as React from 'react';
-import { useEffect, useState } from 'react';
-import * as ReactDOM from 'react-dom';
-import type { LoaderProps } from './interface';
+import * as React from "react";
+import { useEffect, useState } from "react";
+import * as ReactDOM from "react-dom";
+import type { LoaderProps } from "./interface";
 import {
   Line,
   LineBuffer,
@@ -13,7 +13,7 @@ import {
   CircleBuffer as CircleBufferCircle,
   CircleProgress,
   Overlay,
-} from './styled';
+} from "./styled";
 
 const SIZE_MAP: Record<string, number> = {
   xs: 14,
@@ -33,64 +33,66 @@ const THICKNESS_MAP: Record<string, number> = {
 };
 
 export const Loader: React.FC<LoaderProps> = ({
-  type = 'default',
+  type = "default",
   appendTo,
   value,
   valueBuffer,
-  size = 'sm',
+  size = "sm",
   thickness,
   color,
   className,
-  label
+  label,
 }) => {
   const [parent, setParent] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
     if (appendTo) {
-      const target = appendTo === 'body'
-        ? document.body
-        : document.querySelector<HTMLElement>(appendTo);
+      const target =
+        appendTo === "body"
+          ? document.body
+          : document.querySelector<HTMLElement>(appendTo);
       setParent(target);
     }
   }, [appendTo]);
 
   // ─── LINE ────────────────────────────────────────────────────────────────
-  if (type === 'line') {
+  if (type === "line") {
     const LineLoader = (
-      <LineContainer className={className} $isInline={!appendTo || (!!appendTo && !parent)}>
+      <LineContainer
+        className={className}
+        $isInline={!appendTo || (!!appendTo && !parent)}
+      >
         <LineTrack $color={color} />
-        {typeof valueBuffer === 'number' && (
+        {typeof valueBuffer === "number" && (
           <LineBuffer $color={color} $value={valueBuffer} />
         )}
         <Line $color={color} $value={value} />
       </LineContainer>
     );
     if (appendTo) {
-      return parent
-        ? ReactDOM.createPortal(LineLoader, parent)
-        : null;
+      return parent ? ReactDOM.createPortal(LineLoader, parent) : null;
     }
     return LineLoader;
   }
 
   // ─── CIRCLE ──────────────────────────────────────────────────────────────
   const numericSize =
-    typeof size === 'number' ? size : SIZE_MAP[size] ?? SIZE_MAP.sm;
+    typeof size === "number" ? size : (SIZE_MAP[size] ?? SIZE_MAP.sm);
   const usedThickness =
-    typeof thickness === 'number'
+    typeof thickness === "number"
       ? thickness
-      : typeof size === 'string'
-      ? THICKNESS_MAP[size] ?? DEFAULT_THICKNESS
-      : DEFAULT_THICKNESS;
+      : typeof size === "string"
+        ? (THICKNESS_MAP[size] ?? DEFAULT_THICKNESS)
+        : DEFAULT_THICKNESS;
   const radius = (numericSize - usedThickness) / 2;
   const circumference = 2 * Math.PI * radius;
   const detOffset =
-    typeof value === 'number' ? ((100 - value) / 100) * circumference : 0;
+    typeof value === "number" ? ((100 - value) / 100) * circumference : 0;
   const bufOffset =
-    typeof valueBuffer === 'number'
+    typeof valueBuffer === "number"
       ? ((100 - valueBuffer) / 100) * circumference
       : 0;
-  const indeterminate = typeof value !== 'number';
+  const indeterminate = typeof value !== "number";
 
   const CircleContent = (
     <CircleSvg
@@ -108,7 +110,7 @@ export const Loader: React.FC<LoaderProps> = ({
         $color={color}
         $indeterminate={indeterminate}
       />
-      {typeof valueBuffer === 'number' && (
+      {typeof valueBuffer === "number" && (
         <CircleBufferCircle
           cx={numericSize / 2}
           cy={numericSize / 2}
@@ -129,7 +131,7 @@ export const Loader: React.FC<LoaderProps> = ({
             ? undefined
             : `${circumference - detOffset} ${circumference}`
         }
-        className={indeterminate ? 'indeterminate' : undefined}
+        className={indeterminate ? "indeterminate" : undefined}
       />
     </CircleSvg>
   );
@@ -140,10 +142,10 @@ export const Loader: React.FC<LoaderProps> = ({
           <Overlay>
             <div>
               {CircleContent}
-              <div className='loader-label'>{label}</div>
+              <div className="loader-label">{label}</div>
             </div>
           </Overlay>,
-          parent
+          parent,
         )
       : null;
   }

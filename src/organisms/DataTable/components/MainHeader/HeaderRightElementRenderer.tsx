@@ -1,14 +1,17 @@
-import React from "react"
-import styled from "styled-components"
-import { Icon } from '../../../../atoms/Icon'
-import { Button } from '../../../../atoms/Button'
-import { FormControl } from '../../../../atoms/FormControl'
-import { Dropdown } from '../../../../molecules/Dropdown'
-import { DatePicker } from '../../../../molecules/DatePicker'
-import type { HeaderRightElement, DataTableFormControlType } from "../../interface"
+import React from "react";
+import styled from "styled-components";
+import { Icon } from "../../../../atoms/Icon";
+import { Button } from "../../../../atoms/Button";
+import { FormControl } from "../../../../atoms/FormControl";
+import { Dropdown } from "../../../../molecules/Dropdown";
+import { DatePicker } from "../../../../molecules/DatePicker";
+import type {
+  HeaderRightElement,
+  DataTableFormControlType,
+} from "../../interface";
 
 interface Props {
-  elements?: HeaderRightElement[]
+  elements?: HeaderRightElement[];
 }
 
 const WrapperContainer = styled.div`
@@ -18,27 +21,27 @@ const WrapperContainer = styled.div`
   flex-wrap: wrap;
   gap: 6px;
   padding: 2px 6px;
-`
+`;
 
 const Wrapper = styled.div<{ width?: string | number }>`
   display: inline-block;
   width: auto;
   max-width: ${({ width }) => {
-    if (typeof width === 'number') return `${width}px`
-    if (typeof width === 'string') return width
-    return 'auto' // default
+    if (typeof width === "number") return `${width}px`;
+    if (typeof width === "string") return width;
+    return "auto"; // default
   }};
-`
+`;
 
 export const HeaderRightElementRenderer: React.FC<Props> = ({ elements }) => {
-  if (!elements || elements.length === 0) return null
+  if (!elements || elements.length === 0) return null;
 
   return (
     <WrapperContainer>
       {elements.map((el, i) => {
         if (!el.type) {
-          console.warn(`Text type is missing for element at index ${i}`)
-          return null
+          console.warn(`Text type is missing for element at index ${i}`);
+          return null;
         }
 
         switch (el.type) {
@@ -57,7 +60,7 @@ export const HeaderRightElementRenderer: React.FC<Props> = ({ elements }) => {
                   {el.icon && <Icon icon={el.icon} />}
                 </Button>
               </Wrapper>
-            )
+            );
 
           case "dropdown":
             return (
@@ -77,7 +80,7 @@ export const HeaderRightElementRenderer: React.FC<Props> = ({ elements }) => {
                   testId={el.testId}
                 />
               </Wrapper>
-            )
+            );
 
           case "date":
             return (
@@ -95,7 +98,7 @@ export const HeaderRightElementRenderer: React.FC<Props> = ({ elements }) => {
                   testId={el.testId}
                 />
               </Wrapper>
-            )
+            );
 
           default:
             return (
@@ -121,9 +124,9 @@ export const HeaderRightElementRenderer: React.FC<Props> = ({ elements }) => {
                   testId={el.testId}
                 />
               </Wrapper>
-            )
+            );
         }
       })}
     </WrapperContainer>
-  )
-}
+  );
+};

@@ -1,5 +1,5 @@
-import React from 'react';
-import styled from 'styled-components';
+import React from "react";
+import styled from "styled-components";
 
 const Wrapper = styled.div`
   max-width: 1000px;
@@ -14,7 +14,7 @@ const Wrapper = styled.div`
     > .button {
       margin-bottom: 12px;
     }
-  
+
     > .button + .button,
     > .form-control-input-container + .form-control-input-container {
       margin-top: 12px;
@@ -32,20 +32,18 @@ const Container = styled.div`
   margin: 20px 0 20px;
   padding: 30px;
   border-radius: 4px;
-  background: #FFFFFF;
-  box-shadow: rgba(0, 0, 0, 0.10) 0 1px 3px 0;
+  background: #ffffff;
+  box-shadow: rgba(0, 0, 0, 0.1) 0 1px 3px 0;
   border: 1px solid hsla(203, 50%, 30%, 0.15);
 
   @media screen and (max-width: 767px) {
     padding: 16px;
   }
 
-
   > .form-control-input-container + .button,
   > .button {
     margin-bottom: 12px;
   }
-
 `;
 
 const StoryTitle = styled.div`
@@ -59,7 +57,7 @@ const StoryTitle = styled.div`
   padding: 0;
   cursor: text;
   position: relative;
-  color: #2E3438;
+  color: #2e3438;
   font-weight: bold;
 `;
 
@@ -71,8 +69,8 @@ const StorySubTitle = styled.div`
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
   -webkit-overflow-scrolling: touch;
   line-height: 24px;
-  color: #2E3438;
-`
+  color: #2e3438;
+`;
 
 interface StoryWrapperProps {
   title: string;
@@ -80,14 +78,17 @@ interface StoryWrapperProps {
   children: React.ReactNode;
 }
 
-export const StoryWrapper: React.FC<StoryWrapperProps> = ({ title, subTitle, children }) => (
+export const StoryWrapper: React.FC<StoryWrapperProps> = ({
+  title,
+  subTitle,
+  children,
+}) => (
   <Wrapper>
     <StoryTitle>{title}</StoryTitle>
     {subTitle && <StorySubTitle>{subTitle}</StorySubTitle>}
     <Container>{children}</Container>
   </Wrapper>
 );
-
 
 const TitleContainer = styled(StoryTitle)`
   position: relative;
@@ -106,8 +107,6 @@ const TitleContainer = styled(StoryTitle)`
   }
 `;
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 export const Title: React.FC<any> = ({ children }) => (
   <TitleContainer># {children}</TitleContainer>
 );
-

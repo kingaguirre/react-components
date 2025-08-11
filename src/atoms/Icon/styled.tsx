@@ -2,7 +2,8 @@ import styled from "styled-components";
 import { IconProps } from "./interface";
 import { ifElse } from "../../utils/index";
 
-const getSize = (s: IconProps["size"]) => typeof s === 'string' ? s : `${s}px`
+const getSize = (s: IconProps["size"]) =>
+  typeof s === "string" ? s : `${s}px`;
 
 export const IconContainer = styled.span<{
   $size?: IconProps["size"];
@@ -13,16 +14,23 @@ export const IconContainer = styled.span<{
   align-items: center;
   justify-content: center;
   font-size: ${({ $size }) => getSize($size) ?? "inherit"};
-  color: ${({ $color, $disabled }) => ifElse($disabled ?? false, "gray", $color ? `${$color}!important` : "inherit")};
+  color: ${({ $color, $disabled }) =>
+    ifElse(
+      $disabled ?? false,
+      "gray",
+      $color ? `${$color}!important` : "inherit",
+    )};
   pointer-events: ${({ $disabled }) => ($disabled ? "none" : "auto")};
   opacity: ${({ $disabled }) => ($disabled ? 0.5 : 1)};
   box-sizing: border-box;
   line-height: 1;
-  * { box-sizing: border-box; }
+  * {
+    box-sizing: border-box;
+  }
 
   /* ✅ Ensures Icon font styles are applied */
   &::before {
-    font-family: 'sc' !important;
+    font-family: "sc" !important;
   }
 `;
 

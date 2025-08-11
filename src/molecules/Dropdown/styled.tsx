@@ -1,6 +1,6 @@
 // src/molecules/Dropdown/styled.tsx
-import styled from "styled-components"
-import { theme, scrollStyle } from "../../styles"
+import styled from "styled-components";
+import { theme, scrollStyle } from "../../styles";
 
 export const DropdownContainer = styled.div`
   position: relative;
@@ -8,15 +8,17 @@ export const DropdownContainer = styled.div`
 `;
 
 export const DropdownList = styled.ul<{
-  $size: keyof typeof theme.sizes.boxSize
-  $position: string
-  $dropdownHeight?: number
+  $size: keyof typeof theme.sizes.boxSize;
+  $position: string;
+  $dropdownHeight?: number;
 }>`
   background-color: white;
   position: fixed;
-  max-height: ${({ $size, $dropdownHeight }) => $dropdownHeight ?? theme.sizes.boxSize[$size] * 5}px;
+  max-height: ${({ $size, $dropdownHeight }) =>
+    $dropdownHeight ?? theme.sizes.boxSize[$size] * 5}px;
   overflow-y: auto;
-  box-shadow: 0 ${({ $position }) => $position === 'bottom' ? 2 : -1}px 4px rgba(173, 173, 173, 0.5);
+  box-shadow: 0 ${({ $position }) => ($position === "bottom" ? 2 : -1)}px 4px
+    rgba(173, 173, 173, 0.5);
   z-index: 1000;
   border-radius: 1px;
   padding: 0;
@@ -27,19 +29,21 @@ export const DropdownList = styled.ul<{
 `;
 
 export const DropdownItem = styled.li<{
-  disabled?: boolean
-  $size: keyof typeof theme.sizes.boxSize
+  disabled?: boolean;
+  $size: keyof typeof theme.sizes.boxSize;
 }>`
   display: flex;
   align-items: center;
   justify-content: flex-start;
   line-height: 1.2;
-  padding: ${({ $size }) => $size === 'sm' ? 4 : 6}px 8px;
+  padding: ${({ $size }) => ($size === "sm" ? 4 : 6)}px 8px;
   cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
-  color: ${({ disabled }) => (disabled ? theme.colors.default.light : theme.colors.default.dark)};
-  background-color: ${({ disabled }) => (disabled ? theme.colors.default.pale : 'white')};
+  color: ${({ disabled }) =>
+    disabled ? theme.colors.default.light : theme.colors.default.dark};
+  background-color: ${({ disabled }) =>
+    disabled ? theme.colors.default.pale : "white"};
   font-size: ${({ $size }) => theme.sizes.fontSize[$size]}px;
-  transition: all .3s ease;
+  transition: all 0.3s ease;
   min-height: ${({ $size }) => theme.sizes.boxSize[$size]}px;
   box-sizing: border-box;
 
@@ -49,12 +53,15 @@ export const DropdownItem = styled.li<{
 
   &.focused,
   &:hover {
-    background: ${({ disabled }) => (disabled ? theme.colors.default.pale : theme.colors.primary.pale)};
-    color: ${({ disabled }) => (disabled ? theme.colors.default.light : theme.colors.primary.base)};
+    background: ${({ disabled }) =>
+      disabled ? theme.colors.default.pale : theme.colors.primary.pale};
+    color: ${({ disabled }) =>
+      disabled ? theme.colors.default.light : theme.colors.primary.base};
   }
 
   &.selected {
-    background: ${({ disabled }) => (disabled ? theme.colors.primary.light : theme.colors.primary.base)};
+    background: ${({ disabled }) =>
+      disabled ? theme.colors.primary.light : theme.colors.primary.base};
     color: white;
     font-weight: bold;
     > span {

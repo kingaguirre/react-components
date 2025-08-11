@@ -1,5 +1,5 @@
-import { theme } from '../../../../styles/theme';
-import styled from 'styled-components'
+import { theme } from "../../../../styles/theme";
+import styled from "styled-components";
 
 export const ButtonIcon = styled.button`
   border: none;
@@ -23,4 +23,4 @@ export const ButtonIcon = styled.button`
   &:active {
     color: ${theme.colors.primary.darker};
   }
-`
+`;

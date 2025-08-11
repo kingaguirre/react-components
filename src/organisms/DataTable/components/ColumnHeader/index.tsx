@@ -1,16 +1,26 @@
-import React from 'react'
-import { ColumnHeaderContainer, ColumnHeaderGroupContainer } from './styled'
-import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable'
-import { Cell } from './Cell'
+import React from "react";
+import { ColumnHeaderContainer, ColumnHeaderGroupContainer } from "./styled";
+import {
+  SortableContext,
+  horizontalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { Cell } from "./Cell";
 
-export const ColumnHeader = ({ table, columnOrder, enableColumnDragging }: {
-  table: any
-  columnOrder: string[]
-  enableColumnDragging?: boolean
+export const ColumnHeader = ({
+  table,
+  columnOrder,
+  enableColumnDragging,
+}: {
+  table: any;
+  columnOrder: string[];
+  enableColumnDragging?: boolean;
 }) => (
-  <ColumnHeaderContainer className='column-header-container'>
+  <ColumnHeaderContainer className="column-header-container">
     {table.getHeaderGroups().map((headerGroup: any, i: number) => (
-      <ColumnHeaderGroupContainer className='column-header-group-container' key={`${headerGroup.id}-${i}`}>
+      <ColumnHeaderGroupContainer
+        className="column-header-group-container"
+        key={`${headerGroup.id}-${i}`}
+      >
         <SortableContext
           items={columnOrder}
           strategy={horizontalListSortingStrategy}
@@ -27,4 +37,4 @@ export const ColumnHeader = ({ table, columnOrder, enableColumnDragging }: {
       </ColumnHeaderGroupContainer>
     ))}
   </ColumnHeaderContainer>
-)
+);

@@ -1,6 +1,6 @@
 // src/styles/GlobalStyles.ts
-import { createGlobalStyle } from 'styled-components'
-import { theme } from './theme'
+import { createGlobalStyle } from "styled-components";
+import { theme } from "./theme";
 
 // Create the global style component
 export const GlobalStyles = createGlobalStyle`
@@ -53,7 +53,7 @@ export const GlobalStyles = createGlobalStyle`
     --color-default-dark: ${theme.colors.default.dark};
     --color-default-darker: ${theme.colors.default.darker};
   }
-`
+`;
 
 export const scrollStyle = `
   /* Scrollbar style for WebKit based browsers (e.g., Chrome, Safari) */
@@ -182,7 +182,7 @@ export const scrollStyle = `
     }
   }
 
-`
+`;
 
 export const fadeInOnMount = `
   @keyframes fadeIn {
@@ -194,4 +194,4 @@ export const fadeInOnMount = `
     }
   }
   animation: fadeIn 0.3s ease;
-`
+`;

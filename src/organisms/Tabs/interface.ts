@@ -1,4 +1,4 @@
-import { ColorType } from '../../common/interface';
+import { ColorType } from "../../common/interface";
 
 export interface TabItemProps {
   title: string;

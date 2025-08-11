@@ -1,7 +1,7 @@
 export const injectFontCSS = () => {
-  if (document.getElementById('icon-font-style')) return;
-  const style = document.createElement('style');
-  style.id = 'icon-font-style';
+  if (document.getElementById("icon-font-style")) return;
+  const style = document.createElement("style");
+  style.id = "icon-font-style";
   style.textContent = FONT_STYLES;
   document.head.appendChild(style);
 };
@@ -4909,4 +4909,4 @@ const FONT_STYLES = `@font-face {
 .icon-edit:before {
   content: "\\ef59";
 }
-`
+`;

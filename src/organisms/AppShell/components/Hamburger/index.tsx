@@ -1,6 +1,6 @@
-import React from 'react'
-import { theme } from 'src/styles';
-import styled, { css } from 'styled-components'
+import React from "react";
+import { theme } from "src/styles";
+import styled, { css } from "styled-components";
 
 interface HamburgerProps {
   show: boolean;
@@ -15,11 +15,11 @@ const Container = styled.div`
   justify-content: space-between;
   cursor: pointer;
   padding: 8px 7px;
-`
+`;
 
 interface BarProps {
   $show: boolean;
-  $position: 'top' | 'middle' | 'bottom';
+  $position: "top" | "middle" | "bottom";
 }
 
 const Bar = styled.span<BarProps>`
@@ -27,21 +27,23 @@ const Bar = styled.span<BarProps>`
   height: 3px;
   width: 16px;
   background-color: ${theme.colors.default.base};
-  transition: transform 0.3s ease, opacity 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    opacity 0.3s ease;
 
   ${({ $show, $position }) =>
     $show &&
     css`
-      ${$position === 'top' && 'transform: translateY(6px) rotate(45deg);'}
-      ${$position === 'middle' && 'transform: scale(0);'}
-      ${$position === 'bottom' && 'transform: translateY(-5px) rotate(-45deg);'}
+      ${$position === "top" && "transform: translateY(6px) rotate(45deg);"}
+      ${$position === "middle" && "transform: scale(0);"}
+      ${$position === "bottom" && "transform: translateY(-5px) rotate(-45deg);"}
     `}
-`
+`;
 
 export const Hamburger: React.FC<HamburgerProps> = ({ show, onClick }) => (
-  <Container data-testid='toggle-button' onClick={onClick}>
+  <Container data-testid="toggle-button" onClick={onClick}>
     <Bar $show={show} $position="top" />
     <Bar $show={show} $position="middle" />
     <Bar $show={show} $position="bottom" />
   </Container>
-)
+);

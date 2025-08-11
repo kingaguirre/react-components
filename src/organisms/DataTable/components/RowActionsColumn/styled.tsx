@@ -1,5 +1,5 @@
-import { theme } from '../../../../styles/theme'
-import styled from 'styled-components'
+import { theme } from "../../../../styles/theme";
+import styled from "styled-components";
 
 export const ActionContainer = styled.div`
   display: flex;
@@ -59,4 +59,4 @@ export const ActionContainer = styled.div`
       color: ${theme.colors.default.base};
     }
   }
-`
+`;

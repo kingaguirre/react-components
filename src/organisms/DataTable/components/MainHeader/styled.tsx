@@ -1,5 +1,5 @@
-import styled from 'styled-components'
-import { theme, fadeInOnMount } from '../../../../styles'
+import styled from "styled-components";
+import { theme, fadeInOnMount } from "../../../../styles";
 
 export const MainHeadercontainer = styled.div`
   position: relative;
@@ -14,7 +14,7 @@ export const MainHeadercontainer = styled.div`
   align-items: stretch;
   flex-wrap: wrap;
   gap: 6px;
-`
+`;
 
 export const SearhContainer = styled.div`
   max-width: 220px;
@@ -44,7 +44,7 @@ export const SearhContainer = styled.div`
       }
     }
   }
-`
+`;
 
 export const RightDetailsContainer = styled.div`
   position: relative;
@@ -64,7 +64,7 @@ export const RightDetailsContainer = styled.div`
       margin-right: 8px;
     }
   }
-`
+`;
 
 export const IconContainer = styled.div`
   position: relative;
@@ -97,7 +97,6 @@ export const IconContainer = styled.div`
       &:active {
         color: ${theme.colors.danger.darker};
       }
-
     }
 
     &:hover {
@@ -114,7 +113,7 @@ export const IconContainer = styled.div`
       color: ${theme.colors.default.base};
     }
   }
-`
+`;
 
 export const RightIconButtonContainer = styled.button`
   outline: none;
@@ -131,4 +130,4 @@ export const RightIconButtonContainer = styled.button`
     cursor: not-allowed;
     color: ${theme.colors.default.base}!important;
   }
-`
+`;

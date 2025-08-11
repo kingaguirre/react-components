@@ -1,14 +1,14 @@
-import styled, { keyframes } from 'styled-components'
-import { theme } from 'src/styles'
+import styled, { keyframes } from "styled-components";
+import { theme } from "src/styles";
 
 const itemSlideIn = keyframes`
   from { transform: translateX(-20px); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
-`
+`;
 
 export const SideMenuItemContainer = styled.li<{
-  $sideMenuCollapsed?: boolean
-  $active?: boolean
+  $sideMenuCollapsed?: boolean;
+  $active?: boolean;
 }>`
   display: flex;
   flex-wrap: wrap;
@@ -18,7 +18,7 @@ export const SideMenuItemContainer = styled.li<{
   color: white;
   opacity: 0;
   animation: ${itemSlideIn} 0.3s ease forwards;
-`
+`;
 
 export const MenuItemContent = styled.div`
   display: flex;
@@ -26,9 +26,12 @@ export const MenuItemContent = styled.div`
   color: white;
   max-width: 100%;
   width: 100%;
-`
+`;
 
-export const MenuItemTitle = styled.div<{ $hasChild?: boolean, $menuCollapsed?: boolean }>`
+export const MenuItemTitle = styled.div<{
+  $hasChild?: boolean;
+  $menuCollapsed?: boolean;
+}>`
   flex: 1;
   white-space: nowrap;
   overflow: hidden;
@@ -38,18 +41,18 @@ export const MenuItemTitle = styled.div<{ $hasChild?: boolean, $menuCollapsed?: 
   text-transform: capitalize;
   display: flex;
   justify-content: space-between;
-  ${({ $hasChild }) => $hasChild ? 'padding-right: 14px;' : ''}
+  ${({ $hasChild }) => ($hasChild ? "padding-right: 14px;" : "")}
   > div {
     overflow: hidden;
     text-overflow: ellipsis;
     color: white;
     font-size: 14px;
-    padding-right: ${({ $menuCollapsed }) => $menuCollapsed ? 12 : 4}px
+    padding-right: ${({ $menuCollapsed }) => ($menuCollapsed ? 12 : 4)}px;
   }
   .icon {
     font-size: 18px;
   }
-`
+`;
 
 export const MenuItemWrapper = styled.div<{ $active?: boolean }>`
   display: flex;
@@ -58,7 +61,7 @@ export const MenuItemWrapper = styled.div<{ $active?: boolean }>`
   background-color: transparent;
   gap: 8px;
   padding: 6px 12px;
-  transition: all .3s ease;
+  transition: all 0.3s ease;
   border-top: 1px solid ${theme.colors.primary.dark};
   &:last-child {
     border-bottom: 1px solid ${theme.colors.primary.dark};
@@ -66,7 +69,7 @@ export const MenuItemWrapper = styled.div<{ $active?: boolean }>`
 
   ${MenuItemTitle} .menu-text,
   > .icon {
-    transition: all .3s ease;
+    transition: all 0.3s ease;
     color: #dfdfdf;
   }
 
@@ -87,15 +90,20 @@ export const MenuItemWrapper = styled.div<{ $active?: boolean }>`
     height: 32px;
     justify-content: center;
   }
-`
+`;
 
-export const SideMenuList = styled.ul<{ $isSubMenu?: boolean, $collapsed?: boolean }>`
+export const SideMenuList = styled.ul<{
+  $isSubMenu?: boolean;
+  $collapsed?: boolean;
+}>`
   list-style: none;
   padding: 0;
   margin: 0;
   max-width: 100%;
   width: 100%;
-  ${({ $isSubMenu }) => $isSubMenu ? `
+  ${({ $isSubMenu }) =>
+    $isSubMenu
+      ? `
     ${SideMenuItemContainer} {
       padding-left: 12px;
 
@@ -113,13 +121,17 @@ export const SideMenuList = styled.ul<{ $isSubMenu?: boolean, $collapsed?: boole
         }
       }
     }
-  ` : ''}
+  `
+      : ""}
 
-  ${({ $collapsed, $isSubMenu }) => !$isSubMenu && !$collapsed ? `
+  ${({ $collapsed, $isSubMenu }) =>
+    !$isSubMenu && !$collapsed
+      ? `
       overflow: hidden;
       overflow-y: auto;
-    ` : ''}
-`
+    `
+      : ""}
+`;
 
 export const ArrowIconWrapper = styled.div`
   margin-left: auto;
@@ -131,7 +143,7 @@ export const ArrowIconWrapper = styled.div`
   &.collapsed {
     right: 2px;
   }
-`
+`;
 
 export const FloatingSubMenu = styled.ul<{ $open: boolean }>`
   list-style: none;
@@ -146,11 +158,13 @@ export const FloatingSubMenu = styled.ul<{ $open: boolean }>`
   z-index: 101;
   width: 100%;
   opacity: ${({ $open }) => ($open ? 1 : 0)};
-  transform: ${({ $open }) => ($open ? 'translateY(0)' : 'translateY(-10px)')};
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transform: ${({ $open }) => ($open ? "translateY(0)" : "translateY(-10px)")};
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
   border-radius: 2px;
-  pointer-events: ${({ $open }) => ($open ? 'auto' : 'none')};
-`
+  pointer-events: ${({ $open }) => ($open ? "auto" : "none")};
+`;
 
 export const FloatingHeader = styled.div`
   padding: 6px;
@@ -178,4 +192,4 @@ export const FloatingHeader = styled.div`
   .icon {
     font-size: 18px;
   }
-`
+`;

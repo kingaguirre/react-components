@@ -278,7 +278,8 @@ export const CustomInputWrapper = styled.div<{ $value?: string }>`
   }
 
   .form-control-text {
-    padding-right: ${({ $value }) => $value ? 60 : 30}px; /* Ensures space for icons */
+    padding-right: ${({ $value }) =>
+      $value ? 60 : 30}px; /* Ensures space for icons */
   }
 
   .form-control-input-container.invalid + .container-icon > .calendar-icon {
@@ -291,7 +292,8 @@ export const CustomInputWrapper = styled.div<{ $value?: string }>`
 
   .form-control-input-container.disabled + .container-icon {
     pointer-events: none;
-    > span, .icon {
+    > span,
+    .icon {
       pointer-events: none;
     }
   }

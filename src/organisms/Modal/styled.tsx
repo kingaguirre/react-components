@@ -23,7 +23,11 @@ const slideDown = keyframes`
   to { transform: translateY(20px); opacity: 0; }
 `;
 
-export const ModalOverlay = styled.div<{ $zIndex: number; $show: boolean; $closeable: boolean }>`
+export const ModalOverlay = styled.div<{
+  $zIndex: number;
+  $show: boolean;
+  $closeable: boolean;
+}>`
   position: fixed;
   top: 0;
   left: 0;
@@ -39,7 +43,11 @@ export const ModalOverlay = styled.div<{ $zIndex: number; $show: boolean; $close
   padding: 20px 0;
   box-sizing: border-box;
   ${scrollStyle}
-  ${({ $show }) => !$show && css`pointer-events: none;`}
+  ${({ $show }) =>
+    !$show &&
+    css`
+      pointer-events: none;
+    `}
 
   * {
     box-sizing: border-box;
@@ -48,26 +56,27 @@ export const ModalOverlay = styled.div<{ $zIndex: number; $show: boolean; $close
   ${({ $closeable }) =>
     !$closeable &&
     css`
-    ${ModalContainer} {
-      transition: transform 0.3s ease;
-    }
-    &:active {
       ${ModalContainer} {
-        transform: scale(0.99);
+        transition: transform 0.3s ease;
       }
-    }
+      &:active {
+        ${ModalContainer} {
+          transform: scale(0.99);
+        }
+      }
     `}
 `;
 
 const getModalWidth = (width: ModalProps["modalWidth"]) => {
-  switch(true) {
+  switch (true) {
     case width === "sm":
       return "300px";
     case width === "md":
       return "500px";
     case width === "lg":
       return "800px";
-    default: return "auto";
+    default:
+      return "auto";
   }
 };
 
@@ -78,7 +87,11 @@ export const ModalContainer = styled.div<{
   width: ${({ $modalWidth }) => getModalWidth($modalWidth)};
   max-width: 90%;
   animation: ${({ $show }) => ($show ? slideUp : slideDown)} 0.3s ease-in-out;
-  ${({ $show }) => !$show && css`pointer-events: none;`}
+  ${({ $show }) =>
+    !$show &&
+    css`
+      pointer-events: none;
+    `}
   margin: auto;
   display: flex;
   flex-direction: column;

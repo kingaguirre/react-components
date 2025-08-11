@@ -1,7 +1,7 @@
 // src/molecules/Alert/styled.tsx
-import styled, { keyframes, css } from 'styled-components';
-import { theme } from '../../styles/theme';
-import { ColorType } from '../../common/interface';
+import styled, { keyframes, css } from "styled-components";
+import { theme } from "../../styles/theme";
+import { ColorType } from "../../common/interface";
 
 // --- Opening animations ---
 const growIn = keyframes`
@@ -31,10 +31,13 @@ const fadeOut = keyframes`
   to { opacity: 0; }
 `;
 
-const getAnimation = ($animation: 'grow' | 'slide' | 'fade', closing = false) => {
-  if ($animation === 'grow') {
+const getAnimation = (
+  $animation: "grow" | "slide" | "fade",
+  closing = false,
+) => {
+  if ($animation === "grow") {
     return closing ? growOut : growIn;
-  } else if ($animation === 'slide') {
+  } else if ($animation === "slide") {
     return closing ? slideOut : slideIn;
   } else {
     return closing ? fadeOut : fadeIn;
@@ -75,7 +78,6 @@ export const AlertWrapper = styled.div<{
   }
 `;
 
-
 export const Title = styled.div<{ $color: ColorType }>`
   font-weight: bold;
   margin-bottom: 4px;
@@ -107,7 +109,9 @@ export const CloseButton = styled.span`
   margin-left: auto;
   display: flex;
   align-items: center;
-  transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+  transition:
+    opacity 0.2s ease-in-out,
+    transform 0.2s ease-in-out;
   padding: 0;
 
   &:hover {
@@ -122,8 +126,10 @@ export const CloseButton = styled.span`
 export const ToastContainer = styled.div<{ $placement: string }>`
   position: fixed;
   width: 300px;
-  ${({ $placement }) => ($placement.includes('top') ? 'top: 16px;' : 'bottom: 16px;')}
-  ${({ $placement }) => ($placement.includes('right') ? 'right: 16px;' : 'left: 16px;')}
+  ${({ $placement }) =>
+    $placement.includes("top") ? "top: 16px;" : "bottom: 16px;"}
+  ${({ $placement }) =>
+    $placement.includes("right") ? "right: 16px;" : "left: 16px;"}
   z-index: 9999;
   display: flex;
   flex-direction: column;

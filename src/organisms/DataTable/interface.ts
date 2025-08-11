@@ -1,83 +1,96 @@
-import { z, ZodSchema, ZodTypeAny } from 'zod'
-import { FormControlProps } from "../../atoms/FormControl/interface"
-import { ButtonProps } from "../../atoms/Button/interface"
-import { DropdownProps, DropdownOption } from '../../molecules/Dropdown/interface'
-import { DatePickerProps } from "../../molecules/DatePicker/interface"
+import { z, ZodSchema, ZodTypeAny } from "zod";
+import { FormControlProps } from "../../atoms/FormControl/interface";
+import { ButtonProps } from "../../atoms/Button/interface";
+import {
+  DropdownProps,
+  DropdownOption,
+} from "../../molecules/Dropdown/interface";
+import { DatePickerProps } from "../../molecules/DatePicker/interface";
 
 export interface DataTableProps {
   /** Data to display in the table */
-  dataSource: any[]
+  dataSource: any[];
   /** Column definitions for the table */
-  columnSettings: ColumnSetting[]
+  columnSettings: ColumnSetting[];
   /** Returns updated data */
-  onChange?: (data: Omit<DataRow, '__internalId'>[]) => void
+  onChange?: (data: Omit<DataRow, "__internalId">[]) => void;
   /** Enable filtering for columns */
-  enableColumnFiltering?: boolean
+  enableColumnFiltering?: boolean;
   /** Enable pinning columns */
-  enableColumnPinning?: boolean
+  enableColumnPinning?: boolean;
   /** Enable dragging of columns */
-  enableColumnDragging?: boolean
+  enableColumnDragging?: boolean;
   /** Enable sorting of columns */
-  enableColumnSorting?: boolean
+  enableColumnSorting?: boolean;
   /** Enable resizing of columns */
-  enableColumnResizing?: boolean
+  enableColumnResizing?: boolean;
   /** Enable editing of cell content */
-  enableCellEditing?: boolean
+  enableCellEditing?: boolean;
   /** Enable adding new rows */
-  enableRowAdding?: boolean
+  enableRowAdding?: boolean;
   /** Enable deletion of rows */
-  enableRowDeleting?: boolean
+  enableRowDeleting?: boolean;
   /** Enable deletion of selected rows */
-  enableSelectedRowDeleting?: boolean
+  enableSelectedRowDeleting?: boolean;
   /** Enable row selection */
-  enableRowSelection?: boolean
+  enableRowSelection?: boolean;
   /** Enable global table filtering */
-  enableGlobalFiltering?: boolean
+  enableGlobalFiltering?: boolean;
   /** Title of the table */
-  title?: string
+  title?: string;
   /** Alignment of text within cells */
-  cellTextAlignment?: 'center' | 'left' | 'right'
+  cellTextAlignment?: "center" | "left" | "right";
   /** Fixed height of the table */
-  height?: string
+  height?: string;
   /** Maximum height of the table */
-  maxHeight?: string
+  maxHeight?: string;
   /** Number of rows per page */
-  pageSize?: number
+  pageSize?: number;
   /** Current page index */
-  pageIndex?: number
+  pageIndex?: number;
   /** Enable multi-select for rows */
-  enableMultiRowSelection?: boolean
+  enableMultiRowSelection?: boolean;
   /** Disable the data-table */
-  disabled?: boolean
+  disabled?: boolean;
   /** Enable header right control icons */
-  headerRightControls?: boolean
+  headerRightControls?: boolean;
   /** Adds elements in the right part of header before the add button */
-  headerRightElements?: HeaderRightElement[]
+  headerRightElements?: HeaderRightElement[];
   /** Key of the currently active row */
-  activeRow?: string
+  activeRow?: string;
   /** Array of keys identifying selected rows */
-  selectedRows?: any[]
+  selectedRows?: any[];
   /** Array of row keys that should be disabled. Disabled rows receive a "disabled" CSS class and do not trigger click events. */
-  disabledRows?: string[]
+  disabledRows?: string[];
   /**
    * Key used to determine if row deletion is permanent.
    * If set, deletion is treated as partial, and the row will include this key with a true value.
    */
-  partialRowDeletionID?: string
+  partialRowDeletionID?: string;
   /** Callback when a row is clicked */
-  onRowClick?: (rowData: any) => void
+  onRowClick?: (
+    rowData: any,
+    __internalId: string,
+    e: React.MouseEvent<HTMLElement>,
+  ) => void;
   /** Callback when a row is double-clicked */
-  onRowDoubleClick?: (rowData: any) => void
+  onRowDoubleClick?: (
+    rowData: any,
+    __internalId: string,
+    e: React.MouseEvent<HTMLElement>,
+  ) => void;
   /** Callback when column settings change */
-  onColumnSettingsChange?: (newColumnSettings: ColumnSetting[]) => void
+  onColumnSettingsChange?: (newColumnSettings: ColumnSetting[]) => void;
   /** Callback when page size changes */
-  onPageSizeChange?: (newPageSize: number) => void
+  onPageSizeChange?: (newPageSize: number) => void;
   /** Callback when page index changes */
-  onPageIndexChange?: (newPageIndex: number) => void
+  onPageIndexChange?: (newPageIndex: number) => void;
   /** Callback when selected rows change */
-  onSelectedRowsChange?: (selectedRows: any[]) => void
+  onSelectedRowsChange?: (selectedRows: any[]) => void;
   /** Function to use to render collapsible row content */
-  expandedRowContent?: (RowData: any) => React.ReactNode
+  expandedRowContent?: (RowData: any) => React.ReactNode;
+  /** Callback when the active row changes */
+  onActiveRowChange?: (rowData: any, __internalId?: string) => void;
 }
 
 export type DataTableFormControlType =
@@ -89,147 +102,157 @@ export type DataTableFormControlType =
   | "checkbox-group"
   | "radio-group"
   | "switch-group"
-  | "radio-button-group"
+  | "radio-button-group";
 
 export type HeaderRightElement =
   | ({
-    type: "button"
-    text: string
-    width?: string | number
-  } & Omit<
-    ButtonProps,
-    "children" // Exclude children since we're using `text`
-  >)
+      type: "button";
+      text: string;
+      width?: string | number;
+    } & Omit<
+      ButtonProps,
+      "children" // Exclude children since we're using `text`
+    >)
   | ({
-    type: DataTableFormControlType
-    width?: string | number
-  } & Partial<Pick<
-    FormControlProps,
-    | "name"
-    | "value"
-    | "placeholder"
-    | "disabled"
-    | "onChange"
-    | "options"
-    | "color"
-    | "variant"
-    | "required"
-    | "readOnly"
-    | "loading"
-    | "pattern"
-    | "text"
-    | "iconRight"
-    | "checked"
-    | "testId"
-  >>)
+      type: DataTableFormControlType;
+      width?: string | number;
+    } & Partial<
+      Pick<
+        FormControlProps,
+        | "name"
+        | "value"
+        | "placeholder"
+        | "disabled"
+        | "onChange"
+        | "options"
+        | "color"
+        | "variant"
+        | "required"
+        | "readOnly"
+        | "loading"
+        | "pattern"
+        | "text"
+        | "iconRight"
+        | "checked"
+        | "testId"
+      >
+    >)
   | ({
-    type: "dropdown"
-    width?: string | number
-  } & Partial<Pick<
-    DropdownProps,
-    | "name"
-    | "options"
-    | "value"
-    | "multiselect"
-    | "disabled"
-    | "onChange"
-    | "onFilterChange"
-    | "placeholder"
-    | "clearable"
-    | "loading"
-    | "color"
-    | "testId"
-  >>)
+      type: "dropdown";
+      width?: string | number;
+    } & Partial<
+      Pick<
+        DropdownProps,
+        | "name"
+        | "options"
+        | "value"
+        | "multiselect"
+        | "disabled"
+        | "onChange"
+        | "onFilterChange"
+        | "placeholder"
+        | "clearable"
+        | "loading"
+        | "color"
+        | "testId"
+      >
+    >)
   | ({
-    type: "date"
-    width?: string | number
-  } & Partial<Pick<
-    DatePickerProps,
-    | "name"
-    | "value"
-    | "disabled"
-    | "onChange"
-    | "placeholder"
-    | "required"
-    | "color"
-    | "range"
-    | "testId"
-  >>)
+      type: "date";
+      width?: string | number;
+    } & Partial<
+      Pick<
+        DatePickerProps,
+        | "name"
+        | "value"
+        | "disabled"
+        | "onChange"
+        | "placeholder"
+        | "required"
+        | "color"
+        | "range"
+        | "testId"
+      >
+    >);
 
-
-export type EditorType = 
-  | 'text'
-  | 'textarea'
-  | 'date'
-  | 'date-range'
-  | 'dropdown'
-  | 'number'
-  | 'checkbox'
-  | 'radio'
-  | 'switch'
-  | 'checkbox-group'
-  | 'radio-group'
-  | 'switch-group'
+export type EditorType =
+  | "text"
+  | "textarea"
+  | "date"
+  | "date-range"
+  | "dropdown"
+  | "number"
+  | "checkbox"
+  | "radio"
+  | "switch"
+  | "checkbox-group"
+  | "radio-group"
+  | "switch-group";
 
 type CellType = {
-  rowValue: any
-  index: number
-}
+  rowValue: any;
+  index: number;
+};
 
 export type ValidatorHelper = {
-  schema: (json: {
-    type: string
-    pattern?: string
-  }, errorMessage?: string) => ZodTypeAny
-} & typeof z
+  schema: (
+    json: {
+      type: string;
+      pattern?: string;
+    },
+    errorMessage?: string,
+  ) => ZodTypeAny;
+} & typeof z;
 
 export interface ColumnSetting {
-  title: string             // Header title for the column
-  column: string            // Field name (accessor)
-  groupTitle?: string       // Optional group header columns sharing this value will be nested
-  sort?: 'asc' | 'desc' | undefined | false // Initial sort order false disables sort for this column
-  pin?: 'pin' | 'unpin' | false // 'pin' pins left (default unpinned) false disables pinning
-  draggable?: boolean
-  hidden?: boolean
-  width?: number            // Default width
-  minWidth?: number         // Minimum width
-  maxWidth?: number         // Maximum width
-  align?: 'left' | 'center' | 'right'
-  headerAlign?: 'left' | 'center' | 'right'
-  cell?: ({ rowValue, index }: CellType) => JSX.Element | null // Optional custom cell renderer
-  disabled?: boolean | ((rowData: any) => boolean)
-  editor?: {
-    disabled?: boolean | ((rowData: any) => boolean)
-    type?: EditorType
-    validation?: (v: ValidatorHelper, rowData: any) => ZodSchema<any>
-    options?: DropdownOption[]
-  } | false
-  filter?: FilterType | undefined | false
-  order?: number
+  title: string; // Header title for the column
+  column: string; // Field name (accessor)
+  groupTitle?: string; // Optional group header columns sharing this value will be nested
+  sort?: "asc" | "desc" | undefined | false; // Initial sort order false disables sort for this column
+  pin?: "pin" | "unpin" | false; // 'pin' pins left (default unpinned) false disables pinning
+  draggable?: boolean;
+  hidden?: boolean;
+  width?: number; // Default width
+  minWidth?: number; // Minimum width
+  maxWidth?: number; // Maximum width
+  align?: "left" | "center" | "right";
+  headerAlign?: "left" | "center" | "right";
+  cell?: ({ rowValue, index }: CellType) => JSX.Element | null; // Optional custom cell renderer
+  disabled?: boolean | ((rowData: any) => boolean);
+  editor?:
+    | {
+        disabled?: boolean | ((rowData: any) => boolean);
+        type?: EditorType;
+        validation?: (v: ValidatorHelper, rowData: any) => ZodSchema<any>;
+        options?: DropdownOption[];
+      }
+    | false;
+  filter?: FilterType | undefined | false;
+  order?: number;
 }
 
 export type FilterType = {
-  type?: 'text' | 'number-range' | 'dropdown' | 'date' | 'date-range'
-  options?: DropdownOption[]
-  filterBy?: 'includesString' | 'includesStringSensitive'
-}
+  type?: "text" | "number-range" | "dropdown" | "date" | "date-range";
+  options?: DropdownOption[];
+  filterBy?: "includesString" | "includesStringSensitive";
+};
 
 export type EditingCellType = {
-  rowId: string
-  columnId: string
-} | null
+  rowId: string;
+  columnId: string;
+} | null;
 
-export type SelectedCellType = EditingCellType
+export type SelectedCellType = EditingCellType;
 
 export type ColumnPinningType = {
-  left?: string[]
-  right?: string[]
-}
+  left?: string[];
+  right?: string[];
+};
 
 export interface DataRow {
   __internalId: string;
   __isNew?: boolean;
-  [key: string]: unknown
+  [key: string]: unknown;
 }
 
 // onSortChange: Callback triggered when the sorting order of a column changes.

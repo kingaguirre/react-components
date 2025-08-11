@@ -1,5 +1,5 @@
 // src/atoms/Button/interface.ts
-import { ColorType, SizeType } from '../../common/interface';
+import { ColorType, SizeType } from "../../common/interface";
 
 export interface ButtonProps {
   /** Button label or children */
@@ -21,6 +21,6 @@ export interface ButtonProps {
   /** Additional class names */
   className?: string;
   /** Any additional attributes */
-  /* eslint-disable @typescript-eslint/no-explicit-any */
+
   [key: string]: any;
 }

@@ -1,16 +1,16 @@
-import React from 'react'
-import { ButtonContainer } from './styled'
-import { ButtonProps } from './interface'
+import React from "react";
+import { ButtonContainer } from "./styled";
+import { ButtonProps } from "./interface";
 
 export const Button: React.FC<ButtonProps> = ({
   children,
-  color = 'primary',
-  variant = 'default',
-  size = 'md',
+  color = "primary",
+  variant = "default",
+  size = "md",
   rounded = false,
   fullWidth = false,
   disabled = false,
-  className = '',
+  className = "",
   active = undefined,
   ...rest
 }) => (
@@ -27,9 +27,9 @@ export const Button: React.FC<ButtonProps> = ({
     $rounded={rounded}
     $fullWidth={fullWidth}
     disabled={disabled}
-    role='button'
-    className={`button ${className} ${disabled ? 'disabled' : ''} ${active ? 'active' : ''}`.trim()}
+    role="button"
+    className={`button ${className} ${disabled ? "disabled" : ""} ${active ? "active" : ""}`.trim()}
   >
     <span>{children}</span>
   </ButtonContainer>
-)
+);

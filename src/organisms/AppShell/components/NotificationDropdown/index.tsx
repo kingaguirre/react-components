@@ -1,9 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react'
-import { Icon } from 'src/atoms/Icon'
-import { Notifications, NotificationItem } from '../../interface'
-import { timeAgo } from './utils'
-import { theme } from 'src/styles/theme'
-import { useOnClickOutside } from '../../hooks/useOnClickOutside'
+import React, { useState, useRef, useEffect } from "react";
+import { Icon } from "src/atoms/Icon";
+import { Notifications, NotificationItem } from "../../interface";
+import { timeAgo } from "./utils";
+import { theme } from "src/styles/theme";
+import { useOnClickOutside } from "../../hooks/useOnClickOutside";
 import {
   NotificationContainer,
   BellButton,
@@ -30,92 +30,108 @@ import {
   ClearIconWrapper,
   NotificationImageImg,
   NotificationIconWrapper,
-} from './styled'
+} from "./styled";
 
-const ANIMATION_DURATION = 300 // in ms
+const ANIMATION_DURATION = 300; // in ms
 export const NotificationDropdown: React.FC<Notifications> = ({
   notifications = [],
   totalNewNotifications,
   onShowAllClick,
-  dropdownHeight = '400px',
-  showTotalCount = true
+  dropdownHeight = "400px",
+  showTotalCount = true,
 }) => {
-  const [dropdownOpen, setDropdownOpen] = useState(false)
-  const [shouldRender, setShouldRender] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
-  const [localNotifications, setLocalNotifications] = useState<NotificationItem[]>(notifications)
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [shouldRender, setShouldRender] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [localNotifications, setLocalNotifications] =
+    useState<NotificationItem[]>(notifications);
 
   useEffect(() => {
     if (notifications?.length > 0) {
-      setLocalNotifications(notifications)
+      setLocalNotifications(notifications);
     }
-  }, [notifications])
+  }, [notifications]);
 
   const toggleDropdown = () => {
-    setDropdownOpen(!dropdownOpen)
-  }
+    setDropdownOpen(!dropdownOpen);
+  };
 
   const closeDropdown = () => {
-    setDropdownOpen(false)
-  }
+    setDropdownOpen(false);
+  };
 
-  useOnClickOutside(containerRef, closeDropdown, dropdownOpen)
+  useOnClickOutside(containerRef, closeDropdown, dropdownOpen);
 
   // Control rendering: when opening, render immediately; when closing, wait for exit animation.
   useEffect(() => {
     if (dropdownOpen) {
-      setShouldRender(true)
+      setShouldRender(true);
     } else {
-      const timer = setTimeout(() => setShouldRender(false), ANIMATION_DURATION)
-      return () => clearTimeout(timer)
+      const timer = setTimeout(
+        () => setShouldRender(false),
+        ANIMATION_DURATION,
+      );
+      return () => clearTimeout(timer);
     }
-  }, [dropdownOpen])
+  }, [dropdownOpen]);
 
   const removeNotification = (id: string | number) => {
-    setLocalNotifications(prev => prev.filter(n => n.id !== id))
-  }
+    setLocalNotifications((prev) => prev.filter((n) => n.id !== id));
+  };
 
   const dismissAll = () => {
-    setLocalNotifications([])
-  }
+    setLocalNotifications([]);
+  };
 
   const badgeCount =
     totalNewNotifications && totalNewNotifications > 10
-      ? '9+'
-      : totalNewNotifications?.toString()
+      ? "9+"
+      : totalNewNotifications?.toString();
 
   return notifications?.length > 0 ? (
     <NotificationContainer ref={containerRef}>
-      <BellButton onClick={toggleDropdown} data-testid="notification-dropdown-button" className={dropdownOpen ? 'open' : ''}>
+      <BellButton
+        onClick={toggleDropdown}
+        data-testid="notification-dropdown-button"
+        className={dropdownOpen ? "open" : ""}
+      >
         <Icon icon="bell" />
-        {totalNewNotifications && totalNewNotifications > 0 && <Badge $showTotalCount={showTotalCount}>{badgeCount}</Badge>}
+        {totalNewNotifications && totalNewNotifications > 0 && (
+          <Badge $showTotalCount={showTotalCount}>{badgeCount}</Badge>
+        )}
       </BellButton>
       {shouldRender && (
         <DropdownMenu $open={dropdownOpen} $dropdownHeight={dropdownHeight}>
           <DropdownHeader>
             <HeaderTitle>Notifications</HeaderTitle>
-            <HeaderCloseButton data-testid='notification-dropdown-close-button' onClick={closeDropdown}>
+            <HeaderCloseButton
+              data-testid="notification-dropdown-close-button"
+              onClick={closeDropdown}
+            >
               <Icon icon="clear" />
             </HeaderCloseButton>
           </DropdownHeader>
           <NotificationListWrapper>
             {localNotifications && localNotifications.length > 0 ? (
               localNotifications.map((notification) => {
-                const clickable = !!notification.onClick
+                const clickable = !!notification.onClick;
                 const commonOnClick = () => {
                   if (notification.onClick) {
-                    notification.onClick()
-                    closeDropdown()
+                    notification.onClick();
+                    closeDropdown();
                   }
-                }
-                const baseColor = notification.color ? theme.colors[notification.color].base : undefined
+                };
+                const baseColor = notification.color
+                  ? theme.colors[notification.color].base
+                  : undefined;
                 const computedBorderStyle = notification.color
-                  ? (notification.color === 'warning' || notification.color === 'danger'
-                      ? { borderColor: baseColor }
-                      : { borderLeftColor: baseColor })
-                  : {}
+                  ? notification.color === "warning" ||
+                    notification.color === "danger"
+                    ? { borderColor: baseColor }
+                    : { borderLeftColor: baseColor }
+                  : {};
 
-                if (notification.type === 'detailed') {
+                if (notification.type === "detailed") {
                   return (
                     <DetailedNotificationItem
                       key={notification.id}
@@ -125,8 +141,8 @@ export const NotificationDropdown: React.FC<Notifications> = ({
                       {notification.isNew && <NewIndicator />}
                       <ClearIconWrapper
                         onClick={(e) => {
-                          e.stopPropagation()
-                          removeNotification(notification.id)
+                          e.stopPropagation();
+                          removeNotification(notification.id);
                         }}
                       >
                         <Icon icon="trash" size={12} />
@@ -140,24 +156,32 @@ export const NotificationDropdown: React.FC<Notifications> = ({
                         </NotificationImage>
                       ) : (
                         <NotificationImage>
-                          {notification.name ? notification.name.charAt(0).toUpperCase() : '?'}
+                          {notification.name
+                            ? notification.name.charAt(0).toUpperCase()
+                            : "?"}
                         </NotificationImage>
                       )}
                       <NotificationDetails>
                         <NotificationName $color={baseColor}>
                           {notification.name}
                         </NotificationName>
-                        <NotificationEmail>{notification.email}</NotificationEmail>
-                        <NotificationMessage>{notification.message}</NotificationMessage>
+                        <NotificationEmail>
+                          {notification.email}
+                        </NotificationEmail>
+                        <NotificationMessage>
+                          {notification.message}
+                        </NotificationMessage>
                         {notification.messageContent && (
                           <div onClick={(e) => e.stopPropagation()}>
                             {notification.messageContent}
                           </div>
                         )}
-                        <NotificationTime>{timeAgo(notification.dateTime)}</NotificationTime>
+                        <NotificationTime>
+                          {timeAgo(notification.dateTime)}
+                        </NotificationTime>
                       </NotificationDetails>
                     </DetailedNotificationItem>
-                  )
+                  );
                 } else {
                   // default type
                   return (
@@ -169,8 +193,8 @@ export const NotificationDropdown: React.FC<Notifications> = ({
                       {notification.isNew && <NewIndicator />}
                       <ClearIconWrapper
                         onClick={(e) => {
-                          e.stopPropagation()
-                          removeNotification(notification.id)
+                          e.stopPropagation();
+                          removeNotification(notification.id);
                         }}
                       >
                         <Icon icon="trash" size={12} />
@@ -188,16 +212,20 @@ export const NotificationDropdown: React.FC<Notifications> = ({
                         <NotificationTitle $color={baseColor}>
                           {notification.title}
                         </NotificationTitle>
-                        <NotificationMessage>{notification.message}</NotificationMessage>
+                        <NotificationMessage>
+                          {notification.message}
+                        </NotificationMessage>
                         {notification.messageContent && (
                           <div onClick={(e) => e.stopPropagation()}>
                             {notification.messageContent}
                           </div>
                         )}
-                        <NotificationTime>{timeAgo(notification.dateTime)}</NotificationTime>
+                        <NotificationTime>
+                          {timeAgo(notification.dateTime)}
+                        </NotificationTime>
                       </NotificationContent>
                     </NotificationItemWrapper>
-                  )
+                  );
                 }
               })
             ) : (
@@ -209,8 +237,8 @@ export const NotificationDropdown: React.FC<Notifications> = ({
               {onShowAllClick && (
                 <FooterButton
                   onClick={() => {
-                    onShowAllClick()
-                    closeDropdown()
+                    onShowAllClick();
+                    closeDropdown();
                   }}
                 >
                   Show All
@@ -219,8 +247,8 @@ export const NotificationDropdown: React.FC<Notifications> = ({
             </div>
             <FooterButton
               onClick={() => {
-                dismissAll()
-                closeDropdown()
+                dismissAll();
+                closeDropdown();
               }}
             >
               Dismiss All
@@ -229,5 +257,5 @@ export const NotificationDropdown: React.FC<Notifications> = ({
         </DropdownMenu>
       )}
     </NotificationContainer>
-  ) : null
-}
+  ) : null;
+};
