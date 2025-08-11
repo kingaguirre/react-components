@@ -12,10 +12,10 @@ const getVariantStyles = ({
 }: {
   $variant?: string;
   $color: string;
-  /* eslint-disable @typescript-eslint/no-explicit-any */
-  _theme: any
+
+  _theme: any;
 }) => {
-  if ($variant === 'outlined') {
+  if ($variant === "outlined") {
     return css`
       background: transparent;
       > span {
@@ -27,8 +27,8 @@ const getVariantStyles = ({
           color: white;
         }
       }
-    `
-  } else if ($variant === 'link') {
+    `;
+  } else if ($variant === "link") {
     return css`
       background: transparent;
       border-color: transparent;
@@ -41,7 +41,7 @@ const getVariantStyles = ({
           color: ${_theme.colors[$color].dark};
         }
       }
-    `
+    `;
   } else {
     return css`
       background: ${_theme.colors[$color].base};
@@ -55,9 +55,9 @@ const getVariantStyles = ({
         background: ${_theme.colors[$color].dark};
         border-color: ${_theme.colors[$color].dark};
       }
-    `
+    `;
   }
-}
+};
 
 export const ButtonContainer = styled.button<{
   $color: ColorType;
@@ -74,7 +74,8 @@ export const ButtonContainer = styled.button<{
   min-height: ${({ $size }) => `${theme.sizes.boxSize[$size]}px`};
   max-height: ${({ $size }) => `${theme.sizes.boxSize[$size]}px`};
   padding: ${({ $size }) => `${theme.sizes.buttonPadding[$size]}`};
-  border-radius: ${({ $rounded, $size }) => ($rounded ? `${theme.sizes.boxSize[$size]}px` : "2px")};
+  border-radius: ${({ $rounded, $size }) =>
+    $rounded ? `${theme.sizes.boxSize[$size]}px` : "2px"};
   width: ${({ $fullWidth }) => ($fullWidth ? "100%" : "auto")};
   cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
   transition: all 0.3s ease;
@@ -96,13 +97,16 @@ export const ButtonContainer = styled.button<{
     flex-wrap: wrap;
   }
 
-  ${({ $variant, $color }) => getVariantStyles({ $variant, $color, _theme: theme })}
+  ${({ $variant, $color }) =>
+    getVariantStyles({ $variant, $color, _theme: theme })}
 
   &:focus {
     outline: none;
   }
 
-  ${({ $variant, $color }) => $variant !== "link" ? `
+  ${({ $variant, $color }) =>
+    $variant !== "link"
+      ? `
     &:focus {
       box-shadow: ${`0 0 0 4px ${theme.colors[$color].lighter}`};
     }
@@ -114,7 +118,8 @@ export const ButtonContainer = styled.button<{
     &:visited {
       background: ${theme.colors[$color].dark};
     }
-  ` : `
+  `
+      : `
     &:focus, &:active, &:visited {
       > span {
         color: ${theme.colors[$color].darker};
@@ -124,12 +129,15 @@ export const ButtonContainer = styled.button<{
 
   &.button-disabled,
   &:disabled {
-    ${({ $variant, $color }) => $variant === "link" ? `
+    ${({ $variant, $color }) =>
+      $variant === "link"
+        ? `
       > span {
         color: ${theme.colors[$color].light};
       }
-    ` : `
-      background: ${ifElse($variant === "outlined", 'transparent', theme.colors[$color].pale)};
+    `
+        : `
+      background: ${ifElse($variant === "outlined", "transparent", theme.colors[$color].pale)};
       border: 1px solid ${theme.colors[$color].lighter};
       > span {
         color: ${theme.colors.default.dark};

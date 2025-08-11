@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from "react";
 
 // Custom hook to detect ellipsis/truncation on an element
 export const useHasEllipsis = (dependency) => {
@@ -17,9 +17,9 @@ export const useHasEllipsis = (dependency) => {
         setHasEllipsis(el.scrollWidth > el.clientWidth);
       }
     };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, [dependency]); // re-run when dependency (e.g. text content) changes
 
   return { ref, hasEllipsis };
-}
+};

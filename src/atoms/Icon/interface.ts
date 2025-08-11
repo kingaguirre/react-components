@@ -10,5 +10,5 @@ export interface IconProps {
   disabled?: boolean;
   /** Additional class names */
   className?: string;
-  onClick?: (e: React.MouseEvent<HTMLSpanElement>) => void
+  onClick?: (e: React.MouseEvent<HTMLSpanElement>) => void;
 }

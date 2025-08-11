@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect } from "react";
 import {
   DropdownMenu,
   DropdownItem,
@@ -7,16 +7,16 @@ import {
   CloseIconButton,
   CustomDropdownContainer,
   Header,
-  Body
-} from './styled'
-import { useOnClickOutside } from '../../hooks/useOnClickOutside'
-import { Icon } from 'src/atoms/Icon'
-import { Grid, GridItem } from 'src/atoms/Grid'
-import { Profile } from '../../interface'
-import { IconLabelText } from './IconLabelText'
-import { formatDate } from './utils'
+  Body,
+} from "./styled";
+import { useOnClickOutside } from "../../hooks/useOnClickOutside";
+import { Icon } from "src/atoms/Icon";
+import { Grid, GridItem } from "src/atoms/Grid";
+import { Profile } from "../../interface";
+import { IconLabelText } from "./IconLabelText";
+import { formatDate } from "./utils";
 
-const ANIMATION_DURATION = 300 // in ms
+const ANIMATION_DURATION = 300; // in ms
 
 export const ProfileDropdown: React.FC<Profile> = ({
   name,
@@ -24,43 +24,46 @@ export const ProfileDropdown: React.FC<Profile> = ({
   dropdownCustomContent,
   userId,
   lastLoginTime,
-  lastProfileUpdate
+  lastProfileUpdate,
 }) => {
-  const [dropdownOpen, setDropdownOpen] = useState(false)
-  const [shouldRender, setShouldRender] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [shouldRender, setShouldRender] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const toggleDropdown = () => {
-    setDropdownOpen(prev => !prev)
-  }
+    setDropdownOpen((prev) => !prev);
+  };
 
   const closeDropdown = () => {
-    setDropdownOpen(false)
-  }
+    setDropdownOpen(false);
+  };
 
-  useOnClickOutside(containerRef, closeDropdown, dropdownOpen)
+  useOnClickOutside(containerRef, closeDropdown, dropdownOpen);
 
   // Control rendering: when opening, render immediately; when closing, wait for exit animation.
   useEffect(() => {
     if (dropdownOpen) {
-      setShouldRender(true)
+      setShouldRender(true);
     } else {
-      const timer = setTimeout(() => setShouldRender(false), ANIMATION_DURATION)
-      return () => clearTimeout(timer)
+      const timer = setTimeout(
+        () => setShouldRender(false),
+        ANIMATION_DURATION,
+      );
+      return () => clearTimeout(timer);
     }
-  }, [dropdownOpen])
+  }, [dropdownOpen]);
 
   const handleItemClick = (item: { onItemClick: () => void }) => {
-    item.onItemClick()
-    closeDropdown()
-  }
+    item.onItemClick();
+    closeDropdown();
+  };
 
   return (
     <DropdownContainer ref={containerRef}>
       <ProfileDropdownButton
         data-testid="profile-dropdown-button"
         onClick={toggleDropdown}
-        className={dropdownOpen ? 'open' : ''}
+        className={dropdownOpen ? "open" : ""}
       >
         <Icon icon="logo-icon" />
         <div>{name}</div>
@@ -71,7 +74,10 @@ export const ProfileDropdown: React.FC<Profile> = ({
           {dropdownCustomContent ? (
             <CustomDropdownContainer>
               <Header>
-                <span>{name}{userId ? ` | ${userId}` : ''}</span>
+                <span>
+                  {name}
+                  {userId ? ` | ${userId}` : ""}
+                </span>
                 <CloseIconButton onClick={closeDropdown}>
                   <Icon icon="clear" />
                 </CloseIconButton>
@@ -80,15 +86,15 @@ export const ProfileDropdown: React.FC<Profile> = ({
                 <Grid>
                   <GridItem xs={6}>
                     <IconLabelText
-                      icon='alarm-clock'
-                      label='Last Login Time'
+                      icon="alarm-clock"
+                      label="Last Login Time"
                       text={formatDate(lastLoginTime)}
                     />
                   </GridItem>
                   <GridItem xs={6}>
                     <IconLabelText
-                      icon='calendar'
-                      label='Last Profile Update'
+                      icon="calendar"
+                      label="Last Profile Update"
                       text={formatDate(lastProfileUpdate)}
                     />
                   </GridItem>
@@ -112,5 +118,5 @@ export const ProfileDropdown: React.FC<Profile> = ({
         </DropdownMenu>
       )}
     </DropdownContainer>
-  )
-}
+  );
+};

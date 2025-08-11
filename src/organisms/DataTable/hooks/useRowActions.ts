@@ -1,18 +1,22 @@
-import { useCallback } from 'react'
-import { DataRow } from '../interface'
-import { sanitizeData } from '../utils'
+import { useCallback } from "react";
+import { DataRow } from "../interface";
+import { sanitizeData } from "../utils";
 
 interface UseRowActionsProps {
-  setData: React.Dispatch<React.SetStateAction<DataRow[]>>
-  editingCell: { rowId: string; columnId: string } | null
-  setEditingCell: React.Dispatch<React.SetStateAction<{ rowId: string; columnId: string } | null>>
-  onChange?: (data: Omit<DataRow, '__internalId'>[]) => void
+  setData: React.Dispatch<React.SetStateAction<DataRow[]>>;
+  editingCell: { rowId: string; columnId: string } | null;
+  setEditingCell: React.Dispatch<
+    React.SetStateAction<{ rowId: string; columnId: string } | null>
+  >;
+  onChange?: (data: Omit<DataRow, "__internalId">[]) => void;
   /** When provided, instead of deleting a row, update that row with this key set to true */
-  partialRowDeletionID?: string
+  partialRowDeletionID?: string;
   /** Current row selection state */
-  rowSelection?: Record<string, boolean>
+  rowSelection?: Record<string, boolean>;
   /** Setter for row selection state */
-  setRowSelection?: React.Dispatch<React.SetStateAction<Record<string, boolean>>>
+  setRowSelection?: React.Dispatch<
+    React.SetStateAction<Record<string, boolean>>
+  >;
 }
 
 export function useRowActions({
@@ -29,95 +33,102 @@ export function useRowActions({
       if (editingCell && editingCell.rowId === rowId) {
         setTimeout(() => {
           setData((old) => {
-            const rowIndex = old.findIndex((r) => r.__internalId === rowId)
-            if (rowIndex === -1) return old
+            const rowIndex = old.findIndex((r) => r.__internalId === rowId);
+            if (rowIndex === -1) return old;
             const updated = old.map((row, i) => {
               if (i === rowIndex) {
-                const newRow = { ...row }
-                delete newRow.__isNew
-                return newRow
+                const newRow = { ...row };
+                delete newRow.__isNew;
+                return newRow;
               }
-              return row
-            })
+              return row;
+            });
             if (!updated[rowIndex].__isNew && onChange) {
-              onChange(sanitizeData(updated))
+              onChange(sanitizeData(updated));
             }
-            return updated
-          })
-        }, 0)
+            return updated;
+          });
+        }, 0);
       } else {
         setData((old) => {
-          const rowIndex = old.findIndex((r) => r.__internalId === rowId)
-          if (rowIndex === -1) return old
+          const rowIndex = old.findIndex((r) => r.__internalId === rowId);
+          if (rowIndex === -1) return old;
           const updated = old.map((row, i) => {
             if (i === rowIndex) {
-              const newRow = { ...row }
-              delete newRow.__isNew
-              return newRow
+              const newRow = { ...row };
+              delete newRow.__isNew;
+              return newRow;
             }
-            return row
-          })
-          if (onChange) onChange(sanitizeData(updated))
-          return updated
-        })
+            return row;
+          });
+          if (onChange) onChange(sanitizeData(updated));
+          return updated;
+        });
       }
-      setEditingCell(null)
+      setEditingCell(null);
     },
-    [editingCell, onChange, setData, setEditingCell]
-  )
+    [editingCell, onChange, setData, setEditingCell],
+  );
 
   const handleDelete = useCallback(
     (rowId: string) => {
-      setEditingCell(null)
+      setEditingCell(null);
       setData((old) => {
-        const deletedIndex = old.findIndex((r) => r.__internalId === rowId)
-        if (deletedIndex === -1) return old
+        const deletedIndex = old.findIndex((r) => r.__internalId === rowId);
+        if (deletedIndex === -1) return old;
         if (partialRowDeletionID) {
           const updated = old.map((row) => {
-          if (row.__internalId === rowId) {
-            const isAlreadyMarked = row[partialRowDeletionID] === true
-            const updatedRow = { ...row }
-            if (isAlreadyMarked) {
-              delete updatedRow[partialRowDeletionID] // revert soft delete
-            } else {
-              updatedRow[partialRowDeletionID] = true // mark as soft deleted
+            if (row.__internalId === rowId) {
+              const isAlreadyMarked = row[partialRowDeletionID] === true;
+              const updatedRow = { ...row };
+              if (isAlreadyMarked) {
+                delete updatedRow[partialRowDeletionID]; // revert soft delete
+              } else {
+                updatedRow[partialRowDeletionID] = true; // mark as soft deleted
+              }
+              return updatedRow;
             }
-            return updatedRow
-          }
-          return row
-        })
-          if (onChange) onChange(sanitizeData(updated))
-          return updated
+            return row;
+          });
+          if (onChange) onChange(sanitizeData(updated));
+          return updated;
         } else {
-          const updated = old.filter((r) => r.__internalId !== rowId)
-          if (onChange) onChange(sanitizeData(updated))
+          const updated = old.filter((r) => r.__internalId !== rowId);
+          if (onChange) onChange(sanitizeData(updated));
           if (rowSelection && setRowSelection) {
             setRowSelection((prevSelection) => {
               // Remove the deleted row from selection.
-              const newSelection = { ...prevSelection }
-              const wasSelected = newSelection[rowId]
-              delete newSelection[rowId]
+              const newSelection = { ...prevSelection };
+              const wasSelected = newSelection[rowId];
+              delete newSelection[rowId];
               // If the deleted row was selected, and if a row now exists at the same index, select it.
               if (wasSelected && updated[deletedIndex]) {
-                newSelection[updated[deletedIndex].__internalId] = true
+                newSelection[updated[deletedIndex].__internalId] = true;
               }
-              return newSelection
-            })
+              return newSelection;
+            });
           }
-          return updated
+          return updated;
         }
-      })
+      });
     },
-    [partialRowDeletionID, onChange, setData, setEditingCell, rowSelection, setRowSelection]
-  )
+    [
+      partialRowDeletionID,
+      onChange,
+      setData,
+      setEditingCell,
+      rowSelection,
+      setRowSelection,
+    ],
+  );
 
   const handleCancelRow = useCallback(
     (rowId: string) => {
-      setData((old) => old.filter((r) => r.__internalId !== rowId))
-      setEditingCell(null)
+      setData((old) => old.filter((r) => r.__internalId !== rowId));
+      setEditingCell(null);
     },
-    [setData, setEditingCell]
-  )
+    [setData, setEditingCell],
+  );
 
-  return { handleSaveRow, handleDelete, handleCancelRow }
+  return { handleSaveRow, handleDelete, handleCancelRow };
 }

@@ -24,11 +24,11 @@ export const BadgeContainer = styled.span<{
   min-width: ${({ $size }) => sizeMapping[$size].dimension};
   height: ${({ $size }) => sizeMapping[$size].dimension};
   font-size: ${({ $size }) => sizeMapping[$size].fontSize};
-  background-color: ${({ $outlined, $color = 'primary' }) =>
+  background-color: ${({ $outlined, $color = "primary" }) =>
     $outlined ? "transparent" : theme.colors[$color].base};
-  color: ${({ $outlined, $color = 'primary' }) =>
+  color: ${({ $outlined, $color = "primary" }) =>
     $outlined ? theme.colors[$color].base : "white"};
-  border: ${({ $outlined, $color = 'primary' }) =>
+  border: ${({ $outlined, $color = "primary" }) =>
     $outlined ? `1px solid ${theme.colors[$color].base}` : "none"};
   padding: 4px;
   border-radius: ${({ $borderRadius, $size }) =>

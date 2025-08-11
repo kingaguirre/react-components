@@ -1,5 +1,5 @@
 // src/atoms/Badge/interface.ts
-import { ColorType } from '../../common/interface';
+import { ColorType } from "../../common/interface";
 
 export interface BadgeProps {
   color?: ColorType;

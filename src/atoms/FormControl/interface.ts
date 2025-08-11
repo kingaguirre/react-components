@@ -1,4 +1,4 @@
-import { ColorType, SizeType } from '../../common/interface';
+import { ColorType, SizeType } from "../../common/interface";
 
 export type FormControlType =
   | "text"
@@ -14,7 +14,14 @@ export type FormControlType =
   | "switch"
   | "textarea";
 
-export type IconRight = { icon: string; color?: string; hoverColor?: string; onClick?: () => void, className?: string, disabled?: boolean };
+export type IconRight = {
+  icon: string;
+  color?: string;
+  hoverColor?: string;
+  onClick?: () => void;
+  className?: string;
+  disabled?: boolean;
+};
 
 export interface FormControlProps {
   /** Label for the input */
@@ -24,7 +31,7 @@ export interface FormControlProps {
   /** Color theme for the input */
   color?: ColorType;
   /** Variant style of the input */
-  variant?: 'outlined';
+  variant?: "outlined";
   /** Size of the input */
   size?: SizeType;
   /** Input type */
@@ -56,6 +63,6 @@ export interface FormControlProps {
   /** Add loader */
   loading?: boolean;
   /** Any additional attributes */
-  /* eslint-disable @typescript-eslint/no-explicit-any */
+
   [key: string]: any;
 }

@@ -1,6 +1,6 @@
 // Alert/Molecules/interface.ts
-import { ReactNode } from 'react';
-import { ColorType } from '../../common/interface';
+import { ReactNode } from "react";
+import { ColorType } from "../../common/interface";
 
 export interface AlertProps {
   /** The alert’s color variant (keys should match your theme colors) */
@@ -28,7 +28,7 @@ export interface AlertProps {
    * For toasts only, defines where the alert will be placed.
    * Options: 'top-left', 'top-right', 'bottom-left', 'bottom-right'
    */
-  placement?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  placement?: "top-left" | "top-right" | "bottom-left" | "bottom-right";
   /** Callback fired when the alert is closing */
   onClose?: () => void;
   /** The type of animation to use for the alert */

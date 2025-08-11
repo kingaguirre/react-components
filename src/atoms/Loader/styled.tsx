@@ -1,7 +1,7 @@
 // src/components/Loader/styled.tsx
-import styled, { keyframes, css } from 'styled-components';
-import { ColorType } from '../../common/interface';
-import { theme, fadeInOnMount } from 'src/styles';
+import styled, { keyframes, css } from "styled-components";
+import { ColorType } from "../../common/interface";
+import { theme, fadeInOnMount } from "src/styles";
 
 /** ─── LINE ──────────────────────────────────────────────────────────────── */
 const slide = keyframes`
@@ -9,7 +9,7 @@ const slide = keyframes`
   100% { transform: translateX(200%); }
 `;
 
-const lineStyle = (color: ColorType = 'primary') => css`
+const lineStyle = (color: ColorType = "primary") => css`
   position: absolute;
   top: 0;
   left: 0;
@@ -47,7 +47,7 @@ export const LineContainer = styled.div<{
 export const LineTrack = styled.div<{
   $color?: ColorType;
 }>`
-  ${({ $color = 'primary' }) => lineStyle($color)}
+  ${({ $color = "primary" }) => lineStyle($color)}
   opacity: 0.1;
 `;
 
@@ -55,7 +55,7 @@ export const LineBuffer = styled.div<{
   $color?: ColorType;
   $value?: number;
 }>`
-  ${({ $color = 'primary' }) => lineStyle($color)}
+  ${({ $color = "primary" }) => lineStyle($color)}
   opacity: 0.4;
   z-index: 1;
   width: ${({ $value = 0 }) => `${$value}%`};
@@ -69,25 +69,26 @@ export const Line = styled.div<{
 }>`
   position: relative;
   z-index: 2;
-  ${({ $color = 'primary' }) => lineStyle($color)}
+  ${({ $color = "primary" }) => lineStyle($color)}
   border-top-right-radius: 12px;
   border-bottom-right-radius: 12px;
 
   /* the glowing pseudo-element */
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     height: 100%;
     width: 30px;
-    box-shadow: ${({ $color = 'primary' }) => `8px 0 12px 1px ${theme.colors[$color].base}`};
+    box-shadow: ${({ $color = "primary" }) =>
+      `8px 0 12px 1px ${theme.colors[$color].base}`};
     right: 0;
     border-radius: 50%;
   }
 
   /* your width / animation logic */
   ${({ $value }) =>
-    typeof $value === 'number'
+    typeof $value === "number"
       ? css`
           width: ${$value}%;
         `
@@ -96,7 +97,6 @@ export const Line = styled.div<{
           animation: ${slide} 1s ease-in-out infinite;
         `}
 `;
-
 
 /** ─── CIRCLE ────────────────────────────────────────────────────────────── */
 const spin = keyframes`
@@ -130,21 +130,24 @@ export const CircleSvg = styled.svg<{
 
 export const CircleTrack = styled.circle<{
   $color?: ColorType;
-  $indeterminate?: boolean
+  $indeterminate?: boolean;
 }>`
-  ${({ $indeterminate, $color = 'primary' }) => $indeterminate ? css`
-    stroke: ${theme.colors[$color].pale};
-  ` : css`
-    stroke: ${theme.colors[$color].base};
-    opacity: 0.1;
-  `}
+  ${({ $indeterminate, $color = "primary" }) =>
+    $indeterminate
+      ? css`
+          stroke: ${theme.colors[$color].pale};
+        `
+      : css`
+          stroke: ${theme.colors[$color].base};
+          opacity: 0.1;
+        `}
   fill: none;
 `;
 
 export const CircleBuffer = styled.circle<{
   $color?: ColorType;
 }>`
-  stroke: ${({ $color = 'primary' }) => theme.colors[$color].base};
+  stroke: ${({ $color = "primary" }) => theme.colors[$color].base};
   opacity: 0.4;
   fill: none;
   transition: stroke-dasharray 0.3s ease;
@@ -153,7 +156,7 @@ export const CircleBuffer = styled.circle<{
 export const CircleProgress = styled.circle<{
   $color?: ColorType;
 }>`
-  stroke: ${({ $color = 'primary' }) => theme.colors[$color].base};
+  stroke: ${({ $color = "primary" }) => theme.colors[$color].base};
   transition: stroke-dasharray 0.35s ease;
   fill: none;
 

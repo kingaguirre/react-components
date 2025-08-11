@@ -1,10 +1,10 @@
-import styled from 'styled-components'
-import { scrollStyle, theme, fadeInOnMount } from 'src/styles'
+import styled from "styled-components";
+import { scrollStyle, theme, fadeInOnMount } from "src/styles";
 
 export const NotificationContainer = styled.div`
   position: relative;
   display: block;
-`
+`;
 
 export const BellButton = styled.button`
   background: none;
@@ -22,12 +22,12 @@ export const BellButton = styled.button`
   justify-content: center;
   border-top-right-radius: 2px;
   border-top-left-radius: 2px;
-  transition: all .3s ease;
+  transition: all 0.3s ease;
   &.open,
   &:hover {
     background-color: ${theme.colors.warning.pale};
   }
-`
+`;
 
 export const Badge = styled.div<{ $showTotalCount?: boolean }>`
   position: absolute;
@@ -38,22 +38,28 @@ export const Badge = styled.div<{ $showTotalCount?: boolean }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  ${({ $showTotalCount }) => $showTotalCount ? `
+  ${({ $showTotalCount }) =>
+    $showTotalCount
+      ? `
     top: 6px;
     right: 6px;
     font-size: 5px;
     width: 8px;
     height: 8px;
-  ` : `
+  `
+      : `
     top: 8px;
     right: 9px;
     font-size: 0;
     width: 5px;
     height: 5px;
   `};
-`
+`;
 
-export const DropdownMenu = styled.div<{ $open: boolean; $dropdownHeight: string }>`
+export const DropdownMenu = styled.div<{
+  $open: boolean;
+  $dropdownHeight: string;
+}>`
   ${fadeInOnMount}
   position: absolute;
   top: 100%;
@@ -65,13 +71,12 @@ export const DropdownMenu = styled.div<{ $open: boolean; $dropdownHeight: string
   max-height: ${(props) => props.$dropdownHeight};
   display: flex;
   flex-direction: column;
-  opacity: ${props => (props.$open ? 1 : 0)};
+  opacity: ${(props) => (props.$open ? 1 : 0)};
   transition: opacity 0.3s ease;
   min-width: 120px;
   border-radius: 2px;
   overflow: hidden;
-
-`
+`;
 
 export const DropdownHeader = styled.div`
   padding: 4px 16px;
@@ -80,13 +85,13 @@ export const DropdownHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid #ddd;
-`
+`;
 
 export const HeaderTitle = styled.div`
   font-weight: bold;
   font-size: 12px;
   color: ${theme.colors.primary.darker};
-`
+`;
 
 export const HeaderCloseButton = styled.button`
   background: none;
@@ -96,25 +101,25 @@ export const HeaderCloseButton = styled.button`
   color: ${theme.colors.primary.darker};
   line-height: 1;
   padding: 0;
-  transition: all .3s ease;
+  transition: all 0.3s ease;
   right: -4px;
   position: relative;
   &:hover {
     color: ${theme.colors.danger.base};
   }
-`
+`;
 
 export const NotificationListWrapper = styled.div`
   flex: 1;
   overflow-y: scroll;
   ${scrollStyle}
-`
+`;
 
 export const EmptyState = styled.div`
   padding: 1rem;
   text-align: center;
   color: #999;
-`
+`;
 
 export const ClearIconWrapper = styled.div`
   position: absolute;
@@ -123,7 +128,9 @@ export const ClearIconWrapper = styled.div`
   transform: translateY(-50%);
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.3s ease, color 0.3s ease;
+  transition:
+    opacity 0.3s ease,
+    color 0.3s ease;
   color: ${theme.colors.default.dark};
 
   &:hover {
@@ -133,7 +140,7 @@ export const ClearIconWrapper = styled.div`
   &:hover svg {
     fill: ${theme.colors.danger.base};
   }
-`
+`;
 
 export const NotificationItemWrapper = styled.div`
   position: relative;
@@ -143,7 +150,7 @@ export const NotificationItemWrapper = styled.div`
   border-width: 1px 1px 1px 4px;
   border-style: solid;
   border-color: transparent;
-  transition: all .3s ease;
+  transition: all 0.3s ease;
   border-bottom: 1px solid #f0f0f0;
   cursor: pointer;
   &:hover {
@@ -155,12 +162,12 @@ export const NotificationItemWrapper = styled.div`
   &:hover ${ClearIconWrapper} {
     opacity: 1;
   }
-`
+`;
 
 export const NotificationContent = styled.div`
   flex: 1;
   overflow: hidden;
-`
+`;
 
 export const NotificationTitle = styled.div<{ $color?: string }>`
   font-weight: bold;
@@ -168,23 +175,23 @@ export const NotificationTitle = styled.div<{ $color?: string }>`
   overflow: hidden;
   text-overflow: ellipsis;
   font-size: 12px;
-  color: ${(props) => props.$color || 'inherit'};
+  color: ${(props) => props.$color || "inherit"};
   text-transform: uppercase;
   margin-bottom: 4px;
-`
+`;
 
 export const NotificationMessage = styled.div`
   font-size: 12px;
   color: ${theme.colors.default.darker};
   margin-bottom: 4px;
-`
+`;
 
 export const NotificationTime = styled.div`
   margin-top: 12px;
   font-size: 10px;
   color: ${theme.colors.default.base};
   font-style: italic;
-`
+`;
 
 export const DetailedNotificationItem = styled(NotificationItemWrapper)`
   flex-direction: row;
@@ -192,7 +199,7 @@ export const DetailedNotificationItem = styled(NotificationItemWrapper)`
   border-style: solid;
   border-color: transparent;
   border-bottom: 1px solid #f0f0f0;
-`
+`;
 
 export const NotificationImage = styled.div`
   width: 30px;
@@ -208,18 +215,18 @@ export const NotificationImage = styled.div`
   justify-content: center;
   font-weight: bold;
   color: white;
-`
+`;
 
 export const NotificationImageImg = styled.img`
   width: 100%;
   height: 100%;
   border-radius: 50%;
-`
+`;
 
 export const NotificationDetails = styled.div`
   flex: 1;
   overflow: hidden;
-`
+`;
 
 export const NotificationName = styled.div<{ $color?: string }>`
   font-weight: bold;
@@ -228,7 +235,7 @@ export const NotificationName = styled.div<{ $color?: string }>`
   text-overflow: ellipsis;
   font-size: 12px;
   color: ${(props) => props.$color || theme.colors.default.dark};
-`
+`;
 
 export const NotificationEmail = styled.div`
   font-size: 10px;
@@ -237,14 +244,14 @@ export const NotificationEmail = styled.div`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-`
+`;
 
 export const Footer = styled.div`
   border-top: 1px solid #ddd;
   display: flex;
   justify-content: space-between;
   align-items: center;
-`
+`;
 
 export const FooterButton = styled.button`
   padding: 6px 12px;
@@ -252,14 +259,14 @@ export const FooterButton = styled.button`
   border: none;
   cursor: pointer;
   font-size: 10px;
-  transition: all .3s ease;
+  transition: all 0.3s ease;
   color: ${theme.colors.primary.dark};
   &:hover {
     background: #f0f0f0;
     text-decoration: underline;
     color: ${theme.colors.primary.darker};
   }
-`
+`;
 
 export const NewIndicator = styled.div`
   position: absolute;
@@ -269,7 +276,7 @@ export const NewIndicator = styled.div`
   height: 8px;
   background-color: ${theme.colors.primary.base};
   border-radius: 50%;
-`
+`;
 
 export const NotificationIconWrapper = styled.div`
   width: 30px;
@@ -279,4 +286,4 @@ export const NotificationIconWrapper = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-`
+`;

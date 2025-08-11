@@ -1,7 +1,7 @@
 // src/components/Loader/interface.ts
-import { ColorType, SizeType } from '../../common/interface';
+import { ColorType, SizeType } from "../../common/interface";
 
-export type LoaderType = 'default' | 'line';
+export type LoaderType = "default" | "line";
 
 export interface LoaderProps {
   /** 'default' = circular spinner; 'line' = top‑attached progress bar */

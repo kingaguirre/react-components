@@ -1,30 +1,30 @@
 // src/components/Panel/interface.ts
-import { ColorType } from '../../common/interface'
-import { TooltipProps } from '../../atoms/Tooltip/interface'
+import { ColorType } from "../../common/interface";
+import { TooltipProps } from "../../atoms/Tooltip/interface";
 
 export interface IconObject {
-  icon: string
-  color?: string
-  hoverColor?: string
-  text?: string
-  tooltip?: string
-  tooltipColor?: ColorType
-  tooltipType?: TooltipProps["type"]
-  tooltipPlacement?: TooltipProps["placement"]
-  onClick?: () => void
+  icon: string;
+  color?: string;
+  hoverColor?: string;
+  text?: string;
+  tooltip?: string;
+  tooltipColor?: ColorType;
+  tooltipType?: TooltipProps["type"];
+  tooltipPlacement?: TooltipProps["placement"];
+  onClick?: () => void;
 }
 
 export interface PanelProps {
   /** Title of the panel */
-  title?: string
+  title?: string;
   /** Content inside the panel */
-  children: React.ReactNode
+  children: React.ReactNode;
   /** Left icon object */
-  leftIcon?: IconObject
+  leftIcon?: IconObject;
   /** Array of right icons */
-  rightIcons?: IconObject[]
+  rightIcons?: IconObject[];
   /** Panel theme color */
-  color?: ColorType
+  color?: ColorType;
   /** Disable panel interaction */
-  disabled?: boolean
+  disabled?: boolean;
 }

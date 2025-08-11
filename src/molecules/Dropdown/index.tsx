@@ -1,18 +1,18 @@
 // src/molecules/Dropdown/index.tsx
-import React, { useState, useEffect, useRef } from 'react'
-import ReactDOM from 'react-dom'
+import React, { useState, useEffect, useRef } from "react";
+import ReactDOM from "react-dom";
 import {
   DropdownContainer,
   DropdownList,
   DropdownItem,
   HighlightedText,
   DropdownFilterContainer,
-  NoOptionsContainer
-} from './styled'
-import { DropdownProps, DropdownOption } from './interface'
-import { FormControl } from '../../atoms/FormControl'
-import { ifElse } from '../../utils/index'
-import { getScrollParent } from '../../utils'
+  NoOptionsContainer,
+} from "./styled";
+import { DropdownProps, DropdownOption } from "./interface";
+import { FormControl } from "../../atoms/FormControl";
+import { ifElse } from "../../utils/index";
+import { getScrollParent } from "../../utils";
 
 export const Dropdown: React.FC<DropdownProps> = ({
   options,
@@ -20,8 +20,8 @@ export const Dropdown: React.FC<DropdownProps> = ({
   onChange,
   filter = false,
   filterAtBeginning = false,
-  placeholder = 'Select an option',
-  size = 'md',
+  placeholder = "Select an option",
+  size = "md",
   disabled = false,
   multiselect,
   clearable = true,
@@ -33,336 +33,355 @@ export const Dropdown: React.FC<DropdownProps> = ({
   loading,
   ...rest
 }) => {
-  const isMulti = !!multiselect
+  const isMulti = !!multiselect;
 
   // For single select, state is a string for multiselect, an array.
   const [selectedValue, setSelectedValue] = useState<string | undefined>(
-    !isMulti ? (value as string) : undefined
-  )
+    !isMulti ? (value as string) : undefined,
+  );
   const [selectedValues, setSelectedValues] = useState<string[]>(
-    isMulti && Array.isArray(value) ? value : []
-  )
-
+    isMulti && Array.isArray(value) ? value : [],
+  );
 
   // displayValue: text shown when dropdown is closed.
-  const [displayValue, setDisplayValue] = useState('')
+  const [displayValue, setDisplayValue] = useState("");
   // Store previous display value in single select so that it’s not cleared if options change.
-  const previousDisplayRef = useRef<string>('')
+  const previousDisplayRef = useRef<string>("");
   // filterText: text used for filtering when dropdown is open.
-  const [filterText, setFilterText] = useState('')
+  const [filterText, setFilterText] = useState("");
   // hasTyped: tracks whether the user has started typing in filter.
-  const [hasTyped, setHasTyped] = useState(false)
-  const [filteredOptions, setFilteredOptions] = useState<DropdownOption[]>(options)
+  const [hasTyped, setHasTyped] = useState(false);
+  const [filteredOptions, setFilteredOptions] =
+    useState<DropdownOption[]>(options);
   const [dropdownPosition, setDropdownPosition] = useState({
     top: 0,
     left: 0,
     width: 0,
-    position: 'bottom',
-  })
-  const [isOpen, setIsOpen] = useState(false)
-  const [focusedIndex, setFocusedIndex] = useState<number>(-1)
-  const dropdownRef = useRef<HTMLDivElement>(null)
-  const listRef = useRef<HTMLUListElement>(null)
+    position: "bottom",
+  });
+  const [isOpen, setIsOpen] = useState(false);
+  const [focusedIndex, setFocusedIndex] = useState<number>(-1);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
 
   // NEW: Ref for the filter input (multiselect filtering)
-  const filterInputRef = useRef<HTMLInputElement>(null)
+  const filterInputRef = useRef<HTMLInputElement>(null);
   // NEW: Ref for the FormControl input (single-select)
-  const formControlRef = useRef<HTMLInputElement>(null)
+  const formControlRef = useRef<HTMLInputElement>(null);
   // NEW: Ref to store the last toggled value in multiselect mode.
-  const lastMultiToggledRef = useRef<string | null>(null)
+  const lastMultiToggledRef = useRef<string | null>(null);
   // Existing ref to store last valid focused value.
-  const lastFocusedValueRef = useRef<string | null>(null)
+  const lastFocusedValueRef = useRef<string | null>(null);
 
   // --- SYNC EXTERNAL VALUE CHANGES ---
   useEffect(() => {
     if (isMulti) {
-      if (!Array.isArray(value)) return
+      if (!Array.isArray(value)) return;
       if (onChange) {
-        setSelectedValues(value)
+        setSelectedValues(value);
       }
       const text =
         value.length > 0
-          ? `${value.length} selected ${ifElse(value.length === 1, 'item', 'items')}`
-          : ''
-      setDisplayValue(text)
-      return
+          ? `${value.length} selected ${ifElse(value.length === 1, "item", "items")}`
+          : "";
+      setDisplayValue(text);
+      return;
     }
 
     if (onChange) {
-      const currentVal = value != null ? (value as string) : ''
-      const selectedOption = options.find((opt) => opt.value === currentVal)
+      const currentVal = value != null ? (value as string) : "";
+      const selectedOption = options.find((opt) => opt.value === currentVal);
 
       if (!currentVal) {
-        setDisplayValue('')
-        setSelectedValue(undefined)
-        previousDisplayRef.current = ''
+        setDisplayValue("");
+        setSelectedValue(undefined);
+        previousDisplayRef.current = "";
       } else if (selectedOption) {
-        setDisplayValue(selectedOption.text)
-        previousDisplayRef.current = selectedOption.text
+        setDisplayValue(selectedOption.text);
+        previousDisplayRef.current = selectedOption.text;
       } else {
-        setDisplayValue(previousDisplayRef.current)
+        setDisplayValue(previousDisplayRef.current);
       }
 
-      setSelectedValue(currentVal)
+      setSelectedValue(currentVal);
     }
-  }, [value, options, isMulti, onChange])
+  }, [value, options, isMulti, onChange]);
   // --- END SYNC EFFECT ---
 
   // Filtering effect.
   useEffect(() => {
     // Filter methods:
     const startsWithFilter = (text: string, filterText: string) =>
-      text.toLowerCase().startsWith(filterText.toLowerCase())
-  
+      text.toLowerCase().startsWith(filterText.toLowerCase());
+
     const includesFilter = (text: string, filterText: string) =>
-      text.toLowerCase().includes(filterText.toLowerCase())
-  
+      text.toLowerCase().includes(filterText.toLowerCase());
+
     // Returns the filtered options based on whether the user has typed:
     const getFilteredOptions = () => {
       if (!hasTyped) {
-        return options
+        return options;
       }
       return options.filter(({ text }) =>
-        filterAtBeginning ? startsWithFilter(text, filterText) : includesFilter(text, filterText)
-      )
-    }
-  
+        filterAtBeginning
+          ? startsWithFilter(text, filterText)
+          : includesFilter(text, filterText),
+      );
+    };
+
     // Set filtered options depending on the filter flag:
     if (filter) {
-      setFilteredOptions(getFilteredOptions())
+      setFilteredOptions(getFilteredOptions());
     } else {
-      setFilteredOptions(options)
+      setFilteredOptions(options);
     }
-  }, [filterText, hasTyped, filterAtBeginning, filter, options])
-  
+  }, [filterText, hasTyped, filterAtBeginning, filter, options]);
 
   // Recalculate dropdown position.
   useEffect(() => {
     if (isOpen && !hideOnScroll) {
-      updateDropdownPosition()
+      updateDropdownPosition();
     }
-  }, [filteredOptions, filterText, isOpen, hideOnScroll])
+  }, [filteredOptions, filterText, isOpen, hideOnScroll]);
 
   // NEW: Focus/Blur Handlers to open/close the dropdown based on focus.
   const handleFocus = () => {
-    setIsOpen(true)
-  }
+    setIsOpen(true);
+  };
 
   const handleBlur = (e: React.FocusEvent) => {
     // Delay to allow clicks within the dropdown to register.
     setTimeout(() => {
-      const activeEl = document.activeElement
+      const activeEl = document.activeElement;
       if (
         activeEl !== formControlRef.current &&
         !(listRef.current && listRef.current.contains(activeEl))
       ) {
-        setIsOpen(false)
+        setIsOpen(false);
       }
-    }, 0)
+    }, 0);
 
-    onBlur?.(e)
-  }
+    onBlur?.(e);
+  };
 
   // When opening the dropdown, preset filter text (for single-select) and set focus.
   useEffect(() => {
     // Choose the appropriate scroll handler based on hideOnScroll prop.
-    const scrollParent = getScrollParent(formControlRef.current)
+    const scrollParent = getScrollParent(formControlRef.current);
     const handleScroll = () => {
       if (hideOnScroll) {
-        setIsOpen(false)
+        setIsOpen(false);
       } else {
-        updateDropdownPosition()
+        updateDropdownPosition();
       }
-    }
+    };
 
     const attachEventListeners = () => {
-      scrollParent.addEventListener('scroll', handleScroll)
-      window.addEventListener('resize', updateDropdownPosition)
-      document.addEventListener('mousedown', handleClickOutside)
-    }
-  
+      scrollParent.addEventListener("scroll", handleScroll);
+      window.addEventListener("resize", updateDropdownPosition);
+      document.addEventListener("mousedown", handleClickOutside);
+    };
+
     const detachEventListeners = () => {
-      scrollParent.removeEventListener('scroll', handleScroll)
-      window.removeEventListener('resize', updateDropdownPosition)
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  
+      scrollParent.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", updateDropdownPosition);
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+
     const updateFilterText = () => {
       if (filter && !isMulti && !hasTyped) {
         if (selectedValue) {
-          const selOpt = options.find(opt => opt.value === selectedValue)
-          setFilterText(selOpt ? selOpt.text : '')
+          const selOpt = options.find((opt) => opt.value === selectedValue);
+          setFilterText(selOpt ? selOpt.text : "");
         } else {
-          setFilterText('')
+          setFilterText("");
         }
       }
-    }
-  
+    };
+
     const computeSelectedIndex = () => {
       if (isMulti) {
         if (lastMultiToggledRef.current) {
           const idx = filteredOptions.findIndex(
-            opt => opt.value === lastMultiToggledRef.current
-          )
+            (opt) => opt.value === lastMultiToggledRef.current,
+          );
           if (idx !== -1) {
-            return idx
+            return idx;
           }
         }
         if (selectedValues.length > 0) {
-          const idx = filteredOptions.findIndex(opt =>
-            selectedValues.includes(opt.value)
-          )
+          const idx = filteredOptions.findIndex((opt) =>
+            selectedValues.includes(opt.value),
+          );
           if (idx !== -1) {
-            return idx
+            return idx;
           }
         }
       } else if (selectedValue) {
-        const idx = filteredOptions.findIndex(opt => opt.value === selectedValue)
+        const idx = filteredOptions.findIndex(
+          (opt) => opt.value === selectedValue,
+        );
         if (idx !== -1) {
-          return idx
+          return idx;
         }
       }
-      return findNextFocusableIndex(-1, 'down', filteredOptions)
-    }
-  
+      return findNextFocusableIndex(-1, "down", filteredOptions);
+    };
+
     if (isOpen) {
-      updateFilterText()
-      const selectedIndex = computeSelectedIndex()
-      setFocusedIndex(selectedIndex)
-      updateDropdownPosition()
-      attachEventListeners()
-      setTimeout(scrollToFocusedItem, 30)
+      updateFilterText();
+      const selectedIndex = computeSelectedIndex();
+      setFocusedIndex(selectedIndex);
+      updateDropdownPosition();
+      attachEventListeners();
+      setTimeout(scrollToFocusedItem, 30);
     } else {
-      detachEventListeners()
+      detachEventListeners();
     }
-  
-    return detachEventListeners
-  }, [isOpen, options, filter, selectedValue, selectedValues, isMulti, filteredOptions, hideOnScroll])
+
+    return detachEventListeners;
+  }, [
+    isOpen,
+    options,
+    filter,
+    selectedValue,
+    selectedValues,
+    isMulti,
+    filteredOptions,
+    hideOnScroll,
+  ]);
 
   // Update lastFocusedValueRef whenever focusedIndex is valid.
   useEffect(() => {
     if (isOpen && focusedIndex >= 0 && focusedIndex < filteredOptions?.length) {
-      lastFocusedValueRef.current = filteredOptions[focusedIndex].value
+      lastFocusedValueRef.current = filteredOptions[focusedIndex].value;
     }
-  }, [focusedIndex, filteredOptions, isOpen])
+  }, [focusedIndex, filteredOptions, isOpen]);
 
   // NEW EFFECT: When dropdown is open and filteredOptions or focusedIndex changes,
   // add a short delay then scroll the focused item into view.
   useEffect(() => {
     if (isOpen && focusedIndex >= 0) {
       setTimeout(() => {
-        scrollToFocusedItem()
-      }, 50)
+        scrollToFocusedItem();
+      }, 50);
     }
-  }, [isOpen, filteredOptions, focusedIndex])
+  }, [isOpen, filteredOptions, focusedIndex]);
 
   // NEW EFFECT: When closing the dropdown, clear the current filter so that reopening shows only the selected value.
   useEffect(() => {
     if (!isOpen) {
-      setFilterText('')
-      setHasTyped(false)
+      setFilterText("");
+      setHasTyped(false);
     }
-  }, [isOpen])
+  }, [isOpen]);
 
   const findNextFocusableIndex = (
     currentIndex: number,
-    direction: 'up' | 'down',
-    optionsArray: DropdownOption[] = filteredOptions
+    direction: "up" | "down",
+    optionsArray: DropdownOption[] = filteredOptions,
   ): number => {
-    if (!optionsArray?.length) return -1
-  
+    if (!optionsArray?.length) return -1;
+
     // Check if we're starting fresh (currentIndex < 0)
-    const isInitial = currentIndex < 0
-    const step = direction === 'down' ? 1 : -1
-    const start = isInitial ? ifElse(direction === 'down', 0, optionsArray.length - 1) : currentIndex + step
+    const isInitial = currentIndex < 0;
+    const step = direction === "down" ? 1 : -1;
+    const start = isInitial
+      ? ifElse(direction === "down", 0, optionsArray.length - 1)
+      : currentIndex + step;
     // For 'down' we go until optionsArray.length, for 'up' until -1 (exclusive)
-    const end = direction === 'down' ? optionsArray.length : -1
-  
-    for (let i = start; direction === 'down' ? i < end : i > end; i += step) {
-      if (!optionsArray[i]?.disabled) return i
+    const end = direction === "down" ? optionsArray.length : -1;
+
+    for (let i = start; direction === "down" ? i < end : i > end; i += step) {
+      if (!optionsArray[i]?.disabled) return i;
     }
-  
+
     // If no eligible option found, mimic original behavior:
     // Return -1 if starting fresh, else return the original currentIndex.
-    return isInitial ? -1 : currentIndex
-  }
+    return isInitial ? -1 : currentIndex;
+  };
 
-  const handleSelect = (selectedVal: string, e: React.MouseEvent<HTMLLIElement, MouseEvent> | React.KeyboardEvent) => {
-    e.stopPropagation()
+  const handleSelect = (
+    selectedVal: string,
+    e: React.MouseEvent<HTMLLIElement, MouseEvent> | React.KeyboardEvent,
+  ) => {
+    e.stopPropagation();
     if (isMulti) {
-      setSelectedValues(prev => {
-        let newSelected: string[]
+      setSelectedValues((prev) => {
+        let newSelected: string[];
         if (prev.includes(selectedVal)) {
-          newSelected = prev.filter(val => val !== selectedVal)
+          newSelected = prev.filter((val) => val !== selectedVal);
         } else {
-          newSelected = [...prev, selectedVal]
+          newSelected = [...prev, selectedVal];
         }
         setDisplayValue(
           newSelected.length > 0
-            ? `${newSelected.length} selected ${ifElse(newSelected.length === 1, 'item', 'items')}`
-            : ''
-        )
+            ? `${newSelected.length} selected ${ifElse(newSelected.length === 1, "item", "items")}`
+            : "",
+        );
         if (filter) {
-          setFilterText('')
-          setHasTyped(false)
+          setFilterText("");
+          setHasTyped(false);
         }
         // Save toggled value so arrow navigation starts from here.
-        lastMultiToggledRef.current = selectedVal
-        const newFocusIndex = filteredOptions.findIndex(opt => opt.value === selectedVal)
+        lastMultiToggledRef.current = selectedVal;
+        const newFocusIndex = filteredOptions.findIndex(
+          (opt) => opt.value === selectedVal,
+        );
         if (newFocusIndex !== -1) {
-          setFocusedIndex(newFocusIndex)
+          setFocusedIndex(newFocusIndex);
         }
-        onChange?.(newSelected)
-        return newSelected
-      })
+        onChange?.(newSelected);
+        return newSelected;
+      });
       // Re-focus the filter input so that arrow navigation and Enter still work
       if (filter) {
         setTimeout(() => {
-          filterInputRef.current?.focus()
-        }, 0)
+          filterInputRef.current?.focus();
+        }, 0);
       }
     } else {
-      const selectedOption = options.find(opt => opt.value === selectedVal)
-      if (!selectedOption) return
-      setIsOpen(false)
-      setDisplayValue(selectedOption.text)
-      setSelectedValue(selectedVal)
+      const selectedOption = options.find((opt) => opt.value === selectedVal);
+      if (!selectedOption) return;
+      setIsOpen(false);
+      setDisplayValue(selectedOption.text);
+      setSelectedValue(selectedVal);
       if (filter) {
-        setFilterText(selectedOption.text)
-        setHasTyped(false)
+        setFilterText(selectedOption.text);
+        setHasTyped(false);
       }
-      onChange?.(selectedVal)
+      onChange?.(selectedVal);
     }
-  }
+  };
 
   const handleClear = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    setDisplayValue('')
-    setFilterText('')
+    e.stopPropagation();
+    setDisplayValue("");
+    setFilterText("");
     // NEW: Reset focusedIndex to 0 so that scroll resets to the top.
-    setFocusedIndex(0)
+    setFocusedIndex(0);
     if (isMulti) {
-      setSelectedValues([])
-      onChange?.([])
+      setSelectedValues([]);
+      onChange?.([]);
       if (filter) {
-        setIsOpen(true)
+        setIsOpen(true);
         setTimeout(() => {
-          filterInputRef.current?.focus()
-          scrollToFocusedItem()
-        }, 0)
+          filterInputRef.current?.focus();
+          scrollToFocusedItem();
+        }, 0);
       }
     } else {
       // For single-select, reset the value to an empty string.
-      setSelectedValue('')
-      onChange?.('')
+      setSelectedValue("");
+      onChange?.("");
       // For single-select, open the dropdown and focus the FormControl.
-      setIsOpen(true)
+      setIsOpen(true);
       setTimeout(() => {
-        formControlRef.current?.focus()
-        scrollToFocusedItem()
-      }, 0)
+        formControlRef.current?.focus();
+        scrollToFocusedItem();
+      }, 0);
     }
-  }
+  };
 
   const handleClickOutside = (event: MouseEvent) => {
     if (
@@ -371,34 +390,38 @@ export const Dropdown: React.FC<DropdownProps> = ({
       listRef.current &&
       !listRef.current.contains(event.target as Node)
     ) {
-      setIsOpen(false)
+      setIsOpen(false);
     }
-  }
+  };
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (!isOpen) {
-      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-        setIsOpen(true)
-        event.preventDefault()
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        setIsOpen(true);
+        event.preventDefault();
       }
-      return
+      return;
     }
-    if (event.key === 'ArrowDown') {
-      event.preventDefault()
-      setFocusedIndex(prev => findNextFocusableIndex(prev, 'down', filteredOptions))
-    } else if (event.key === 'ArrowUp') {
-      event.preventDefault()
-      setFocusedIndex(prev => findNextFocusableIndex(prev, 'up', filteredOptions))
-    } else if (event.key === 'Enter') {
-      event.preventDefault()
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setFocusedIndex((prev) =>
+        findNextFocusableIndex(prev, "down", filteredOptions),
+      );
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setFocusedIndex((prev) =>
+        findNextFocusableIndex(prev, "up", filteredOptions),
+      );
+    } else if (event.key === "Enter") {
+      event.preventDefault();
       if (focusedIndex >= 0 && !filteredOptions[focusedIndex]?.disabled) {
-        handleSelect(filteredOptions[focusedIndex]?.value, event)
+        handleSelect(filteredOptions[focusedIndex]?.value, event);
       }
-    } else if (event.key === 'Escape') {
-      event.preventDefault()
-      setIsOpen(false)
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      setIsOpen(false);
     }
-  }
+  };
 
   const scrollToFocusedItem = () => {
     if (
@@ -406,120 +429,129 @@ export const Dropdown: React.FC<DropdownProps> = ({
       focusedIndex >= 0 &&
       listRef.current.children[focusedIndex]
     ) {
-      const focusedItem = listRef.current.children[focusedIndex] as HTMLElement
+      const focusedItem = listRef.current.children[focusedIndex] as HTMLElement;
       if (focusedItem) {
         focusedItem.scrollIntoView({
-          block: 'center',
-          inline: 'nearest',
-          behavior: 'smooth',
-        })
+          block: "center",
+          inline: "nearest",
+          behavior: "smooth",
+        });
       }
     }
-  }
+  };
 
   const updateDropdownPosition = () => {
     // Now using formControlRef for bounding client calculations.
-    if (!formControlRef.current || !listRef.current) return
-    const rect = formControlRef.current.getBoundingClientRect()
-    const dropdownHeight = listRef.current.offsetHeight
-    const spaceBelow = window.innerHeight - rect.bottom
-    const spaceAbove = rect.top
+    if (!formControlRef.current || !listRef.current) return;
+    const rect = formControlRef.current.getBoundingClientRect();
+    const dropdownHeight = listRef.current.offsetHeight;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
     let position =
-      spaceBelow < dropdownHeight && spaceAbove > dropdownHeight ? 'top' : 'bottom'
+      spaceBelow < dropdownHeight && spaceAbove > dropdownHeight
+        ? "top"
+        : "bottom";
     if (filteredOptions?.length <= 1) {
-      position = 'bottom'
+      position = "bottom";
     }
     setDropdownPosition({
-      top: position === 'top' ? rect.top - dropdownHeight : rect.bottom,
+      top: position === "top" ? rect.top - dropdownHeight : rect.bottom,
       left: rect.left,
       width: rect.width,
       position,
-    })
-  }
+    });
+  };
 
   const highlightMatch = (text: string) => {
-    if (!filter || !hasTyped || !filterText) return text
+    if (!filter || !hasTyped || !filterText) return text;
     // If filtering by beginning, highlight only the first characters.
     if (filterAtBeginning) {
       if (text.toLowerCase().startsWith(filterText.toLowerCase())) {
-        const prefix = text.substring(0, filterText.length)
-        const rest = text.substring(filterText.length)
+        const prefix = text.substring(0, filterText.length);
+        const rest = text.substring(filterText.length);
         return (
           <>
             <HighlightedText>{prefix}</HighlightedText>
             {rest}
           </>
-        )
+        );
       }
-      return text
+      return text;
     }
     // Otherwise highlight all occurrences.
-    const regex = new RegExp(`(${filterText})`, 'gi')
+    const regex = new RegExp(`(${filterText})`, "gi");
     return (
       <span>
-        {text.split(regex).map((part, i: number) =>
-          part.toLowerCase() === filterText.toLowerCase() ? (
-            <HighlightedText key={`key-${part}-${i}`}>{part}</HighlightedText>
-          ) : (
-            part
-          )
-        )}
+        {text
+          .split(regex)
+          .map((part, i: number) =>
+            part.toLowerCase() === filterText.toLowerCase() ? (
+              <HighlightedText key={`key-${part}-${i}`}>{part}</HighlightedText>
+            ) : (
+              part
+            ),
+          )}
       </span>
-    )
-  }
+    );
+  };
 
   const getSelectedClass = (index: number, value: string) => {
-    let focusClass = ''
-    let selectedClass = ''
+    let focusClass = "";
+    let selectedClass = "";
 
     if (index === focusedIndex) {
-      focusClass = 'focused'
+      focusClass = "focused";
     }
 
-    if ((isMulti && selectedValues.includes(value)) || (!isMulti && value === selectedValue)) {
-      selectedClass = 'selected'
+    if (
+      (isMulti && selectedValues.includes(value)) ||
+      (!isMulti && value === selectedValue)
+    ) {
+      selectedClass = "selected";
     }
 
-    return `${focusClass} ${selectedClass}`
-  }
+    return `${focusClass} ${selectedClass}`;
+  };
 
   const getValue = () => {
     if (isMulti) {
-      return displayValue
+      return displayValue;
     }
 
     if (isOpen && filter) {
       if (hasTyped) {
-        return filterText
+        return filterText;
       } else {
-        return displayValue
+        return displayValue;
       }
     } else {
-      return displayValue
+      return displayValue;
     }
-  }
+  };
 
   const getClearIcon = () => {
-    const shouldShowClear = (isMulti ? selectedValues.length > 0 : selectedValue)
+    const shouldShowClear = isMulti ? selectedValues.length > 0 : selectedValue;
 
-    return shouldShowClear ? [
-      {
-        icon: 'clear',
-        onClick: handleClear,
-        color: 'default',
-        hoverColor: 'danger',
-        className: 'clear-icon'
-      },
-    ] : []
-  }
+    return shouldShowClear
+      ? [
+          {
+            icon: "clear",
+            onClick: handleClear,
+            color: "default",
+            hoverColor: "danger",
+            className: "clear-icon",
+          },
+        ]
+      : [];
+  };
 
   const handleFilterChange = (text: string) => {
-    setFilterText(text)
-    setHasTyped(true)
+    setFilterText(text);
+    setHasTyped(true);
     if (onFilterChange) {
-      onFilterChange(text)
+      onFilterChange(text);
     }
-  }
+  };
 
   const dropdownContent = (
     <DropdownList
@@ -532,19 +564,19 @@ export const Dropdown: React.FC<DropdownProps> = ({
       $size={size}
       $dropdownHeight={dropdownHeight}
       $position={dropdownPosition.position}
-      className='dropdown-list'
+      className="dropdown-list"
     >
       {isMulti && filter && (
         <DropdownFilterContainer>
           <FormControl
             ref={filterInputRef}
-            type='text'
+            type="text"
             autoFocus
-            placeholder='Filter options...'
+            placeholder="Filter options..."
             value={filterText}
-            size='sm'
+            size="sm"
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-              handleFilterChange(e.target.value)
+              handleFilterChange(e.target.value);
             }}
             onKeyDown={handleKeyDown}
           />
@@ -552,59 +584,66 @@ export const Dropdown: React.FC<DropdownProps> = ({
       )}
       {filteredOptions?.length > 0 ? (
         <>
-        {isMulti && (
-          <DropdownItem
-            $size={size}
-            key="select-all"
-            data-testid="select-all"
-            className={`select-all ${selectedValues.length === options.filter(o => !o.disabled).length ? 'selected' : ''}`}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => {
-              const allSelected = selectedValues.length === options.filter(o => !o.disabled).length
+          {isMulti && (
+            <DropdownItem
+              $size={size}
+              key="select-all"
+              data-testid="select-all"
+              className={`select-all ${selectedValues.length === options.filter((o) => !o.disabled).length ? "selected" : ""}`}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                const allSelected =
+                  selectedValues.length ===
+                  options.filter((o) => !o.disabled).length;
 
-              const newValues = allSelected
-                ? []
-                : options.filter(o => !o.disabled).map(o => o.value)
+                const newValues = allSelected
+                  ? []
+                  : options.filter((o) => !o.disabled).map((o) => o.value);
 
-              setSelectedValues(newValues)
-              setDisplayValue(
-                newValues.length > 0
-                  ? `${newValues.length} selected ${ifElse(newValues.length === 1, 'item', 'items')}`
-                  : ''
-              )
-              onChange?.(newValues)
-              // Refocus the filter input if needed
-              if (filter) {
-                setTimeout(() => {
-                  filterInputRef.current?.focus()
-                  setFocusedIndex(0)
-                  scrollToFocusedItem()
-                }, 0)
-              }
-            }}
-          >
-            <FormControl
-              type="checkbox"
-              readOnly
-              checked={selectedValues.length === options.filter(o => !o.disabled).length}
-              simple
-            />
-            Select All
-          </DropdownItem>
-        )}
+                setSelectedValues(newValues);
+                setDisplayValue(
+                  newValues.length > 0
+                    ? `${newValues.length} selected ${ifElse(newValues.length === 1, "item", "items")}`
+                    : "",
+                );
+                onChange?.(newValues);
+                // Refocus the filter input if needed
+                if (filter) {
+                  setTimeout(() => {
+                    filterInputRef.current?.focus();
+                    setFocusedIndex(0);
+                    scrollToFocusedItem();
+                  }, 0);
+                }
+              }}
+            >
+              <FormControl
+                type="checkbox"
+                readOnly
+                checked={
+                  selectedValues.length ===
+                  options.filter((o) => !o.disabled).length
+                }
+                simple
+              />
+              Select All
+            </DropdownItem>
+          )}
           {filteredOptions.map(({ value, text, disabled }, index) => (
             <DropdownItem
               $size={size}
               key={`${value}-${index}`}
               data-testid={text}
               disabled={disabled}
-              onMouseDown={(e) => e.preventDefault()} 
+              onMouseDown={(e) => e.preventDefault()}
               className={getSelectedClass(index, value)}
-              onClick={(e: React.MouseEvent<HTMLLIElement, MouseEvent>) => !disabled && handleSelect(value, e)}
+              onClick={(e: React.MouseEvent<HTMLLIElement, MouseEvent>) =>
+                !disabled && handleSelect(value, e)
+              }
             >
               {isMulti && (
                 <FormControl
-                  type='checkbox'
+                  type="checkbox"
                   readOnly
                   checked={selectedValues.includes(value)}
                   simple
@@ -614,16 +653,19 @@ export const Dropdown: React.FC<DropdownProps> = ({
               {highlightMatch(text)}
             </DropdownItem>
           ))}
-        </>) : <NoOptionsContainer>No options found</NoOptionsContainer>}
+        </>
+      ) : (
+        <NoOptionsContainer>No options found</NoOptionsContainer>
+      )}
     </DropdownList>
-  )
+  );
 
   return (
-    <DropdownContainer ref={dropdownRef} className='dropdown-container'>
+    <DropdownContainer ref={dropdownRef} className="dropdown-container">
       <FormControl
         {...rest}
         ref={formControlRef}
-        type='text'
+        type="text"
         value={getValue()}
         placeholder={placeholder}
         readOnly={isMulti || !filter || !isOpen}
@@ -632,22 +674,22 @@ export const Dropdown: React.FC<DropdownProps> = ({
         onFocus={handleFocus}
         onBlur={handleBlur}
         onClick={() => setIsOpen(true)}
-        className={`${rest.className ?? ''} form-control-dropdown-container`}
+        className={`${rest.className ?? ""} form-control-dropdown-container`}
         onChange={
           filter && !isMulti
             ? (e: React.ChangeEvent<HTMLInputElement>) => {
-                handleFilterChange(e.target.value)
+                handleFilterChange(e.target.value);
               }
             : undefined
         }
         onKeyDown={handleKeyDown}
         iconRight={[
-          ...((clearable || isMulti) ? getClearIcon() : []),
-          { icon: 'keyboard_arrow_down', onClick: () => setIsOpen(true) },
+          ...(clearable || isMulti ? getClearIcon() : []),
+          { icon: "keyboard_arrow_down", onClick: () => setIsOpen(true) },
         ]}
         loading={loading}
       />
       {isOpen && ReactDOM.createPortal(dropdownContent, document.body)}
     </DropdownContainer>
-  )
-}
+  );
+};

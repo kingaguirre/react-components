@@ -1,13 +1,13 @@
-import { theme, fadeInOnMount } from '../../../../../styles'
-import styled from 'styled-components'
+import { theme, fadeInOnMount } from "../../../../../styles";
+import styled from "styled-components";
 
 export const SettingsPanelContainer = styled.div<{ $hasTitle?: boolean }>`
   position: absolute;
   right: -1px;
   width: 250px;
   z-index: 20;
-  top: ${({ $hasTitle }) => $hasTitle ? 65 : 38}px;
-  max-height: calc(100% - ${({ $hasTitle }) => $hasTitle ? 132 : 80}px);
+  top: ${({ $hasTitle }) => ($hasTitle ? 65 : 38)}px;
+  max-height: calc(100% - ${({ $hasTitle }) => ($hasTitle ? 132 : 80)}px);
   height: 100%;
   min-height: 115px;
   overflow-y: auto;
@@ -34,7 +34,7 @@ export const SettingsPanelContainer = styled.div<{ $hasTitle?: boolean }>`
       }
     }
   }
-`
+`;
 
 export const SettingsContainer = styled.div`
   .form-control-input-container {
@@ -50,4 +50,4 @@ export const SettingsContainer = styled.div`
       }
     }
   }
-`
+`;

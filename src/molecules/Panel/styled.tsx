@@ -1,23 +1,25 @@
 // src/components/Panel/styled.tsx
-import styled from "styled-components"
-import { theme } from "../../styles/theme"
-import { ColorType } from "../../common/interface"
+import styled from "styled-components";
+import { theme } from "../../styles/theme";
+import { ColorType } from "../../common/interface";
 
 export const PanelContainer = styled.div<{
-  $color: ColorType
-  $disabled: boolean
+  $color: ColorType;
+  $disabled: boolean;
 }>`
   background-color: white;
   border-radius: 2px;
-  box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.16), 0 0 6px rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0px 8px 16px rgba(0, 0, 0, 0.16),
+    0 0 6px rgba(0, 0, 0, 0.08);
   /* opacity: ${({ $disabled }) => ($disabled ? 0.6 : 1)}; */
   pointer-events: ${({ $disabled }) => ($disabled ? "none" : "auto")};
   overflow: hidden;
   font-family: ${theme.fontFamily};
-`
+`;
 
 export const PanelHeader = styled.div<{
-  $color: ColorType
+  $color: ColorType;
   $disabled: boolean;
   $hasLeftIcon: boolean;
   $hasRightIcons: boolean;
@@ -28,8 +30,9 @@ export const PanelHeader = styled.div<{
   padding: 10px 12px;
   height: 32px;
   box-sizing: border-box;
-  
-  background: ${({ $disabled, $color }) => $disabled ? theme.colors[$color].pale : theme.colors[$color].dark};
+
+  background: ${({ $disabled, $color }) =>
+    $disabled ? theme.colors[$color].pale : theme.colors[$color].dark};
   * {
     box-sizing: border-box;
   }
@@ -37,8 +40,9 @@ export const PanelHeader = styled.div<{
   .title {
     flex: 1;
     text-align: left;
-    color: ${({ $disabled }) => $disabled ? theme.colors.default.base : 'white'};
-    cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'default')};
+    color: ${({ $disabled }) =>
+      $disabled ? theme.colors.default.base : "white"};
+    cursor: ${({ $disabled }) => ($disabled ? "not-allowed" : "default")};
     padding-left: ${({ $hasLeftIcon }) => ($hasLeftIcon ? "8px" : "0")};
     padding-right: ${({ $hasRightIcons }) => ($hasRightIcons ? "8px" : "0")};
     font-size: 12px;
@@ -56,7 +60,7 @@ export const PanelHeader = styled.div<{
     display: block;
     line-height: 1;
   }
-`
+`;
 
 export const PanelContent = styled.div`
   padding: 12px;
@@ -65,7 +69,7 @@ export const PanelContent = styled.div`
   p {
     margin: 0 0 1rem;
   }
-`
+`;
 
 export const IconWrapper = styled.div<{
   $clickable: boolean;
@@ -74,11 +78,13 @@ export const IconWrapper = styled.div<{
   align-items: center;
   justify-content: center;
   color: white;
-  transition: all .3s ease;
+  transition: all 0.3s ease;
   font-size: 16px;
   gap: 4px;
 
-  ${({ $clickable }) => ($clickable ? `
+  ${({ $clickable }) =>
+    $clickable
+      ? `
     cursor: pointer;
 
     &:hover {
@@ -88,12 +94,13 @@ export const IconWrapper = styled.div<{
     &:active {
       color: ${theme.colors.default.light}
     }
-  ` : `
+  `
+      : `
     cursor: default;
-  `)};
-`
+  `};
+`;
 
 export const Text = styled.div`
   font-size: 12px;
   color: inherit;
-`
+`;

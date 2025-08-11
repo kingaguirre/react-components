@@ -1,9 +1,9 @@
-import { theme, fadeInOnMount } from '../../../../styles'
-import styled from 'styled-components'
+import { theme, fadeInOnMount } from "../../../../styles";
+import styled from "styled-components";
 
 export const FooterContainer = styled.div`
   background-color: #f2f2f2;
-`
+`;
 
 export const SelectRowContainer = styled.div`
   display: flex;
@@ -15,7 +15,7 @@ export const SelectRowContainer = styled.div`
   flex-wrap: wrap;
   gap: 8px;
   min-height: 28px;
-`
+`;
 
 export const FooterDetailsContainer = styled.div`
   padding: 8px 6px;
@@ -25,7 +25,7 @@ export const FooterDetailsContainer = styled.div`
   align-items: center;
   gap: 8px;
   overflow: auto;
-`
+`;
 
 export const LeftDetails = styled.div`
   display: flex;
@@ -40,15 +40,19 @@ export const LeftDetails = styled.div`
     color: ${theme.colors.default.dark};
     font-size: 14px;
   }
-`
+`;
 const getTextBoxWidth = (count: number) => {
-  switch(count) {
-    case 4: return 45
-    case 3: return 38
-    case 2: return 32
-    default: return 24
+  switch (count) {
+    case 4:
+      return 45;
+    case 3:
+      return 38;
+    case 2:
+      return 32;
+    default:
+      return 24;
   }
-}
+};
 
 export const RightDetails = styled(LeftDetails)<{ $totalCount: number }>`
   display: flex;
@@ -66,15 +70,15 @@ export const RightDetails = styled(LeftDetails)<{ $totalCount: number }>`
   > .dropdown-container {
     width: 52px;
   }
-`
+`;
 
-export const Button = styled.button<{ $outlined?: boolean}>`
+export const Button = styled.button<{ $outlined?: boolean }>`
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 16px;
   padding: 0;
-  background-color: ${({ $outlined }) => $outlined ? 'transparent' : 'white'};
+  background-color: ${({ $outlined }) => ($outlined ? "transparent" : "white")};
   cursor: pointer;
   min-height: 22px;
   min-width: 22px;
@@ -82,7 +86,7 @@ export const Button = styled.button<{ $outlined?: boolean}>`
   color: ${theme.colors.default.dark};
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.1);
   border-radius: 2px;
-  transition: all .3s ease;
+  transition: all 0.3s ease;
 
   &:hover {
     color: white;
@@ -98,7 +102,7 @@ export const Button = styled.button<{ $outlined?: boolean}>`
     color: ${theme.colors.default.base};
     background-color: ${theme.colors.lightA};
   }
-`
+`;
 
 export const SelectedContainer = styled.div`
   ${fadeInOnMount}
@@ -111,4 +115,4 @@ export const SelectedContainer = styled.div`
     color: ${theme.colors.success.base};
     font-size: 14px;
   }
-`
+`;

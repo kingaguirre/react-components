@@ -42,12 +42,13 @@ export const TabItem = styled.button<{
   border-top-left-radius: 4px;
   border-top-right-radius: 4px;
   border: 2px solid transparent;
-  transition: all .3s ease;
-  cursor: ${({ $disabled, $active }) => ($disabled ? "not-allowed" : ifElse($active, "default", "pointer"))};
+  transition: all 0.3s ease;
+  cursor: ${({ $disabled, $active }) =>
+    $disabled ? "not-allowed" : ifElse($active, "default", "pointer")};
   background-color: ${({ $active, $color }) =>
-    $active ? theme.colors[$color].pale : 'transparent'};
+    $active ? theme.colors[$color].pale : "transparent"};
   border-color: ${({ $active, $color }) =>
-    $active ? theme.colors[$color].base : 'transparent'};
+    $active ? theme.colors[$color].base : "transparent"};
   border-bottom-color: transparent;
   color: ${({ $disabled }) =>
     $disabled ? theme.colors.default.dark : theme.colors.default.darker};
@@ -56,8 +57,9 @@ export const TabItem = styled.button<{
   ${({ $fullHeader }) => ($fullHeader ? "flex: 1;" : "")}
 
   .title {
-    transition: all .3s ease;
-    color: ${({ $active, $color }) => !$active ? theme.colors[$color].base : theme.colors[$color].dark};
+    transition: all 0.3s ease;
+    color: ${({ $active, $color }) =>
+      !$active ? theme.colors[$color].base : theme.colors[$color].dark};
   }
 
   .icon {
@@ -67,32 +69,43 @@ export const TabItem = styled.button<{
 
   &:hover {
     > .title {
-      color: ${({ $active, $color }) => !$active ? theme.colors[$color].dark : undefined};
+      color: ${({ $active, $color }) =>
+        !$active ? theme.colors[$color].dark : undefined};
     }
   }
 
   /* ✅ Focused Tab Styling */
-  ${({ $focused, $disabled, $color, $active }) => $focused && !$disabled && `
+  ${({ $focused, $disabled, $color, $active }) =>
+    $focused &&
+    !$disabled &&
+    `
     background-color: ${theme.colors[$color].pale};
-    ${!$active ? `
+    ${
+      !$active
+        ? `
       border-bottom-color: ${theme.colors[$color].base};
-    ` : ``}
+    `
+        : ``
+    }
   `}
 `;
 
 const getPosition = (position: string) => {
-  switch(true) {
+  switch (true) {
     case position === "left":
       return "left: 0;";
     case position === "left-adjusted":
       return "left: 35px;";
     case position === "right":
       return "right: 0;";
-    default: return "right: 35px;";
+    default:
+      return "right: 35px;";
   }
 };
 
-export const ScrollButton = styled.button<{ $position: "left" | "left-adjusted" | "right" | "right-adjusted" }>`
+export const ScrollButton = styled.button<{
+  $position: "left" | "left-adjusted" | "right" | "right-adjusted";
+}>`
   background: transparent;
   display: flex;
   align-items: center;
@@ -115,13 +128,14 @@ export const ScrollButton = styled.button<{ $position: "left" | "left-adjusted" 
   ${({ $position }) => getPosition($position)}
 `;
 
-export const TabContentWrapper = styled.div<{$color: ColorType }>`
+export const TabContentWrapper = styled.div<{ $color: ColorType }>`
   padding: 12px;
-  border-top: 2px solid ${({ $color }) => theme.colors[$color || "primary"].base};
+  border-top: 2px solid
+    ${({ $color }) => theme.colors[$color || "primary"].base};
   font-size: 14px;
   color: ${theme.colors.default.dark};
   outline: none;
-  transition: all .3s ease;
+  transition: all 0.3s ease;
   p {
     margin: 0 0 16px;
   }

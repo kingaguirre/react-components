@@ -1,6 +1,6 @@
-import { ColorType } from 'src/common/interface'
-import { scrollStyle, theme } from 'src/styles'
-import styled from 'styled-components'
+import { ColorType } from "src/common/interface";
+import { scrollStyle, theme } from "src/styles";
+import styled from "styled-components";
 
 export const Container = styled.div`
   display: flex;
@@ -15,7 +15,7 @@ export const Container = styled.div`
     box-sizing: border-box;
     ${scrollStyle}
   }
-`
+`;
 
 export const Header = styled.header`
   position: relative;
@@ -28,7 +28,7 @@ export const Header = styled.header`
   height: 32px;
   box-shadow: 0 3px 6px 0 rgba(130, 149, 157, 0.2);
   &:before {
-    content: '';
+    content: "";
     height: 2px;
     width: 100%;
     bottom: 0;
@@ -36,7 +36,7 @@ export const Header = styled.header`
     position: absolute;
     background-color: ${theme.colors.primary.dark};
   }
-`
+`;
 
 export const LeftSection = styled.div`
   display: flex;
@@ -52,21 +52,21 @@ export const RightSection = styled.div`
   z-index: 0;
   height: 16px;
   font-size: 10px;
-`
+`;
 
 export const HeaderWrapper = styled.div<{ $headerHidden: boolean }>`
   height: 32px;
   overflow: visible;
-  margin-top: ${({ $headerHidden }) => $headerHidden ? '-30px' : 0};
+  margin-top: ${({ $headerHidden }) => ($headerHidden ? "-30px" : 0)};
   transition: margin-top 0.3s ease;
-`
+`;
 
 export const ContentWrapper = styled.div`
   display: flex;
   flex: 1;
   position: relative;
   overflow: hidden;
-`
+`;
 
 export const MainContent = styled.main`
   flex: 1;
@@ -74,9 +74,13 @@ export const MainContent = styled.main`
   overflow: auto;
   background-color: #e1e1e1;
   ${scrollStyle}
-`
+`;
 
-export const IconButton = styled.button<{ $leftDivider?: boolean, $color?: ColorType, $colorShade?: string }>`
+export const IconButton = styled.button<{
+  $leftDivider?: boolean;
+  $color?: ColorType;
+  $colorShade?: string;
+}>`
   display: flex;
   align-self: center;
   justify-content: center;
@@ -86,7 +90,7 @@ export const IconButton = styled.button<{ $leftDivider?: boolean, $color?: Color
   height: 14px;
   font-size: 16px;
   opacity: 0.8;
-  transition: all .3s ease;
+  transition: all 0.3s ease;
   padding: 0;
   padding-right: 12px;
   line-height: 1;
@@ -98,13 +102,16 @@ export const IconButton = styled.button<{ $leftDivider?: boolean, $color?: Color
     opacity: 0.7;
   }
   /* If $leftDivider is true, add a left border and some left padding */
-  ${({ $leftDivider }) => $leftDivider && `
+  ${({ $leftDivider }) =>
+    $leftDivider &&
+    `
     border-left: 1px solid ${theme.colors.default.light};
     padding-left: 12px;
   `}
   > span {
     line-height: 1.4;
-    color: ${({ $color = 'default', $colorShade = 'base' }) => theme.colors[$color]?.[$colorShade]};
+    color: ${({ $color = "default", $colorShade = "base" }) =>
+      theme.colors[$color]?.[$colorShade]};
     &.text {
       margin-right: 4px;
       font-size: 12px;
@@ -122,31 +129,35 @@ export const PageName = styled.div`
   overflow: hidden;
   text-overflow: ellipsis;
   cursor: default;
-`
+`;
 
 export const SideMenuContainer = styled.aside<{
-  $collapsed: boolean
-  $overlay?: boolean
-  $visible: boolean
-  $sideMenuWidth: number
+  $collapsed: boolean;
+  $overlay?: boolean;
+  $visible: boolean;
+  $sideMenuWidth: number;
 }>`
-  width: ${({ $collapsed, $sideMenuWidth }) => ($collapsed ? '50px' : `${$sideMenuWidth}px`)};
+  width: ${({ $collapsed, $sideMenuWidth }) =>
+    $collapsed ? "50px" : `${$sideMenuWidth}px`};
   height: 100%;
   background-color: ${theme.colors.primary.darker};
   color: white;
   display: flex;
   flex-direction: column;
-  transition: width 0.3s ease, transform 0.3s ease, opacity 0.3s ease;
+  transition:
+    width 0.3s ease,
+    transform 0.3s ease,
+    opacity 0.3s ease;
   overflow: visible;
-  position: ${({ $overlay }) => ($overlay ? 'absolute' : 'relative')};
+  position: ${({ $overlay }) => ($overlay ? "absolute" : "relative")};
   top: 0;
   left: 0;
   transform: translateX(-100%);
   opacity: 0;
-  z-index: ${({ $overlay }) => ($overlay ? '101' : '1')};
-  transform: translateX(${({ $visible }) => ($visible ? '0' : '-100%')});
+  z-index: ${({ $overlay }) => ($overlay ? "101" : "1")};
+  transform: translateX(${({ $visible }) => ($visible ? "0" : "-100%")});
   opacity: ${({ $visible }) => ($visible ? 1 : 0)};
-`
+`;
 
 export const CollapseToggleContainer = styled.div`
   margin-top: auto;
@@ -154,7 +165,7 @@ export const CollapseToggleContainer = styled.div`
   text-align: center;
   cursor: pointer;
   color: white;
-`
+`;
 
 /* New styled components for animated logo transition */
 export const AnimatedIconWrapper = styled.div<{ $show: boolean }>`
@@ -163,10 +174,10 @@ export const AnimatedIconWrapper = styled.div<{ $show: boolean }>`
   height: 32px;
   background-color: ${theme.colors.primary.darker};
   color: white;
-  transition: all .3s ease;
+  transition: all 0.3s ease;
   overflow: hidden;
   cursor: pointer;
-`
+`;
 
 export const AnimatedIcon = styled.div<{ $show: boolean }>`
   position: absolute;
@@ -175,7 +186,9 @@ export const AnimatedIcon = styled.div<{ $show: boolean }>`
   right: 0;
   bottom: 0;
   margin: auto;
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
   opacity: ${({ $show }) => ($show ? 1 : 0)};
   transform-origin: left center;
   display: flex;
@@ -185,4 +198,4 @@ export const AnimatedIcon = styled.div<{ $show: boolean }>`
   img {
     height: 16px;
   }
-`
+`;

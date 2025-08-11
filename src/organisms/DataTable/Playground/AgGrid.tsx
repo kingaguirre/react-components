@@ -1,19 +1,19 @@
-'use client'
-import React, { useState, useEffect } from "react"
-import type { ColDef } from "ag-grid-community"
-import { AllCommunityModule, ModuleRegistry } from "ag-grid-community"
-import { AgGridReact } from "ag-grid-react"
+"use client";
+import React, { useState, useEffect } from "react";
+import type { ColDef } from "ag-grid-community";
+import { AllCommunityModule, ModuleRegistry } from "ag-grid-community";
+import { AgGridReact } from "ag-grid-react";
 
 // Register all community modules
-ModuleRegistry.registerModules([AllCommunityModule])
+ModuleRegistry.registerModules([AllCommunityModule]);
 
 // Dummy secureRandom function and sample addresses
-const secureRandom = () => Math.random()
+const secureRandom = () => Math.random();
 const loremAddresses = [
   "123 Main St, City, Country",
   "456 Elm St, City, Country",
   "789 Maple Ave, City, Country",
-]
+];
 
 // Generate 1000 rows of sample data
 const dataSource = (length = 1000) => {
@@ -33,8 +33,10 @@ const dataSource = (length = 1000) => {
     birthdate: new Date(
       1980 + Math.floor(secureRandom() * 20),
       Math.floor(secureRandom() * 12),
-      Math.floor(secureRandom() * 28) + 1
-    ).toISOString().split("T")[0],
+      Math.floor(secureRandom() * 28) + 1,
+    )
+      .toISOString()
+      .split("T")[0],
     vacationDates: [
       new Date(2023, 5, Math.floor(secureRandom() * 8) + 1)
         .toISOString()
@@ -58,7 +60,10 @@ const dataSource = (length = 1000) => {
         twitter: `@user${i + 1}`,
         linkedin: `https://linkedin.com/in/user${i + 1}`,
       },
-      skills: ["JavaScript", "React", "TypeScript", "Node.js"].slice(0, (i % 4) + 1),
+      skills: ["JavaScript", "React", "TypeScript", "Node.js"].slice(
+        0,
+        (i % 4) + 1,
+      ),
     },
     events: {
       eventId: `${i + 1}`,
@@ -66,12 +71,16 @@ const dataSource = (length = 1000) => {
       eventDate: new Date(
         2023,
         Math.floor(secureRandom() * 12),
-        Math.floor(secureRandom() * 28) + 1
-      ).toISOString().split("T")[0],
+        Math.floor(secureRandom() * 28) + 1,
+      )
+        .toISOString()
+        .split("T")[0],
       details: {
-        location: ["Conference Room A", "Conference Room B", "Auditorium"][i % 3],
+        location: ["Conference Room A", "Conference Room B", "Auditorium"][
+          i % 3
+        ],
         participants: Math.floor(secureRandom() * 100),
-      }
+      },
     },
     metadata: {
       createdBy: "system",
@@ -81,12 +90,18 @@ const dataSource = (length = 1000) => {
         isReviewed: i % 7 === 0,
       },
       history: [
-        { action: "created", timestamp: new Date(2023, 0, 1 + i).toISOString() },
-        { action: "updated", timestamp: new Date(2023, 1, 1 + i).toISOString() },
+        {
+          action: "created",
+          timestamp: new Date(2023, 0, 1 + i).toISOString(),
+        },
+        {
+          action: "updated",
+          timestamp: new Date(2023, 1, 1 + i).toISOString(),
+        },
       ],
     },
-  }))
-}
+  }));
+};
 
 // Your COLUMN_SETTINGS definition
 const COLUMN_SETTINGS = [
@@ -157,19 +172,26 @@ const COLUMN_SETTINGS = [
     column: "preferences",
     filter: { type: "dropdown" },
     cell: (params: any) => {
-      const preferences = params.value
+      const preferences = params.value;
       const prefArray = Array.isArray(preferences)
         ? preferences
-        : String(preferences).split(",").filter(Boolean)
+        : String(preferences).split(",").filter(Boolean);
       return prefArray.length ? (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
           {prefArray.map((item: string) => (
-            <span key={item} style={{ background: "#eee", padding: "2px 4px", borderRadius: 4 }}>
+            <span
+              key={item}
+              style={{
+                background: "#eee",
+                padding: "2px 4px",
+                borderRadius: 4,
+              }}
+            >
               {item}
             </span>
           ))}
         </div>
-      ) : null
+      ) : null;
     },
   },
   {
@@ -206,28 +228,30 @@ const COLUMN_SETTINGS = [
     title: "Action",
     column: "id_",
     cell: (params: any) => (
-      <button>{params.data.name} {params.rowIndex}</button>
+      <button>
+        {params.data.name} {params.rowIndex}
+      </button>
     ),
   },
-]
+];
 
 // Helper to map our custom filter types to AG Grid filters
 const mapFilterToAgGridFilter = (filter: any) => {
-  if (!filter) return false
+  if (!filter) return false;
   switch (filter.type) {
     case "dropdown":
-      return "agSetColumnFilter"
+      return "agSetColumnFilter";
     case "date-range":
     case "date":
-      return "agDateColumnFilter"
+      return "agDateColumnFilter";
     case "number-range":
-      return "agNumberColumnFilter"
+      return "agNumberColumnFilter";
     case "text":
-      return "agTextColumnFilter"
+      return "agTextColumnFilter";
     default:
-      return true
+      return true;
   }
-}
+};
 
 // Transform COLUMN_SETTINGS into AG Grid ColDef array
 const transformColumnSettingsToAgGridDefs = (settings: any[]): ColDef[] => {
@@ -242,42 +266,41 @@ const transformColumnSettingsToAgGridDefs = (settings: any[]): ColDef[] => {
     filter: setting.filter ? mapFilterToAgGridFilter(setting.filter) : false,
     cellRenderer: setting.cell ? setting.cell : undefined,
     cellStyle: setting.align ? { textAlign: setting.align } : undefined,
-  }))
-}
+  }));
+};
 
 export const GridExample = () => {
-  const [colDefs, setColDefs] = useState<ColDef[]>([])
+  const [colDefs, setColDefs] = useState<ColDef[]>([]);
 
   useEffect(() => {
-    setColDefs(transformColumnSettingsToAgGridDefs(COLUMN_SETTINGS))
-  }, [])
+    setColDefs(transformColumnSettingsToAgGridDefs(COLUMN_SETTINGS));
+  }, []);
 
   const defaultColDef: ColDef = {
     flex: 1,
     resizable: true,
     filter: true,
-  }
+  };
 
   return (
     <div className="ag-theme-alpine" style={{ width: "100%", height: "300px" }}>
-      <HeartbeatDisplay/>
+      <HeartbeatDisplay />
       <AgGridReact
         rowData={dataSource(100000)}
         columnDefs={colDefs}
         defaultColDef={defaultColDef}
         rowSelection={{
-          mode: 'multiRow'
+          mode: "multiRow",
         }}
       />
     </div>
-  )
-}
-
+  );
+};
 
 const HeartbeatDisplay = React.memo(() => {
   const [heartbeat, setHeartbeat] = useState(0);
   useEffect(() => {
-    const interval = setInterval(() => setHeartbeat(prev => prev + 1), 100);
+    const interval = setInterval(() => setHeartbeat((prev) => prev + 1), 100);
     return () => clearInterval(interval);
   }, []);
   return (
@@ -286,4 +309,3 @@ const HeartbeatDisplay = React.memo(() => {
     </div>
   );
 });
-

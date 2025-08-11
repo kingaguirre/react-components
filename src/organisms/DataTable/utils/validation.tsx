@@ -1,9 +1,9 @@
 // validation.ts
-import { z, ZodTypeAny, ZodSchema, ZodString } from 'zod'
-import { ValidatorHelper } from '../interface'
+import { z, ZodTypeAny, ZodSchema, ZodString } from "zod";
+import { ValidatorHelper } from "../interface";
 
 // Extend ZodString with our custom chainable methods and custom properties.
-declare module 'zod' {
+declare module "zod" {
   interface ZodString {
     unique(message?: string): ZodString;
     required(message?: string): ZodString;
@@ -31,7 +31,7 @@ function fixSchema<T extends ZodString>(schema: T): T {
 function shallowCloneZodString(schema: ZodString): ZodString {
   return Object.create(
     Object.getPrototypeOf(schema),
-    Object.getOwnPropertyDescriptors(schema)
+    Object.getOwnPropertyDescriptors(schema),
   );
 }
 
@@ -61,10 +61,14 @@ ZodString.prototype.unique = function (message = "Duplicate value"): ZodString {
 };
 
 // Custom method: required
-ZodString.prototype.required = function (message = "Required field"): ZodString {
+ZodString.prototype.required = function (
+  message = "Required field",
+): ZodString {
   const base = this;
   // Use nonempty() to enforce that the string isn't empty.
-  const newSchema = fixSchema(shallowCloneZodString(base)).nonempty({ message }) as unknown as ZodString;
+  const newSchema = fixSchema(shallowCloneZodString(base)).nonempty({
+    message,
+  }) as unknown as ZodString;
   const fixed = fixSchema(newSchema);
   mergeCustomValidationFlags(fixed, base);
   fixed._required = true;
@@ -76,14 +80,20 @@ ZodString.prototype.required = function (message = "Required field"): ZodString 
  * Wrap chainable methods on ZodString so that our custom flags are preserved
  * when chaining built-in validations (e.g. regex, max, min, etc.).
  */
-const chainableMethods = Object.getOwnPropertyNames(ZodString.prototype).filter(key => {
-  // Skip the constructor and our custom methods.
-  if (key === 'constructor' || key === 'unique' || key === 'required') return false;
-  const descriptor = Object.getOwnPropertyDescriptor(ZodString.prototype, key);
-  if (!descriptor) return false;
-  // Only wrap if the property is a function.
-  return typeof descriptor.value === 'function';
-});
+const chainableMethods = Object.getOwnPropertyNames(ZodString.prototype).filter(
+  (key) => {
+    // Skip the constructor and our custom methods.
+    if (key === "constructor" || key === "unique" || key === "required")
+      return false;
+    const descriptor = Object.getOwnPropertyDescriptor(
+      ZodString.prototype,
+      key,
+    );
+    if (!descriptor) return false;
+    // Only wrap if the property is a function.
+    return typeof descriptor.value === "function";
+  },
+);
 
 // Wrap each method.
 for (const methodName of chainableMethods) {
@@ -97,16 +107,16 @@ for (const methodName of chainableMethods) {
       return result;
     }
     return result;
-  }
+  };
 }
 
-export const getValidationError = <T = unknown>(
+export const getValidationError = <T = unknown,>(
   value?: boolean | string | number,
   validation?: (v: ValidatorHelper, rowData: any) => ZodSchema<T>,
   columnId?: string,
   uniqueMap?: string[],
   rowData?: any,
-  isCell = false // determine if duplicate validation is in input or in cell
+  isCell = false, // determine if duplicate validation is in input or in cell
 ): string | null => {
   if (!validation) return null;
   const validatorHelper: ValidatorHelper = { schema: jsonSchemaToZod, ...z };
@@ -116,8 +126,11 @@ export const getValidationError = <T = unknown>(
 
   // 1. Required check (highest priority)
   if ((schema as any)._required) {
-    if (value === undefined || (typeof value === 'string' && value.trim() === '')) {
-      errors.push((schema as any)._requiredMessage || 'Required field');
+    if (
+      value === undefined ||
+      (typeof value === "string" && value.trim() === "")
+    ) {
+      errors.push((schema as any)._requiredMessage || "Required field");
     }
   }
 
@@ -126,19 +139,21 @@ export const getValidationError = <T = unknown>(
     if (
       value !== undefined &&
       value !== null &&
-      !(typeof value === 'string' && value.trim() === '')
+      !(typeof value === "string" && value.trim() === "")
     ) {
       // Trim the value before comparing
       const key = String(value).trim();
       if (isCell) {
-        const occurrences = uniqueMap.filter(item => item.trim() === key).length;
+        const occurrences = uniqueMap.filter(
+          (item) => item.trim() === key,
+        ).length;
         if (occurrences >= 2) {
-          errors.push((schema as any)._uniqueMessage || 'Duplicate value');
+          errors.push((schema as any)._uniqueMessage || "Duplicate value");
         }
       } else {
         // Use `some` to check for an exact match on the trimmed values.
-        if (uniqueMap.some(item => item.trim() === key)) {
-          errors.push((schema as any)._uniqueMessage || 'Duplicate value');
+        if (uniqueMap.some((item) => item.trim() === key)) {
+          errors.push((schema as any)._uniqueMessage || "Duplicate value");
         }
       }
     }
@@ -147,7 +162,7 @@ export const getValidationError = <T = unknown>(
   // 3. Built-in Zod validations (e.g. regex, max, etc.)
   const result = schema.safeParse(value);
   if (!result.success) {
-    result.error.issues.forEach(issue => {
+    result.error.issues.forEach((issue) => {
       errors.push(issue.message);
     });
   }
@@ -156,19 +171,19 @@ export const getValidationError = <T = unknown>(
   const uniqueErrors = Array.from(new Set(errors));
   if (uniqueErrors.length === 0) return null;
   if (uniqueErrors.length === 1) return uniqueErrors[0];
-  return uniqueErrors.map(error => `* ${error}.`).join('\n');
+  return uniqueErrors.map((error) => `* ${error}.`).join("\n");
 };
 
 export const jsonSchemaToZod = (
   schema: { type: string; pattern?: string },
-  errorMessage?: string
+  errorMessage?: string,
 ): ZodTypeAny => {
-  if (schema.type === 'string') {
+  if (schema.type === "string") {
     let zodSchema = z.string();
     if (schema.pattern) {
       zodSchema = zodSchema.regex(
         new RegExp(schema.pattern),
-        errorMessage || 'Invalid format'
+        errorMessage || "Invalid format",
       );
     }
     return zodSchema;

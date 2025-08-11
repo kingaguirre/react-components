@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef } from "react";
 
 export function useDebouncedColumnSettingsChange({
   columnSettings,
@@ -7,57 +7,66 @@ export function useDebouncedColumnSettingsChange({
   columnSizing,
   columnPinning,
   sorting,
-  columnOrder,       // now provided as a state
-  columnVisibility,  // now provided as a state
+  columnOrder, // now provided as a state
+  columnVisibility, // now provided as a state
   delay = 300,
 }) {
-  const columnSettingsStr = JSON.stringify(columnSettings)
-  const columnOrderStr = JSON.stringify(columnOrder)
-  const columnVisibilityStr = JSON.stringify(columnVisibility)
+  const columnSettingsStr = JSON.stringify(columnSettings);
+  const columnOrderStr = JSON.stringify(columnOrder);
+  const columnVisibilityStr = JSON.stringify(columnVisibility);
 
-  const didMountRef = useRef(false)
-  const lastSentSettingsRef: any = useRef(null)
+  const didMountRef = useRef(false);
+  const lastSentSettingsRef: any = useRef(null);
 
   useEffect(() => {
     if (!didMountRef.current) {
-      didMountRef.current = true
-      return
+      didMountRef.current = true;
+      return;
     }
     const handler = setTimeout(() => {
       if (onColumnSettingsChange) {
         const updatedSettings = columnSettings.map((colSetting) => {
-          const tableCol = table.getAllLeafColumns().find(
-            (col) =>
-              col.id === colSetting.column ||
-              (col.columnDef && col.columnDef.accessorKey === colSetting.column)
-          )
+          const tableCol = table
+            .getAllLeafColumns()
+            .find(
+              (col) =>
+                col.id === colSetting.column ||
+                (col.columnDef &&
+                  col.columnDef.accessorKey === colSetting.column),
+            );
           if (tableCol) {
-            const newPin = tableCol.getIsPinned() === 'left' ? 'pin' : 'unpin'
-            const newWidth = tableCol.getSize()
-            const sortingEntry = sorting.find((s) => s.id === colSetting.column)
-            const newSort = sortingEntry ? (sortingEntry.desc ? 'desc' : 'asc') : undefined
-            const order = columnOrder.indexOf(colSetting.column)
-            const hidden = columnVisibility[colSetting.column] !== false
-            return { 
-              ...colSetting, 
-              pin: newPin, 
-              width: newWidth, 
+            const newPin = tableCol.getIsPinned() === "left" ? "pin" : "unpin";
+            const newWidth = tableCol.getSize();
+            const sortingEntry = sorting.find(
+              (s) => s.id === colSetting.column,
+            );
+            const newSort = sortingEntry
+              ? sortingEntry.desc
+                ? "desc"
+                : "asc"
+              : undefined;
+            const order = columnOrder.indexOf(colSetting.column);
+            const hidden = columnVisibility[colSetting.column] !== false;
+            return {
+              ...colSetting,
+              pin: newPin,
+              width: newWidth,
               sort: newSort,
               order,
-              hidden
-            }
+              hidden,
+            };
           }
-          return colSetting
-        })
-        const updatedSettingsStr = JSON.stringify(updatedSettings)
+          return colSetting;
+        });
+        const updatedSettingsStr = JSON.stringify(updatedSettings);
         if (lastSentSettingsRef.current !== updatedSettingsStr) {
-          onColumnSettingsChange(updatedSettings)
-          lastSentSettingsRef.current = updatedSettingsStr
+          onColumnSettingsChange(updatedSettings);
+          lastSentSettingsRef.current = updatedSettingsStr;
         }
       }
-    }, delay)
+    }, delay);
 
-    return () => clearTimeout(handler)
+    return () => clearTimeout(handler);
   }, [
     columnSizing,
     columnPinning,
@@ -68,6 +77,6 @@ export function useDebouncedColumnSettingsChange({
     onColumnSettingsChange,
     table,
     delay,
-    columnSettings
-  ])
+    columnSettings,
+  ]);
 }

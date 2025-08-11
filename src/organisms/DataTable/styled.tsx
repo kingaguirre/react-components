@@ -1,5 +1,5 @@
-import { fadeInOnMount, scrollStyle, theme } from '../../styles'
-import styled from 'styled-components'
+import { fadeInOnMount, scrollStyle, theme } from "../../styles";
+import styled from "styled-components";
 
 export const DataTableWrapper = styled.div<{ $disabled?: boolean }>`
   position: relative;
@@ -9,14 +9,18 @@ export const DataTableWrapper = styled.div<{ $disabled?: boolean }>`
   box-sizing: border-box;
   background-color: ${theme.colors.default.pale};
   ${scrollStyle}
-  
-  * { box-sizing: border-box; }
 
-  button {
-    outline: none!important;
+  * {
+    box-sizing: border-box;
   }
 
-  ${({ $disabled }) => $disabled ? `
+  button {
+    outline: none !important;
+  }
+
+  ${({ $disabled }) =>
+    $disabled
+      ? `
     * {
       pointer-events: none;
     }
@@ -32,19 +36,20 @@ export const DataTableWrapper = styled.div<{ $disabled?: boolean }>`
       cursor: not-allowed;
       ${fadeInOnMount}
     }
-  ` : ''}
-`
+  `
+      : ""}
+`;
 
 export const DataTableContainer = styled.div`
   overflow: auto;
-`
-export const DataTableContentContainer = styled.div``
+`;
+export const DataTableContentContainer = styled.div``;
 
 export const RowsToDeleteText = styled.div`
   > b {
     color: ${theme.colors.danger.base};
   }
-`
+`;
 
 export const TableTitle = styled.div`
   padding: 8px 6px;
@@ -55,4 +60,4 @@ export const TableTitle = styled.div`
   background-color: ${theme.colors.lightA};
   border-bottom: 1px solid ${theme.colors.default.pale};
   cursor: default;
-`
+`;

@@ -1,30 +1,36 @@
-import React from 'react'
-import { MainHeadercontainer, SearhContainer, RightDetailsContainer, IconContainer, RightIconButtonContainer } from './styled'
-import { DebouncedInput } from '../ColumnHeader/Filter'
-import { Button as FooterButton } from '../Footer/styled'
-import { Icon } from '../../../../atoms/Icon'
-import { Tooltip } from '../../../../atoms/Tooltip'
-import { Button } from '../../../../atoms/Button'
-import { DataTableProps } from '../../interface'
-import { HeaderRightElementRenderer } from './HeaderRightElementRenderer'
+import React from "react";
+import {
+  MainHeadercontainer,
+  SearhContainer,
+  RightDetailsContainer,
+  IconContainer,
+  RightIconButtonContainer,
+} from "./styled";
+import { DebouncedInput } from "../ColumnHeader/Filter";
+import { Button as FooterButton } from "../Footer/styled";
+import { Icon } from "../../../../atoms/Icon";
+import { Tooltip } from "../../../../atoms/Tooltip";
+import { Button } from "../../../../atoms/Button";
+import { DataTableProps } from "../../interface";
+import { HeaderRightElementRenderer } from "./HeaderRightElementRenderer";
 
 interface MainHeaderProps {
-  value?: string
-  enableGlobalFiltering?: boolean
-  onChange: (value: string | number) => void
-  onClear?: () => void
-  isClearDisabled?: boolean
-  isAddBtnDisabled?: boolean
-  enableRowAdding?: boolean
-  onClearAllIconClick?: () => void
-  onAddBtnClick?: () => void
-  onSettingsIconClick?: () => void
-  isSettingsPanelOpen?: boolean
-  handleDeleteIconClick?: () => void
-  showDeleteIcon?: boolean
-  handleResetColumnSettings?: () => void
-  headerRightControls?: boolean
-  headerRightElements?: DataTableProps['headerRightElements']
+  value?: string;
+  enableGlobalFiltering?: boolean;
+  onChange: (value: string | number) => void;
+  onClear?: () => void;
+  isClearDisabled?: boolean;
+  isAddBtnDisabled?: boolean;
+  enableRowAdding?: boolean;
+  onClearAllIconClick?: () => void;
+  onAddBtnClick?: () => void;
+  onSettingsIconClick?: () => void;
+  isSettingsPanelOpen?: boolean;
+  handleDeleteIconClick?: () => void;
+  showDeleteIcon?: boolean;
+  handleResetColumnSettings?: () => void;
+  headerRightControls?: boolean;
+  headerRightElements?: DataTableProps["headerRightElements"];
 }
 
 export const MainHeader: React.FC<MainHeaderProps> = ({
@@ -43,55 +49,73 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
   showDeleteIcon,
   handleResetColumnSettings,
   headerRightControls,
-  headerRightElements
+  headerRightElements,
 }) => {
-  const inputRef = React.useRef<HTMLInputElement | null>(null)
+  const inputRef = React.useRef<HTMLInputElement | null>(null);
 
-  return (enableGlobalFiltering || enableRowAdding || showDeleteIcon || headerRightControls || headerRightElements) ? (
-    <MainHeadercontainer className='main-header-container'>
+  return enableGlobalFiltering ||
+    enableRowAdding ||
+    showDeleteIcon ||
+    headerRightControls ||
+    headerRightElements ? (
+    <MainHeadercontainer className="main-header-container">
       {enableGlobalFiltering && (
-        <SearhContainer className='search-container'>
+        <SearhContainer className="search-container">
           <DebouncedInput
-            name='main-header-search-input'
-            value={value ?? ''}
+            name="main-header-search-input"
+            value={value ?? ""}
             onChange={onChange}
-            placeholder='Search all columns...'
+            placeholder="Search all columns..."
             ref={inputRef}
             iconRight={[
-              ...(value ? [{
-                icon: 'clear',
-                color: 'default',
-                hoverColor: 'danger',
-                onClick: onClear
-              }] : []),
+              ...(value
+                ? [
+                    {
+                      icon: "clear",
+                      color: "default",
+                      hoverColor: "danger",
+                      onClick: onClear,
+                    },
+                  ]
+                : []),
               {
-                icon: 'search',
-                onClick: () => inputRef?.current?.focus()
-              }
+                icon: "search",
+                onClick: () => inputRef?.current?.focus(),
+              },
             ]}
           />
-          <FooterButton title='Clear All Filters' $outlined onClick={onClearAllIconClick} disabled={isClearDisabled}>
-            <Icon icon='clear'/>
+          <FooterButton
+            title="Clear All Filters"
+            $outlined
+            onClick={onClearAllIconClick}
+            disabled={isClearDisabled}
+          >
+            <Icon icon="clear" />
           </FooterButton>
         </SearhContainer>
       )}
 
-      <RightDetailsContainer className='right-details-container'>
+      <RightDetailsContainer className="right-details-container">
         <HeaderRightElementRenderer elements={headerRightElements} />
 
         {enableRowAdding && (
-          <Button data-testid='add-row-button' size='sm' disabled={isAddBtnDisabled || isSettingsPanelOpen} {...!isAddBtnDisabled ? { onClick: onAddBtnClick } : {}}>
-            Add New <Icon icon='add_circle_outline'/>
+          <Button
+            data-testid="add-row-button"
+            size="sm"
+            disabled={isAddBtnDisabled || isSettingsPanelOpen}
+            {...(!isAddBtnDisabled ? { onClick: onAddBtnClick } : {})}
+          >
+            Add New <Icon icon="add_circle_outline" />
           </Button>
         )}
-        <IconContainer className='container-icon'>
+        <IconContainer className="container-icon">
           {showDeleteIcon && (
             <RightIconButton
               testId="bulk-delete-button"
-              icon='delete_forever'
-              title='Delete Selected Rows'
+              icon="delete_forever"
+              title="Delete Selected Rows"
               onClick={handleDeleteIconClick}
-              className='delete-icon'
+              className="delete-icon"
               disabled={isAddBtnDisabled || isSettingsPanelOpen}
             />
           )}
@@ -108,15 +132,15 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
           {headerRightControls && (
             <>
               <RightIconButton
-                icon='settings'
-                title='Settings'
+                icon="settings"
+                title="Settings"
                 onClick={onSettingsIconClick}
                 isAction={isSettingsPanelOpen}
                 disabled={isAddBtnDisabled}
               />
               <RightIconButton
-                icon='replay'
-                title='Reset to default'
+                icon="replay"
+                title="Reset to default"
                 onClick={handleResetColumnSettings}
                 disabled={isAddBtnDisabled}
               />
@@ -125,25 +149,33 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
         </IconContainer>
       </RightDetailsContainer>
     </MainHeadercontainer>
-  ) : null
-}
+  ) : null;
+};
 
-const RightIconButton = ({ onClick, title, icon, className, isAction, disabled, testId }: {
-  onClick?: () => void
-  title?: string
-  icon: string
-  className?: string
-  isAction?: boolean
-  disabled?: boolean
-  testId?: string
+const RightIconButton = ({
+  onClick,
+  title,
+  icon,
+  className,
+  isAction,
+  disabled,
+  testId,
+}: {
+  onClick?: () => void;
+  title?: string;
+  icon: string;
+  className?: string;
+  isAction?: boolean;
+  disabled?: boolean;
+  testId?: string;
 }) => (
-  <Tooltip content={title} type='title'>
+  <Tooltip content={title} type="title">
     <RightIconButtonContainer
-      {...!disabled ? { onClick } : {}}
-      className={`${className ?? ''} ${isAction ? 'active' : ''} ${disabled ? 'disabled' : ''}`}
+      {...(!disabled ? { onClick } : {})}
+      className={`${className ?? ""} ${isAction ? "active" : ""} ${disabled ? "disabled" : ""}`}
       data-testid={testId}
     >
-      <Icon icon={icon}/>
+      <Icon icon={icon} />
     </RightIconButtonContainer>
   </Tooltip>
-)
+);

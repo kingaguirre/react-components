@@ -1,17 +1,17 @@
-import { theme } from '../../../../styles/theme';
-import styled from 'styled-components'
+import { theme } from "../../../../styles/theme";
+import styled from "styled-components";
 import {
   CellContainer as CellContainerStyles,
   CellContent as CellContentStyles,
   DataTableRow as DataTableRowStyles,
-} from '../Body/styled'
+} from "../Body/styled";
 
-export const CellContainer = styled(CellContainerStyles)``
+export const CellContainer = styled(CellContainerStyles)``;
 
 export const CellContent = styled(CellContentStyles)<{
-  $hasDND?: boolean
-  $hasPin?: boolean
-  $hasSort?: boolean
+  $hasDND?: boolean;
+  $hasPin?: boolean;
+  $hasSort?: boolean;
 }>`
   font-size: 11px;
   min-height: 25px;
@@ -27,28 +27,28 @@ export const CellContent = styled(CellContentStyles)<{
     color: ${theme.colors.default.darker};
   }
 
-  ${({ $hasDND }) => $hasDND ? 'padding-left: 22px;' : ''}
+  ${({ $hasDND }) => ($hasDND ? "padding-left: 22px;" : "")}
   ${({ $hasPin, $hasSort }) => {
     if (!$hasPin && !$hasSort) {
-      return ''
+      return "";
     }
 
     if ($hasPin && $hasSort) {
-      return 'padding-right: 42px;'
+      return "padding-right: 42px;";
     }
 
     if ($hasPin || $hasSort) {
-      return 'padding-right: 22px;'
+      return "padding-right: 22px;";
     }
   }}
-`
+`;
 
 export const ColumnHeaderContainer = styled.div`
   position: sticky;
   top: 0;
   z-index: 12;
   border-bottom: 1px solid ${theme.colors.default.pale};
-`
+`;
 
 export const ColumnHeaderGroupContainer = styled(DataTableRowStyles)`
   ${CellContainer} {
@@ -58,7 +58,7 @@ export const ColumnHeaderGroupContainer = styled(DataTableRowStyles)`
     text-transform: uppercase;
     justify-content: flex-end;
   }
-`
+`;
 
 export const FilterContainer = styled.div`
   display: flex;
@@ -72,7 +72,7 @@ export const FilterContainer = styled.div`
   > * {
     flex: 1;
   }
-`
+`;
 
 export const Resizer = styled.div`
   position: absolute;
@@ -84,9 +84,9 @@ export const Resizer = styled.div`
   user-select: none;
   touch-action: none;
   right: 0;
-  transition: all .3s ease;
+  transition: all 0.3s ease;
   opacity: 1;
-`
+`;
 
 export const IconContainer = styled.span`
   height: 16px;
@@ -94,7 +94,7 @@ export const IconContainer = styled.span`
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all .3s ease;
+  transition: all 0.3s ease;
   border-radius: 2px;
   cursor: pointer;
   font-size: 14px;
@@ -109,7 +109,7 @@ export const IconContainer = styled.span`
       color: ${theme.colors.default.darker};
     }
   }
-`
+`;
 
 export const DragHandle = styled(IconContainer)`
   position: absolute;
@@ -124,7 +124,7 @@ export const DragHandle = styled(IconContainer)`
     background: ${theme.colors.default.pale};
     transform: scale(0.9);
   }
-`
+`;
 
 export const LeftIconContainer = styled.div`
   display: flex;
@@ -139,15 +139,15 @@ export const LeftIconContainer = styled.div`
       &.pin {
         > span {
           color: ${theme.colors.primary.dark};
-          transform: rotate(45deg)
+          transform: rotate(45deg);
         }
       }
     }
   }
-`
+`;
 
 export const CellFilterPlaceholder = styled.div`
   height: 33px;
   width: 100%;
   border-top: 1px solid ${theme.colors.default.pale};
-`
+`;
