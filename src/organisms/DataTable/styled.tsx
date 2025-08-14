@@ -8,6 +8,7 @@ export const DataTableWrapper = styled.div<{ $disabled?: boolean }>`
   border-radius: 2px;
   box-sizing: border-box;
   background-color: ${theme.colors.default.pale};
+  outline: none;
   ${scrollStyle}
 
   * {
@@ -18,9 +19,7 @@ export const DataTableWrapper = styled.div<{ $disabled?: boolean }>`
     outline: none !important;
   }
 
-  ${({ $disabled }) =>
-    $disabled
-      ? `
+  ${({ $disabled }) => $disabled ? `
     * {
       pointer-events: none;
     }
@@ -36,13 +35,20 @@ export const DataTableWrapper = styled.div<{ $disabled?: boolean }>`
       cursor: not-allowed;
       ${fadeInOnMount}
     }
-  `
-      : ""}
+  ` : ""}
+
+  &.is-not-focused {
+    .cell-container.selected:after {
+      border-style: dashed;
+    }
+  }
 `;
 
 export const DataTableContainer = styled.div`
   overflow: auto;
+  outline: none;
 `;
+
 export const DataTableContentContainer = styled.div``;
 
 export const RowsToDeleteText = styled.div`
@@ -60,4 +66,5 @@ export const TableTitle = styled.div`
   background-color: ${theme.colors.lightA};
   border-bottom: 1px solid ${theme.colors.default.pale};
   cursor: default;
+  letter-spacing: 0.5px;
 `;

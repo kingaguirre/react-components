@@ -1,11 +1,72 @@
+// src/organisms/DataTable/components/Body/Cell.tsx
 import React, { memo } from "react";
 import { Cell as CellProps, flexRender } from "@tanstack/react-table";
 import { CellContainer, CellContent, TooltipContent } from "./styled";
 import { getColumnStyles } from "../../utils/columnSettings";
 import { Tooltip } from "../../../../atoms/Tooltip";
 import { useHasEllipsis } from "../../hooks/useHasEllipsis";
-// needed for row & cell level scope DnD setup
 import { useSortable } from "@dnd-kit/sortable";
+import { BUILTIN_COLUMN_IDS } from "../../utils";
+
+// Inner content isolated so selection changes do not re-render it
+const InnerCellContent = memo(
+  ({
+    cell,
+    colDef,
+    colMeta,
+    isEditMode,
+    isEditable,
+    isDisabled,
+    isDisabledRow,
+  }: {
+    cell: CellProps<unknown, unknown>;
+    colDef: any;
+    colMeta: any;
+    isEditMode?: boolean;
+    isEditable?: boolean;
+    isDisabled?: boolean;
+    isDisabledRow?: boolean;
+  }) => {
+    const cellContext = flexRender(colDef.cell, cell.getContext());
+    const { ref, hasEllipsis } = useHasEllipsis(cellContext);
+
+    const maybeEllipsized =
+      hasEllipsis ? (
+        <Tooltip
+          minWidth={150}
+          maxWidth={cell.column.getSize()}
+          content={cellContext}
+          type="title"
+        >
+          {cellContext}
+        </Tooltip>
+      ) : (
+        cellContext
+      );
+
+    return (
+      <CellContent
+        className={`cell-content ${colMeta?.className ?? ""} ${isDisabled ? "disabled" : ""} ${isDisabledRow ? "disabled-row" : ""}`}
+        $isEditMode={!!isEditMode}
+        $align={colMeta?.align}
+        $isEditable={isEditable}
+      >
+        {isEditMode ? cellContext : <span ref={ref}>{maybeEllipsized}</span>}
+      </CellContent>
+    );
+  },
+  (a, b) => {
+    // Disable memoization for built-in columns (always re-render)
+    if (BUILTIN_COLUMN_IDS.has(a.cell.column.id)) return false;
+
+    return (
+      a.isEditMode === b.isEditMode &&
+      a.isEditable === b.isEditable &&
+      a.isDisabled === b.isDisabled &&
+      a.isDisabledRow === b.isDisabledRow
+    )
+  }
+);
 
 export const Cell = memo(
   ({
@@ -40,42 +101,32 @@ export const Cell = memo(
       id: colDef.accessorKey,
     });
     const colMeta: any = colDef.meta;
-    const cellContext = flexRender(colDef.cell, cell.getContext());
-    const { ref, hasEllipsis } = useHasEllipsis(cellContext);
 
-    const _cellContext = hasEllipsis ? (
-      <Tooltip
-        minWidth={150}
-        maxWidth={cell.column.getSize()}
-        content={cellContext}
-        type="title"
-      >
-        {cellContext}
-      </Tooltip>
-    ) : (
-      cellContext
-    );
-
-    const cellContent = (
-      <CellContent
-        className={`cell-content ${colMeta?.className ?? ""} ${isDisabled ? "disabled" : ""} ${isDisabledRow ? "disabled-row" : ""} ${isCellSelected ? "selected" : ""}`}
-        $isEditMode={!!isEditMode}
-        $isCellSelected={isCellSelected}
-        $align={colMeta?.align}
-        $isEditable={isEditable}
-      >
-        {isEditMode ? cellContext : <span ref={ref}>{_cellContext}</span>}
-      </CellContent>
+    const inner = (
+      <InnerCellContent
+        cell={cell}
+        colDef={colDef}
+        colMeta={colMeta}
+        isEditMode={isEditMode}
+        isEditable={isEditable}
+        isDisabled={isDisabled}
+        isDisabledRow={isDisabledRow}
+      />
     );
 
     return (
       <CellContainer
-        className={`cell-container ${colMeta?.className ?? ""} ${isDisabled ? "disabled" : ""} ${isDisabledRow ? "disabled-row" : ""} ${isCellSelected ? "selected" : ""}`}
+        className={`cell-container ${colMeta?.className ?? ""} ${
+          isDisabled ? "disabled" : ""
+        } ${isDisabledRow ? "disabled-row" : ""} ${
+          isCellSelected ? "selected" : ""
+        }`}
         ref={setNodeRef}
         $hasError={!!errorMsg}
         $isDisabled={isDisabled}
         $isEditMode={!!isEditMode}
         $isPinned={!!cell.column.getIsPinned()}
+        $isCellSelected={isCellSelected} // <-- moved here
         style={getColumnStyles(cell.column, isDragging, transform)}
         data-row-id={rowId}
         data-col-id={columnId}
@@ -90,12 +141,12 @@ export const Cell = memo(
             color="danger"
             maxWidth={150}
           >
-            {cellContent}
+            {inner}
           </Tooltip>
         ) : (
-          cellContent
+          inner
         )}
       </CellContainer>
     );
-  },
+  }
 );

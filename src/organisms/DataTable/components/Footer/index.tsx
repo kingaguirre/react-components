@@ -10,11 +10,12 @@ import {
   Button,
   SelectedContainer,
 } from "./styled";
-import { formatNumber, countDigits } from "../../../../utils/index";
+import { formatNumber, countDigits } from "../../../../utils";
 import { Dropdown } from "../../../../molecules/Dropdown";
 import { Icon } from "../../../../atoms/Icon";
 import { FormControl } from "../../../../atoms/FormControl";
 import { Tooltip } from "../../../../atoms/Tooltip";
+import { BUILTIN_COLUMN_IDS } from "../../utils";
 
 interface FooterProps<TData> {
   table: Table<TData>;
@@ -35,7 +36,7 @@ export const Footer = <TData,>({
   disabledRows,
   enableRowSelection,
 }: FooterProps<TData>) => {
-  const hasColumns = table.getVisibleLeafColumns().length > 0;
+  const hasColumns = table.getVisibleLeafColumns().filter((c) => !BUILTIN_COLUMN_IDS.has(c.id)).length > 0;
   const hasTotalRecords = table.getRowModel().rows.length > 0 && hasColumns;
   const totalFilteredRecords = table.getFilteredRowModel().rows.length;
   const endRange =
@@ -144,6 +145,7 @@ export const Footer = <TData,>({
             value={table.getState().pagination.pageSize.toString()}
             onChange={(value) => table.setPageSize(Number(value))}
             clearable={false}
+            disabled={!hasTotalRecords}
             options={[
               { text: "5", value: "5" },
               { text: "10", value: "10" },
@@ -184,10 +186,11 @@ export const Footer = <TData,>({
               type="number"
               min="1"
               size="sm"
+              disabled={!hasTotalRecords}
               max={table.getPageCount()}
               value={table.getState().pagination.pageIndex + 1}
               onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                const page = e.target.value ? Number(e.target.value) - 1 : 0;
+                const page = e.target?.value ? Number(e.target.value) - 1 : 0;
                 table.setPageIndex(page);
               }}
               className="footer-page"

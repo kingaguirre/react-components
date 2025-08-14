@@ -22,37 +22,66 @@ export const Accordion: React.FC<AccordionProps> = ({
   items,
   allowMultiple = false,
 }) => {
-  const [openItems, setOpenItems] = useState<Record<number, boolean>>(() => {
-    const init: Record<number, boolean> = {};
-    items.forEach((item, idx) => {
-      init[idx] = item.open ?? false;
+  // use stable key per item (id if provided, else index string)
+  const getKey = useCallback((idx: number) => String(items[idx]?.id ?? idx), [items]);
+
+  // open state keyed by item key
+  const [openItems, setOpenItems] = useState<Record<string, boolean>>(() => {
+    const init: Record<string, boolean> = {};
+    items.forEach((it, idx) => {
+      init[getKey(idx)] = !!it.open; // initial value from props
     });
     return init;
   });
 
-  const toggleItem = (index: number) => {
-    setOpenItems((prev) => {
+  // SYNC: if parent passes item.open, mirror it into internal state
+  useEffect(() => {
+    setOpenItems(prev => {
       const next = { ...prev };
-      if (allowMultiple) {
-        next[index] = !prev[index];
-      } else {
-        Object.keys(next).forEach((k) => (next[+k] = false));
-        next[index] = !prev[index];
-      }
+      items.forEach((it, idx) => {
+        const k = getKey(idx);
+        if (typeof it.open === "boolean") next[k] = it.open;   // controlled
+        else if (!(k in next)) next[k] = false;                // ensure key exists
+      });
+      return next;
+    });
+  }, [items, getKey]);
+
+   const toggleItem = (index: number) => {
+    const item = items[index];
+    const key = getKey(index);
+
+    // If this item is controlled (item.open provided), don't mutate internal state.
+    // Fire callbacks and let the parent flip item.open.
+    if (typeof item.open === "boolean") {
+      item.onClick?.();
+      if (!openItems[key]) item.onOpen?.();
+      else item.onClose?.();
+      return;
+    }
+
+    // Uncontrolled: manage internal state
+    setOpenItems(prev => {
+      const next = allowMultiple ? { ...prev } : Object.fromEntries(Object.keys(prev).map(k => [k, false]));
+      next[key] = !prev[key];
       return next;
     });
   };
 
   return (
     <AccordionContainer>
-      {items.map((item, idx) => (
-        <AccordionItem
-          key={`${item.id ?? idx}-${idx}`}
-          {...item}
-          open={!!openItems[idx]}
-          toggle={() => toggleItem(idx)}
-        />
-      ))}
+      {items.map((item, idx) => {
+        const key = getKey(idx);
+        const isOpen = typeof item.open === "boolean" ? item.open : !!openItems[key];
+        return (
+          <AccordionItem
+            key={key}
+            {...item}
+            open={isOpen}
+            toggle={() => toggleItem(idx)}
+          />
+        );
+      })}
     </AccordionContainer>
   );
 };
@@ -79,9 +108,7 @@ const AccordionItem: React.FC<AccordionItemInternalProps> = ({
   const [maxHeight, setMaxHeight] = useState(0);
 
   const updateHeight = useCallback(() => {
-    if (contentRef.current) {
-      setMaxHeight(contentRef.current.scrollHeight);
-    }
+    if (contentRef.current) setMaxHeight(contentRef.current.scrollHeight);
   }, []);
 
   useEffect(() => {
@@ -91,17 +118,19 @@ const AccordionItem: React.FC<AccordionItemInternalProps> = ({
     return () => ro.disconnect();
   }, [updateHeight]);
 
+  // Ensure height recalculates when open changes (some CSS setups need this)
+  useEffect(() => {
+    updateHeight();
+  }, [open, updateHeight]);
+
   // fire all callbacks in the right order
   const handleHeaderClick = (e: React.MouseEvent) => {
     if (disabled) return;
     e.stopPropagation();
     toggle();
     onClick?.();
-    if (!open) {
-      onOpen?.();
-    } else {
-      onClose?.();
-    }
+    if (!open) onOpen?.();
+    else onClose?.();
   };
 
   return (

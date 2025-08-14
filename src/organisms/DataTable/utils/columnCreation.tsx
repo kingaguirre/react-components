@@ -4,7 +4,6 @@ import { ColumnSetting } from "../interface";
 
 export function createColumnDef<T extends object>(
   col: ColumnSetting,
-  index?: number,
   cellTextAlignment?: string,
 ): ColumnDef<T, any> {
   return {
@@ -25,7 +24,7 @@ export function createColumnDef<T extends object>(
       validation: col.editor !== false ? col.editor?.validation : undefined,
       filter: col.filter,
       editor: col.editor,
-      columnId: index !== undefined ? `${col.column}-${index}` : col.column,
+      columnId: col.column,
       hidden: col.hidden,
       align: col.align ?? cellTextAlignment,
       headerAlign: col.headerAlign ?? col.align ?? cellTextAlignment,
@@ -59,13 +58,13 @@ export function transformColumnSettings<T extends object>(
     ([groupTitle, cols]) => ({
       id: `group-${groupTitle}`,
       header: groupTitle,
-      columns: cols.map((c, idx) =>
-        createColumnDef<T>(c, idx, cellTextAlignment),
+      columns: cols.map((c) =>
+        createColumnDef<T>(c, cellTextAlignment),
       ),
     }),
   );
-  const topColumns = topLevel.map((col, idx) =>
-    createColumnDef<T>(col, idx, cellTextAlignment),
+  const topColumns = topLevel.map((col) =>
+    createColumnDef<T>(col, cellTextAlignment),
   );
   return [...groupColumns, ...topColumns];
 }

@@ -67,6 +67,8 @@ export interface DataTableProps {
    * If set, deletion is treated as partial, and the row will include this key with a true value.
    */
   partialRowDeletionID?: string;
+  /** Coordinates of the currently selected cell */
+  selectedCell?: SelectedCellCoordProp
   /** Callback when a row is clicked */
   onRowClick?: (
     rowData: any,
@@ -92,6 +94,8 @@ export interface DataTableProps {
   /** Callback when the active row changes */
   onActiveRowChange?: (rowData: any, __internalId?: string) => void;
 }
+
+export type SelectedCellCoordProp = [number, number] | string
 
 export type DataTableFormControlType =
   | "text"

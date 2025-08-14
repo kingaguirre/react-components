@@ -7,6 +7,7 @@ import {
   DataTableProps,
 } from "../../interface";
 import { Row } from "./Row";
+import { BUILTIN_COLUMN_IDS } from "../../utils";
 
 interface BodyProps<TData> {
   table: Table<TData>;
@@ -51,7 +52,14 @@ export const Body = <TData,>({
   const { rows } = table.getRowModel();
 
   const filteredRowCount = table.getFilteredRowModel().rows.length;
-  const visibleColumns = table.getVisibleLeafColumns();
+  // Exclude built-in columns from all/visible leaf columns
+  const allLeafColumns = table.getAllLeafColumns();
+  const leafColumns = allLeafColumns.filter(
+    (c) => !BUILTIN_COLUMN_IDS.has(c.id),
+  );
+  const visibleLeafColumns = table
+    .getVisibleLeafColumns()
+    .filter((c) => !BUILTIN_COLUMN_IDS.has(c.id));
 
   // Memoize the row rendering helper to prevent unnecessary re-creations.
   const rowContent = useCallback(
@@ -96,6 +104,15 @@ export const Body = <TData,>({
     ],
   );
 
+   // If there are literally no user-defined columns (only built-ins), show message
+  if (leafColumns.length === 0) {
+    return (
+      <BodyContainer className="data-table-body-container">
+        <NoDataContainer $hasError>No column settings configured.</NoDataContainer>
+      </BodyContainer>
+    );
+  }
+
   // Handle error and no-data cases
   if (columnError) {
     return (
@@ -105,10 +122,19 @@ export const Body = <TData,>({
     );
   }
 
-  if (rows.length === 0 || visibleColumns.length === 0) {
+  if (rows.length === 0) {
     return (
       <BodyContainer className="data-table-body-container">
         <NoDataContainer>No data to display</NoDataContainer>
+      </BodyContainer>
+    );
+  }
+
+  // If there ARE user columns but all of them are hidden, clarify that
+  if (visibleLeafColumns.length === 0) {
+    return (
+      <BodyContainer className="data-table-body-container">
+        <NoDataContainer>All columns are hidden</NoDataContainer>
       </BodyContainer>
     );
   }

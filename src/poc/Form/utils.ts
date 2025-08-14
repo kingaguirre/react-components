@@ -11,20 +11,42 @@ import type { FieldSetting } from './interface';
  * (you should already have this implemented; just ensure it returns
  * every FieldSetting in the tree, regardless of groups/tabs).
  */
-export function flattenForSchema(items: import('./interface').SettingsItem[]): FieldSetting[] {
+export function flattenForSchema(
+  items: import('./interface').SettingsItem[]
+): FieldSetting[] {
   const out: FieldSetting[] = [];
-  function recurse(arr: import('./interface').SettingsItem[]) {
-    for (const i of arr) {
-      if ('fields' in i && i.fields) {
-        recurse(i.fields);
-      } else if ('tabs' in i && i.tabs) {
-        i.tabs.forEach(tab => recurse(tab.fields));
-      } else {
-        out.push(i as FieldSetting);
+
+  function visit(arr: import('./interface').SettingsItem[]) {
+    for (const it of arr) {
+      // 1) Skip DataTable wrapper; callers decide when to handle its fields
+      if ('dataTable' in it && (it as any).dataTable) {
+        continue;
       }
+
+      // 2) Standard groups
+      if ('fields' in it && Array.isArray((it as any).fields)) {
+        visit((it as any).fields);
+        continue;
+      }
+
+      // 3) Tabs
+      if ('tabs' in it && Array.isArray((it as any).tabs)) {
+        (it as any).tabs.forEach((tab: any) => visit(tab.fields));
+        continue;
+      }
+
+      // 4) Accordion
+      if ('accordion' in it && Array.isArray((it as any).accordion)) {
+        (it as any).accordion.forEach((sec: any) => visit(sec.fields));
+        continue;
+      }
+
+      // 5) Leaf field
+      out.push(it as FieldSetting);
     }
   }
-  recurse(items);
+
+  visit(items);
   return out;
 }
 
@@ -36,44 +58,75 @@ export function buildSchema(
   fields: FieldSetting[],
   rowData: Record<string, any>
 ): ZodTypeAny {
-  const tree: Record<string, any> = {};
+  type TreeNode = Record<string, any> & { __self?: ZodTypeAny };
+  const tree: TreeNode = {};
 
-  // 1) build a nested plain‐object tree of Zod schemas or child‐objects
+  // 1) Build a nested tree that can hold BOTH a parent schema and children
   for (const fs of fields) {
     const key = fs.name;
     if (!key) continue;
+
     const schema = fs.validation ? fs.validation(z, rowData) : z.any();
     const parts = key.split('.');
-    let cur = tree;
+    let cur: TreeNode = tree;
+
     for (let i = 0; i < parts.length; i++) {
       const p = parts[i];
-      if (i === parts.length - 1) {
-        cur[p] = schema;
+      const isLeaf = i === parts.length - 1;
+
+      if (isLeaf) {
+        const existing = cur[p];
+
+        if (existing && typeof existing === 'object' && !(existing instanceof ZodType)) {
+          // Already a container → store parent schema as __self for later merge
+          (existing as TreeNode).__self = schema;
+        } else {
+          // Either unset or previously a plain schema (parent-only); overwrite is fine
+          cur[p] = schema;
+        }
       } else {
-        cur[p] = cur[p] || {};
-        cur = cur[p];
+        const existing = cur[p];
+
+        if (existing instanceof ZodType) {
+          // Previously a schema at the parent → convert to container and keep that schema as __self
+          cur[p] = { __self: existing } as TreeNode;
+        } else if (!existing) {
+          cur[p] = {} as TreeNode;
+        }
+
+        cur = cur[p] as TreeNode;
       }
     }
   }
 
-  // 2) recursively convert the plain‐object tree into nested z.objects or z.arrays
-  const toZod = (obj: Record<string, any>): ZodTypeAny => {
-    const keys = Object.keys(obj);
+  // 2) Convert the tree into Zod types, merging __self when present
+  const toZod = (node: any): ZodTypeAny => {
+    if (node instanceof ZodType) return node; // plain schema leaf
+
+    const entries = Object.entries(node).filter(([k]) => k !== '__self');
+    const keys = entries.map(([k]) => k);
+
+    // Handle arrays when all keys are numeric
     if (keys.length && keys.every(k => /^\d+$/.test(k))) {
-      const child = toZod(obj[keys[0]]);
-      return z.array(child);
+      const firstChild = (node as any)[keys[0]];
+      return z.array(toZod(firstChild));
     }
+
     const shape: ZodRawShape = Object.fromEntries(
-      keys.map(key => {
-        const val = obj[key];
-        const s: ZodTypeAny =
-          val instanceof ZodType   // ← use ZodType here
-            ? val
-            : toZod(val);
-        return [key, s];
-      })
+      entries.map(([k, v]) => [k, toZod(v)])
     ) as ZodRawShape;
-    return z.object(shape);
+
+    let base = z.object(shape);
+
+    // Merge or intersect any parent-level schema stored in __self
+    const self: ZodTypeAny | undefined = (node as any).__self;
+    if (self) {
+      const isSelfObj = (self as any)?._def?.typeName === 'ZodObject';
+      const isBaseObj = (base as any)?._def?.typeName === 'ZodObject';
+      base = (isSelfObj && isBaseObj) ? (base as any).merge(self) : base.and(self);
+    }
+
+    return base;
   };
 
   return toZod(tree);

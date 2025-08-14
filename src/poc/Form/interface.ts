@@ -127,7 +127,7 @@ export interface DataTableSection {
   /**
    * Allow nested settings: individual fields or groups below table
    */
-  fields: SettingsItem[];
+  fields?: SettingsItem[];
   disabled?: boolean | ((values?: Record<string, any>) => boolean);
   hidden?: boolean | ((values?: Record<string, any>) => boolean);
 }

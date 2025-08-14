@@ -88,7 +88,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
       return;
     }
 
-    if (onChange) {
+    // if (onChange) {
       const currentVal = value != null ? (value as string) : "";
       const selectedOption = options.find((opt) => opt.value === currentVal);
 
@@ -104,7 +104,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
       }
 
       setSelectedValue(currentVal);
-    }
+    // }
   }, [value, options, isMulti, onChange]);
   // --- END SYNC EFFECT ---
 

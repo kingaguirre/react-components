@@ -62,7 +62,7 @@ export const RowActionsColumn = ({
         <ActionContainer>
           <Tooltip content="Save" type="title">
             <button
-              data-testid={`save-row-button-${row.id}`}
+              data-testid={`save-row-button-new`}
               disabled={isDisabled || hasError}
               className="save"
               onClick={() => handleSaveRow(rowData.__internalId)}
@@ -72,7 +72,7 @@ export const RowActionsColumn = ({
           </Tooltip>
           <Tooltip content="Cancel" type="title">
             <button
-              data-testid={`cancel-row-button-${row.id}`}
+              data-testid="cancel-row-button-new"
               disabled={isDisabled}
               className="cancel"
               onClick={() => handleCancelRow(rowData.__internalId)}

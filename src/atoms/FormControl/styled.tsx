@@ -172,7 +172,7 @@ const sharedInputStyles = css<{
   &:disabled {
     background-color: ${theme.colors.default.lighter};
     cursor: not-allowed;
-    color: ${theme.colors.default.darker};
+    color: #666;
     box-shadow: ${({ $variant: variant, color = "primary" }) =>
       variant === "outlined"
         ? `inset 0 1px 0 ${theme.colors[color].lighter}, 
@@ -677,16 +677,14 @@ export const IconContainer = styled.span<{
   }
 
   ${({ $disabled }) =>
-    $disabled
-      ? `
-    pointer-events: none;
-    cursor: not-allowed;
-    color: ${theme.colors.default.base};
-    * {
+    $disabled ? `
       pointer-events: none;
-    }
-  `
-      : ""}
+      cursor: not-allowed;
+      color: ${theme.colors.default.base};
+      * {
+        pointer-events: none;
+      }
+    ` : ""}
 `;
 
 export const NoOptionsContainer = styled.div`

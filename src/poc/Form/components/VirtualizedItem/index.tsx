@@ -17,108 +17,103 @@ const VirtualizedItem: React.FC<VirtualizedItemProps> = ({
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(true);
   const [measuredHeight, setMeasuredHeight] = useState(0);
+  const heightRef = useRef(0);
 
-  // 1) Measure the “true” height of our content any time it changes
+  // Measure ONLY when content is mounted/visible, and only if it actually changed.
   useLayoutEffect(() => {
-    if (ref.current) {
-      setMeasuredHeight(ref.current.getBoundingClientRect().height);
+    const el = ref.current;
+    if (!el || !visible) return;
+    const next = Math.ceil(el.getBoundingClientRect().height);
+    if (next !== heightRef.current) {
+      heightRef.current = next;
+      setMeasuredHeight(next);
     }
-  }, [children]);
+  }, [children, visible]);
 
   useEffect(() => {
     const node = ref.current;
     if (!node) return;
 
-    // 2) Figure out whether we should watch window or an inner scrollable container
     const getScrollParent = (n: HTMLElement | null): HTMLElement | Window => {
       let p = n?.parentElement;
       while (p && p !== document.body) {
         const { overflowY } = getComputedStyle(p);
-        if (/(auto|scroll)/.test(overflowY) && p.scrollHeight > p.clientHeight) {
-          return p;
-        }
+        if (/(auto|scroll)/.test(overflowY) && p.scrollHeight > p.clientHeight) return p;
         p = p.parentElement;
       }
-      // no inner scrollable, so fall back to window
       return window;
     };
     const scrollContainer = getScrollParent(node);
 
-    // 3) Throttled check to see if our element is within the visible bounds
     const checkVisibility = () => {
-      if (!node) return;
+      const el = ref.current;
+      if (!el) return;
 
-      const rect = node.getBoundingClientRect();
-      let topBoundary = 0;
-      let bottomBoundary =
+      const rect = el.getBoundingClientRect();
+      const containerRect =
         scrollContainer instanceof HTMLElement
-          ? scrollContainer.getBoundingClientRect().bottom
-          : window.innerHeight;
+          ? scrollContainer.getBoundingClientRect()
+          : { top: 0, bottom: window.innerHeight };
 
-      if (scrollContainer instanceof HTMLElement) {
-        topBoundary = scrollContainer.getBoundingClientRect().top;
-      }
+      const topBoundary = containerRect.top;
+      const bottomBoundary = containerRect.bottom;
 
-      const isVisible =
+      const inView =
         rect.bottom > topBoundary - offsetTop &&
         rect.top < bottomBoundary + offsetBottom;
 
-      setVisible(isVisible);
+      setVisible(prev => (prev !== inView ? inView : prev));
     };
 
-    // 4) Fire once on mount (in case it’s already in view)
+    // Initial check
     checkVisibility();
 
-    // 5) Listen for scroll & resize/orientation events
-    const handler = () => requestAnimationFrame(checkVisibility);
-    scrollContainer.addEventListener('scroll', handler, { passive: true });
-    window.addEventListener('resize', handler);
-    window.addEventListener('orientationchange', handler);
+    const onScrollOrResize = () => requestAnimationFrame(checkVisibility);
 
-    // 6) (Optional) watch for size changes if you want truly dynamic layouts
+    scrollContainer.addEventListener('scroll', onScrollOrResize, { passive: true });
+    window.addEventListener('resize', onScrollOrResize);
+    window.addEventListener('orientationchange', onScrollOrResize);
+
+    // ResizeObserver ONLY on our node (avoid observing the scroll container)
     let ro: ResizeObserver | null = null;
     if (typeof ResizeObserver !== 'undefined') {
-      ro = new ResizeObserver(handler);
+      ro = new ResizeObserver(() => {
+        // If it's visible, keep our cached height up to date.
+        if (!ref.current || !visible) return;
+        const next = Math.ceil(ref.current.getBoundingClientRect().height);
+        if (next !== heightRef.current) {
+          heightRef.current = next;
+          setMeasuredHeight(next);
+        }
+        requestAnimationFrame(checkVisibility);
+      });
       ro.observe(node);
-      if (scrollContainer instanceof HTMLElement) {
-        ro.observe(scrollContainer);
-      }
     }
 
-    // 7) NEW: watch for child‑list changes so hiding the table triggers a visibility check
-    const mutationObserver = new MutationObserver(handler);
-    // observe the same container you’re scrolling:
-    const parentToWatch = scrollContainer instanceof HTMLElement
-      ? scrollContainer
-      : document.body;
-    mutationObserver.observe(parentToWatch, {
-      childList: true,
-      subtree: true,
-    });
+    // IMPORTANT: Remove the MutationObserver on the scroll container subtree.
+    // It was causing event storms and feedback loops.
 
     return () => {
-      scrollContainer.removeEventListener('scroll', handler);
-      window.removeEventListener('resize', handler);
-      window.removeEventListener('orientationchange', handler);
-      if (ro) ro.disconnect();
-      mutationObserver.disconnect();
+      scrollContainer.removeEventListener('scroll', onScrollOrResize);
+      window.removeEventListener('resize', onScrollOrResize);
+      window.removeEventListener('orientationchange', onScrollOrResize);
+      ro?.disconnect();
     };
-  }, [offsetTop, offsetBottom, measuredHeight, fieldKey]);
+  }, [offsetTop, offsetBottom, fieldKey]);
 
   return (
     <div
       ref={ref}
       data-field-key={fieldKey}
       style={{
-        // reserve vertical space when hidden
-        minHeight: !visible ? `${measuredHeight}px` : undefined,
+        // reserve space when hidden (fallback to 1px to avoid collapse if height is 0)
+        minHeight: !visible ? `${measuredHeight || 1}px` : undefined,
         overflow: !visible ? 'hidden' : undefined,
-        // fade in/out for smoother UX
         opacity: visible ? 1 : 0,
         transition: 'opacity 0.2s ease-in-out',
       }}
     >
-      {visible && children}
+      {visible ? children : null}
     </div>
   );
 };

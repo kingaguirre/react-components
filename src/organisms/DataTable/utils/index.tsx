@@ -1,5 +1,12 @@
 import { FilterFn } from "@tanstack/react-table";
-import { ColumnSetting } from "../interface";
+import type { Table } from '@tanstack/react-table';
+import { ColumnSetting, SelectedCellType, DataRow, SelectedCellCoordProp } from "../interface";
+
+export const BUILTIN_COLUMN_IDS = new Set([
+  "data-table-expander",
+  "data-table-select",
+  "data-table-row-action",
+]);
 
 export const dateFilter: FilterFn<unknown> = (row, columnId, filterValue) => {
   // defined inline here
@@ -140,3 +147,52 @@ export const filterUniqueMap = (arr?: string[], value?: string) => {
   if (index === -1) return _arr;
   return [..._arr.slice(0, index), ..._arr.slice(index + 1)];
 };
+
+/** Visible, user-only leaf columns in visual order (pinned + order + visibility respected) */
+export function getVisibleUserLeafColumns(table: Table<any>, builtin = BUILTIN_COLUMN_IDS) {
+  return table.getVisibleLeafColumns().filter((c) => !builtin.has(c.id));
+}
+
+export function parseSelectedCellInput(input?: SelectedCellCoordProp): [number, number] | null {
+  if (Array.isArray(input) && input.length >= 2) {
+    const [r, c] = input;
+    return Number.isInteger(r) && Number.isInteger(c) ? [r, c] : null;
+  }
+  if (typeof input === "string") {
+    const [rs, cs] = input.split(",");
+    const r = Number.parseInt((rs ?? "").trim(), 10);
+    const c = Number.parseInt((cs ?? "").trim(), 10);
+    return Number.isInteger(r) && Number.isInteger(c) ? [r, c] : null;
+  }
+  return null;
+}
+
+/**
+ * Map [rowIdx, userColIdx] → { rowId, columnId } with NO numeric suffix.
+ * - userColIdx is among visible NON-built-in columns.
+ */
+export function coordToInternalSelection(
+  table: Table<any>,
+  rowIdx: number,
+  userColIdx: number,
+  builtin = BUILTIN_COLUMN_IDS
+): SelectedCellType | null {
+  if (rowIdx < 0 || userColIdx < 0) return null;
+
+  const rows = table.getRowModel().rows;
+  const cols = getVisibleUserLeafColumns(table, builtin);
+
+  const rowModel = rows[rowIdx];
+  const col = cols[userColIdx];
+  if (!rowModel || !col) return null;
+
+  const rowId =
+    (rowModel.original as DataRow)?.__internalId ??
+    (rowModel.id as string);
+
+  // 🔑 columnId is JUST the real column id now
+  const columnId = col.id;
+
+  return { rowId, columnId };
+}
+

@@ -9,6 +9,7 @@ export const CellContainer = styled.div<{
   $isEditMode?: boolean;
   $isPinned?: boolean;
   $isDisabled?: boolean;
+  $isCellSelected?: boolean;
 }>`
   background-color: white;
   height: auto;
@@ -26,10 +27,9 @@ export const CellContainer = styled.div<{
     background-color: #e9e9e9 !important;
   }
 
-  ${({ $hasError, $isDisabled }) =>
-    $hasError && !$isDisabled
-      ? `
+  ${({ $hasError, $isDisabled }) => $hasError && !$isDisabled ? `
     &:before {
+      z-index: 0;
       content: "";
       top: 1px;
       left: 1px;
@@ -39,8 +39,22 @@ export const CellContainer = styled.div<{
       position: absolute;
       border: 1px solid ${theme.colors.danger.base};
     }
-  `
-      : ""}
+  `: ""}
+
+
+  ${({ $isCellSelected, $isEditMode }) => $isCellSelected && !$isEditMode ? `
+    &:after {
+      z-index: 1;
+      pointer-events: none;
+      content: "";
+      position: absolute;
+      top: 1px;
+      left: 1px;
+      right: 1px;
+      bottom: 1px;
+      border: 2px solid ${theme.colors.primary.base};
+    }
+  ` : ""}
 `;
 
 const getCellBgColor = (
@@ -88,7 +102,7 @@ export const DataTableRow = styled.div<{
     width: 100%;
   }
 
-  &:nth-child(odd) {
+  &:nth-child(even) {
     ${CellContainer} {
       background-color: #f8f8f8;
     }
@@ -179,10 +193,6 @@ export const CellContent = styled.div<{
     width: 100%;
     z-index: 1;
 
-    .wrapper-icon {
-      height: 30px;
-    }
-
     &.editable-element {
       &.form-control-dropdown-container {
         .form-control-text {
@@ -233,31 +243,12 @@ export const CellContent = styled.div<{
     }
   }
 
-  ${({ $isEditable }) =>
-    $isEditable
-      ? `
+  ${({ $isEditable }) => $isEditable ? `
     &:not(.custom-column) {
       cursor: pointer;
     }
-  `
-      : ""}
+  ` : ""}
 
-  ${({ $isCellSelected }) =>
-    $isCellSelected
-      ? `
-    &:after {
-      z-index: 0;
-      pointer-events: none;
-      content: "";
-      position: absolute;
-      top: 1px;
-      left: 1px;
-      right: 1px;
-      bottom: 1px;
-      border: 2px solid ${theme.colors.primary.base};
-    }
-  `
-      : ""}
 `;
 
 export const NoDataContainer = styled.div<{ $hasError?: boolean }>`
