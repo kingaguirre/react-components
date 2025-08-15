@@ -127,6 +127,30 @@ export const DataTable = <T extends object>({
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const isAutoSizingRef = useRef(false);
   const userSizedColsRef = useRef<Set<string>>(new Set());
+  // Always have the freshest data when we need to emit
+  const latestDataRef = useRef<DataRow[]>([]);
+
+  // Toast (controlled like showAlert)
+  const [toastShow, setToastShow] = useState(false);
+  const [toast, setToast] = useState<{
+    color: "success" | "info" | "warning" | "danger" | "default";
+    title: string;
+    message: React.ReactNode;
+    icon?: string
+  } | null>(null);
+
+  const showToast = React.useCallback((
+    cfg: { color: "success" | "info" | "warning" | "danger" | "default"; title: string; message: React.ReactNode; icon?: string }
+  ) => {
+    // ensure re-open even if same message/title fires twice
+    setToastShow(false);
+    requestAnimationFrame(() => {
+      setToast(cfg);
+      setToastShow(true);
+    });
+  }, []);
+
+  const hideToast = React.useCallback(() => setToastShow(false), []);
 
   // Page reset suppression controller (covers local edit + parent echo)
   const {
@@ -164,8 +188,8 @@ export const DataTable = <T extends object>({
   ) => void;
 
   // Augment rows with a stable internal ID.
-  const [data, setData] = useState<DataRow[]>(
-    () => UTILS.initializeDataWithIds(dataSource),
+  const [data, setData] = useState<DataRow[]>(() =>
+    UTILS.initializeDataWithIds(dataSource),
   );
 
   const [editingCell, setEditingCell] = useState<EditingCellType>(null);
@@ -177,10 +201,9 @@ export const DataTable = <T extends object>({
   // Use initial pagination state from props:
   const [pagination, setPagination] = useState({ pageIndex, pageSize });
   const [columnSizing, setColumnSizing] = useState<Record<string, number>>({});
-  const [columnPinning, setColumnPinning] =
-    useState<ColumnPinningType>(
-      UTILS_CS.getInitialPinning(safeColumnSettings),
-    );
+  const [columnPinning, setColumnPinning] = useState<ColumnPinningType>(
+    UTILS_CS.getInitialPinning(safeColumnSettings),
+  );
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [sorting, setSorting] = useState<SortingState>(
     UTILS_CS.getInitialSorting(safeColumnSettings),
@@ -271,6 +294,10 @@ export const DataTable = <T extends object>({
       if (rafId != null) cancelAnimationFrame(rafId);
     };
   }, [applySizing]);
+
+  useEffect(() => {
+    latestDataRef.current = data;
+  }, [data]);
 
   // Only update local data state when memoizedData changes.
   useEffect(() => {
@@ -558,7 +585,9 @@ export const DataTable = <T extends object>({
         : updaterOrValue;
 
     // Ignore internal auto-reset to page 0 triggered by data writes during an edit echo
-    if (UTILS.shouldIgnoreAutoReset(pagination, next, isPageResetSuppressed())) {
+    if (
+      UTILS.shouldIgnoreAutoReset(pagination, next, isPageResetSuppressed())
+    ) {
       return;
     }
 
@@ -573,7 +602,7 @@ export const DataTable = <T extends object>({
   const handleAddRow = () => {
     const newRow = {
       __isNew: true,
-      __internalId: "new",
+      __internalId: 'new',
     } as any as T;
     columnSettings.forEach((col) => {
       (newRow as any)[col.column] = "";
@@ -592,18 +621,14 @@ export const DataTable = <T extends object>({
         markActive();
       }, 0);
     }
-  };
 
-  // Use custom hook to get action handlers.
-  const { handleSaveRow, handleDelete, handleCancelRow } = useRowActions({
-    setData,
-    editingCell,
-    setEditingCell,
-    onChange,
-    partialRowDeletionID,
-    rowSelection,
-    setRowSelection,
-  });
+    showToast({
+      color: "info",
+      title: "Adding new row",
+      message: "A new row has been created at the top. Fill in the fields, then click Save to commit it.",
+      icon: "plus-circle"
+    });
+  };
 
   // Wrap row clicks: update local state, then call user’s handler
   const handleRowClickInternal = (
@@ -678,6 +703,89 @@ export const DataTable = <T extends object>({
     };
   };
 
+  // wrapper that shows a success toast when the saved row was a NEW row
+  const { handleSaveRow, handleDelete, handleCancelRow } = useRowActions({
+  setData,
+  editingCell,
+  setEditingCell,
+  onChange,
+  partialRowDeletionID,
+  rowSelection,
+  setRowSelection,
+});
+
+  // Wrapper: shows success toast when the saved row was a "new" row
+  const handleSaveRowWithToast = React.useCallback((...args: any[]) => {
+    const a0 = args[0];
+    const oldId: string | undefined =
+      typeof a0 === "string" ? a0 : a0?.__internalId ?? a0?.rowId ?? a0?.id;
+
+    // Was this row marked as new?
+    const wasNew = oldId
+      ? data.some(r => r.__internalId === oldId && (r as any).__isNew)
+      : data.some(r => (r as any).__isNew);
+
+    // If it's a new row, assign a real id before saving
+    let newId: string | null = null;
+    if (wasNew && oldId) {
+      newId = Date.now().toString();
+
+      setData(prev =>
+        prev.map(r =>
+          r.__internalId === oldId
+            ? { ...r, __internalId: newId!, __isNew: false }
+            : r
+        )
+      );
+
+      // If handleSaveRow expects the row object, update args[0] too
+      if (typeof a0 === "object" && a0 !== null) {
+        args[0] = { ...a0, __internalId: newId, __isNew: false };
+      }
+    }
+
+    // 🔧 TS2556 fix: use apply instead of spread on an unknown/union fn type
+    const ret = handleSaveRow ? (handleSaveRow as any).apply(undefined, args) : undefined;
+
+    return Promise.resolve(ret)
+      .then(() => {
+        if (wasNew) {
+          // Emit once with the latest sanitized snapshot
+          const sanitized = latestDataRef.current.map(({ __internalId, ...rest }) => rest);
+          onChange?.(sanitized);
+
+          showToast({
+            color: "success",
+            title: "Row added",
+            message: "Your new row was saved successfully.",
+            icon: "check",
+          });
+        }
+      })
+      .catch((err) => {
+        // Revert id/flag if we changed them
+        if (wasNew && oldId && newId) {
+          setData(prev =>
+            prev.map(r =>
+              r.__internalId === newId
+                ? { ...r, __internalId: oldId, __isNew: true }
+                : r
+            )
+          );
+        }
+
+        showToast({
+          color: "danger",
+          title: "Save failed",
+          message:
+            "We couldn’t save the new row. Please review the fields and try again.",
+          icon: "remove_circle_outline",
+        });
+
+        throw err;
+      });
+  }, [handleSaveRow, data, showToast, onChange]);
+
   // Custom Columns
   const actionColumns = [
     enableRowSelection
@@ -687,7 +795,7 @@ export const DataTable = <T extends object>({
       ? [
           RowActionsColumn({
             columnSettings: safeColumnSettings,
-            handleSaveRow,
+            handleSaveRow: handleSaveRowWithToast,
             handleCancelRow,
             handleDelete,
             enableRowDeleting,
@@ -810,11 +918,15 @@ export const DataTable = <T extends object>({
   useAutoScroll(selectedCell, tableWrapperRef);
 
   const handleConfirmDelete = () => {
-    const selectedRows = table.getSelectedRowModel().rows.map((r) => r.original);
+    const selectedRows = table
+      .getSelectedRowModel()
+      .rows.map((r) => r.original);
     // Delete records when modal is confirmed
     const selectedIds = new Set(
       selectedRows.map((r) => (r as any).__internalId),
     );
+  
+    const deletedCount = selectedIds.size; // capture before state changes
 
     setData((old) => {
       const updated: any = old.filter(
@@ -827,6 +939,14 @@ export const DataTable = <T extends object>({
     setRowSelection({});
     // Close the modal
     setShowAlert(false);
+
+    // Show success toast
+    showToast({
+      color: "success",
+      title: "Bulk delete complete",
+      icon: "check",
+      message: <div>Removed <b>{deletedCount}</b> selected row{deletedCount > 1 ? "s" : ""}.</div>
+    });
   };
 
   // reorder columns after drag & drop
@@ -975,6 +1095,7 @@ export const DataTable = <T extends object>({
           color="danger"
           title="Confirm"
           show={showAlert}
+          icon="dangerous"
           toast
           placement="bottom-right"
           closeable
@@ -993,6 +1114,21 @@ export const DataTable = <T extends object>({
           >
             Confirm Delete
           </Button>
+        </Alert>
+      )}
+
+      {toast && (showDeleteIcon || enableRowAdding) && (
+         <Alert
+          color={toast.color}
+          title={toast.title}
+          icon={toast.icon}
+          show={toastShow}
+          toast
+          placement="bottom-right"
+          animation="slide"
+          onClose={hideToast}
+        >
+          {toast.message}
         </Alert>
       )}
     </DataTableWrapper>

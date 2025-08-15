@@ -24,7 +24,8 @@ export const ensureActiveTableGlobalListeners = () => {
 
   const findWrapper = (target: EventTarget | null): HTMLElement | null => {
     const el = target as any;
-    const path: EventTarget[] = typeof el?.composedPath === "function" ? el.composedPath() : [];
+    const path: EventTarget[] =
+      typeof el?.composedPath === "function" ? el.composedPath() : [];
     for (const n of path) {
       if (n instanceof HTMLElement && n.matches(WRAP_SELECTOR)) return n;
     }
@@ -33,7 +34,10 @@ export const ensureActiveTableGlobalListeners = () => {
 
   const setFromTarget = (t: EventTarget | null) => {
     const wrap = findWrapper(t);
-    if (!wrap) { setActiveTable(null); return; }
+    if (!wrap) {
+      setActiveTable(null);
+      return;
+    }
     const idAttr = wrap.getAttribute("data-table-instanceid");
     const id = idAttr ? Number(idAttr) : NaN;
     setActiveTable(Number.isNaN(id) ? null : id);
@@ -41,7 +45,13 @@ export const ensureActiveTableGlobalListeners = () => {
 
   // Track last pointer timestamp so we can tell mouse-induced focus vs keyboard focus
   let lastPointerTs = 0;
-  document.addEventListener("pointerdown", () => { lastPointerTs = performance.now(); }, true);
+  document.addEventListener(
+    "pointerdown",
+    () => {
+      lastPointerTs = performance.now();
+    },
+    true,
+  );
 
   // Keyboard/programmatic focus only: if focus happens right after pointer, skip (it’s a mouse click)
   document.addEventListener(

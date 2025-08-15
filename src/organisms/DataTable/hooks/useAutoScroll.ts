@@ -26,8 +26,8 @@ export const useAutoScroll = (
       // Sticky offsets (tune to your layout)
       const stickyHeaderHeight = 84;
       const stickyFooterHeight = 12;
-      const stickyLeftWidth   = 125;
-      const stickyRightWidth  = 12;
+      const stickyLeftWidth = 125;
+      const stickyRightWidth = 12;
 
       const cellRect = cellEl.getBoundingClientRect();
 
@@ -37,19 +37,24 @@ export const useAutoScroll = (
 
         // Vertical
         if (cellRect.top < stickyHeaderHeight) {
-          newScrollY += (cellRect.top - stickyHeaderHeight);
+          newScrollY += cellRect.top - stickyHeaderHeight;
         } else if (cellRect.bottom > window.innerHeight - stickyFooterHeight) {
-          newScrollY += (cellRect.bottom - (window.innerHeight - stickyFooterHeight));
+          newScrollY +=
+            cellRect.bottom - (window.innerHeight - stickyFooterHeight);
         }
 
         // Horizontal
         if (cellRect.left < stickyLeftWidth) {
-          newScrollX += (cellRect.left - stickyLeftWidth);
+          newScrollX += cellRect.left - stickyLeftWidth;
         } else if (cellRect.right > window.innerWidth - stickyRightWidth) {
-          newScrollX += (cellRect.right - (window.innerWidth - stickyRightWidth));
+          newScrollX += cellRect.right - (window.innerWidth - stickyRightWidth);
         }
 
-        window.scrollTo({ top: newScrollY, left: newScrollX, behavior: "smooth" });
+        window.scrollTo({
+          top: newScrollY,
+          left: newScrollX,
+          behavior: "smooth",
+        });
       } else {
         const sp = scrollParent as HTMLElement;
         const containerRect = sp.getBoundingClientRect();
@@ -62,8 +67,12 @@ export const useAutoScroll = (
         // Vertical
         if (cellRect.top < containerRect.top + stickyHeaderHeight) {
           offsetY = cellRect.top - containerRect.top - stickyHeaderHeight;
-        } else if (cellRect.bottom > containerRect.bottom - stickyFooterHeight) {
-          offsetY = cellRect.bottom - (containerRect.bottom - stickyFooterHeight);
+        } else if (
+          cellRect.bottom >
+          containerRect.bottom - stickyFooterHeight
+        ) {
+          offsetY =
+            cellRect.bottom - (containerRect.bottom - stickyFooterHeight);
         }
 
         // Horizontal

@@ -8,7 +8,6 @@ import {
   IconWrapper,
   CloseButton,
   ToastContainer,
-  ToastOverlay,
 } from "./styled";
 import { AlertProps } from "./interface";
 import { Icon } from "../../atoms/Icon";
@@ -31,31 +30,30 @@ export const Alert: React.FC<AlertProps> = ({
 }) => {
   const exitTimerRef = useRef<number | null>(null);
 
-  // Determine if the alert is controlled (i.e. onClose provided)
+  // Controlled vs uncontrolled
   const isControlled = onClose !== undefined;
-  // internalShow controls whether the alert is rendered.
+
+  // Render/animation state
   const [internalShow, setInternalShow] = useState(show);
-  // isExiting triggers the exit animation.
   const [isExiting, setIsExiting] = useState(false);
 
-  // In controlled mode, update internalShow based on parent's `show`.
-  // In uncontrolled mode, ignore changes to `show` after initialization.
+  // Sync with parent in controlled mode
   useEffect(() => {
-    if (isControlled) {
-      if (show) {
-        setInternalShow(true);
-        setIsExiting(false);
-      } else if (internalShow && !isExiting) {
-        setIsExiting(true);
+    if (!isControlled) return;
 
-        exitTimerRef.current = window.setTimeout(() => {
-          setInternalShow(false);
-          exitTimerRef.current = null;
-        }, ANIMATION_DURATION);
-      }
+    if (show) {
+      setInternalShow(true);
+      setIsExiting(false);
+    } else if (internalShow && !isExiting) {
+      setIsExiting(true);
+      exitTimerRef.current = window.setTimeout(() => {
+        setInternalShow(false);
+        exitTimerRef.current = null;
+      }, ANIMATION_DURATION);
     }
   }, [show, internalShow, isControlled, isExiting]);
 
+  // Cleanup exit timer
   useEffect(() => {
     return () => {
       if (exitTimerRef.current) {
@@ -64,11 +62,10 @@ export const Alert: React.FC<AlertProps> = ({
     };
   }, []);
 
-  // Auto-close timer for toast mode (only enabled when closeable is false).
+  // Auto-close timer for toast mode (when not closeable)
   const timerRef = useRef<number | null>(null);
   const timerStartRef = useRef<number>(0);
   const timerRemainingRef = useRef<number>(closeDelay);
-  const renderOverlay = toast && !closeable;
 
   const clearTimer = () => {
     if (timerRef.current) {
@@ -104,36 +101,45 @@ export const Alert: React.FC<AlertProps> = ({
   };
 
   const handleMouseLeave = () => {
-    if (
-      toast &&
-      !closeable &&
-      timerRemainingRef.current > 0 &&
-      !timerRef.current
-    ) {
+    if (toast && !closeable && timerRemainingRef.current > 0 && !timerRef.current) {
       startTimer(timerRemainingRef.current);
     }
   };
 
-  // When a close action is triggered (via clear icon, overlay click, or auto‑close),
-  // force the alert to exit. In controlled mode, call onClose so the parent updates `show`
-  // in uncontrolled mode, update our internal state.
   const handleClose = useCallback(() => {
     if (isExiting) return;
     setIsExiting(true);
     setTimeout(() => {
       setInternalShow(false);
     }, ANIMATION_DURATION);
-    if (onClose) {
-      onClose();
-    }
+    if (onClose) onClose();
   }, [isExiting, onClose]);
 
-  // Overlay click triggers close only when auto‑close is active.
-  const handleOverlayClick = () => {
-    if (!closeable) {
+  // === NEW: Close when clicking anywhere outside the ToastContainer (replaces ToastOverlay) ===
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    // Only enable outside-click close in the same scenario the overlay used to appear:
+    // toast && !closeable && internalShow
+    if (!(toast && !closeable && internalShow)) return;
+
+    const onDocPointerDown = (e: Event) => {
+      const el = containerRef.current;
+      const target = e.target as Node | null;
+      if (!el || !target) return;
+
+      // If the click is inside the toast container, ignore it.
+      if (el === target || el.contains(target)) return;
+
       handleClose();
-    }
-  };
+    };
+
+    // Capture phase so we get the event even if something stops propagation later
+    document.addEventListener("pointerdown", onDocPointerDown, true);
+    return () => {
+      document.removeEventListener("pointerdown", onDocPointerDown, true);
+    };
+  }, [toast, closeable, internalShow, handleClose]);
 
   if (!internalShow) return null;
 
@@ -168,10 +174,10 @@ export const Alert: React.FC<AlertProps> = ({
 
   if (toast) {
     return ReactDOM.createPortal(
-      <>
-        {renderOverlay && <ToastOverlay onClick={handleOverlayClick} />}
-        <ToastContainer $placement={placement}>{alertContent}</ToastContainer>
-      </>,
+      // No overlay; we attach the ref to the container to detect outside clicks.
+      <ToastContainer ref={containerRef} $placement={placement}>
+        {alertContent}
+      </ToastContainer>,
       document.body,
     );
   }

@@ -121,9 +121,11 @@ export const AccordionRightContent = styled.div<{
   display: flex;
   align-items: center;
   font-size: 12px;
-  color: ${({ $disabled }) => $disabled ? theme.colors.default.base : theme.colors.default.dark};
+  color: ${({ $disabled }) =>
+    $disabled ? theme.colors.default.base : theme.colors.default.dark};
   * {
-    color: ${({ $disabled }) => $disabled ? theme.colors.default.base : theme.colors.default.dark};
+    color: ${({ $disabled }) =>
+      $disabled ? theme.colors.default.base : theme.colors.default.dark};
   }
 `;
 
@@ -135,7 +137,8 @@ export const AccordionDetailContainer = styled.div<{
   cursor: pointer;
   margin: -2px 0 -2px 8px;
   font-size: 12px;
-  color: ${({ $disabled }) => $disabled ? theme.colors.default.base : theme.colors.default.dark};
+  color: ${({ $disabled }) =>
+    $disabled ? theme.colors.default.base : theme.colors.default.dark};
 
   .badge {
     box-shadow: 0 0 2px 1px rgba(255, 255, 255, 0.6);

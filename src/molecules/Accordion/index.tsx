@@ -23,7 +23,10 @@ export const Accordion: React.FC<AccordionProps> = ({
   allowMultiple = false,
 }) => {
   // use stable key per item (id if provided, else index string)
-  const getKey = useCallback((idx: number) => String(items[idx]?.id ?? idx), [items]);
+  const getKey = useCallback(
+    (idx: number) => String(items[idx]?.id ?? idx),
+    [items],
+  );
 
   // open state keyed by item key
   const [openItems, setOpenItems] = useState<Record<string, boolean>>(() => {
@@ -36,18 +39,19 @@ export const Accordion: React.FC<AccordionProps> = ({
 
   // SYNC: if parent passes item.open, mirror it into internal state
   useEffect(() => {
-    setOpenItems(prev => {
+    setOpenItems((prev) => {
       const next = { ...prev };
       items.forEach((it, idx) => {
         const k = getKey(idx);
-        if (typeof it.open === "boolean") next[k] = it.open;   // controlled
-        else if (!(k in next)) next[k] = false;                // ensure key exists
+        if (typeof it.open === "boolean")
+          next[k] = it.open; // controlled
+        else if (!(k in next)) next[k] = false; // ensure key exists
       });
       return next;
     });
   }, [items, getKey]);
 
-   const toggleItem = (index: number) => {
+  const toggleItem = (index: number) => {
     const item = items[index];
     const key = getKey(index);
 
@@ -61,8 +65,10 @@ export const Accordion: React.FC<AccordionProps> = ({
     }
 
     // Uncontrolled: manage internal state
-    setOpenItems(prev => {
-      const next = allowMultiple ? { ...prev } : Object.fromEntries(Object.keys(prev).map(k => [k, false]));
+    setOpenItems((prev) => {
+      const next = allowMultiple
+        ? { ...prev }
+        : Object.fromEntries(Object.keys(prev).map((k) => [k, false]));
       next[key] = !prev[key];
       return next;
     });
@@ -72,7 +78,8 @@ export const Accordion: React.FC<AccordionProps> = ({
     <AccordionContainer>
       {items.map((item, idx) => {
         const key = getKey(idx);
-        const isOpen = typeof item.open === "boolean" ? item.open : !!openItems[key];
+        const isOpen =
+          typeof item.open === "boolean" ? item.open : !!openItems[key];
         return (
           <AccordionItem
             key={key}

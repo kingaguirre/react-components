@@ -137,13 +137,3 @@ export const ToastContainer = styled.div<{ $placement: string }>`
   font-family: ${theme.fontFamily};
 `;
 
-// Overlay behind toast alerts.
-export const ToastOverlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 9997;
-  background: transparent;
-`;

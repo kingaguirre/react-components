@@ -1,6 +1,11 @@
 import { FilterFn } from "@tanstack/react-table";
-import type { Table, PaginationState } from '@tanstack/react-table';
-import { ColumnSetting, SelectedCellType, DataRow, SelectedCellCoordProp } from "../interface";
+import type { Table, PaginationState } from "@tanstack/react-table";
+import {
+  ColumnSetting,
+  SelectedCellType,
+  DataRow,
+  SelectedCellCoordProp,
+} from "../interface";
 
 export const BUILTIN_COLUMN_IDS = new Set([
   "data-table-expander",
@@ -149,11 +154,16 @@ export const filterUniqueMap = (arr?: string[], value?: string) => {
 };
 
 /** Visible, user-only leaf columns in visual order (pinned + order + visibility respected) */
-export function getVisibleUserLeafColumns(table: Table<any>, builtin = BUILTIN_COLUMN_IDS) {
+export function getVisibleUserLeafColumns(
+  table: Table<any>,
+  builtin = BUILTIN_COLUMN_IDS,
+) {
   return table.getVisibleLeafColumns().filter((c) => !builtin.has(c.id));
 }
 
-export function parseSelectedCellInput(input?: SelectedCellCoordProp): [number, number] | null {
+export function parseSelectedCellInput(
+  input?: SelectedCellCoordProp,
+): [number, number] | null {
   if (Array.isArray(input) && input.length >= 2) {
     const [r, c] = input;
     return Number.isInteger(r) && Number.isInteger(c) ? [r, c] : null;
@@ -175,7 +185,7 @@ export function coordToInternalSelection(
   table: Table<any>,
   rowIdx: number,
   userColIdx: number,
-  builtin = BUILTIN_COLUMN_IDS
+  builtin = BUILTIN_COLUMN_IDS,
 ): SelectedCellType | null {
   if (rowIdx < 0 || userColIdx < 0) return null;
 
@@ -187,8 +197,7 @@ export function coordToInternalSelection(
   if (!rowModel || !col) return null;
 
   const rowId =
-    (rowModel.original as DataRow)?.__internalId ??
-    (rowModel.id as string);
+    (rowModel.original as DataRow)?.__internalId ?? (rowModel.id as string);
 
   // 🔑 columnId is JUST the real column id now
   const columnId = col.id;
@@ -197,7 +206,9 @@ export function coordToInternalSelection(
 }
 
 /** Initialize rows with a stable internal ID */
-export function initializeDataWithIds<T extends object>(rows: unknown): DataRow[] {
+export function initializeDataWithIds(
+  rows: unknown,
+): DataRow[] {
   if (!Array.isArray(rows)) return [];
   return rows.map((row, i) =>
     (row as DataRow).__internalId
@@ -213,7 +224,7 @@ export function getExpandedRowRightOffset(
   enableRowDeleting: boolean,
 ): number {
   let offset = 30; // base gutter
-  if (enableRowSelection) offset += 30;            // selection col
+  if (enableRowSelection) offset += 30; // selection col
   if (enableRowAdding || enableRowDeleting) offset += 65; // actions col
   return offset;
 }
@@ -237,7 +248,9 @@ export function mergeSizing(
   const merged: Record<string, number> = {};
   for (const colId of Object.keys(defaultSizing)) {
     merged[colId] = userSizedCols.has(colId)
-      ? (typeof prev[colId] === "number" ? prev[colId] : defaultSizing[colId])
+      ? typeof prev[colId] === "number"
+        ? prev[colId]
+        : defaultSizing[colId]
       : defaultSizing[colId];
   }
   return merged;
@@ -271,7 +284,12 @@ export function createPageResetController(windowMs = 1200) {
 
   const isPageResetSuppressed = () => Date.now() < suppressUntilRef.current;
 
-  return { skipPageResetRef, noPageReset, suppressPageReset, isPageResetSuppressed };
+  return {
+    skipPageResetRef,
+    noPageReset,
+    suppressPageReset,
+    isPageResetSuppressed,
+  };
 }
 
 /** Gate to ignore TanStack’s internal "reset to page 0" during an edit echo */

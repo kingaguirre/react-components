@@ -36,7 +36,9 @@ export const Footer = <TData,>({
   disabledRows,
   enableRowSelection,
 }: FooterProps<TData>) => {
-  const hasColumns = table.getVisibleLeafColumns().filter((c) => !BUILTIN_COLUMN_IDS.has(c.id)).length > 0;
+  const hasColumns =
+    table.getVisibleLeafColumns().filter((c) => !BUILTIN_COLUMN_IDS.has(c.id))
+      .length > 0;
   const hasTotalRecords = table.getRowModel().rows.length > 0 && hasColumns;
   const totalFilteredRecords = table.getFilteredRowModel().rows.length;
   const endRange =

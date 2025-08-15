@@ -174,9 +174,12 @@ export const DebouncedInput = ({
   [key: string]: any;
 } & Omit<React.InputHTMLAttributes<HTMLInputElement>, "onChange">) => {
   const [value, setValue] = React.useState(initialValue);
-   const controlRef = React.useRef<any>(null);
+  const controlRef = React.useRef<any>(null);
 
-  const inferredBlur = props.type === "dropdown" || props.type === "date" || props.type === "date-range";
+  const inferredBlur =
+    props.type === "dropdown" ||
+    props.type === "date" ||
+    props.type === "date-range";
 
   React.useEffect(() => {
     setValue(initialValue);
@@ -186,14 +189,23 @@ export const DebouncedInput = ({
     const timeout = setTimeout(() => {
       onChange?.(value);
 
-      if (inferredBlur && typeof window !== "undefined" && typeof document !== "undefined") {
+      if (
+        inferredBlur &&
+        typeof window !== "undefined" &&
+        typeof document !== "undefined"
+      ) {
         // 1) try forwarded ref
-        if (controlRef.current && typeof controlRef.current.blur === "function") {
+        if (
+          controlRef.current &&
+          typeof controlRef.current.blur === "function"
+        ) {
           controlRef.current.blur();
         } else {
           // 2) try data-testid hook
           const sel = columnId ? `[data-testid="filter-${columnId}"]` : "";
-          const el = sel ? (document.querySelector(sel) as HTMLElement | null) : null;
+          const el = sel
+            ? (document.querySelector(sel) as HTMLElement | null)
+            : null;
           if (el && typeof el.blur === "function") {
             el.blur();
           } else {

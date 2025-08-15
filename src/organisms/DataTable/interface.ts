@@ -68,7 +68,7 @@ export interface DataTableProps {
    */
   partialRowDeletionID?: string;
   /** Coordinates of the currently selected cell */
-  selectedCell?: SelectedCellCoordProp
+  selectedCell?: SelectedCellCoordProp;
   /** Callback when a row is clicked */
   onRowClick?: (
     rowData: any,
@@ -95,7 +95,7 @@ export interface DataTableProps {
   onActiveRowChange?: (rowData: any, __internalId?: string) => void;
 }
 
-export type SelectedCellCoordProp = [number, number] | string
+export type SelectedCellCoordProp = [number, number] | string;
 
 export type DataTableFormControlType =
   | "text"
