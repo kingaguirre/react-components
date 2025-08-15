@@ -89,21 +89,21 @@ export const Dropdown: React.FC<DropdownProps> = ({
     }
 
     // if (onChange) {
-      const currentVal = value != null ? (value as string) : "";
-      const selectedOption = options.find((opt) => opt.value === currentVal);
+    const currentVal = value != null ? (value as string) : "";
+    const selectedOption = options.find((opt) => opt.value === currentVal);
 
-      if (!currentVal) {
-        setDisplayValue("");
-        setSelectedValue(undefined);
-        previousDisplayRef.current = "";
-      } else if (selectedOption) {
-        setDisplayValue(selectedOption.text);
-        previousDisplayRef.current = selectedOption.text;
-      } else {
-        setDisplayValue(previousDisplayRef.current);
-      }
+    if (!currentVal) {
+      setDisplayValue("");
+      setSelectedValue(undefined);
+      previousDisplayRef.current = "";
+    } else if (selectedOption) {
+      setDisplayValue(selectedOption.text);
+      previousDisplayRef.current = selectedOption.text;
+    } else {
+      setDisplayValue(previousDisplayRef.current);
+    }
 
-      setSelectedValue(currentVal);
+    setSelectedValue(currentVal);
     // }
   }, [value, options, isMulti, onChange]);
   // --- END SYNC EFFECT ---

@@ -19,7 +19,9 @@ export const DataTableWrapper = styled.div<{ $disabled?: boolean }>`
     outline: none !important;
   }
 
-  ${({ $disabled }) => $disabled ? `
+  ${({ $disabled }) =>
+    $disabled
+      ? `
     * {
       pointer-events: none;
     }
@@ -35,7 +37,8 @@ export const DataTableWrapper = styled.div<{ $disabled?: boolean }>`
       cursor: not-allowed;
       ${fadeInOnMount}
     }
-  ` : ""}
+  `
+      : ""}
 
   &.is-not-focused {
     .cell-container.selected:after {

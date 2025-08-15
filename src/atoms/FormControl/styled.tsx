@@ -677,14 +677,16 @@ export const IconContainer = styled.span<{
   }
 
   ${({ $disabled }) =>
-    $disabled ? `
+    $disabled
+      ? `
       pointer-events: none;
       cursor: not-allowed;
       color: ${theme.colors.default.base};
       * {
         pointer-events: none;
       }
-    ` : ""}
+    `
+      : ""}
 `;
 
 export const NoOptionsContainer = styled.div`

@@ -58,9 +58,7 @@ export function transformColumnSettings<T extends object>(
     ([groupTitle, cols]) => ({
       id: `group-${groupTitle}`,
       header: groupTitle,
-      columns: cols.map((c) =>
-        createColumnDef<T>(c, cellTextAlignment),
-      ),
+      columns: cols.map((c) => createColumnDef<T>(c, cellTextAlignment)),
     }),
   );
   const topColumns = topLevel.map((col) =>

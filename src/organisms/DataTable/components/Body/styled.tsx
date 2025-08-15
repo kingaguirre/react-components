@@ -27,7 +27,9 @@ export const CellContainer = styled.div<{
     background-color: #e9e9e9 !important;
   }
 
-  ${({ $hasError, $isDisabled }) => $hasError && !$isDisabled ? `
+  ${({ $hasError, $isDisabled }) =>
+    $hasError && !$isDisabled
+      ? `
     &:before {
       z-index: 0;
       content: "";
@@ -39,10 +41,12 @@ export const CellContainer = styled.div<{
       position: absolute;
       border: 1px solid ${theme.colors.danger.base};
     }
-  `: ""}
+  `
+      : ""}
 
-
-  ${({ $isCellSelected, $isEditMode }) => $isCellSelected && !$isEditMode ? `
+  ${({ $isCellSelected, $isEditMode }) =>
+    $isCellSelected && !$isEditMode
+      ? `
     &:after {
       z-index: 1;
       pointer-events: none;
@@ -54,7 +58,8 @@ export const CellContainer = styled.div<{
       bottom: 1px;
       border: 2px solid ${theme.colors.primary.base};
     }
-  ` : ""}
+  `
+      : ""}
 `;
 
 const getCellBgColor = (
@@ -243,12 +248,14 @@ export const CellContent = styled.div<{
     }
   }
 
-  ${({ $isEditable }) => $isEditable ? `
+  ${({ $isEditable }) =>
+    $isEditable
+      ? `
     &:not(.custom-column) {
       cursor: pointer;
     }
-  ` : ""}
-
+  `
+      : ""}
 `;
 
 export const NoDataContainer = styled.div<{ $hasError?: boolean }>`

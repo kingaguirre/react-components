@@ -30,19 +30,18 @@ const InnerCellContent = memo(
     const cellContext = flexRender(colDef.cell, cell.getContext());
     const { ref, hasEllipsis } = useHasEllipsis(cellContext);
 
-    const maybeEllipsized =
-      hasEllipsis ? (
-        <Tooltip
-          minWidth={150}
-          maxWidth={cell.column.getSize()}
-          content={cellContext}
-          type="title"
-        >
-          {cellContext}
-        </Tooltip>
-      ) : (
-        cellContext
-      );
+    const maybeEllipsized = hasEllipsis ? (
+      <Tooltip
+        minWidth={150}
+        maxWidth={cell.column.getSize()}
+        content={cellContext}
+        type="title"
+      >
+        {cellContext}
+      </Tooltip>
+    ) : (
+      cellContext
+    );
 
     return (
       <CellContent
@@ -64,8 +63,8 @@ const InnerCellContent = memo(
       a.isEditable === b.isEditable &&
       a.isDisabled === b.isDisabled &&
       a.isDisabledRow === b.isDisabledRow
-    )
-  }
+    );
+  },
 );
 
 export const Cell = memo(
@@ -126,7 +125,7 @@ export const Cell = memo(
         $isDisabled={isDisabled}
         $isEditMode={!!isEditMode}
         $isPinned={!!cell.column.getIsPinned()}
-        $isCellSelected={isCellSelected} // <-- moved here
+        $isCellSelected={isCellSelected}
         style={getColumnStyles(cell.column, isDragging, transform)}
         data-row-id={rowId}
         data-col-id={columnId}
@@ -148,5 +147,5 @@ export const Cell = memo(
         )}
       </CellContainer>
     );
-  }
+  },
 );

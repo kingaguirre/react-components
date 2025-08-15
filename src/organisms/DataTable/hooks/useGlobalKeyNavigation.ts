@@ -43,7 +43,15 @@ export const useGlobalKeyNavigation = ({
       activeRowId,
       setActiveRowId,
     };
-  }, [selectedCell, table, enableCellEditing, setSelectedCell, setEditingCell, activeRowId, setActiveRowId]);
+  }, [
+    selectedCell,
+    table,
+    enableCellEditing,
+    setSelectedCell,
+    setEditingCell,
+    activeRowId,
+    setActiveRowId,
+  ]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -73,17 +81,29 @@ export const useGlobalKeyNavigation = ({
         tag === "SELECT" || // let selects keep Arrow behavior
         (tag === "INPUT" &&
           // block only texty inputs; allow checkbox/radio/buttons to pass through
-          !["checkbox", "radio", "button", "submit", "reset", "range", "color", "file"].includes(type || ""));
+          ![
+            "checkbox",
+            "radio",
+            "button",
+            "submit",
+            "reset",
+            "range",
+            "color",
+            "file",
+          ].includes(type || ""));
 
       if (isTypingContext) return;
 
       if (e.key === "Enter") {
         e.preventDefault();
         const rows = table.getRowModel().rows;
-        const row = rows.find((r: any) => (r.original as any).__internalId === selectedCell.rowId);
+        const row = rows.find(
+          (r: any) => (r.original as any).__internalId === selectedCell.rowId,
+        );
         if (!row) return;
 
-        if (selectedCell.rowId !== activeRowId) setActiveRowId(selectedCell.rowId);
+        if (selectedCell.rowId !== activeRowId)
+          setActiveRowId(selectedCell.rowId);
 
         const cell = row.getVisibleCells().find((c: any) => {
           const columnId = (c.column.columnDef.meta as any)?.columnId || "";
@@ -94,13 +114,24 @@ export const useGlobalKeyNavigation = ({
         const meta: any = cell.column.columnDef.meta || {};
         const disabled = meta.disabled;
         const disabledRowFn = meta.isDisabledRow;
-        const isDisabled = typeof disabled === "function" ? disabled(row.original) : !!disabled;
-        const isDisabledRow = typeof disabledRowFn === "function" ? disabledRowFn(row.original) : false;
+        const isDisabled =
+          typeof disabled === "function" ? disabled(row.original) : !!disabled;
+        const isDisabledRow =
+          typeof disabledRowFn === "function"
+            ? disabledRowFn(row.original)
+            : false;
 
-        if (meta.className === "custom-column" || isDisabled || isDisabledRow) return;
+        if (meta.className === "custom-column" || isDisabled || isDisabledRow)
+          return;
 
-        if ((enableCellEditing || (row.original as any).__isNew) && meta.editor !== false) {
-          setEditingCell({ rowId: selectedCell.rowId, columnId: meta.columnId });
+        if (
+          (enableCellEditing || (row.original as any).__isNew) &&
+          meta.editor !== false
+        ) {
+          setEditingCell({
+            rowId: selectedCell.rowId,
+            columnId: meta.columnId,
+          });
         }
         return;
       }
@@ -110,12 +141,19 @@ export const useGlobalKeyNavigation = ({
         e.stopPropagation();
 
         const rows = table.getRowModel().rows;
-        const currentRowIndex = rows.findIndex((r: any) => (r.original as any).__internalId === selectedCell.rowId);
+        const currentRowIndex = rows.findIndex(
+          (r: any) => (r.original as any).__internalId === selectedCell.rowId,
+        );
         if (currentRowIndex === -1) return;
         const currentRow = rows[currentRowIndex];
 
         const selectable = (r: any) =>
-          r.getVisibleCells().filter((c: any) => (c.column.columnDef.meta || {}).className !== "custom-column");
+          r
+            .getVisibleCells()
+            .filter(
+              (c: any) =>
+                (c.column.columnDef.meta || {}).className !== "custom-column",
+            );
 
         const currentSelectableCells = selectable(currentRow);
         const currIdx = currentSelectableCells.findIndex((c: any) => {
@@ -129,8 +167,12 @@ export const useGlobalKeyNavigation = ({
           if (!targetCells.length) return;
           const newSelIdx = Math.min(selIdx, targetCells.length - 1);
           const newCell = targetCells[newSelIdx];
-          const columnId = (newCell.column.columnDef.meta as any)?.columnId || "";
-          setSelectedCell({ rowId: (targetRow.original as any).__internalId, columnId });
+          const columnId =
+            (newCell.column.columnDef.meta as any)?.columnId || "";
+          setSelectedCell({
+            rowId: (targetRow.original as any).__internalId,
+            columnId,
+          });
         };
 
         if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
@@ -138,8 +180,12 @@ export const useGlobalKeyNavigation = ({
           const nextIdx = currIdx + delta;
           if (nextIdx >= 0 && nextIdx < currentSelectableCells.length) {
             const newCell = currentSelectableCells[nextIdx];
-            const columnId = (newCell.column.columnDef.meta as any)?.columnId || "";
-            setSelectedCell({ rowId: (currentRow.original as any).__internalId, columnId });
+            const columnId =
+              (newCell.column.columnDef.meta as any)?.columnId || "";
+            setSelectedCell({
+              rowId: (currentRow.original as any).__internalId,
+              columnId,
+            });
           }
         } else {
           const delta = e.key === "ArrowUp" ? -1 : 1;

@@ -167,7 +167,7 @@ export const COLUMN_SETTINGS: ColumnSetting[] = [
     },
     filter: { type: "date-range" },
   },
-   {
+  {
     groupTitle: "Profile",
     title: "Custom Text",
     column: "_",
@@ -175,14 +175,14 @@ export const COLUMN_SETTINGS: ColumnSetting[] = [
     cell: () => (
       <Dropdown
         options={[
-          { value: 'test', text: 'Test' },
-          { value: 'test1', text: 'Test1' },
+          { value: "test", text: "Test" },
+          { value: "test1", text: "Test1" },
         ]}
-        value='test'
+        value="test"
         hideOnScroll
         size="sm"
       />
-    )
+    ),
   },
   {
     groupTitle: "Others",
@@ -205,7 +205,6 @@ export const COLUMN_SETTINGS: ColumnSetting[] = [
           .string()
           .nonempty("String cannot be empty")
           .refine((val) => {
-            console.log(val);
             const parts = val.split(",").map((s) => s.trim());
             return parts.length === 2 && parts[0] !== " && parts[1] !== ";
           }, "Must be two non-empty strings separated by a comma"),

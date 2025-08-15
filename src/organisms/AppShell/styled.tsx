@@ -137,7 +137,12 @@ export const SideMenuContainer = styled.aside<{
   $visible: boolean;
   $sideMenuWidth: number | string;
 }>`
-  width: ${({ $collapsed, $sideMenuWidth }) => $collapsed ? "50px" : typeof $sideMenuWidth === 'number' ? `${$sideMenuWidth}px` : $sideMenuWidth};
+  width: ${({ $collapsed, $sideMenuWidth }) =>
+    $collapsed
+      ? "50px"
+      : typeof $sideMenuWidth === "number"
+        ? `${$sideMenuWidth}px`
+        : $sideMenuWidth};
   height: 100%;
   background-color: ${theme.colors.primary.darker};
   color: white;

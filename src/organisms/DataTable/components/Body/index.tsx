@@ -104,11 +104,13 @@ export const Body = <TData,>({
     ],
   );
 
-   // If there are literally no user-defined columns (only built-ins), show message
+  // If there are literally no user-defined columns (only built-ins), show message
   if (leafColumns.length === 0) {
     return (
       <BodyContainer className="data-table-body-container">
-        <NoDataContainer $hasError>No column settings configured.</NoDataContainer>
+        <NoDataContainer $hasError>
+          No column settings configured.
+        </NoDataContainer>
       </BodyContainer>
     );
   }
