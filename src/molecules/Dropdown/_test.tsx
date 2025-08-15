@@ -136,15 +136,15 @@ describe("Dropdown Component", () => {
     // Wait for filter input.
     await waitFor(() => screen.getByPlaceholderText("Filter options..."));
     // Select Option 1.
-    const option1 = await waitFor(() => screen.getByText("Option 1"));
-    fireEvent.click(option1);
+    const option1 = await waitFor(() => screen.queryByText("Option 1"));
+    fireEvent.click(option1!);
     expect(onChange).toHaveBeenCalledWith(["1"]);
     // Select Option 2.
-    const option2 = await waitFor(() => screen.getByText("Option 2"));
-    fireEvent.click(option2);
+    const option2 = await waitFor(() => screen.queryByText("Option 2"));
+    fireEvent.click(option2!);
     expect(onChange).toHaveBeenCalledWith(["1", "2"]);
     // Toggle Option 1 off.
-    fireEvent.click(option1);
+    fireEvent.click(option1!);
     expect(onChange).toHaveBeenCalledWith(["2"]);
     // The input should display a summary (e.g., "1 selected item").
     expect(screen.getByDisplayValue("1 selected item")).toBeInTheDocument();
