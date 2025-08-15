@@ -1,7 +1,6 @@
 import React from "react";
 import { ColumnSetting, HeaderRightElement } from "../interface";
 import { Badge } from "../../../atoms/Badge";
-import { FormControl } from "src/atoms/FormControl";
 import { Dropdown } from "src/molecules/Dropdown";
 
 const loremAddresses = [
@@ -21,7 +20,7 @@ const secureRandom = () => {
 };
 
 // Generate 100 rows of sample data with all columns defined
-export const dataSource = (length = 50) => {
+export const dataSource = (length = 100) => {
   return Array.from({ length }, (_, i) => ({
     id: i + 1,
     name: `Name ${i + 1}`,

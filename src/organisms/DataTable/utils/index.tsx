@@ -1,5 +1,5 @@
 import { FilterFn } from "@tanstack/react-table";
-import type { Table } from '@tanstack/react-table';
+import type { Table, PaginationState } from '@tanstack/react-table';
 import { ColumnSetting, SelectedCellType, DataRow, SelectedCellCoordProp } from "../interface";
 
 export const BUILTIN_COLUMN_IDS = new Set([
@@ -196,3 +196,94 @@ export function coordToInternalSelection(
   return { rowId, columnId };
 }
 
+/** Initialize rows with a stable internal ID */
+export function initializeDataWithIds<T extends object>(rows: unknown): DataRow[] {
+  if (!Array.isArray(rows)) return [];
+  return rows.map((row, i) =>
+    (row as DataRow).__internalId
+      ? (row as DataRow)
+      : ({ ...(row as any), __internalId: String(i) } as DataRow),
+  );
+}
+
+/** Compute the right-side offset for expanded rows given extra columns */
+export function getExpandedRowRightOffset(
+  enableRowSelection: boolean,
+  enableRowAdding: boolean,
+  enableRowDeleting: boolean,
+): number {
+  let offset = 30; // base gutter
+  if (enableRowSelection) offset += 30;            // selection col
+  if (enableRowAdding || enableRowDeleting) offset += 65; // actions col
+  return offset;
+}
+
+/** Factory for a getRowCanExpand fn that respects expandedRowContent */
+export function makeRowCanExpand(
+  expandedRowContent?: (rowOriginal: any) => any,
+) {
+  return (row: any) =>
+    expandedRowContent
+      ? expandedRowContent(row.original) != null
+      : Array.isArray((row as any)?.subRows) && (row as any).subRows.length > 0;
+}
+
+/** Merge default sizing with any user-sized columns */
+export function mergeSizing(
+  defaultSizing: Record<string, number>,
+  prev: Record<string, number>,
+  userSizedCols: Set<string>,
+): Record<string, number> {
+  const merged: Record<string, number> = {};
+  for (const colId of Object.keys(defaultSizing)) {
+    merged[colId] = userSizedCols.has(colId)
+      ? (typeof prev[colId] === "number" ? prev[colId] : defaultSizing[colId])
+      : defaultSizing[colId];
+  }
+  return merged;
+}
+
+/** One-shot + timed suppression controller for auto page resets */
+export function createPageResetController(windowMs = 1200) {
+  const skipPageResetRef = { current: false as boolean };
+  const suppressUntilRef = { current: 0 as number };
+
+  const queue = (cb: () => void) =>
+    typeof queueMicrotask === "function"
+      ? queueMicrotask(cb)
+      : Promise.resolve().then(cb);
+
+  const noPageReset = <R,>(fn: () => R): R => {
+    skipPageResetRef.current = true;
+    const out = fn();
+    queue(() => {
+      skipPageResetRef.current = false;
+    });
+    return out;
+  };
+
+  const suppressPageReset = (ms = windowMs) => {
+    suppressUntilRef.current = Math.max(
+      suppressUntilRef.current,
+      Date.now() + ms,
+    );
+  };
+
+  const isPageResetSuppressed = () => Date.now() < suppressUntilRef.current;
+
+  return { skipPageResetRef, noPageReset, suppressPageReset, isPageResetSuppressed };
+}
+
+/** Gate to ignore TanStack’s internal "reset to page 0" during an edit echo */
+export function shouldIgnoreAutoReset(
+  prev: PaginationState,
+  next: PaginationState,
+  suppressed: boolean,
+): boolean {
+  return (
+    suppressed &&
+    next.pageIndex === 0 &&
+    prev.pageIndex !== 0 &&
+    next.pageSize === prev.pageSize
+  );
+}

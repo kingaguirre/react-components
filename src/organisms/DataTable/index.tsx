@@ -37,7 +37,11 @@ import {
   TableTitle,
 } from "./styled";
 import * as UTILS from "./utils";
-import { setActiveTable, subscribeActiveTable, ensureActiveTableGlobalListeners, } from './utils/activeTable';
+import {
+  setActiveTable,
+  subscribeActiveTable,
+  ensureActiveTableGlobalListeners,
+} from "./utils/activeTable";
 import * as UTILS_CS from "./utils/columnSettings";
 import { MainHeader } from "./components/MainHeader";
 import { SettingsPanel } from "./components/MainHeader/SettingsPanel";
@@ -116,13 +120,21 @@ export const DataTable = <T extends object>({
   onSelectedRowsChange,
   expandedRowContent,
   onActiveRowChange,
-  selectedCell: selectedCellProp
+  selectedCell: selectedCellProp,
 }: DataTableProps) => {
   const tableWrapperRef = useRef<HTMLDivElement>(null);
   const instanceIdRef = useRef<number>(Date.now() + Math.random());
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const isAutoSizingRef = useRef(false);
   const userSizedColsRef = useRef<Set<string>>(new Set());
+
+  // Page reset suppression controller (covers local edit + parent echo)
+  const {
+    skipPageResetRef,
+    noPageReset,
+    suppressPageReset,
+    isPageResetSuppressed,
+  } = useMemo(() => UTILS.createPageResetController(1200), []);
 
   // Mark this table instance as active when mounted
   const markActive = () => setActiveTable(instanceIdRef.current);
@@ -131,54 +143,64 @@ export const DataTable = <T extends object>({
   const suppressEmitUntilRef = useRef(0);
   const suppressEmits = (ms: number = SETTINGS_EMIT_SUPPRESS_MS) => {
     // ensure overlapping suppress windows extend, not shrink
-    suppressEmitUntilRef.current = Math.max(suppressEmitUntilRef.current, Date.now() + ms );
+    suppressEmitUntilRef.current = Math.max(
+      suppressEmitUntilRef.current,
+      Date.now() + ms,
+    );
   };
 
   /** Guard: produce a stable, memoized array even when prop is undefined */
   const safeColumnSettings = useMemo(
-    () => (Array.isArray(columnSettings) ? columnSettings : (EMPTY_COL_SETTINGS as any[])),
+    () =>
+      Array.isArray(columnSettings)
+        ? columnSettings
+        : (EMPTY_COL_SETTINGS as any[]),
     [columnSettings],
   );
 
   /** Also guard onColumnSettingsChange to a stable no-op when not provided */
-  const safeOnColumnSettingsChange = (onColumnSettingsChange ?? NOOP) as (...a: any[]) => void;
+  const safeOnColumnSettingsChange = (onColumnSettingsChange ?? NOOP) as (
+    ...a: any[]
+  ) => void;
 
   // Augment rows with a stable internal ID.
-  const initializeData = (data: unknown): DataRow[] => {
-    if (!Array.isArray(data)) {
-      return [];
-    }
-
-    return data.map((row, i) =>
-      // if row already has an internalId (truthy), leave it,
-      // otherwise inject one based on the index
-      (row as DataRow).__internalId ? (row as DataRow) : { ...(row as DataRow), __internalId: i.toString() },
-    );
-  };
-
-  const [data, setData] = useState<DataRow[]>(() => initializeData(dataSource));
+  const [data, setData] = useState<DataRow[]>(
+    () => UTILS.initializeDataWithIds(dataSource),
+  );
 
   const [editingCell, setEditingCell] = useState<EditingCellType>(null);
-  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(UTILS_CS.setDefaultColumnVisibility(safeColumnSettings));
+  const [columnVisibility, setColumnVisibility] = useState<
+    Record<string, boolean>
+  >(UTILS_CS.setDefaultColumnVisibility(safeColumnSettings));
   const [rowSelection, setRowSelection] = useState({});
   const [globalFilter, setGlobalFilter] = useState<string>("");
   // Use initial pagination state from props:
   const [pagination, setPagination] = useState({ pageIndex, pageSize });
   const [columnSizing, setColumnSizing] = useState<Record<string, number>>({});
-  const [columnPinning, setColumnPinning] = useState<ColumnPinningType>(UTILS_CS.getInitialPinning(safeColumnSettings));
+  const [columnPinning, setColumnPinning] =
+    useState<ColumnPinningType>(
+      UTILS_CS.getInitialPinning(safeColumnSettings),
+    );
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [sorting, setSorting] = useState<SortingState>(UTILS_CS.getInitialSorting(safeColumnSettings));
+  const [sorting, setSorting] = useState<SortingState>(
+    UTILS_CS.getInitialSorting(safeColumnSettings),
+  );
   const [showSettingsPanel, setShowSettingsPanel] = useState<boolean>(false);
   const [selectedCell, setSelectedCell] = useState<SelectedCellType>(null);
   const [showAlert, setShowAlert] = useState(false);
   const [columnError, setColumnError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<ExpandedState>({});
   const [cellLoading, setCellLoading] = useState(false);
-  const [activeRowId, setActiveRowId] = useState<string | undefined>(activeRow ?? undefined);
+  const [activeRowId, setActiveRowId] = useState<string | undefined>(
+    activeRow ?? undefined,
+  );
   const [isFocused, setIsFocused] = useState(false);
 
   // Memoize the transformed data from dataSource
-  const memoizedData = useMemo(() => initializeData(dataSource), [dataSource]);
+  const memoizedData = useMemo(
+    () => UTILS.initializeDataWithIds(dataSource),
+    [dataSource],
+  );
   const uniqueValueMaps = useUniqueValueMaps(data, safeColumnSettings);
 
   // Memoized sizing function so we can call it from RO + window.resize
@@ -199,20 +221,16 @@ export const DataTable = <T extends object>({
       },
     );
 
-    // NEW: block debounced emits for a short window while we programmatically update sizing
+    // block debounced emits for a short window while we programmatically update sizing
     suppressEmits();
 
     isAutoSizingRef.current = true;
-    setColumnSizing((prev) => {
-      const merged: Record<string, number> = {};
-      for (const colId of Object.keys(defaultSizing)) {
-        merged[colId] = userSizedColsRef.current.has(colId)
-          ? (typeof prev[colId] === "number" ? prev[colId] : defaultSizing[colId])
-          : defaultSizing[colId];
-      }
-      return merged;
+    setColumnSizing((prev) =>
+      UTILS.mergeSizing(defaultSizing, prev, userSizedColsRef.current),
+    );
+    requestAnimationFrame(() => {
+      isAutoSizingRef.current = false;
     });
-    requestAnimationFrame(() => { isAutoSizingRef.current = false; });
   }, [
     safeColumnSettings,
     columnVisibility,
@@ -223,15 +241,15 @@ export const DataTable = <T extends object>({
     expandedRowContent,
   ]);
 
-
   useLayoutEffect(() => {
     applySizing();
 
     // Observe container size
     const el = tableContainerRef.current;
-    const ro = typeof ResizeObserver !== "undefined"
-      ? new ResizeObserver(() => applySizing())
-      : null;
+    const ro =
+      typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(() => applySizing())
+        : null;
     if (el) ro?.observe(el);
 
     // Fallback to window resize/orientation changes
@@ -254,10 +272,13 @@ export const DataTable = <T extends object>({
     };
   }, [applySizing]);
 
-
   // Only update local data state when memoizedData changes.
   useEffect(() => {
-    setData(memoizedData);
+    if (isPageResetSuppressed()) {
+      noPageReset(() => setData(memoizedData));
+    } else {
+      setData(memoizedData);
+    }
 
     // clear selection, active row and focused cell
     setRowSelection({});
@@ -265,10 +286,8 @@ export const DataTable = <T extends object>({
     setSelectedCell(null);
 
     // if you expose selectedRows via props, notify consumer of reset:
-    if (onSelectedRowsChange) {
-      onSelectedRowsChange([]);
-    }
-  }, [memoizedData]);
+    onSelectedRowsChange?.([]);
+  }, [memoizedData, isPageResetSuppressed, noPageReset, onSelectedRowsChange]);
 
   // Sync when the prop changes
   useEffect(() => {
@@ -286,10 +305,15 @@ export const DataTable = <T extends object>({
   }, [safeColumnSettings]);
 
   // Wrap column sizing change so we can mark user changes
-  type SizingUpdater = Record<string, number> | ((prev: Record<string, number>) => Record<string, number>);
+  type SizingUpdater =
+    | Record<string, number>
+    | ((prev: Record<string, number>) => Record<string, number>);
   const handleColumnSizingChange = (updaterOrValue: SizingUpdater) => {
     setColumnSizing((prev) => {
-      const next = typeof updaterOrValue === "function" ? updaterOrValue(prev) : updaterOrValue;
+      const next =
+        typeof updaterOrValue === "function"
+          ? updaterOrValue(prev)
+          : updaterOrValue;
 
       // If this came from our auto-sizing, don't mark as user change
       if (!isAutoSizingRef.current) {
@@ -321,7 +345,6 @@ export const DataTable = <T extends object>({
           enableRowAdding,
           enableRowDeleting,
           enableRowSelection,
-          // expandedRowContent is a function or undefined
           hasExpandedContent: Boolean(expandedRowContent),
         },
       ),
@@ -337,7 +360,7 @@ export const DataTable = <T extends object>({
     setColumnOrder(UTILS_CS.getInitialColumnOrder(columns));
 
     // Reset column filters
-    userSizedColsRef.current.clear(); 
+    userSizedColsRef.current.clear();
   };
 
   // --- Sync external selectedRows prop if provided ---
@@ -394,108 +417,119 @@ export const DataTable = <T extends object>({
   useEffect(() => {
     if (!onActiveRowChange) return;
 
-    // find the matching row (including any __isNew flag, subRows, etc)
     const found = data.find((r) => r.__internalId === activeRowId);
 
-    // strip out the internal ID if you want, or pass it through:
     const sanitized = found
       ? (({ __internalId, ...rest }) => rest)(found)
       : undefined;
 
     onActiveRowChange(sanitized, found?.__internalId);
-  }, [activeRowId, data]);
+  }, [activeRowId, data, onActiveRowChange]);
 
   // Updated handleCellCommit using setDeepValue and getDeepValue.
   const handleCellCommit = (rowId: string, accessor: string, val: any) => {
-    // Set the cell to a loading state.
     setCellLoading(true);
 
-    // Find the target row index.
+    // cover both local setData and the parent's echo
+    suppressPageReset(1200);
+
     const rowIndex = data.findIndex((r) => r.__internalId === rowId);
     if (rowIndex === -1) {
-      // Row not found exit early.
       setCellLoading(false);
       return;
     }
 
-    const rowData = data[rowIndex];
-
-    // Create a new worker instance.
     const worker = new CellCommitWorker();
-    // Handle the worker's response.
     worker.onmessage = (e) => {
+      const done = () => {
+        setEditingCell(null);
+        setCellLoading(false);
+        worker.terminate();
+      };
+
       if (e.data.error) {
-        console.error("Worker error:", e.data.error);
-        // Fallback to synchronous update if needed.
+        // sync fallback
+        noPageReset(() => {
+          setData((old) => {
+            const idx = old.findIndex((r) => r.__internalId === rowId);
+            if (idx === -1) return old;
+            const cur = UTILS.getDeepValue(old[idx], accessor);
+            const curStr = cur == null ? "" : String(cur);
+            const newStr = val == null ? "" : String(val);
+            if (curStr === newStr) return old;
+
+            const updatedRow = UTILS.setDeepValue(old[idx], accessor, val);
+            const updated = old.slice();
+            updated[idx] = updatedRow;
+
+            if (!updated[idx].__isNew && onChange) {
+              const sanitized = updated.map(
+                ({ __internalId, ...rest }) => rest,
+              );
+              onChange(sanitized);
+            }
+            return updated;
+          });
+        });
+        return done();
+      }
+
+      if (e.data.unchanged) return done();
+
+      if (e.data.updatedRow) {
+        const { updatedRow } = e.data;
+
+        // single setData; call onChange inside the same update
+        noPageReset(() => {
+          setData((old) => {
+            const updated = old.slice();
+            updated[rowIndex] = updatedRow;
+
+            if (!data[rowIndex].__isNew && onChange) {
+              const sanitized = updated.map(
+                ({ __internalId, ...rest }) => rest,
+              );
+              onChange(sanitized);
+            }
+            return updated;
+          });
+        });
+
+        return done();
+      }
+
+      done();
+    };
+
+    worker.onerror = (err) => {
+      console.error("Worker encountered an error:", err);
+      // same sync fallback as above
+      noPageReset(() => {
         setData((old) => {
           const idx = old.findIndex((r) => r.__internalId === rowId);
           if (idx === -1) return old;
-          const currentValue = UTILS.getDeepValue(old[idx], accessor);
-          const currentValueStr =
-            currentValue == null ? "" : String(currentValue);
-          const newValueStr = val == null ? "" : String(val);
-          if (currentValueStr === newValueStr) return old;
+          const cur = UTILS.getDeepValue(old[idx], accessor);
+          const curStr = cur == null ? "" : String(cur);
+          const newStr = val == null ? "" : String(val);
+          if (curStr === newStr) return old;
+
           const updatedRow = UTILS.setDeepValue(old[idx], accessor, val);
-          const updated = old.map((r, i) => (i === idx ? updatedRow : r));
+          const updated = old.slice();
+          updated[idx] = updatedRow;
+
           if (!updated[idx].__isNew && onChange) {
             const sanitized = updated.map(({ __internalId, ...rest }) => rest);
             onChange(sanitized);
           }
           return updated;
         });
-      } else if (e.data.unchanged) {
-        // No change was needed.
-      } else if (e.data.updatedRow) {
-        // Update the state by replacing the specific row.
-        const { updatedRow } = e.data;
-        setData((old) => {
-          const updated = [...old];
-          updated[rowIndex] = updatedRow;
-          return updated;
-        });
-        // Optionally call onChange.
-        if (!rowData.__isNew && onChange) {
-          setData((old) => {
-            const updated = [...old];
-            updated[rowIndex] = updatedRow;
-            const sanitized = updated.map(({ __internalId, ...rest }) => rest);
-            onChange(sanitized);
-            return updated;
-          });
-        }
-      }
-      // In any case, clear editing state and loading indicator.
-      setEditingCell(null);
-      setCellLoading(false);
-      worker.terminate();
-    };
-
-    worker.onerror = (error) => {
-      console.error("Worker encountered an error:", error);
-      // Fallback to synchronous update.
-      setData((old) => {
-        const idx = old.findIndex((r) => r.__internalId === rowId);
-        if (idx === -1) return old;
-        const currentValue = UTILS.getDeepValue(old[idx], accessor);
-        const currentValueStr =
-          currentValue == null ? "" : String(currentValue);
-        const newValueStr = val == null ? "" : String(val);
-        if (currentValueStr === newValueStr) return old;
-        const updatedRow = UTILS.setDeepValue(old[idx], accessor, val);
-        const updated = old.map((r, i) => (i === idx ? updatedRow : r));
-        if (!updated[idx].__isNew && onChange) {
-          const sanitized = updated.map(({ __internalId, ...rest }) => rest);
-          onChange(sanitized);
-        }
-        return updated;
       });
       setEditingCell(null);
       setCellLoading(false);
       worker.terminate();
     };
 
-    // Send only the target row data and update details to the worker.
-    worker.postMessage({ rowData, accessor, val });
+    worker.postMessage({ rowData: data[rowIndex], accessor, val });
   };
 
   const handleRowSelectionChange = (
@@ -508,11 +542,9 @@ export const DataTable = <T extends object>({
         ? updaterOrValue(rowSelection)
         : updaterOrValue;
     setRowSelection(newSelection);
-    if (onSelectedRowsChange) {
-      onSelectedRowsChange(
-        Object.keys(newSelection).filter((key) => newSelection[key]),
-      );
-    }
+    onSelectedRowsChange?.(
+      Object.keys(newSelection).filter((key) => newSelection[key]),
+    );
   };
 
   const handlePaginationChange = (
@@ -520,28 +552,31 @@ export const DataTable = <T extends object>({
       | PaginationState
       | ((prev: PaginationState) => PaginationState),
   ) => {
-    const newPagination =
+    const next =
       typeof updaterOrValue === "function"
         ? updaterOrValue(pagination)
         : updaterOrValue;
 
-    setPagination(newPagination);
-    if (onPageSizeChange && newPagination.pageSize !== pagination.pageSize) {
-      onPageSizeChange(newPagination.pageSize);
+    // Ignore internal auto-reset to page 0 triggered by data writes during an edit echo
+    if (UTILS.shouldIgnoreAutoReset(pagination, next, isPageResetSuppressed())) {
+      return;
     }
-    if (onPageIndexChange && newPagination.pageIndex !== pagination.pageIndex) {
-      onPageIndexChange(newPagination.pageIndex);
-    }
+
+    setPagination(next);
+    if (onPageSizeChange && next.pageSize !== pagination.pageSize)
+      onPageSizeChange(next.pageSize);
+    if (onPageIndexChange && next.pageIndex !== pagination.pageIndex)
+      onPageIndexChange(next.pageIndex);
   };
 
   // --- Updated handleAddRow using meta.hidden and meta.className ---
   const handleAddRow = () => {
     const newRow = {
       __isNew: true,
-      __internalId: 'new',
+      __internalId: "new",
     } as any as T;
     columnSettings.forEach((col) => {
-      newRow[col.column] = "";
+      (newRow as any)[col.column] = "";
     });
     setData((old) => [newRow, ...old] as DataRow[]);
 
@@ -554,7 +589,7 @@ export const DataTable = <T extends object>({
       const newRowId = (newRow as any).__internalId;
       setTimeout(() => {
         setSelectedCell({ rowId: newRowId, columnId: `${firstVisibleColumn}` });
-        markActive(); 
+        markActive();
       }, 0);
     }
   };
@@ -571,19 +606,20 @@ export const DataTable = <T extends object>({
   });
 
   // Wrap row clicks: update local state, then call user’s handler
-  const handleRowClickInternal = (row: DataRow, __internalId: string, e: React.MouseEvent<HTMLElement>) => {
+  const handleRowClickInternal = (
+    row: DataRow,
+    __internalId: string,
+    e: React.MouseEvent<HTMLElement>,
+  ) => {
     setActiveRowId(__internalId);
     markActive(); // 👈 grab focus so this table becomes “active”
     if (onRowClick) onRowClick(row, __internalId, e);
   };
 
   // --- getRowCanExpand: determine expandability using expandedRowContent ---
-  const getRowCanExpand = (row: any) => {
-    if (expandedRowContent) {
-      return expandedRowContent(row.original) != null;
-    }
-    return (row as any)?.subRows?.length > 0;
-  };
+  const getRowCanExpand = UTILS.makeRowCanExpand(
+    expandedRowContent as (rowOriginal: any) => any,
+  );
 
   // --- Define the expander column if expandedRowContent is provided ---
   const expanderCol = expandedRowContent
@@ -591,7 +627,10 @@ export const DataTable = <T extends object>({
     : null;
 
   // Transform new column settings into TanStack Table column definitions.
-  const transformedColumns = transformColumnSettings<T>(safeColumnSettings, cellTextAlignment );
+  const transformedColumns = transformColumnSettings<T>(
+    safeColumnSettings,
+    cellTextAlignment,
+  );
 
   const transformColDef = (colDef: any): any => {
     // If it's a group column, recursively transform its child columns.
@@ -710,7 +749,8 @@ export const DataTable = <T extends object>({
     enableMultiRowSelection: enableMultiRowSelection,
     getRowCanExpand,
     getSubRows: (row) => (row as any)?.subRows,
-    getRowId: (row, index, parent) => (row as DataRow).__internalId ?? `${parent?.id ?? 'root'}:${index}`,
+    getRowId: (row, index, parent) =>
+      (row as DataRow).__internalId ?? `${parent?.id ?? "root"}:${index}`,
     onExpandedChange: setExpanded,
     onColumnVisibilityChange: setColumnVisibility,
     onSortingChange: setSorting,
@@ -729,13 +769,19 @@ export const DataTable = <T extends object>({
     getFacetedRowModel: getFacetedRowModel(), // client-side faceting
     getFacetedUniqueValues: getFacetedUniqueValues(), // generate unique values for select filter/autocomplete
     getFacetedMinMaxValues: getFacetedMinMaxValues(), // generate min/max values for range filter
+
+    // ✅ only reset when we're not in an edit commit window
+    autoResetPageIndex: !(skipPageResetRef.current || isPageResetSuppressed()),
   });
 
   // skip emits caused by window/container resize or other programmatic changes
-  const guardedOnColumnSettingsChange = React.useCallback((...args: any[]) => {
-    if (Date.now() < suppressEmitUntilRef.current) return;
-    safeOnColumnSettingsChange(...args);
-  }, [safeOnColumnSettingsChange]);
+  const guardedOnColumnSettingsChange = React.useCallback(
+    (...args: any[]) => {
+      if (Date.now() < suppressEmitUntilRef.current) return;
+      safeOnColumnSettingsChange(...args);
+    },
+    [safeOnColumnSettingsChange],
+  );
 
   useDebouncedColumnSettingsChange({
     columnSettings: safeColumnSettings,
@@ -764,9 +810,7 @@ export const DataTable = <T extends object>({
   useAutoScroll(selectedCell, tableWrapperRef);
 
   const handleConfirmDelete = () => {
-    const selectedRows = table
-      .getSelectedRowModel()
-      .rows.map((r) => r.original);
+    const selectedRows = table.getSelectedRowModel().rows.map((r) => r.original);
     // Delete records when modal is confirmed
     const selectedIds = new Set(
       selectedRows.map((r) => (r as any).__internalId),
@@ -803,18 +847,12 @@ export const DataTable = <T extends object>({
     useSensor(KeyboardSensor, {}),
   );
 
-  const getExpandedRowRightOffset = () => {
-    let offset = 30;
-    if (enableRowSelection) {
-      offset += 30; // Width of the selection column
-    }
-
-    if (enableRowAdding || enableRowDeleting) {
-      offset += 65; // Width of the expander column
-    }
-
-    return offset;
-  };
+  const getExpandedRowRightOffset = () =>
+    UTILS.getExpandedRowRightOffset(
+      enableRowSelection,
+      enableRowAdding,
+      enableRowDeleting,
+    );
 
   // Parse the selectedCellProp and set the selectedCell state
   useEffect(() => {
@@ -822,9 +860,14 @@ export const DataTable = <T extends object>({
     if (!parsed) return;
 
     const [r, c] = parsed;
-    const internal = UTILS.coordToInternalSelection(table, r, c, UTILS.BUILTIN_COLUMN_IDS);
+    const internal = UTILS.coordToInternalSelection(
+      table,
+      r,
+      c,
+      UTILS.BUILTIN_COLUMN_IDS,
+    );
     if (internal) setSelectedCell(internal);
-  }, [selectedCellProp]);
+  }, [selectedCellProp, table]);
 
   useEffect(() => {
     ensureActiveTableGlobalListeners();
@@ -835,7 +878,7 @@ export const DataTable = <T extends object>({
   }, []);
 
   const totalSelectedRows = Object.keys(table.getState().rowSelection).filter(
-    (key) => rowSelection[key],
+    (key) => (rowSelection as any)[key],
   ).length;
   const showDeleteIcon =
     enableSelectedRowDeleting && enableRowSelection && totalSelectedRows > 0;
@@ -856,7 +899,9 @@ export const DataTable = <T extends object>({
         show={showSettingsPanel}
         onClose={() => setShowSettingsPanel(false)}
         setDefaultColumnVisibility={() =>
-          setColumnVisibility(UTILS_CS.setDefaultColumnVisibility(safeColumnSettings))
+          setColumnVisibility(
+            UTILS_CS.setDefaultColumnVisibility(safeColumnSettings),
+          )
         }
       />
       <MainHeader

@@ -20,7 +20,7 @@ export const CellContent = styled(CellContentStyles)<{
   > span {
     cursor: default;
     color: ${theme.colors.default.darker};
-    font-weight: bolder;
+    font-weight: bold;
   }
 
   * {
