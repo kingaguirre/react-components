@@ -164,7 +164,7 @@ export const Filter = ({ column }: { column: Column<any, unknown> }) => {
 export const DebouncedInput = ({
   value: initialValue,
   onChange,
-  debounce = 300,
+  debounce = 150,
   columnId,
   ...props
 }: {
@@ -174,6 +174,9 @@ export const DebouncedInput = ({
   [key: string]: any;
 } & Omit<React.InputHTMLAttributes<HTMLInputElement>, "onChange">) => {
   const [value, setValue] = React.useState(initialValue);
+   const controlRef = React.useRef<any>(null);
+
+  const inferredBlur = props.type === "dropdown" || props.type === "date" || props.type === "date-range";
 
   React.useEffect(() => {
     setValue(initialValue);
@@ -182,6 +185,24 @@ export const DebouncedInput = ({
   React.useEffect(() => {
     const timeout = setTimeout(() => {
       onChange?.(value);
+
+      if (inferredBlur && typeof window !== "undefined" && typeof document !== "undefined") {
+        // 1) try forwarded ref
+        if (controlRef.current && typeof controlRef.current.blur === "function") {
+          controlRef.current.blur();
+        } else {
+          // 2) try data-testid hook
+          const sel = columnId ? `[data-testid="filter-${columnId}"]` : "";
+          const el = sel ? (document.querySelector(sel) as HTMLElement | null) : null;
+          if (el && typeof el.blur === "function") {
+            el.blur();
+          } else {
+            // 3) fall back: active element
+            const active = document.activeElement as HTMLElement | null;
+            if (active && typeof active.blur === "function") active.blur();
+          }
+        }
+      }
     }, debounce);
 
     return () => clearTimeout(timeout);

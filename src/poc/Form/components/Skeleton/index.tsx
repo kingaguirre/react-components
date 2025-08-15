@@ -63,7 +63,30 @@ const SkeletonField = styled.div<{ type?: string }>`
 const SkeletonTable = styled.div<{ height: number }>`
   width: 100%;
   height: ${p => p.height}px;
+  background: #eee;
+  background-image: linear-gradient(
+    to right,
+    #eee 25%,
+    #f5f5f5 50%,
+    #eee 75%
+  );
+  background-size: 200px 100%;
+  animation: ${shimmer} 1.2s ease-in-out infinite;
+  border-radius: 2px;
+`;
+
+const SkeletonActions = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 24px;
   margin-bottom: 24px;
+`;
+
+const SkeletonButton = styled.div`
+  width: 75px;
+  height: 24px;
   background: #eee;
   background-image: linear-gradient(
     to right,
@@ -164,6 +187,12 @@ export function renderSkeletonSection(
         {table.description && <Description>{table.description}</Description>}
         <SectionWrapper className="data-table-wrapper" $hasHeader={!!table.header}>
           <SkeletonTable height={skeletonHeight} />
+          <SkeletonActions>
+            <SkeletonButton />
+            <SkeletonButton />
+            <SkeletonButton />
+            <SkeletonButton />
+          </SkeletonActions>
           {/* placeholder fields below the table skeleton */}
           {renderSkeletonSection(table.fields, values)}
         </SectionWrapper>

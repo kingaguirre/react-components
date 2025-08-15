@@ -38,8 +38,8 @@ import { DatePicker } from '../../molecules/DatePicker';
 import { Dropdown } from '../../molecules/Dropdown';
 import { Grid, GridItem } from '../../atoms/Grid';
 import { Tabs } from '../../organisms/Tabs';
-import { Accordion } from '../../molecules/Accordion'; 
-import { DataTable } from '../../organisms/DataTable'; 
+import { Accordion } from '../../molecules/Accordion';
+import { DataTable } from '../../organisms/DataTable';
 import { Button } from '../../atoms/Button';
 
 import {
@@ -69,6 +69,11 @@ const hasFields = (item: SettingsItem): item is FieldGroup =>
   isFieldGroup(item) && Array.isArray(item.fields) && item.fields.length > 0;
 const hasDataTable = (item: SettingsItem): item is { dataTable: DataTableSection } =>
   Boolean((item as any).dataTable);
+const toLeafFieldSettings = (items: SettingsItem[]) => {
+  const flat = (flattenForSchema(items) as any[])
+    .filter((fs: any) => typeof fs?.name === 'string') as Array<FieldSetting & { name: string }>;
+  return flat.filter(fs => !flat.some(other => other !== fs && other.name.startsWith(fs.name + '.')));
+};
 
 // Utility to prefix FieldSettings or FieldGroups for a given array path
 function prefixItems(
@@ -89,7 +94,7 @@ function prefixItems(
             ...dt.config,
             dataSource: `${cleanPath}.${dt.config.dataSource}`,
           },
-          fields: prefixItems(dt.fields, cleanPath),
+          fields: dt.fields,
         },
       };
     }
@@ -135,7 +140,47 @@ function prefixItems(
   });
 }
 
-const isBooleanControl = (fs) => 
+const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+function shiftNestedTableKeys(
+  map: Record<string, any[]>,
+  baseKey: string,
+  startIndex: number,
+  delta: number
+) {
+  const next: Record<string, any[]> = { ...map };
+  const re = new RegExp(`^${escapeRegExp(baseKey)}\\.(\\d+)\\.`);
+  // Avoid collisions: when inserting (delta>0) shift high→low; when removing, low→high
+  const keys = Object.keys(next).sort((a, b) =>
+    delta > 0 ? b.localeCompare(a) : a.localeCompare(b)
+  );
+  for (const k of keys) {
+    const m = k.match(re);
+    if (!m) continue;
+    const idx = Number(m[1]);
+    if (Number.isNaN(idx) || idx < startIndex) continue;
+    const newKey = k.replace(re, `${baseKey}.${idx + delta}.`);
+    const val = next[k];
+    delete next[k];
+    next[newKey] = val;
+  }
+  return next;
+}
+
+function dropNestedKeysForIndex(
+  map: Record<string, any[]>,
+  baseKey: string,
+  index: number
+) {
+  const next: Record<string, any[]> = { ...map };
+  const re = new RegExp(`^${escapeRegExp(baseKey)}\\.${index}\\.`);
+  for (const k of Object.keys(next)) {
+    if (re.test(k)) delete next[k];
+  }
+  return next;
+}
+
+const isBooleanControl = (fs) =>
   fs.type === 'switch' ||
   fs.type === 'checkbox' ||
   fs.type === 'radio';
@@ -152,7 +197,7 @@ export const renderSection = (
   globalDisabled: boolean,
   originalData: Record<string, any>,
   getValues: () => Record<string, any>,
-  setValue: (name: string, value: any) => void, 
+  setValue: (name: string, value: any) => void,
   trigger: (name?: string | string[]) => Promise<boolean>,
   setError: UseFormSetError<any>,
   clearErrors: UseFormClearErrors<any>,
@@ -161,8 +206,10 @@ export const renderSection = (
   setActiveRowIndexMap: React.Dispatch<React.SetStateAction<Record<string, number | null>>>,
   tableDataMap: Record<string, any[]>,
   setTableDataMap: React.Dispatch<React.SetStateAction<Record<string, any[]>>>,
+  rowSnapshots: React.MutableRefObject<Record<string, any>>,
+  lastProcessedRef: React.MutableRefObject<Record<string, number | null>>,
+  ancestorRowSelected: boolean | null = null,
 ): React.ReactNode[] => {
-  const rowSnapshots = React.useRef<Record<string, any>>({});
   const values = getValues();
   const nodes: React.ReactNode[] = [];
   let standalone: FieldSetting[] = [];
@@ -175,15 +222,12 @@ export const renderSection = (
         <Grid>
           {standalone.map((fs: any) => {
             const key = fs.name!;
-            const err = key
-              .split('.')
-              .reduce((a: any, k: string) => a?.[k], errors)?.message;
+            const err = getDeepValue(errors, key)?.message;
 
             const schemaForRequired = fs.validation
               ? fs.validation(z, values)
               : z.any();
             const isReq = isZodRequired(schemaForRequired);
-            const isConditional = fs.validation?.length === 2;
 
             return (
               <GridItem
@@ -199,11 +243,9 @@ export const renderSection = (
                       name={key as any}
                       control={control}
                       shouldUnregister={false}
-                      defaultValue={getDeepValue(originalData, key) ?? (isBooleanControl(fs) ? false : '')}
+                      defaultValue={getDeepValue(getValues(), key) ?? (isBooleanControl(fs) ? false : '')}
                       render={({ field, fieldState }) => {
-                        const errorMsg = isConditional
-                          ? fieldState.error?.message
-                          : err;
+                        const errorMsg = fieldState.error?.message ?? err;
 
                         let displayValue = field.value;
                         if (fs.type === 'number') {
@@ -315,17 +357,20 @@ export const renderSection = (
       } = dataTable;
 
       const mapKey = config.dataSource;
-      const activeIdx = activeRowIndexMap?.[mapKey] || null;
-      const isHidden   = typeof hidden === 'function' ? hidden(values) : !!hidden;
-      const isDisabled = globalDisabled 
-        || (typeof disabled === 'function' ? disabled(values) : !!disabled);
+      const activeIdx = activeRowIndexMap?.[mapKey] ?? null;
+      const isBlockedByAncestor = ancestorRowSelected === false;
+      const isHidden = typeof hidden === 'function' ? hidden(values) : !!hidden;
+      const isDisabled = globalDisabled
+        || (typeof disabled === 'function' ? disabled(values) : !!disabled)
+        || isBlockedByAncestor;
 
       if (isHidden) {
         flush();
         return;  // don’t render the table or any of its child fields
       }
 
-      const tableData = tableDataMap[mapKey] ?? [];
+      const rawTable = tableDataMap[mapKey] ?? getDeepValue(originalData, mapKey);
+      const tableData = Array.isArray(rawTable) ? rawTable : [];
 
       // always build a childPath (so prefixItems never sees ".null")
       const childPath = activeIdx != null ? `${mapKey}.${activeIdx}` : mapKey;
@@ -338,261 +383,296 @@ export const renderSection = (
               : <PageHeader className='header main-header'>{header}</PageHeader>
           )}
           {description && <Description>{description}</Description>}
+
           <SectionWrapper className='data-table-wrapper-section' $hasHeader={!!header}>
-            <DataTable
-              maxHeight="176px"
-              pageSize={5}
-              dataSource={tableData}
-              columnSettings={config.columnSettings}
-              disabled={isDisabled}
-              activeRow={activeRowIndexMap[mapKey]?.toString()}
-              onChange={newData => {
-                setValue(config.dataSource, newData);
-                onChange();
-              }}
+            <VirtualizedItem fieldKey={`table:${mapKey}`}>
+              <DataTable
+                maxHeight="176px"
+                pageSize={5}
+                dataSource={tableData}
+                columnSettings={config.columnSettings}
+                disabled={isDisabled}
+                activeRow={activeRowIndexMap[mapKey]?.toString()}
+                onChange={newData => {
+                  if (isBlockedByAncestor) return;
+                  setTableDataMap(prev => ({ ...prev, [mapKey]: newData }));
+                  setValue(config.dataSource, newData);
+                  onChange();
+                }}
 
-              onActiveRowChange={(rowData, rowIndex) => {
-                // 1) track which index is active
-                setActiveRowIndexMap((prev: any) => ({ ...prev, [mapKey]: rowData ? rowIndex : null }));
+                onActiveRowChange={(rowData, rowIndex) => {
+                  const idx = rowData != null && rowIndex != null ? Number(rowIndex) : null;
 
-                // 2) snapshot the exact row object the user clicked
-                rowSnapshots.current[mapKey] = rowData ? { ...rowData } : null;
+                  // no-op if selection didn't actually change
+                  if (lastProcessedRef.current[mapKey] === idx &&
+                    JSON.stringify(rowSnapshots.current[mapKey] ?? null) === JSON.stringify(rowData ?? null)) {
+                    return;
+                  }
 
-                // seed form values
-                const flat = dtFields.flatMap(f => 'fields' in f ? (f as FieldGroup).fields : [f as FieldSetting]);
-                flat.forEach((fs: any) => {
-                  const raw = fs.name! ?? '';
-                  const full = `${mapKey}.${rowIndex}.${raw}`;
-                  let val: any = '';
-                  if (rowData) val = raw.split('.').pop().split('.').reduce((o: any, seg) => o?.[seg], rowData);
-                  else if (isBooleanControl(fs)) val = false;
-                  else if (fs.type === 'number') val = undefined;
-                  setValue(full, val);
-                  trigger(full);
+                  setActiveRowIndexMap(prev => (prev[mapKey] === idx ? prev : { ...prev, [mapKey]: idx }));
+                  rowSnapshots.current[mapKey] = rowData ? { ...rowData } : null;
+                  lastProcessedRef.current[mapKey] = idx;
+
+                  clearErrors(mapKey as any);
+
+                  // flatten + keep only real fields with a name
+                  const namedFields = flattenForSchema(dtFields)
+                    .filter((fs: any): fs is FieldSetting & { name: string } =>
+                      typeof fs?.name === 'string' && fs.name.length > 0
+                    );
+                  const toTrigger: string[] = [];
+
+                  const getFromRow = (path: string, row: any) => {
+                    if (!row) return undefined;
+                    const parts = path.split('.');
+                    // try full nested path
+                    const full = parts.reduce((o: any, seg) => o?.[seg], row);
+                    if (full !== undefined) return full;
+                    // fallback to leaf key if row is flat
+                    const leaf = parts[parts.length - 1];
+                    return row?.[leaf];
+                  };
+
+                  namedFields.forEach((fs) => {
+                    const raw = fs.name; // guaranteed string
+                    const full = idx != null ? `${mapKey}.${idx}.${raw}` : `${mapKey}.${raw}`;
+
+                    let val: any = '';
+                    if (rowData && idx != null) {
+                      val = getFromRow(raw, rowData);
+                    } else if (isBooleanControl(fs)) {
+                      val = false;
+                    } else if (fs.type === 'number') {
+                      val = undefined;
+                    }
+
+                    setValue(full, val, { shouldDirty: false, shouldTouch: false, shouldValidate: false });
+                    if (idx != null) toTrigger.push(full);
+                  });
+
+                  if (toTrigger.length) void trigger(toTrigger);
+                }}
+              />
+
+              {/* ───────── DataTable Action Buttons ───────── */}
+              {(() => {
+                // 1) Flatten ONLY leaf draft row fields (fields, tabs, accordion)
+                const leafDraftFS = toLeafFieldSettings(dtFields);
+
+                // 2) pull the current RHF values for each leaf draft field
+                const draftValues = leafDraftFS.map((fs: any) => {
+                  const path = `${mapKey}.${fs.name}`;
+                  return getDeepValue(getValues(), path);
                 });
-              }}
-            />
 
-            {/* ───────── DataTable Action Buttons ───────── */}
-            {(() => {
-              // 1) flatten your row-fields
-              const flatFields = dtFields.flatMap(f =>
-                'fields' in f ? f.fields : [f as FieldSetting]
-              );
+                // 3) see if any draft input has a value
+                const hasDraft = draftValues.some(v =>
+                  v != null && v !== '' && !(typeof v === 'boolean' && v === false)
+                );
 
-              // 2) pull the current RHF values for each draft field
-              const draftValues = flatFields.map((fs: any) => {
-                // when no row is selected, you named your draft inputs as `${mapKey}.${fs.name}`
-                const path = `${mapKey}.${fs.name}`;
-                return getDeepValue(getValues(), path);
-              });
+                // 4) enable Add iff no row selected + there’s some draft input
+                const canAdd = activeIdx == null && hasDraft && !isBlockedByAncestor;
+                const canCancel = activeIdx != null || hasDraft;
 
-              // 3) see if any of them is non-empty
-              const hasDraft = draftValues.some(v =>
-                v != null && v !== '' && !(typeof v === 'boolean' && v === false)
-              );
+                return (
+                  <ButtonContainer className='button-wrapper'>
+                    {/* Add */}
+                    <Button
+                      size='sm'
+                      disabled={!canAdd}
+                      onClick={async () => {
+                        if (isBlockedByAncestor) return;
 
-              // 4) enable Add iff no row is selected and there’s some draft input
-              const canAdd = activeIdx == null && hasDraft;
-              const canCancel = activeIdx != null || hasDraft;
+                        // 1) Prefix dt fields with the table's mapKey (absolute names)
+                        const absDraftItems = prefixItems(dtFields, mapKey);
 
-              return (
-                <ButtonContainer>
-                  {/* Add */}
-                  <Button
-                    size='sm'
-                    variant={canAdd ? 'outlined' : undefined}
-                    disabled={!canAdd}
-                    onClick={async () => {
-                      // ─── 1) Flatten out just your draft‐row FieldSettings ───
-                      const flatDraftSettings = dtFields
-                        .flatMap(f => ('fields' in f ? f.fields : [f as FieldSetting])) as FieldSetting[];
-
-                      // ─── 2) Build a Zod schema for those fields ───
-                      const draftSchema = buildSchema(
-                        flattenForSchema(flatDraftSettings),
-                        {}  // no defaults needed here
-                      );
-
-                      // ─── 3) Collect current draft values from RHF ───
-                      const draftValues: Record<string, any> = {};
-                      flatDraftSettings.forEach(fs => {
-                        draftValues[fs.name!] = getDeepValue(getValues(), `${mapKey}.${fs.name}`);
-                      });
-
-                      // ─── 4) Run safeParseAsync so we get all errors at once ───
-                      const result = await draftSchema.safeParseAsync(draftValues);
-                      if (!result.success) {
-                        // a) Push each Zod error back into RHF
-                        result.error.errors.forEach(err => {
-                          const fieldKey = err.path[0] as string;
-                          setError(
-                            `${mapKey}.${fieldKey}` as any,
-                            { type: 'manual', message: err.message },
-                          );
-                        });
-
-                        // b) Scroll/focus the first error
-                        const badField = result.error.errors[0].path[0];
-                        const el = document.querySelector<HTMLElement>(
-                          `[name="${mapKey}.${badField}"]`
+                        // 2) Flatten and keep only leaf FieldSettings
+                        const absFlatAll = (flattenForSchema(absDraftItems) as any[])
+                          .filter((fs: any) => typeof fs?.name === 'string') as Array<FieldSetting & { name: string }>;
+                        const absFlatLeaves = absFlatAll.filter(fs =>
+                          !absFlatAll.some(other => other !== fs && other.name.startsWith(fs.name + '.'))
                         );
-                        if (el) {
-                          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                          el.focus();
-                        }
-                        return; // abort the Add
-                      }
 
-                      // ─── 5) All good → build and prepend the new row ───
-                      const newRow = flatDraftSettings.reduce<Record<string, any>>((row, fs) => {
-                        row[fs.name!] = getDeepValue(getValues(), `${mapKey}.${fs.name}`);
-                        return row;
-                      }, {});
+                        // 3) Build RELATIVE copies for schema (strip `${mapKey}.`)
+                        const relFlat = absFlatLeaves.map(fs => ({
+                          ...fs,
+                          name: fs.name.replace(new RegExp(`^${escapeRegExp(mapKey)}\\.`), ''),
+                        }));
 
-                      setTableDataMap(prev => ({
-                        ...prev,
-                        [mapKey]: [newRow, ...(prev[mapKey] || [])],
-                      }));
-                      setValue(mapKey, [newRow, ...(tableDataMap[mapKey] || [])]);
-                      onChange();
-
-                      // ─── 6) Clear draft inputs ───
-                      flatDraftSettings.forEach(fs => {
-                        const p = `${mapKey}.${fs.name}`;
-                        setValue(p, isBooleanControl(fs) ? false : '');
-                      });
-                    }}
-                  >
-                    Add
-                  </Button>
-
-                  {/* Update */}
-                  <Button
-                    size='sm'
-                    disabled={activeIdx == null}
-                    onClick={async () => {
-                      if (activeIdx == null) return;
-
-                      // 1) collect the full field names for this row
-                      const fieldNames: any = dtFields
-                        .flatMap(f => ('fields' in f ? (f as FieldGroup).fields : [f as FieldSetting]))
-                        .map((fs: any) => `${mapKey}.${activeIdx}.${fs.name}`);
-
-                      // 2) run validation on all of them
-                      const isValid = await trigger(fieldNames);
-                      if (!isValid) {
-                        // `errors` is the same object you passed into renderSection
-                        const firstInvalid = fieldNames.find(name => {
-                          // drill into nested errors: e.g. errors.users?.[0]?.firstName
-                          return name.split('.').reduce((obj: any, k) => obj?.[k], errors);
-                        });
-                        if (firstInvalid) {
-                          const errEl = document.querySelector(`[name="${firstInvalid}"]`);
-                          if (errEl instanceof HTMLElement) {
-                            errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            errEl.focus();
-                          }
-                        }
-                        // ────────────────────────────────────────────────
-                        return;
-                      }
-
-                      // 3) all good → build updatedRow as before
-                      const before = rowSnapshots.current[mapKey] || {};
-                      const formVals = getValues();
-                      const updatedRow = { ...before };
-                      dtFields
-                        .flatMap(f => ('fields' in f ? (f as FieldGroup).fields : [f as FieldSetting]))
-                        .forEach((fs: any) => {
-                          const name = fs.name!;
-                          const fullPath = `${mapKey}.${activeIdx}.${name}`;
-                          updatedRow[name] = getDeepValue(formVals, fullPath);
+                        // 4) Collect RELATIVE payload from ABSOLUTE values — keep values AS-IS (no normalization)
+                        let draftValuesObj: Record<string, any> = {};
+                        absFlatLeaves.forEach(abs => {
+                          const relName = abs.name.replace(new RegExp(`^${escapeRegExp(mapKey)}\\.`), '');
+                          const v = getDeepValue(getValues(), abs.name); // ← keep '', null, undefined as-is
+                          draftValuesObj = setDeepValue(draftValuesObj, relName, v);
                         });
 
-                      // 3.5) guard: if nothing actually changed, bail out
-                      if (JSON.stringify(before) === JSON.stringify(updatedRow)) {
-                        return;
-                      }
+                        // 5) Hybrid context so conditional validators can see both views
+                        let ctx = { ...getValues(), ...draftValuesObj };
+                        for (const [relKey, v] of Object.entries(draftValuesObj)) {
+                          ctx = setDeepValue(ctx, `${mapKey}.${relKey}`, v);
+                        }
 
-                      // 4) commit it
-                      const newTable = [...(tableDataMap[mapKey] ?? [])];
-                      newTable[activeIdx] = updatedRow;
-                      setTableDataMap(m => ({ ...m, [mapKey]: newTable }));
-                      setValue(mapKey, newTable);
-                      rowSnapshots.current[mapKey] = { ...updatedRow };
-                      onChange();
-                    }}
-                  >
-                    Update
-                  </Button>
+                        // 6) Validate RELATIVE payload
+                        const draftSchema = buildSchema(relFlat as any, ctx);
+                        const result = await draftSchema.safeParseAsync(draftValuesObj);
 
-                  {/* Delete */}
-                  <Button
-                    size='sm'
-                    color='danger'
-                    variant={activeIdx !== null ? 'outlined' : undefined}
-                    disabled={activeIdx == null}
-                    onClick={() => {
-                      if (activeIdx == null) return;
+                        if (!result.success) {
+                          // Push errors at ABSOLUTE paths so Controllers / Accordion pick them up
+                          result.error.errors.forEach(err => {
+                            const relPath = Array.isArray(err.path) ? err.path.join('.') : String(err.path ?? '');
+                            setError(`${mapKey}.${relPath}` as any, { type: 'manual', message: err.message });
+                          });
 
-                      // 1) Pull the right array out of your React state:
-                      const current = tableDataMap[mapKey] ?? [];
+                          const firstRel = Array.isArray(result.error.errors[0].path)
+                            ? result.error.errors[0].path.join('.')
+                            : String(result.error.errors[0].path ?? '');
+                          const el = document.querySelector<HTMLElement>(`[name="${mapKey}.${firstRel}"]`);
+                          el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                          el?.focus();
+                          return; // abort Add
+                        }
 
-                      // 2) Filter out the selected index:
-                      const newTable = current.filter((_, i) => i != activeIdx);
+                        // 7) Build the new row from ABSOLUTE values — keep values AS-IS and NEST them
+                        let newRow: Record<string, any> = {};
+                        absFlatLeaves.forEach(abs => {
+                          const relName = abs.name.replace(new RegExp(`^${escapeRegExp(mapKey)}\\.`), '');
+                          const v = getDeepValue(getValues(), abs.name); // ← keep '', null, undefined as-is
+                          newRow = setDeepValue(newRow, relName, v);
+                        });
 
-                      // 3) Commit back into your state map:
-                      setTableDataMap(prev => ({
-                        ...prev,
-                        [mapKey]: newTable,
-                      }));
+                        // Seed immediate child DataTables as empty arrays
+                        const childTableKeys = dtFields
+                          .filter((it: any) => 'dataTable' in it)
+                          .map((it: any) => it.dataTable.config.dataSource as string);
+                        for (const key of childTableKeys) if (newRow[key] == null) newRow[key] = [];
 
-                      // 4) Clear snapshot & selection so the form fields disappear
-                      rowSnapshots.current[mapKey] = null;
-                      setActiveRowIndexMap(prev => ({
-                        ...prev,
-                        [mapKey]: null,
-                      }));
+                        // Commit table
+                        const prevRaw = getDeepValue(getValues(), mapKey);
+                        const prevFormRows: any[] = Array.isArray(prevRaw) ? prevRaw : [];
+                        const newTable = [newRow, ...prevFormRows];
+                        const shifted = shiftNestedTableKeys(tableDataMap, mapKey, 0, +1);
 
-                      // 5) If you still mirror into RHF’s dataSource:
-                      setValue(mapKey, newTable);
+                        setTableDataMap({ ...shifted, [mapKey]: newTable });
+                        setValue(mapKey, newTable);
+                        onChange();
 
-                      // 6) Finally, notify your parent:
-                      onChange();
-                    }}
-                  >
-                    Delete
-                  </Button>
+                        // Clear draft inputs (ABSOLUTE), but keep boolean reset behavior
+                        absFlatLeaves.forEach(abs => {
+                          setValue(abs.name, isBooleanControl(abs) ? false : '');
+                        });
+                      }}
+                    >
+                      Add
+                    </Button>
 
-                  {/* Cancel */}
-                  <Button
-                    size='sm'
-                    color='default'
-                    variant={canCancel ? 'outlined' : undefined}
-                    disabled={!canCancel}
-                    onClick={() => {
-                      // 1) unselect any row
-                      setActiveRowIndexMap(prev => ({
-                        ...prev,
-                        [mapKey]: null,
-                      }));
-                      // 2) clear any validation errors on those draft fields
-                      clearErrors(
-                        flatFields.map((fs: any) => `${mapKey}.${fs.name}`)
-                      );
-                      // 3) clear all draft inputs
-                      flatFields.forEach((fs: any) => {
-                        const path = `${mapKey}.${fs.name}`;
-                        setValue(path, isBooleanControl(fs) ? false : '');
-                      });
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </ButtonContainer>
-              );
-            })()}
+
+                    {/* Update */}
+                    <Button
+                      size="sm"
+                      disabled={activeIdx == null || isBlockedByAncestor}
+                      onClick={async () => {
+                        if (isBlockedByAncestor) return;
+                        if (activeIdx == null) return;
+
+                        // 1) Flatten *all* row fields (handles groups, accordions, tabs, etc.)
+                        const flatFS: Array<FieldSetting & { name: string }> = flattenForSchema(dtFields)
+                          .filter((fs: any) => typeof fs?.name === 'string' && fs.name.length > 0) as any[];
+
+                        // 2) Validate & focus first invalid automatically
+                        const fieldNames = flatFS.map(fs => `${mapKey}.${activeIdx}.${fs.name}`);
+                        const isValid = await trigger(fieldNames, { shouldFocus: true });
+                        if (!isValid) return;
+
+                        // 3) Build updated row (nested) — keep values AS-IS
+                        const prevFormRows: any[] = getDeepValue(getValues(), mapKey) ?? [];
+                        const snapshotBefore = rowSnapshots.current[mapKey] || {};
+                        let updatedRow: Record<string, any> = { ...(prevFormRows[activeIdx] ?? {}) };
+
+                        flatFS.forEach(fs => {
+                          const fullPath = `${mapKey}.${activeIdx}.${fs.name}`;
+                          const v = getDeepValue(getValues(), fullPath); // ← keep '', null, undefined as-is
+                          updatedRow = setDeepValue(updatedRow, fs.name, v); // NEST correctly
+                        });
+
+                        // 4) No-op guard
+                        if (JSON.stringify(snapshotBefore) === JSON.stringify(updatedRow)) return;
+
+                        // 5) Commit
+                        const newTable = prevFormRows.slice();
+                        newTable[activeIdx] = updatedRow;
+
+                        setTableDataMap(m => ({ ...m, [mapKey]: newTable }));
+                        setValue(mapKey, newTable); // keep RHF in sync
+                        rowSnapshots.current[mapKey] = { ...updatedRow }; // refresh snapshot
+                        onChange();
+                      }}
+
+                    >
+                      Update
+                    </Button>
+
+
+                    {/* Delete */}
+                    <Button
+                      size='sm'
+                      color='danger'
+                      disabled={activeIdx == null || isBlockedByAncestor}
+                      variant={activeIdx !== null ? 'outlined' : undefined}
+                      onClick={() => {
+                        if (isBlockedByAncestor) return;
+                        if (activeIdx == null) return;
+
+                        // 1) base on current state
+                        const prevFormRows: any[] = getDeepValue(getValues(), mapKey) ?? [];
+                        const newTable = prevFormRows.filter((_, i) => i !== activeIdx);
+
+                        // 2) prune nested keys for the removed index, then shift higher ones -1
+                        let nextMap = dropNestedKeysForIndex(tableDataMap, mapKey, activeIdx);
+                        nextMap = shiftNestedTableKeys(nextMap, mapKey, activeIdx + 1, -1);
+
+                        // 3) commit
+                        setTableDataMap({ ...nextMap, [mapKey]: newTable });
+
+                        // 4) clear selection/snapshot
+                        rowSnapshots.current[mapKey] = null as any;
+                        setActiveRowIndexMap(prev => ({ ...prev, [mapKey]: null }));
+
+                        // 5) mirror into RHF and notify
+                        setValue(mapKey, newTable);
+                        onChange();
+
+                      }}
+                    >
+                      Delete
+                    </Button>
+
+                    {/* Cancel */}
+                    <Button
+                      size='sm'
+                      color='default'
+                      variant={canCancel ? 'outlined' : undefined}
+                      disabled={!canCancel}
+                      onClick={() => {
+                        // 1) unselect any row
+                        setActiveRowIndexMap(prev => ({
+                          ...prev,
+                          [mapKey]: null,
+                        }));
+                        // 2) clear any validation errors on those draft fields
+                        clearErrors(leafDraftFS.map((fs: any) => `${mapKey}.${fs.name}`));
+                        leafDraftFS.forEach((fs: any) => {
+                          const path = `${mapKey}.${fs.name}`;
+                          setValue(path, isBooleanControl(fs) ? false : '');
+                        });
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </ButtonContainer>
+                );
+              })()}
+            </VirtualizedItem>
 
             {/* Recursive render for dtFields with id prefix */}
             {renderSection(
@@ -601,8 +681,8 @@ export const renderSection = (
               onChange,
               control,
               z,
-              globalDisabled,
-              originalData,
+              globalDisabled || isBlockedByAncestor,
+              getValues(),
               getValues,
               setValue,
               trigger,
@@ -612,7 +692,10 @@ export const renderSection = (
               activeRowIndexMap,
               setActiveRowIndexMap,
               tableDataMap,
-              setTableDataMap
+              setTableDataMap,
+              rowSnapshots,
+              lastProcessedRef,
+              activeIdx != null
             )}
           </SectionWrapper>
         </React.Fragment>
@@ -641,41 +724,53 @@ export const renderSection = (
           <SectionWrapper className='accordion-wrapper' $hasHeader={!!group.header}>
             <Accordion
               allowMultiple={group.allowMultiple}
-              items={visible.map((sec, i) => ({
-                id: sec.id ?? `${group.header}-sec-${i}`,
-                title: sec.title,
-                open: sec.open,
-                children: (
-                  <React.Fragment key={sec.id ?? i}>
-                    {renderSection(
-                      sec.fields,
-                      errors,
-                      onChange,
-                      control,
-                      z,
-                      globalDisabled,
-                      originalData,
-                      getValues,
-                      setValue,
-                      trigger,
-                      setError,
-                      clearErrors,
-                      conditionalKeys,
-                      activeRowIndexMap,
-                      setActiveRowIndexMap,
-                      tableDataMap,
-                      setTableDataMap
-                    )}
-                  </React.Fragment>
-                ),
-                disabled:
-                  typeof sec.disabled === 'function'
-                    ? sec.disabled(values)
-                    : sec.disabled,
-                rightContent: sec.rightContent,
-                rightDetails: sec.rightDetails,
-                onClick: sec.onClick,
-              }))}
+              items={visible.map((sec, i) => {
+                // Count field-level errors in this section
+                const errorCount = (flattenForSchema(sec.fields) as any[]).reduce((count, fs) => {
+                  const errObj = getDeepValue(errors, fs.name as string);
+                  return count + (errObj?.message ? 1 : 0);
+                }, 0);
+
+                const secHasError = errorCount > 0;
+
+                return {
+                  id: sec.id ?? `${group.header}-sec-${i}`,
+                  title: sec.title,
+                  ...(secHasError ? { open: true } : { open: sec.open }),
+                  children: (
+                    <React.Fragment key={sec.id ?? i}>
+                      {renderSection(
+                        sec.fields,
+                        errors,
+                        onChange,
+                        control,
+                        z,
+                        globalDisabled,
+                        originalData,
+                        getValues,
+                        setValue,
+                        trigger,
+                        setError,
+                        clearErrors,
+                        conditionalKeys,
+                        activeRowIndexMap,
+                        setActiveRowIndexMap,
+                        tableDataMap,
+                        setTableDataMap,
+                        rowSnapshots,
+                        lastProcessedRef,
+                        ancestorRowSelected
+                      )}
+                    </React.Fragment>
+                  ),
+                  disabled: typeof sec.disabled === 'function' ? sec.disabled(values) : sec.disabled,
+                  rightContent: sec.rightContent,
+                  rightDetails: errorCount > 0
+                    ? [...(sec.rightDetails ?? []), { value: String(errorCount), valueColor: 'danger' }]
+                    : sec.rightDetails,
+                  onClick: sec.onClick,
+                }
+              })}
             />
           </SectionWrapper>
         </React.Fragment>
@@ -733,7 +828,10 @@ export const renderSection = (
                     activeRowIndexMap,
                     setActiveRowIndexMap,
                     tableDataMap,
-                    setTableDataMap
+                    setTableDataMap,
+                    rowSnapshots,
+                    lastProcessedRef,
+                    ancestorRowSelected
                   )}
                 </React.Fragment>
               ),
@@ -773,7 +871,10 @@ export const renderSection = (
               activeRowIndexMap,
               setActiveRowIndexMap,
               tableDataMap,
-              setTableDataMap
+              setTableDataMap,
+              rowSnapshots,
+              lastProcessedRef,
+              ancestorRowSelected
             )}
           </FieldsWrapper>
         </React.Fragment>
@@ -805,6 +906,9 @@ export const DynamicForm = forwardRef(<T extends Record<string, any>>(
     disabled: globalDisabled = false,
     loading = false,
   } = props;
+  const rowSnapshots = React.useRef<Record<string, any>>({});
+  const lastProcessedRef = React.useRef<Record<string, number | null>>({});
+
   // 1) Build an initial map of each tableKey → its array
   const initialTableMap: Record<string, any[]> = {};
   fieldSettings.forEach(item => {
@@ -833,17 +937,13 @@ export const DynamicForm = forwardRef(<T extends Record<string, any>>(
     for (const tableKey in activeRowIndexMap) {
       const rowIndex = activeRowIndexMap[tableKey];
       if (rowIndex != null) {
-        // Find the original DataTable section
         const dtSection = fieldSettings.find(
           it => (it as any).dataTable?.config?.dataSource === tableKey
         ) as ({ dataTable: DataTableSection }) | undefined;
+
         if (dtSection) {
-          // Prefix and include its fields
           itemsForSchema.push(
-            ...prefixItems(
-              dtSection.dataTable.fields,
-              `${tableKey}.${rowIndex}`
-            )
+            ...prefixItems(dtSection.dataTable.fields, `${tableKey}.${rowIndex}`)
           );
         }
       }
@@ -885,74 +985,116 @@ export const DynamicForm = forwardRef(<T extends Record<string, any>>(
     () => ({
       submit: async () => {
         // ─── 1) Inline-validate any “draft” rows ───
-        for (const item of fieldSettings.filter(hasDataTable)) {
-          const dt        = (item as { dataTable: DataTableSection }).dataTable;
-          const tableKey  = dt.config.dataSource;
-          const dtFields  = dt.fields;
+        // ─── 1) Inline-validate any “draft” rows ───
+for (const item of fieldSettings.filter(hasDataTable)) {
+  const dt = (item as { dataTable: DataTableSection }).dataTable;
+  const tableKey = dt.config.dataSource;
+  const leafFS = toLeafFieldSettings(dt.fields);
 
-          // flatten your draft FieldSettings
-          const flatDraftSettings = dtFields
-            .flatMap(f => ('fields' in f ? f.fields : [f as FieldSetting])) as FieldSetting[];
+  const activeIdx = activeRowIndexMap?.[tableKey] ?? null;
 
-          // collect current draft values & check if there's any value
-          const draftValues: Record<string, any> = {};
-          let hasDraftValue = false;
-          flatDraftSettings.forEach(fs => {
-            const val = getDeepValue(getValues(), `${tableKey}.${fs.name}`);
-            draftValues[fs.name!] = val;
-            if (val != null && val !== '' && !(typeof val === 'boolean' && val === false)) {
-              hasDraftValue = true;
-            }
-          });
-          if (!hasDraftValue) continue;  // no draft here, skip
+  if (activeIdx != null) {
+    // Clear any stale errors under this table (e.g., from a previously selected row)
+    clearErrors(`${tableKey}`);
 
-          // build a tiny Zod schema for these draft fields
-          const draftSchema = buildSchema(
-            flattenForSchema(flatDraftSettings),
-            {}
-          );
-          const result = await draftSchema.safeParseAsync(draftValues);
+    // Build RELATIVE payload for the selected row using ABSOLUTE paths
+    let rowValuesRel: Record<string, any> = {};
+    leafFS.forEach(fs => {
+      const abs = `${tableKey}.${activeIdx}.${fs.name}`;
+      const v = getDeepValue(getValues(), abs); // keep '', null, undefined as-is
+      rowValuesRel = setDeepValue(rowValuesRel, fs.name, v);
+    });
 
-          if (!result.success) {
-            // a) push each Zod error into RHF
-            result.error.errors.forEach(err => {
-              const key = err.path[0] as string;
-              setError(`${tableKey}.${key}` as any, { type: 'manual', message: err.message });
-            });
+    // Hybrid ctx so conditional validators can see both views
+    let ctx = { ...getValues(), ...rowValuesRel };
+    for (const [relKey, v] of Object.entries(rowValuesRel)) {
+      ctx = setDeepValue(ctx, `${tableKey}.${activeIdx}.${relKey}`, v);
+    }
 
-            // b) build an array of invalidFields for onSubmit
-            const invalidFields: SubmitResult<T>['invalidFields'] = result.error.errors.map(err => {
-              const key = err.path[0] as string;
-              return {
-                field: `${tableKey}.${key}`,
-                error: err.message,
-                value: draftValues[key],
-              };
-            });
+    // Validate the selected row with the row-only schema
+    const rowSchema = buildSchema(leafFS, ctx);
+    const result = await rowSchema.safeParseAsync(rowValuesRel);
 
-            // c) scroll/focus the first error
-            const bad = result.error.errors[0].path[0];
-            const el = document.querySelector<HTMLElement>(`[name="${tableKey}.${bad}"]`);
-            if (el) {
-              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              el.focus();
-            }
+    if (!result.success) {
+      // Map Zod errors (RELATIVE) -> ABSOLUTE; set RHF errors for UI
+      const invalid = result.error.errors.map(err => {
+        const relPath = Array.isArray(err.path) ? err.path.join('.') : String(err.path ?? '');
+        const absPath = `${tableKey}.${activeIdx}.${relPath}`;
+        const value = getDeepValue(rowValuesRel, relPath);
+        setError(absPath as any, { type: 'manual', message: err.message });
+        return { field: absPath, error: err.message, value };
+      });
 
-            // d) notify caller that submit failed on draft validation
-            onSubmit({ valid: false, invalidFields });
-            return;
-          }
-        }
+      // Focus the first invalid field
+      const first = invalid[0]?.field;
+      if (first) {
+        const el =
+          document.querySelector<HTMLElement>(`[name="${first}"]`) ??
+          document.querySelector<HTMLElement>(`[data-field-key="${first}"]`);
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el?.focus?.();
+      }
+
+      onSubmit?.({ valid: false, invalidFields: invalid });
+      return; // abort submit
+    }
+
+    // Selected row is valid → continue checking other DataTables (if any)
+    continue;
+  }
+
+  // No row selected → existing draft validation (unchanged)...
+  let draftValues: Record<string, any> = {};
+  let hasDraftValue = false;
+
+  leafFS.forEach(fs => {
+    const val = getDeepValue(getValues(), `${tableKey}.${fs.name}`);
+    draftValues = setDeepValue(draftValues, fs.name!, val);
+    if (val != null && val !== '' && !(typeof val === 'boolean' && val === false)) {
+      hasDraftValue = true;
+    }
+  });
+
+  if (!hasDraftValue) continue;
+
+  const draftSchema = buildSchema(leafFS, draftValues);
+  const result = await draftSchema.safeParseAsync(draftValues);
+
+  if (!result.success) {
+    result.error.errors.forEach(err => {
+      const relPath = Array.isArray(err.path) ? err.path.join('.') : String(err.path ?? '');
+      setError(`${tableKey}.${relPath}` as any, { type: 'manual', message: err.message });
+    });
+
+    const firstRel = Array.isArray(result.error.errors[0].path)
+      ? result.error.errors[0].path.join('.')
+      : String(result.error.errors[0].path ?? '');
+    const el = document.querySelector<HTMLElement>(`[name="${tableKey}.${firstRel}"]`);
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el?.focus();
+
+    onSubmit?.({
+      valid: false,
+      invalidFields: result.error.errors.map(err => {
+        const rel = Array.isArray(err.path) ? err.path.join('.') : String(err.path ?? '');
+        return { field: `${tableKey}.${rel}`, error: err.message, value: getDeepValue(draftValues, rel) };
+      }),
+    });
+    return;
+  }
+}
 
         // ─── 2) All drafts OK → run your normal handleSubmit ───
         handleSubmit(
           () => {
+            // AFTER
             const formValues = getValues();
-            const fullPayload = { ...formValues };
+            let fullPayload = { ...formValues };
             Object.entries(tableDataMap).forEach(([path, rows]) => {
-              setDeepValue(fullPayload, path, rows);
+              fullPayload = setDeepValue(fullPayload, path, rows); // ✅ reassign
             });
             onSubmit({ valid: true, values: fullPayload as T });
+
           },
           errs => {
             const invalid: SubmitResult<T>['invalidFields'] = [];
@@ -1009,7 +1151,7 @@ export const DynamicForm = forwardRef(<T extends Record<string, any>>(
       },
       getValues: () => getValues() as T,
     }),
-    [handleSubmit, onSubmit, getValues]
+    [handleSubmit, onSubmit, getValues, activeRowIndexMap, tableDataMap, trigger, setError]
   );
 
   // Subscribe to ALL form changes so your renderSection() sees updated getValues()
@@ -1040,7 +1182,10 @@ export const DynamicForm = forwardRef(<T extends Record<string, any>>(
           activeRowIndexMap,
           setActiveRowIndexMap,
           tableDataMap,
-          setTableDataMap
+          setTableDataMap,
+          rowSnapshots,
+          lastProcessedRef,
+          null
         )}
     </FormWrapper>
   );

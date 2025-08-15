@@ -110,6 +110,7 @@
     "eslint-plugin-unused-imports": "^4.1.4",
     "fs": "^0.0.1-security",
     "globals": "^15.14.0",
+    "jsdom": "^26.1.0",
     "prettier": "^3.4.2",
     "react-scan": "^0.2.14",
     "resize-observer-polyfill": "^1.5.1",

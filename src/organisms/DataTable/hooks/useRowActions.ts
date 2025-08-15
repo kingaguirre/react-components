@@ -1,3 +1,4 @@
+// src/organisms/DataTable/hooks/useRowActions.ts
 import { useCallback } from "react";
 import { DataRow } from "../interface";
 import { sanitizeData } from "../utils";

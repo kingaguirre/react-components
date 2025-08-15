@@ -37,6 +37,7 @@ import {
   TableTitle,
 } from "./styled";
 import * as UTILS from "./utils";
+import { setActiveTable, subscribeActiveTable, ensureActiveTableGlobalListeners, } from './utils/activeTable';
 import * as UTILS_CS from "./utils/columnSettings";
 import { MainHeader } from "./components/MainHeader";
 import { SettingsPanel } from "./components/MainHeader/SettingsPanel";
@@ -70,6 +71,12 @@ import {
 import { restrictToHorizontalAxis } from "@dnd-kit/modifiers";
 import { arrayMove } from "@dnd-kit/sortable";
 import { Button } from "../../atoms/Button";
+
+/** ---------- STABLE DEFAULTS & GUARDS ---------- */
+const EMPTY_COL_SETTINGS: ReadonlyArray<any> = Object.freeze([]);
+
+/** No-op stable callback to avoid re-renders when parent doesn't pass one */
+const NOOP: (..._args: any[]) => void = () => {};
 
 // Our DataTable now accepts its data and column definitions via props.
 export const DataTable = <T extends object>({
@@ -109,8 +116,33 @@ export const DataTable = <T extends object>({
   onSelectedRowsChange,
   expandedRowContent,
   onActiveRowChange,
+  selectedCell: selectedCellProp
 }: DataTableProps) => {
+  const tableWrapperRef = useRef<HTMLDivElement>(null);
+  const instanceIdRef = useRef<number>(Date.now() + Math.random());
   const tableContainerRef = useRef<HTMLDivElement>(null);
+  const isAutoSizingRef = useRef(false);
+  const userSizedColsRef = useRef<Set<string>>(new Set());
+
+  // Mark this table instance as active when mounted
+  const markActive = () => setActiveTable(instanceIdRef.current);
+
+  const SETTINGS_EMIT_SUPPRESS_MS = 800; // > your debounce inside useDebouncedColumnSettingsChange
+  const suppressEmitUntilRef = useRef(0);
+  const suppressEmits = (ms: number = SETTINGS_EMIT_SUPPRESS_MS) => {
+    // ensure overlapping suppress windows extend, not shrink
+    suppressEmitUntilRef.current = Math.max(suppressEmitUntilRef.current, Date.now() + ms );
+  };
+
+  /** Guard: produce a stable, memoized array even when prop is undefined */
+  const safeColumnSettings = useMemo(
+    () => (Array.isArray(columnSettings) ? columnSettings : (EMPTY_COL_SETTINGS as any[])),
+    [columnSettings],
+  );
+
+  /** Also guard onColumnSettingsChange to a stable no-op when not provided */
+  const safeOnColumnSettingsChange = (onColumnSettingsChange ?? NOOP) as (...a: any[]) => void;
+
   // Augment rows with a stable internal ID.
   const initializeData = (data: unknown): DataRow[] => {
     if (!Array.isArray(data)) {
@@ -120,91 +152,69 @@ export const DataTable = <T extends object>({
     return data.map((row, i) =>
       // if row already has an internalId (truthy), leave it,
       // otherwise inject one based on the index
-      (row as DataRow).__internalId
-        ? (row as DataRow)
-        : { ...(row as DataRow), __internalId: i.toString() },
+      (row as DataRow).__internalId ? (row as DataRow) : { ...(row as DataRow), __internalId: i.toString() },
     );
   };
 
   const [data, setData] = useState<DataRow[]>(() => initializeData(dataSource));
 
   const [editingCell, setEditingCell] = useState<EditingCellType>(null);
-  const [columnVisibility, setColumnVisibility] = useState<
-    Record<string, boolean>
-  >(UTILS_CS.setDefaultColumnVisibility(columnSettings));
+  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(UTILS_CS.setDefaultColumnVisibility(safeColumnSettings));
   const [rowSelection, setRowSelection] = useState({});
   const [globalFilter, setGlobalFilter] = useState<string>("");
   // Use initial pagination state from props:
   const [pagination, setPagination] = useState({ pageIndex, pageSize });
   const [columnSizing, setColumnSizing] = useState<Record<string, number>>({});
-  const [columnPinning, setColumnPinning] = useState<ColumnPinningType>(
-    UTILS_CS.getInitialPinning(columnSettings),
-  );
+  const [columnPinning, setColumnPinning] = useState<ColumnPinningType>(UTILS_CS.getInitialPinning(safeColumnSettings));
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [sorting, setSorting] = useState<SortingState>(
-    UTILS_CS.getInitialSorting(columnSettings),
-  );
+  const [sorting, setSorting] = useState<SortingState>(UTILS_CS.getInitialSorting(safeColumnSettings));
   const [showSettingsPanel, setShowSettingsPanel] = useState<boolean>(false);
   const [selectedCell, setSelectedCell] = useState<SelectedCellType>(null);
   const [showAlert, setShowAlert] = useState(false);
   const [columnError, setColumnError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<ExpandedState>({});
   const [cellLoading, setCellLoading] = useState(false);
-  const [activeRowId, setActiveRowId] = useState<string | undefined>(
-    activeRow ?? undefined,
-  );
+  const [activeRowId, setActiveRowId] = useState<string | undefined>(activeRow ?? undefined);
+  const [isFocused, setIsFocused] = useState(false);
 
   // Memoize the transformed data from dataSource
   const memoizedData = useMemo(() => initializeData(dataSource), [dataSource]);
-  const uniqueValueMaps = useUniqueValueMaps(data, columnSettings);
+  const uniqueValueMaps = useUniqueValueMaps(data, safeColumnSettings);
 
-  // once we’ve mounted (DOM is painted), measure and set sizing
-  useLayoutEffect(() => {
+  // Memoized sizing function so we can call it from RO + window.resize
+  const applySizing = React.useCallback(() => {
     const el = tableContainerRef.current;
     if (!el) return;
 
-    const applySizing = () => {
-      // 1) compute the defaults based on visibility & flags
-      const defaultSizing = UTILS_CS.getInitialSize(
-        columnSettings,
-        el.clientWidth,
-        columnVisibility,
-        {
-          enableCellEditing,
-          enableRowAdding,
-          enableRowDeleting,
-          enableRowSelection,
-          hasExpandedContent: Boolean(expandedRowContent),
-        },
-      );
+    const defaultSizing = UTILS_CS.getInitialSize(
+      safeColumnSettings,
+      el.clientWidth,
+      columnVisibility,
+      {
+        enableCellEditing,
+        enableRowAdding,
+        enableRowDeleting,
+        enableRowSelection,
+        hasExpandedContent: Boolean(expandedRowContent),
+      },
+    );
 
-      // 2) merge into existing sizing, so manual drags win
-      setColumnSizing((prev) => {
-        const merged: Record<string, number> = {};
+    // NEW: block debounced emits for a short window while we programmatically update sizing
+    suppressEmits();
 
-        // for every column in defaultSizing...
-        for (const colId of Object.keys(defaultSizing)) {
-          // if the user’s prev state has a number for this col, keep it,
-          // otherwise fall back to the default
-          merged[colId] =
-            typeof prev[colId] === "number"
-              ? prev[colId]
-              : defaultSizing[colId];
-        }
-
-        return merged;
-      });
-    };
-
-    // initial measure + merge
-    applySizing();
-
-    // re‑measure on container resize if needed
-    const ro = new ResizeObserver(applySizing);
-    ro.observe(el);
-    return () => ro.disconnect();
+    isAutoSizingRef.current = true;
+    setColumnSizing((prev) => {
+      const merged: Record<string, number> = {};
+      for (const colId of Object.keys(defaultSizing)) {
+        merged[colId] = userSizedColsRef.current.has(colId)
+          ? (typeof prev[colId] === "number" ? prev[colId] : defaultSizing[colId])
+          : defaultSizing[colId];
+      }
+      return merged;
+    });
+    requestAnimationFrame(() => { isAutoSizingRef.current = false; });
   }, [
-    columnSettings,
+    safeColumnSettings,
     columnVisibility,
     enableCellEditing,
     enableRowAdding,
@@ -212,6 +222,38 @@ export const DataTable = <T extends object>({
     enableRowSelection,
     expandedRowContent,
   ]);
+
+
+  useLayoutEffect(() => {
+    applySizing();
+
+    // Observe container size
+    const el = tableContainerRef.current;
+    const ro = typeof ResizeObserver !== "undefined"
+      ? new ResizeObserver(() => applySizing())
+      : null;
+    if (el) ro?.observe(el);
+
+    // Fallback to window resize/orientation changes
+    let rafId: number | null = null;
+    const onWinResize = () => {
+      if (rafId != null) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        applySizing();
+        rafId = null;
+      });
+    };
+    window.addEventListener("resize", onWinResize);
+    window.addEventListener("orientationchange", onWinResize);
+
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener("resize", onWinResize);
+      window.removeEventListener("orientationchange", onWinResize);
+      if (rafId != null) cancelAnimationFrame(rafId);
+    };
+  }, [applySizing]);
+
 
   // Only update local data state when memoizedData changes.
   useEffect(() => {
@@ -236,22 +278,42 @@ export const DataTable = <T extends object>({
   // --- Sync column visibility and validate settings ---
   useEffect(() => {
     try {
-      UTILS.checkUniqueColumns(columnSettings);
+      UTILS.checkUniqueColumns(safeColumnSettings);
       setColumnError(null);
     } catch (err: any) {
       setColumnError(err.message);
     }
-  }, [columnSettings]);
+  }, [safeColumnSettings]);
+
+  // Wrap column sizing change so we can mark user changes
+  type SizingUpdater = Record<string, number> | ((prev: Record<string, number>) => Record<string, number>);
+  const handleColumnSizingChange = (updaterOrValue: SizingUpdater) => {
+    setColumnSizing((prev) => {
+      const next = typeof updaterOrValue === "function" ? updaterOrValue(prev) : updaterOrValue;
+
+      // If this came from our auto-sizing, don't mark as user change
+      if (!isAutoSizingRef.current) {
+        // mark keys that actually changed
+        for (const k of Object.keys(next)) {
+          if (next[k] !== prev[k]) userSizedColsRef.current.add(k);
+        }
+      }
+      return next;
+    });
+  };
 
   const handleResetColumnSettings = () => {
+    // block for the whole batch
+    suppressEmits(SETTINGS_EMIT_SUPPRESS_MS * 2);
+
     const defaultColumnVisibility =
-      UTILS_CS.setDefaultColumnVisibility(columnSettings);
+      UTILS_CS.setDefaultColumnVisibility(safeColumnSettings);
     setColumnVisibility(defaultColumnVisibility);
 
     // Reset column sizing to default (empty object, or a computed default if needed)
     setColumnSizing(
       UTILS_CS.getInitialSize(
-        columnSettings,
+        safeColumnSettings,
         tableContainerRef.current?.clientWidth ?? 0,
         defaultColumnVisibility,
         {
@@ -266,13 +328,16 @@ export const DataTable = <T extends object>({
     );
 
     // Reset column pinning to its default value
-    setColumnPinning(UTILS_CS.getInitialPinning(columnSettings));
+    setColumnPinning(UTILS_CS.getInitialPinning(safeColumnSettings));
 
     // Reset sorting based on prop columnSettings
-    setSorting(UTILS_CS.getInitialSorting(columnSettings));
+    setSorting(UTILS_CS.getInitialSorting(safeColumnSettings));
 
     // Reset column order based on the current columns (computed with useMemo)
     setColumnOrder(UTILS_CS.getInitialColumnOrder(columns));
+
+    // Reset column filters
+    userSizedColsRef.current.clear(); 
   };
 
   // --- Sync external selectedRows prop if provided ---
@@ -297,16 +362,14 @@ export const DataTable = <T extends object>({
       // 1) If there’s an active row selected, clear it and stop.
       if (activeRowId) {
         setActiveRowId(undefined);
-        return;
       }
 
-      // 2) Otherwise, cancel cell editing if active.
+      // 2) Cancel cell editing if active.
       if (editingCell) {
         setEditingCell(null);
-        return;
       }
 
-      // 3) Otherwise, drop any new rows.
+      // 3) Drop any new rows.
       if (data.some((row) => (row as any).__isNew)) {
         setData(data.filter((row) => !(row as any).__isNew));
       }
@@ -475,7 +538,7 @@ export const DataTable = <T extends object>({
   const handleAddRow = () => {
     const newRow = {
       __isNew: true,
-      __internalId: Date.now().toString(),
+      __internalId: 'new',
     } as any as T;
     columnSettings.forEach((col) => {
       newRow[col.column] = "";
@@ -490,10 +553,8 @@ export const DataTable = <T extends object>({
     if (firstVisibleColumn) {
       const newRowId = (newRow as any).__internalId;
       setTimeout(() => {
-        setSelectedCell({
-          rowId: newRowId,
-          columnId: `${firstVisibleColumn}-0`,
-        });
+        setSelectedCell({ rowId: newRowId, columnId: `${firstVisibleColumn}` });
+        markActive(); 
       }, 0);
     }
   };
@@ -510,12 +571,9 @@ export const DataTable = <T extends object>({
   });
 
   // Wrap row clicks: update local state, then call user’s handler
-  const handleRowClickInternal = (
-    row: DataRow,
-    __internalId: string,
-    e: React.MouseEvent<HTMLElement>,
-  ) => {
+  const handleRowClickInternal = (row: DataRow, __internalId: string, e: React.MouseEvent<HTMLElement>) => {
     setActiveRowId(__internalId);
+    markActive(); // 👈 grab focus so this table becomes “active”
     if (onRowClick) onRowClick(row, __internalId, e);
   };
 
@@ -533,10 +591,7 @@ export const DataTable = <T extends object>({
     : null;
 
   // Transform new column settings into TanStack Table column definitions.
-  const transformedColumns = transformColumnSettings<T>(
-    columnSettings,
-    cellTextAlignment,
-  );
+  const transformedColumns = transformColumnSettings<T>(safeColumnSettings, cellTextAlignment );
 
   const transformColDef = (colDef: any): any => {
     // If it's a group column, recursively transform its child columns.
@@ -592,7 +647,7 @@ export const DataTable = <T extends object>({
     ...(enableRowAdding || enableRowDeleting
       ? [
           RowActionsColumn({
-            columnSettings,
+            columnSettings: safeColumnSettings,
             handleSaveRow,
             handleCancelRow,
             handleDelete,
@@ -615,7 +670,6 @@ export const DataTable = <T extends object>({
     transformedColumns,
     editingCell,
     cellLoading,
-    columnSettings,
     disabledRows,
     expanderCol,
     actionColumns,
@@ -656,12 +710,13 @@ export const DataTable = <T extends object>({
     enableMultiRowSelection: enableMultiRowSelection,
     getRowCanExpand,
     getSubRows: (row) => (row as any)?.subRows,
+    getRowId: (row, index, parent) => (row as DataRow).__internalId ?? `${parent?.id ?? 'root'}:${index}`,
     onExpandedChange: setExpanded,
     onColumnVisibilityChange: setColumnVisibility,
     onSortingChange: setSorting,
     onPaginationChange: handlePaginationChange,
     onRowSelectionChange: handleRowSelectionChange,
-    onColumnSizingChange: setColumnSizing,
+    onColumnSizingChange: handleColumnSizingChange,
     onColumnPinningChange: setColumnPinning,
     onGlobalFilterChange: setGlobalFilter,
     onColumnFiltersChange: setColumnFilters,
@@ -676,10 +731,16 @@ export const DataTable = <T extends object>({
     getFacetedMinMaxValues: getFacetedMinMaxValues(), // generate min/max values for range filter
   });
 
+  // skip emits caused by window/container resize or other programmatic changes
+  const guardedOnColumnSettingsChange = React.useCallback((...args: any[]) => {
+    if (Date.now() < suppressEmitUntilRef.current) return;
+    safeOnColumnSettingsChange(...args);
+  }, [safeOnColumnSettingsChange]);
+
   useDebouncedColumnSettingsChange({
-    columnSettings,
+    columnSettings: safeColumnSettings,
     table,
-    onColumnSettingsChange,
+    onColumnSettingsChange: guardedOnColumnSettingsChange, // <— use the guard
     columnSizing,
     columnPinning,
     sorting,
@@ -696,10 +757,11 @@ export const DataTable = <T extends object>({
     setEditingCell,
     activeRowId,
     setActiveRowId,
+    instanceId: instanceIdRef.current,
   });
 
   // Auto-scroll when a new cell is selected
-  useAutoScroll(selectedCell);
+  useAutoScroll(selectedCell, tableWrapperRef);
 
   const handleConfirmDelete = () => {
     const selectedRows = table
@@ -754,6 +816,24 @@ export const DataTable = <T extends object>({
     return offset;
   };
 
+  // Parse the selectedCellProp and set the selectedCell state
+  useEffect(() => {
+    const parsed = UTILS.parseSelectedCellInput(selectedCellProp);
+    if (!parsed) return;
+
+    const [r, c] = parsed;
+    const internal = UTILS.coordToInternalSelection(table, r, c, UTILS.BUILTIN_COLUMN_IDS);
+    if (internal) setSelectedCell(internal);
+  }, [selectedCellProp]);
+
+  useEffect(() => {
+    ensureActiveTableGlobalListeners();
+    const unsub = subscribeActiveTable((id) => {
+      setIsFocused(id === instanceIdRef.current); // drive visual focus from arrow-owner
+    });
+    return unsub;
+  }, []);
+
   const totalSelectedRows = Object.keys(table.getState().rowSelection).filter(
     (key) => rowSelection[key],
   ).length;
@@ -761,17 +841,22 @@ export const DataTable = <T extends object>({
     enableSelectedRowDeleting && enableRowSelection && totalSelectedRows > 0;
 
   return (
-    <DataTableWrapper className="data-table-wrapper" $disabled={disabled}>
-      {title && <TableTitle>{title}</TableTitle>}
+    <DataTableWrapper
+      ref={tableWrapperRef}
+      data-table-instanceid={instanceIdRef.current}
+      className={`data-table-wrapper ${isFocused ? "is-focused" : "is-not-focused"}`}
+      $disabled={disabled}
+      tabIndex={0}
+      onClickCapture={() => requestAnimationFrame(markActive)}
+    >
+      {title && <TableTitle className="data-table-title">{title}</TableTitle>}
       <SettingsPanel
         hasTitle={!!title}
         table={table}
         show={showSettingsPanel}
         onClose={() => setShowSettingsPanel(false)}
         setDefaultColumnVisibility={() =>
-          setColumnVisibility(
-            UTILS_CS.setDefaultColumnVisibility(columnSettings),
-          )
+          setColumnVisibility(UTILS_CS.setDefaultColumnVisibility(safeColumnSettings))
         }
       />
       <MainHeader

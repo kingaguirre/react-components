@@ -58,7 +58,7 @@ export const TabsWrapper = styled.div`
 export const FieldsWrapper = styled.div<{ $hasHeader?: boolean }>`
   ${({ $hasHeader }) => $hasHeader ? 'padding: 0 12px;' : ''}
   &:not(:last-child) {
-    margin-bottom: 16px;
+    margin-bottom: 24px;
   }
 `;
 
@@ -71,6 +71,7 @@ export const Description = styled.p`
 export const SectionWrapper = styled.div<{ $hasHeader?: boolean }>`
   padding: 0 ${({ $hasHeader }) => $hasHeader ? 12 : 0}px 0;
 
+  .button-wrapper,
   .data-table-wrapper-section + * {
     margin-top: 24px;
   }
