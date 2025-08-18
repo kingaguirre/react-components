@@ -18,7 +18,7 @@ export type IconRight = {
   icon: string;
   color?: string;
   hoverColor?: string;
-  onClick?: () => void;
+  onClick?: (e: React.MouseEvent) => void;
   className?: string;
   disabled?: boolean;
 };
@@ -62,7 +62,13 @@ export interface FormControlProps {
   testId?: string;
   /** Add loader */
   loading?: boolean;
-  /** Any additional attributes */
+  /** Whether the input can be cleared */
+  clearable?: boolean;
+  /** Callback when clear icon is clicked */
+  onClearIcon?: () => void;
+  /** Show disabled icon when input is disabled */
+  showDisabledIcon?: boolean;
 
+  /** Any additional attributes */
   [key: string]: any;
 }

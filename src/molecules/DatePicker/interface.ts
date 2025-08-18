@@ -43,5 +43,11 @@ export interface CustomInputProps {
    */
   handleClear: (e: React.MouseEvent<HTMLElement>) => void;
 
+  clearable?: boolean;
+  /** Callback when clear icon is clicked */
+  onClearIcon?: () => void;
+  /** Show disabled icon when input is disabled */
+  showDisabledIcon?: boolean;
+
   [key: string]: any;
 }

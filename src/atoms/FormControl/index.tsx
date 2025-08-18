@@ -22,6 +22,21 @@ import { getInvalidForCustomGroupControl, mergeRefs } from "./utils";
 import { Icon } from "../../atoms/Icon";
 import { Loader } from "../../atoms/Loader";
 
+// Coerce any "number-ish" input to what the browser will actually display for <input type="number">
+function coerceNumberForInput(raw: unknown): string {
+  if (raw == null) return "";
+  if (typeof raw === "number") return Number.isFinite(raw) ? String(raw) : "";
+  if (typeof raw === "string") {
+    const s = raw.trim();
+    if (s === "") return "";
+    // Valid numeric token (no commas, no letters). Allows integers or decimals with optional leading '-'.
+    if (/^-?\d*(?:\.\d+)?$/.test(s)) return s;
+    // Anything else would render as empty in a number input → treat as empty
+    return "";
+  }
+  return "";
+}
+
 export const FormControl = forwardRef<
   HTMLInputElement | HTMLTextAreaElement,
   FormControlProps
@@ -46,6 +61,9 @@ export const FormControl = forwardRef<
       className,
       simple,
       loading,
+      clearable = true,
+      onClearIcon,
+      showDisabledIcon = false,
       ...rest
     },
     ref,
@@ -53,10 +71,36 @@ export const FormControl = forwardRef<
     const [isInvalid, setIsInvalid] = useState(false);
     const [selectedValues, setSelectedValues] = useState<string[]>([]);
     const [selectedValue, setSelectedValue] = useState<string | null>(null);
+
+    const isTextLike =
+      type === "text" ||
+      type === "password" ||
+      type === "email" ||
+      type === "number" ||
+      type === "textarea";
+
+    // Controlled only when BOTH value and onChange are provided
+    const hasValueProp = value !== undefined;
+    const isControlled = hasValueProp && typeof onChange === "function";
+
+    // If value is provided BUT no onChange, treat it as an initial default (uncontrolled)
+    const treatAsUncontrolledInitial =
+      !isControlled && hasValueProp && isTextLike;
+
+    const isEffectivelyReadOnly = !!(disabled || readOnly);
+
+    // Mirror only for uncontrolled text-like inputs
+    const [uiValue, setUiValue] = useState<string>(() => {
+      const seed = treatAsUncontrolledInitial
+        ? (value as any)
+        : (rest as any)?.defaultValue;
+      const initial = seed == null ? "" : String(seed);
+      return type === "number" ? coerceNumberForInput(initial) : initial;
+    });
+
     const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(
       null,
     );
-    const prevValue = useRef(value);
     const isCustomControl =
       type === "checkbox" || type === "radio" || type === "switch";
     const isGroupCustomControl =
@@ -64,55 +108,46 @@ export const FormControl = forwardRef<
       type === "radio-group" ||
       type === "switch-group" ||
       type === "radio-button-group";
-    const isFirstRender = useRef(true); // Track initial mount
 
-    // Merge the forwarded ref and internal ref
     const combinedRef = mergeRefs(ref, inputRef);
 
+    // Recompute invalid state when value changes (controlled) or uiValue changes (uncontrolled)
     useEffect(() => {
-      if (inputRef.current) {
-        const element = inputRef.current as HTMLInputElement;
-        const isInvalidBool = isCustomControl && required && !element.checked;
-        const isInvalidText = !isCustomControl && required && !element.value;
+      const el = inputRef.current as
+        | HTMLInputElement
+        | HTMLTextAreaElement
+        | null;
+      if (!el) return;
 
-        // Always validate on first render OR when value changes
-        if (isFirstRender.current || prevValue.current !== value) {
-          setIsInvalid(
-            !element.validity.valid || isInvalidBool || isInvalidText,
-          );
-          prevValue.current = value;
-          isFirstRender.current = false; // Mark first render as done
-        }
-      }
-    }, [required, isCustomControl, value, inputRef]);
+      const invalidCustom =
+        isCustomControl && required && !(el as HTMLInputElement).checked;
+      const invalidText = !isCustomControl && required && !el.value;
+      setIsInvalid(!el.validity.valid || invalidCustom || invalidText);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [required, isCustomControl, isControlled ? value : uiValue]);
 
     useEffect(() => {
       if (isGroupCustomControl) {
         if (type === "radio-group" || type === "radio-button-group") {
-          const selectedValues =
+          const selected =
             typeof value === "string" ? value.split(",") : value || [];
-          const processedValue =
-            selectedValues.length > 0 ? selectedValues[0] : null;
-
-          setSelectedValue(processedValue);
-          setIsInvalid(selectedValues.length === 0 && required);
+          setSelectedValue(selected.length > 0 ? selected[0] : null);
+          setIsInvalid(selected.length === 0 && required);
         } else {
-          const initialValues =
+          const initial =
             typeof value === "string"
               ? value.split(",").filter((v) => v)
               : value || [];
-          setSelectedValues(initialValues);
-          setIsInvalid(
-            getInvalidForCustomGroupControl(initialValues, required),
-          );
+          setSelectedValues(initial);
+          setIsInvalid(getInvalidForCustomGroupControl(initial, required));
         }
       }
     }, [value, isGroupCustomControl, required, type]);
 
     const handleCheckboxChange = (optionValue: string) => {
       const updatedValues = selectedValues.includes(optionValue)
-        ? selectedValues.filter((v) => v && v !== optionValue) // Ensures no empty values
-        : [...selectedValues, optionValue]; // Adds new value ensuring no empty strings
+        ? selectedValues.filter((v) => v && v !== optionValue)
+        : [...selectedValues, optionValue];
 
       setIsInvalid(getInvalidForCustomGroupControl(updatedValues, required));
       setSelectedValues(updatedValues);
@@ -125,35 +160,125 @@ export const FormControl = forwardRef<
       onChange?.(optionValue);
     };
 
+    // Text-like validation + mirror (uncontrolled)
     const handleValidation = (
       event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
     ) => {
-      const target = event.target as HTMLInputElement;
-      const { validity, type } = target;
-      const rawValue = target.value;
+      const target = event.target as HTMLInputElement | HTMLTextAreaElement;
+      const rawValue = (target as any).value ?? "";
 
-      // mark invalid if browser validity fails or required and empty
-      setIsInvalid(!validity.valid || (!rawValue && required));
+      setIsInvalid(!target.validity.valid || (!rawValue && required));
 
-      if (!onChange) return;
-
-      if (type === "number") {
-        // valueAsNumber will be NaN if the field is empty or invalid
-        const num = target.valueAsNumber;
-        // mimic an onChange signature that expects a number
-        onChange(num as any);
-      } else {
-        // pass through the original event for everything else
-        onChange(event);
+      if (!isControlled && isTextLike) {
+        setUiValue(
+          type === "number" ? coerceNumberForInput(rawValue) : String(rawValue),
+        );
       }
+
+      onChange?.(event as any);
     };
 
     const handleBooleanValidation = (
       event: React.ChangeEvent<HTMLInputElement>,
     ) => {
       setIsInvalid(!event.target.checked && required);
-      if (onChange) onChange(event);
+      onChange?.(event);
     };
+
+    // ----- What will actually be rendered inside the input -----
+    const normalizedValue =
+      value === undefined ? undefined : value === null ? "" : value;
+
+    const renderedValue: string = (() => {
+      if (!isTextLike) return "";
+      if (isControlled) {
+        if (type === "number") return coerceNumberForInput(normalizedValue);
+        return normalizedValue == null ? "" : String(normalizedValue);
+      }
+      // uncontrolled
+      return uiValue ?? "";
+    })();
+
+    // Clear icon visibility must reflect what the user actually sees
+    const hasInputValue = renderedValue !== "";
+
+    // Clear handler
+    const handleClearClick = (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (isEffectivelyReadOnly) return;
+
+      const el = inputRef.current as
+        | HTMLInputElement
+        | HTMLTextAreaElement
+        | null;
+
+      if (!isControlled) {
+        if (el) (el as any).value = "";
+        setUiValue("");
+      }
+
+      setIsInvalid(!!required);
+      onChange?.({ target: { value: null } } as any);
+      onClearIcon?.();
+      el?.focus?.();
+    };
+
+    // Right-side icons
+    const computedRightIcons: IconRight[] = (() => {
+      if (isCustomControl || isGroupCustomControl) return iconRight ?? [];
+
+      const disabledLock =
+        disabled && showDisabledIcon
+          ? [
+              {
+                icon: "lock_outline",
+                className: "disabled lock-icon",
+                disabled: true,
+              } as IconRight,
+            ]
+          : [];
+
+      const maybeClear =
+        clearable && hasInputValue && !isEffectivelyReadOnly
+          ? [
+              {
+                icon: "clear",
+                onClick: handleClearClick,
+                color: "default",
+                hoverColor: "danger",
+                className: "clear-icon",
+              } as IconRight,
+            ]
+          : [];
+
+      return [...disabledLock, ...(iconRight ?? []), ...maybeClear];
+    })();
+
+    // ----- Props to pass to leaf inputs -----
+    const baseProps = {
+      color,
+      size,
+      type,
+      disabled,
+      readOnly,
+      ref: combinedRef,
+      name: `form-control-${type}`,
+      className: `form-control-${type} ${isInvalid ? "invalid" : ""} ${disabled ? "disabled" : ""}`,
+      ...rest,
+    } as const;
+
+    // Only pass `value` when truly controlled; otherwise use defaultValue for initial seeds
+    const textValueProps = isTextLike
+      ? isControlled
+        ? { value: renderedValue }
+        : treatAsUncontrolledInitial
+          ? { defaultValue: renderedValue }
+          : {}
+      : {};
+
+    const textLikeProps = { ...baseProps, ...textValueProps };
+    const nonTextDefaultProps = baseProps;
 
     return (
       <FormControInputContainer
@@ -165,36 +290,24 @@ export const FormControl = forwardRef<
             {label}
           </Label>
         )}
+
         <FormControlWrapper
           $simple={simple}
-          $iconRight={iconRight}
+          $iconRight={computedRightIcons as any}
           $size={size}
           $type={type}
           className={`form-control-wrapper ${disabled ? "disabled" : ""} ${isInvalid ? "invalid" : ""}`}
         >
           {(() => {
-            const defaultProps = {
-              color,
-              size,
-              type,
-              disabled,
-              readOnly,
-              value,
-              ref: combinedRef,
-              name: `form-control-${type}`,
-              className: `form-control-${type} ${isInvalid ? "invalid" : ""} ${disabled ? "disabled" : ""}`,
-              ...rest,
-            };
-
             const customCheckboxGroupProps = {
-              ...defaultProps,
+              ...nonTextDefaultProps,
               options,
               onChange: handleCheckboxChange,
               selectedValues,
               isVerticalOptions,
             };
             const customRadioGroupProps = {
-              ...defaultProps,
+              ...nonTextDefaultProps,
               options,
               onChange: handleRadioChange,
               selectedValue,
@@ -210,8 +323,7 @@ export const FormControl = forwardRef<
                 return (
                   <TextInput
                     {...{
-                      ...defaultProps,
-                      ...rest,
+                      ...textLikeProps,
                       pattern,
                       onChange: handleValidation,
                     }}
@@ -221,8 +333,7 @@ export const FormControl = forwardRef<
                 return (
                   <TextAreaInput
                     {...{
-                      ...defaultProps,
-                      ...rest,
+                      ...textLikeProps,
                       onChange: handleValidation,
                     }}
                   />
@@ -232,8 +343,7 @@ export const FormControl = forwardRef<
                 return (
                   <CheckboxRadioInput
                     {...{
-                      ...defaultProps,
-                      ...rest,
+                      ...nonTextDefaultProps,
                       text,
                       onChange: handleBooleanValidation,
                     }}
@@ -243,8 +353,7 @@ export const FormControl = forwardRef<
                 return (
                   <SwitchInput
                     {...{
-                      ...defaultProps,
-                      ...rest,
+                      ...nonTextDefaultProps,
                       text,
                       onChange: handleBooleanValidation,
                     }}
@@ -262,7 +371,8 @@ export const FormControl = forwardRef<
                 return null;
             }
           })()}
-          {iconRight?.length > 0 &&
+
+          {computedRightIcons?.length > 0 &&
             !isCustomControl &&
             !isGroupCustomControl && (
               <IconWrapper
@@ -271,32 +381,58 @@ export const FormControl = forwardRef<
                 $color={color}
                 $disabled={disabled}
               >
-                {iconRight
+                {computedRightIcons
                   .filter((obj: IconRight) => Object.keys(obj).length)
                   .slice(0, 2)
-                  .map((icon: IconRight, idx: number) => (
-                    <IconContainer
-                      key={`${icon.icon}-${idx}`}
-                      onClick={icon?.onClick}
-                      data-testid={icon.className}
-                      className={`container-icon ${icon.className ?? ""}`}
-                      $disabled={icon.disabled}
-                      $size={size}
-                      $color={icon.color ?? color}
-                      $hoverColor={icon.hoverColor ?? color}
-                    >
-                      <Icon icon={icon.icon} />
-                    </IconContainer>
-                  ))}
+                  .map((icon: IconRight, idx: number) => {
+                    const iconIsDisabled = !!(disabled || icon.disabled);
+                    const handleIconClick =
+                      iconIsDisabled || icon.icon === "lock_outline"
+                        ? undefined
+                        : icon?.onClick;
+
+                    return (
+                      <IconContainer
+                        key={`${icon.icon}-${idx}`}
+                        onClick={handleIconClick}
+                        data-testid={icon.className}
+                        className={`container-icon ${icon.className ?? ""} ${iconIsDisabled ? "disabled" : ""} ${isInvalid ? "invalid" : ""}`}
+                        $disabled={iconIsDisabled}
+                        $size={size}
+                        $color={icon.color ?? color}
+                        $hoverColor={
+                          iconIsDisabled
+                            ? undefined
+                            : (icon.hoverColor ?? color)
+                        }
+                        $isInvalid={isInvalid}
+                        aria-disabled={iconIsDisabled}
+                        tabIndex={-1}
+                        title={
+                          icon.className === "clear-icon"
+                            ? iconIsDisabled
+                              ? "Clear (disabled)"
+                              : "Clear"
+                            : icon.icon === "lock_outline"
+                              ? "Locked"
+                              : undefined
+                        }
+                      >
+                        <Icon icon={icon.icon} />
+                      </IconContainer>
+                    );
+                  })}
               </IconWrapper>
             )}
+
           {loading && <Loader size={16} thickness={3} />}
         </FormControlWrapper>
+
         {helpText && (
           <HelpText
             className="help-text"
             color={isInvalid ? "danger" : color}
-            data-testid={`${rest.testId}-help-text`}
+            data-testid={`${(rest as any).testId}-help-text`}
           >
             {helpText}
           </HelpText>

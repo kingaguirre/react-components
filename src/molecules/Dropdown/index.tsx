@@ -1,5 +1,5 @@
 // src/molecules/Dropdown/index.tsx
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import ReactDOM from "react-dom";
 import {
   DropdownContainer,
@@ -31,12 +31,16 @@ export const Dropdown: React.FC<DropdownProps> = ({
   onBlur,
   onFilterChange,
   loading,
+  showDisabledIcon = false,
   ...rest
 }) => {
   const isMulti = !!multiselect;
 
+  // stable no-op to keep FormControl controlled when readOnly
+  const noop = useCallback(() => {}, []);
+
   // For single select, state is a string for multiselect, an array.
-  const [selectedValue, setSelectedValue] = useState<string | undefined>(
+  const [selectedValue, setSelectedValue] = useState<string | undefined | null>(
     !isMulti ? (value as string) : undefined,
   );
   const [selectedValues, setSelectedValues] = useState<string[]>(
@@ -77,9 +81,9 @@ export const Dropdown: React.FC<DropdownProps> = ({
   useEffect(() => {
     if (isMulti) {
       if (!Array.isArray(value)) return;
-      if (onChange) {
-        setSelectedValues(value);
-      }
+
+      setSelectedValues(value);
+
       const text =
         value.length > 0
           ? `${value.length} selected ${ifElse(value.length === 1, "item", "items")}`
@@ -88,7 +92,6 @@ export const Dropdown: React.FC<DropdownProps> = ({
       return;
     }
 
-    // if (onChange) {
     const currentVal = value != null ? (value as string) : "";
     const selectedOption = options.find((opt) => opt.value === currentVal);
 
@@ -104,7 +107,6 @@ export const Dropdown: React.FC<DropdownProps> = ({
     }
 
     setSelectedValue(currentVal);
-    // }
   }, [value, options, isMulti, onChange]);
   // --- END SYNC EFFECT ---
 
@@ -355,6 +357,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
   };
 
   const handleClear = (e: React.MouseEvent) => {
+    if (disabled) return;
     e.stopPropagation();
     setDisplayValue("");
     setFilterText("");
@@ -372,8 +375,8 @@ export const Dropdown: React.FC<DropdownProps> = ({
       }
     } else {
       // For single-select, reset the value to an empty string.
-      setSelectedValue("");
-      onChange?.("");
+      setSelectedValue(null);
+      onChange?.(null);
       // For single-select, open the dropdown and focus the FormControl.
       setIsOpen(true);
       setTimeout(() => {
@@ -383,6 +386,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
     }
   };
 
+  // Handle clicks outside the dropdown to close it.
   const handleClickOutside = (event: MouseEvent) => {
     if (
       dropdownRef.current &&
@@ -394,7 +398,9 @@ export const Dropdown: React.FC<DropdownProps> = ({
     }
   };
 
+  // Handle keyboard navigation within the dropdown.
   const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (disabled) return;
     if (!isOpen) {
       if (event.key === "ArrowDown" || event.key === "ArrowUp") {
         setIsOpen(true);
@@ -530,6 +536,8 @@ export const Dropdown: React.FC<DropdownProps> = ({
   };
 
   const getClearIcon = () => {
+    if (disabled) return []; // nothing clickable when disabled
+
     const shouldShowClear = isMulti ? selectedValues.length > 0 : selectedValue;
 
     return shouldShowClear
@@ -552,6 +560,24 @@ export const Dropdown: React.FC<DropdownProps> = ({
       onFilterChange(text);
     }
   };
+
+  // 4) Build right-side icons with disabled-aware caret (no onClick when disabled)
+  const rightIcons = [
+    ...(clearable || isMulti ? getClearIcon() : []),
+    ...(disabled && showDisabledIcon
+      ? [
+          {
+            icon: "lock_outline",
+            className: "disabled-icon",
+          },
+        ]
+      : []),
+    {
+      icon: "keyboard_arrow_down",
+      onClick: disabled ? undefined : () => setIsOpen(true),
+      className: disabled ? "caret-icon disabled" : "caret-icon",
+    },
+  ];
 
   const dropdownContent = (
     <DropdownList
@@ -675,18 +701,17 @@ export const Dropdown: React.FC<DropdownProps> = ({
         onBlur={handleBlur}
         onClick={() => setIsOpen(true)}
         className={`${rest.className ?? ""} form-control-dropdown-container`}
+        clearable={false}
+        showDisabledIcon={false}
         onChange={
           filter && !isMulti
             ? (e: React.ChangeEvent<HTMLInputElement>) => {
                 handleFilterChange(e.target.value);
               }
-            : undefined
+            : noop
         }
         onKeyDown={handleKeyDown}
-        iconRight={[
-          ...(clearable || isMulti ? getClearIcon() : []),
-          { icon: "keyboard_arrow_down", onClick: () => setIsOpen(true) },
-        ]}
+        iconRight={rightIcons}
         loading={loading}
       />
       {isOpen && ReactDOM.createPortal(dropdownContent, document.body)}
