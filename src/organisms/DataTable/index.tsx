@@ -932,37 +932,91 @@ export const DataTable = <T extends object>({
   useAutoScroll(selectedCell, tableWrapperRef);
 
   const handleConfirmDelete = () => {
-    const selectedRows = table
-      .getSelectedRowModel()
-      .rows.map((r) => r.original);
-    // Delete records when modal is confirmed
-    const selectedIds = new Set(
-      selectedRows.map((r) => (r as any).__internalId),
-    );
+    const selectedRows = table.getSelectedRowModel().rows.map((r) => r.original as DataRow);
+    const selectedIds = new Set(selectedRows.map((r) => r.__internalId));
+    const total = selectedIds.size;
 
-    const deletedCount = selectedIds.size; // capture before state changes
+    if (total === 0) {
+      setShowAlert(false);
+      return;
+    }
 
+    // Group soft-delete semantics
+    if (partialRowDeletionID) {
+      const isDeleted = (row: any) => (row as any)[partialRowDeletionID] === true;
+      const allAlreadyDeleted = selectedRows.length > 0 && selectedRows.every(isDeleted);
+
+      let changed = 0;
+
+      setData((old) => {
+        const updated = old.map((row) => {
+          if (!selectedIds.has(row.__internalId)) return row;
+
+          if (allAlreadyDeleted) {
+            // RESTORE ALL: only touch rows that are currently soft-deleted
+            if (isDeleted(row)) {
+              const next = { ...row };
+              delete (next as any)[partialRowDeletionID];
+              changed++;
+              return next;
+            }
+            return row;
+          } else {
+            // DELETE ALL: mark all selected as soft-deleted; do not undo any
+            if (!isDeleted(row)) {
+              changed++;
+              return { ...row, [partialRowDeletionID]: true } as any;
+            }
+            return row; // already deleted -> leave as-is
+          }
+        });
+
+        onChange?.(updated.map(({ __internalId, ...rest }) => rest));
+        return updated;
+      });
+
+      setRowSelection({});
+      setShowAlert(false);
+
+      showToast({
+        color: "success",
+        title: allAlreadyDeleted ? "Bulk restore complete" : "Bulk soft-delete complete",
+        icon: "check",
+        message: (
+          <div>
+            {changed > 0 ? (
+              <>
+                {allAlreadyDeleted ? "Restored" : "Soft-deleted"} <b>{changed}</b>{" "}
+                row{changed > 1 ? "s" : ""}.
+              </>
+            ) : (
+              <>No changes.</>
+            )}
+          </div>
+        ),
+      });
+
+      return;
+    }
+
+    // Hard delete path (no partialRowDeletionID)
+    const deletedCount = total;
     setData((old) => {
-      const updated: any = old.filter(
-        (r) => !selectedIds.has((r as any).__internalId),
-      );
-      if (onChange) onChange(updated.map(({ __internalId, ...rest }) => rest));
+      const updated = old.filter((r) => !selectedIds.has((r as any).__internalId));
+      onChange?.(updated.map(({ __internalId, ...rest }) => rest));
       return updated;
     });
-    // Clear selection after bulk delete
+
     setRowSelection({});
-    // Close the modal
     setShowAlert(false);
 
-    // Show success toast
     showToast({
       color: "success",
       title: "Bulk delete complete",
       icon: "check",
       message: (
         <div>
-          Removed <b>{deletedCount}</b> selected row
-          {deletedCount > 1 ? "s" : ""}.
+          Removed <b>{deletedCount}</b> selected row{deletedCount > 1 ? "s" : ""}.
         </div>
       ),
     });
@@ -1016,11 +1070,64 @@ export const DataTable = <T extends object>({
     return unsub;
   }, []);
 
+  const restoreFocusToTable = React.useCallback(() => {
+    // wait a tick so the modal unmounts first
+    requestAnimationFrame(() => {
+      tableWrapperRef.current?.focus();
+      setActiveTable(instanceIdRef.current);
+    });
+  }, []);
+
+  const handleAlertKeyDownCapture = (e: React.KeyboardEvent) => {
+    // Block keystrokes from reaching table/global listeners
+    if (e.key === "Enter") {
+      e.preventDefault();
+      e.stopPropagation();
+      handleConfirmDelete();
+      restoreFocusToTable();
+      return;
+    }
+    if (e.key === "Escape") {
+      e.preventDefault();
+      e.stopPropagation();
+      setShowAlert(false);
+      restoreFocusToTable();
+      return;
+    }
+    // For any other key, still stop propagation to avoid accidental edits
+    e.stopPropagation();
+  };
+
+  // inside DataTable component
+  const openBulkConfirm = React.useCallback(() => {
+    // show modal
+    setShowAlert(true);
+
+    // drop any current focus/selection to avoid edit-mode side effects
+    tableWrapperRef.current?.blur();
+
+    // run after the wrapper's onClickCapture RAF so we win the race
+    requestAnimationFrame(() => setActiveTable(null));
+  }, []);
+
   const totalSelectedRows = Object.keys(table.getState().rowSelection).filter(
     (key) => (rowSelection as any)[key],
   ).length;
   const showDeleteIcon =
     enableSelectedRowDeleting && enableRowSelection && totalSelectedRows > 0;
+
+  // Derive bulk action mode for the confirm modal
+  const selectedRowModels = table.getSelectedRowModel().rows;
+  const selectedCount = selectedRowModels.length;
+
+  const allSelectedSoftDeleted =
+    !!partialRowDeletionID &&
+    selectedCount > 0 &&
+    selectedRowModels.every(
+      (r) => (r.original as any)[partialRowDeletionID] === true,
+    );
+
+  const bulkMode: "restore" | "delete" = allSelectedSoftDeleted ? "restore" : "delete";
 
   return (
     <DataTableWrapper
@@ -1029,7 +1136,10 @@ export const DataTable = <T extends object>({
       className={`data-table-wrapper ${isFocused ? "is-focused" : "is-not-focused"}`}
       $disabled={disabled}
       tabIndex={0}
-      onClickCapture={() => requestAnimationFrame(markActive)}
+      onClickCapture={(e) => {
+        if (showAlert) return;
+        requestAnimationFrame(markActive);
+      }}
     >
       {title && <TableTitle className="data-table-title">{title}</TableTitle>}
       <SettingsPanel
@@ -1059,10 +1169,11 @@ export const DataTable = <T extends object>({
         onSettingsIconClick={() => setShowSettingsPanel(true)}
         onAddBtnClick={handleAddRow}
         showDeleteIcon={showDeleteIcon}
-        handleDeleteIconClick={() => setShowAlert(true)}
+        handleDeleteIconClick={openBulkConfirm}
         handleResetColumnSettings={handleResetColumnSettings}
         headerRightControls={headerRightControls}
         headerRightElements={headerRightElements}
+        bulkRestoreMode={allSelectedSoftDeleted}
       />
       <DndContext
         collisionDetection={closestCenter}
@@ -1111,27 +1222,38 @@ export const DataTable = <T extends object>({
       />
       {showDeleteIcon && (
         <Alert
-          color="danger"
-          title="Confirm"
+          color={bulkMode === "restore" ? "info" : "danger"}
+          title={bulkMode === "restore" ? "Confirm restore" : "Confirm delete"}
           show={showAlert}
-          icon="dangerous"
+          icon={bulkMode === "restore" ? "info" : "dangerous"}
           toast
           placement="bottom-right"
           closeable
           animation="slide"
           onClose={() => setShowAlert(false)}
+          onKeyDownCapture={handleAlertKeyDownCapture}
         >
-          <RowsToDeleteText>
-            Are you sure you want to delete <b>{totalSelectedRows}</b> row
-            {totalSelectedRows > 1 ? "s" : ""}?
+          <RowsToDeleteText $isRestore={bulkMode === "restore"}>
+            {bulkMode === "restore" ? (
+              <>
+                Are you sure you want to <b>restore</b> {selectedCount} selected row
+                {selectedCount > 1 ? "s" : ""}?
+              </>
+            ) : (
+              <>
+                Are you sure you want to <b>delete</b> {selectedCount} selected row
+                {selectedCount > 1 ? "s" : ""}?
+              </>
+            )}
           </RowsToDeleteText>
           <Button
             size="sm"
             data-testid="confirm-bulk-delete-button"
-            color="danger"
+            color={bulkMode === "restore" ? "info" : "danger"}
             onClick={handleConfirmDelete}
+            autoFocus
           >
-            Confirm Delete
+            {bulkMode === "restore" ? "Confirm Restore" : "Confirm Delete"}
           </Button>
         </Alert>
       )}

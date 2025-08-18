@@ -31,6 +31,7 @@ interface MainHeaderProps {
   handleResetColumnSettings?: () => void;
   headerRightControls?: boolean;
   headerRightElements?: DataTableProps["headerRightElements"];
+  bulkRestoreMode?: boolean;
 }
 
 export const MainHeader: React.FC<MainHeaderProps> = ({
@@ -50,6 +51,7 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
   handleResetColumnSettings,
   headerRightControls,
   headerRightElements,
+  bulkRestoreMode = false
 }) => {
   const inputRef = React.useRef<HTMLInputElement | null>(null);
 
@@ -68,30 +70,29 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
             placeholder="Search all columns..."
             ref={inputRef}
             iconRight={[
-              ...(value
-                ? [
-                    {
-                      icon: "clear",
-                      color: "default",
-                      hoverColor: "danger",
-                      onClick: onClear,
-                    },
-                  ]
-                : []),
+              ...(value ? [{
+                icon: "clear",
+                color: "default",
+                hoverColor: "danger",
+                onClick: onClear,
+                title: "Clear Global Filter"
+              }] : []),
               {
                 icon: "search",
                 onClick: () => inputRef?.current?.focus(),
               },
             ]}
+            clearable={false}
           />
-          <FooterButton
-            title="Clear All Filters"
-            $outlined
-            onClick={onClearAllIconClick}
-            disabled={isClearDisabled}
-          >
-            <Icon icon="clear" />
-          </FooterButton>
+          <Tooltip content={!isClearDisabled ? "Clear All Filters" : undefined} placement="right">
+            <FooterButton
+              $outlined
+              onClick={onClearAllIconClick}
+              disabled={isClearDisabled}
+            >
+              <Icon icon="clear" />
+            </FooterButton>
+          </Tooltip>
         </SearhContainer>
       )}
 
@@ -110,12 +111,12 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
         )}
         <IconContainer className="container-icon">
           {showDeleteIcon && (
-            <RightIconButton
+             <RightIconButton
               testId="bulk-delete-button"
-              icon="delete_forever"
-              title="Delete Selected Rows"
+              icon={bulkRestoreMode ? "rotate_left" : "delete_forever"}
+              title={bulkRestoreMode ? "Restore Selected Rows" : "Delete Selected Rows"}
               onClick={handleDeleteIconClick}
-              className="delete-icon"
+              className={bulkRestoreMode ? "restore-icon" : "delete-icon"}
               disabled={isAddBtnDisabled || isSettingsPanelOpen}
             />
           )}

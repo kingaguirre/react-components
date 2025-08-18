@@ -74,6 +74,10 @@ export const TabItem = styled.button<{
     }
   }
 
+  .badge {
+    margin: -4px 0;
+  }
+
   /* ✅ Focused Tab Styling */
   ${({ $focused, $disabled, $color, $active }) =>
     $focused &&

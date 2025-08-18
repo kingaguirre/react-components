@@ -197,6 +197,7 @@ export const Footer = <TData,>({
               }}
               className="footer-page"
               testId="page-index-input"
+              clearable={false}
             />
           </Tooltip>
           <Button

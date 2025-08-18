@@ -1123,64 +1123,64 @@ export const demoSettings: SettingsItem[] = [
           ],
           validation: (z) => z.enum(['admin', 'user', 'guest']),
         },
-        // {
-        //   dataTable: {
-        //     header: 'Child Table',
-        //     description: 'Details for this parent row.',
-        //     config: {
-        //       dataSource: 'childRows',
-        //       columnSettings: [
-        //         { title: 'Key', column: 'key' },
-        //         { title: 'Value', column: 'value' },
-        //         { title: 'Timestamp', column: 'timestamp' },
-        //       ],
-        //     },
-        //     fields: [
-        //       {
-        //         label: 'Key',
-        //         name: 'key',
-        //         type: 'text',
-        //         placeholder: 'Enter Key',
-        //         validation: (z) => z.string().optional(),
-        //       },
-        //       {
-        //         label: 'Value',
-        //         name: 'value',
-        //         type: 'text',
-        //         placeholder: 'Enter Value',
-        //         validation: (z) => z.string().optional(),
-        //       },
-        //       {
-        //         label: 'Timestamp',
-        //         name: 'timestamp',
-        //         type: 'date',
-        //         placeholder: 'Select Timestamp',
-        //         validation: dateValidation,
-        //       },
-        //     ],
-        //   },
-        // },
+        {
+          dataTable: {
+            header: 'Child Table',
+            description: 'Details for this parent row.',
+            config: {
+              dataSource: 'childRows',
+              columnSettings: [
+                { title: 'Key', column: 'key' },
+                { title: 'Value', column: 'value' },
+                { title: 'Timestamp', column: 'timestamp' },
+              ],
+            },
+            fields: [
+              {
+                label: 'Key',
+                name: 'key',
+                type: 'text',
+                placeholder: 'Enter Key',
+                validation: (z) => z.string().min(1),
+              },
+              {
+                label: 'Value',
+                name: 'value',
+                type: 'text',
+                placeholder: 'Enter Value',
+                validation: (z) => z.string().min(3),
+              },
+              {
+                label: 'Timestamp',
+                name: 'timestamp',
+                type: 'date',
+                placeholder: 'Select Timestamp',
+                validation: dateValidation,
+              },
+            ],
+          },
+        },
         {
           accordion: [
-            // {
-            //   title: 'More Info',
-            //   fields: [
-            //     {
-            //       name: 'moreInfo.notes',
-            //       label: 'Notes',
-            //       type: 'textarea',
-            //       placeholder: 'Enter Notes',
-            //       validation: (z) => z.string().optional(),
-            //     },
-            //     {
-            //       name: 'moreInfo.flag',
-            //       label: 'Flagged',
-            //       type: 'switch',
-            //       placeholder: '',
-            //       validation: (z) => z.boolean(),
-            //     },
-            //   ],
-            // },
+            {
+              title: 'More Info',
+              fields: [
+                {
+                  name: 'moreInfo.notes',
+                  label: 'Notes',
+                  type: 'textarea',
+                  placeholder: 'Enter Notes',
+                  validation: (z) => z.string().optional(),
+                },
+                {
+                  name: 'moreInfo.flag',
+                  label: 'Flagged',
+                  type: 'switch',
+                  placeholder: '',
+                  validation: (z) => z.boolean(),
+                },
+              ],
+            },
             {
               title: 'Statistics',
               fields: [
@@ -1210,41 +1210,41 @@ export const demoSettings: SettingsItem[] = [
           ],
           allowMultiple: true,
         },
-        // {
-        //   tabs: [
-        //     {
-        //       title: 'Summary',
-        //       fields: [
-        //         {
-        //           name: 'tabs.summary',
-        //           label: 'Summary',
-        //           type: 'textarea',
-        //           placeholder: 'Enter Summary',
-        //           validation: (z) => z.string().optional(),
-        //         },
-        //       ],
-        //     },
-        //     {
-        //       title: 'Details',
-        //       fields: [
-        //         {
-        //           name: 'tabs.detail',
-        //           label: 'Detail',
-        //           type: 'text',
-        //           placeholder: 'Enter Detail',
-        //           validation: (z) => z.string().optional(),
-        //         },
-        //         {
-        //           name: 'tabs.extraDetail',
-        //           label: 'Extra Detail',
-        //           type: 'textarea',
-        //           placeholder: 'Enter Extra Detail',
-        //           validation: (z) => z.string().optional(),
-        //         },
-        //       ],
-        //     },
-        //   ],
-        // },
+        {
+          tabs: [
+            {
+              title: 'Summary',
+              fields: [
+                {
+                  name: 'tabs.summary',
+                  label: 'Summary',
+                  type: 'textarea',
+                  placeholder: 'Enter Summary',
+                  validation: (z) => z.string().min(5),
+                },
+              ],
+            },
+            {
+              title: 'Details',
+              fields: [
+                {
+                  name: 'tabs.detail',
+                  label: 'Detail',
+                  type: 'text',
+                  placeholder: 'Enter Detail',
+                  validation: (z) => z.string().min(1),
+                },
+                {
+                  name: 'tabs.extraDetail',
+                  label: 'Extra Detail',
+                  type: 'textarea',
+                  placeholder: 'Enter Extra Detail',
+                  validation: (z) => z.string().optional(),
+                },
+              ],
+            },
+          ],
+        },
       ],
     },
   },
@@ -1414,15 +1414,15 @@ export const demoData = {
         id: 'P1',
         name: 'Parent One',
         status: 'Active',
-        email: 'parent1@example.com',
+        email: '',
         role: 'admin',
         childRows: [
-          { key: 'a', value: 'Alpha', timestamp: new Date('2025-07-10') },
+          { key: 'a', value: '', timestamp: new Date('2025-07-10') },
           { key: 'b', value: 'Beta',  timestamp: new Date('2025-07-11') },
         ],
         moreInfo: { notes: 'First parent row', flag: false },
         stats: { calls: undefined, duration: undefined, lastCalled: new Date('2025-07-12') },
-        tabs: { summary: 'Sum 1', detail: 'Det 1', extraDetail: 'Extra A' },
+        tabs: { summary: undefined, detail: undefined, extraDetail: 'Extra A' },
       },
       {
         id: 'P2',

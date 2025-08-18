@@ -248,6 +248,10 @@ export const CellContent = styled.div<{
     }
   }
 
+  .wrapper-icon {
+    height: 30px;
+  }
+
   ${({ $isEditable }) =>
     $isEditable
       ? `

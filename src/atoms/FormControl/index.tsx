@@ -415,7 +415,7 @@ export const FormControl = forwardRef<
                               : "Clear"
                             : icon.icon === "lock_outline"
                               ? "Locked"
-                              : undefined
+                              : icon?.title ?? undefined
                         }
                       >
                         <Icon icon={icon.icon} />
