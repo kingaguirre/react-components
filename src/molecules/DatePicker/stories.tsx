@@ -70,6 +70,14 @@ const ExamplesComponent: React.FC = () => {
               placeholder='Select Date...'
               onChange={value => console.log(value)}
             />
+            <DatePicker
+              label={`${color.charAt(0).toUpperCase() + color.slice(1)} Color`}
+              color={color}
+              helpText='This is a help text'
+              placeholder='Select Date...'
+              onChange={value => console.log(value)}
+              disabled
+            />
           </GridItem>
         ))}
       </Grid>
@@ -81,9 +89,13 @@ const ExamplesComponent: React.FC = () => {
           <DatePicker
             label='Single Date'
             value={singleDate as string}
-            onChange={(date) => setSingleDate(date as string)}
+            onChange={(date) => {
+              setSingleDate(date as string)
+              console.log('Selected Single Date: ', date)
+            }}
             required={isSingleRequired}
             disabled={isSingleDisabled}
+            showDisabledIcon
             minDate={new Date()}
           />
           <GridContainer>
@@ -95,7 +107,7 @@ const ExamplesComponent: React.FC = () => {
                   color='primary'
                   onClick={() => setIsSingleDisabled((prev) => !prev)}
                 >
-                  Toggle Disabled
+                  Toggle Disabled with lock icon
                 </Button>
               </GridItem>
               <GridItem xs={6}>

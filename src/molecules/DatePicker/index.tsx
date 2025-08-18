@@ -61,7 +61,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   };
 
   const handleClear = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevents opening the date picker
+    e.stopPropagation();
     setDate(null);
     onChange?.(null);
   };

@@ -11,7 +11,7 @@ export interface DropdownProps {
   options: DropdownOption[];
   /** For single select, pass a string for multiselect, pass an array of strings */
   value?: string | string[];
-  onChange?: (value: string | string[]) => void;
+  onChange?: (value: string | string[] | null) => void;
   filter?: boolean;
   filterAtBeginning?: boolean;
   placeholder?: string;
@@ -22,12 +22,17 @@ export interface DropdownProps {
   required?: boolean;
   color?: ColorType;
   helpText?: string | null;
-  clearable?: boolean;
   dropdownHeight?: number;
   dropdownWidth?: number;
   hideOnScroll?: boolean;
   onFilterChange?: (filterText: string) => void;
   loading?: boolean;
+  /** Whether the input can be cleared */
+  clearable?: boolean;
+  /** Callback when clear icon is clicked */
+  onClearIcon?: () => void;
+  /** Show disabled icon when input is disabled */
+  showDisabledIcon?: boolean;
 
   [key: string]: any;
 }

@@ -144,9 +144,19 @@ const generateSizeStories = (type: string, md = 4) => (
 )
 
 // --- Components that use hooks must be proper React components ---
-
 const FormPropsStories: React.FC<{ type: string }> = ({ type }) => {
   const inputRef = useRef<HTMLInputElement | null>(null)
+
+  // --- Controlled example state (for clear icon demo) ---
+  const [controlledValue, setControlledValue] = useState<string>("Hello, world!");
+
+  // Handles both controlled typing and clear icon clicks.
+  // For text/textarea, FormControl passes the original event; for number it passes a number.
+  const handleControlledChange = (e: any) => {
+    const value = e?.target?.value;
+    setControlledValue(value);
+    console.log("Controlled value changed: ", value);
+  };
 
   const handleFocus = () => {
     if (inputRef.current) {
@@ -203,17 +213,62 @@ const FormPropsStories: React.FC<{ type: string }> = ({ type }) => {
             />
           </GridItem>
         )}
-        <GridItem xs={12} sm={6} md={4}>
-          <FormControl
-            type={type}
-            label='Disabled'
-            helpText='This input is disabled'
-            disabled
-            placeholder='Disabled input'
-          />
-        </GridItem>
+        
+        {(type === 'text' || type === 'textarea') && (
+          <>
+            {/* Disabled (no lock icon) — default behavior */}
+            <GridItem xs={12} sm={6} md={4}>
+              <FormControl
+                type={type}
+                label="Disabled (no lock icon)"
+                helpText="showDisabledIcon is false (default); no lock"
+                disabled
+                value="Can't edit"
+              />
+            </GridItem>
+            
+            {/* Disabled with lock icon (opt-in) */}
+            <GridItem xs={12} sm={6} md={4}>
+              <FormControl
+                type={type}
+                label="Disabled (with lock icon)"
+                helpText="Enable showDisabledIcon to show a lock when disabled"
+                disabled
+                showDisabledIcon
+                value="Can't edit"
+              />
+            </GridItem>
+          </>
+        )}
+
+        {/* Controlled with clear icon + external clear button */}
+        {type === "text" && (
+          <GridItem xs={12} sm={6} md={4}>
+            <FormControl
+              type="text"
+              label="Controlled with Clear"
+              helpText="Click the clear icon OR the button below; onChange should get empty string"
+              placeholder="Type something..."
+              clearable
+              value={controlledValue}
+              onChange={handleControlledChange}
+            />
+            <div style={{ marginTop: "0.5rem", fontSize: 12, opacity: 0.85 }}>
+              <div>
+                <strong>Current value:</strong>{" "}
+                <code>{controlledValue}</code>
+              </div>
+              <div style={{ marginTop: 8 }}>
+                <button onClick={() => setControlledValue("")}>
+                  Clear via external button
+                </button>
+              </div>
+            </div>
+          </GridItem>
+        )}
+
         {type === 'text' && (
-          <GridItem xs={12}>
+          <GridItem xs={12} sm={6} md={4}>
             <FormControl
               ref={inputRef}
               label='Username'
@@ -229,6 +284,7 @@ const FormPropsStories: React.FC<{ type: string }> = ({ type }) => {
             </div>
           </GridItem>
         )}
+
         {(type === 'checkbox' || type === 'radio' || type === 'switch') && (
           <GridItem xs={12} sm={6} md={4}>
             {type === 'checkbox' || type === 'switch' ? (

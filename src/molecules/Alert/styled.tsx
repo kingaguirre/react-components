@@ -136,4 +136,3 @@ export const ToastContainer = styled.div<{ $placement: string }>`
   gap: 8px;
   font-family: ${theme.fontFamily};
 `;
-

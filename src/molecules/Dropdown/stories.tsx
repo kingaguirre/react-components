@@ -114,9 +114,18 @@ const ExamplesComponent: React.FC = () => {
               label={color}
               options={DEFAULT_OPTIONS}
               color={color as any}
-              helpText={`Color variant example (${color}).`}
-              clearable={color === 'info'}
+              helpText={`Color variant example (${color}). ${color !== 'info' ? '' : 'Not clearable'}`}
+              clearable={color !== 'info'}
               hideOnScroll={color === 'info'}
+            />
+            <Dropdown
+              label={color}
+              options={DEFAULT_OPTIONS}
+              color={color as any}
+              helpText={`Color variant example (${color}). ${color !== 'info' ? '' : 'Not clearable'}`}
+              clearable={color !== 'info'}
+              hideOnScroll={color === 'info'}
+              disabled
             />
           </GridItem>
         ))}
@@ -153,9 +162,10 @@ const ExamplesComponent: React.FC = () => {
             options={DEFAULT_OPTIONS}
             disabled={disabled}
             helpText='Disabled state example.'
+            showDisabledIcon
           />
           <Button size='sm' onClick={() => setDisabled(!disabled)}>
-            Toggle Disabled
+            Toggle Disabled with lock icon
           </Button>
         </GridItem>
         <GridItem xs={12} sm={6}>
@@ -163,9 +173,10 @@ const ExamplesComponent: React.FC = () => {
             label='Pre-selected'
             options={DEFAULT_OPTIONS}
             value={selected}
-            onChange={(value: string | string[]) => {
+            onChange={(value: any) => {
               const newValue = Array.isArray(value) ? value[0] : value
               setSelected(newValue)
+              console.log(`Selected: `, newValue)
             }}
             helpText='Pre-selected value example.'
           />
@@ -197,7 +208,7 @@ const ExamplesComponent: React.FC = () => {
             options={DEFAULT_OPTIONS}
             multiselect
             value={selectedMulti}
-            onChange={(value: string | string[]) => {
+            onChange={(value: any) => {
               const newValue = typeof value === 'string' ? [value] : value
               setSelectedMulti(newValue)
             }}

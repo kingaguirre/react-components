@@ -136,19 +136,25 @@ export const DataTable = <T extends object>({
     color: "success" | "info" | "warning" | "danger" | "default";
     title: string;
     message: React.ReactNode;
-    icon?: string
+    icon?: string;
   } | null>(null);
 
-  const showToast = React.useCallback((
-    cfg: { color: "success" | "info" | "warning" | "danger" | "default"; title: string; message: React.ReactNode; icon?: string }
-  ) => {
-    // ensure re-open even if same message/title fires twice
-    setToastShow(false);
-    requestAnimationFrame(() => {
-      setToast(cfg);
-      setToastShow(true);
-    });
-  }, []);
+  const showToast = React.useCallback(
+    (cfg: {
+      color: "success" | "info" | "warning" | "danger" | "default";
+      title: string;
+      message: React.ReactNode;
+      icon?: string;
+    }) => {
+      // ensure re-open even if same message/title fires twice
+      setToastShow(false);
+      requestAnimationFrame(() => {
+        setToast(cfg);
+        setToastShow(true);
+      });
+    },
+    [],
+  );
 
   const hideToast = React.useCallback(() => setToastShow(false), []);
 
@@ -602,7 +608,7 @@ export const DataTable = <T extends object>({
   const handleAddRow = () => {
     const newRow = {
       __isNew: true,
-      __internalId: 'new',
+      __internalId: "new",
     } as any as T;
     columnSettings.forEach((col) => {
       (newRow as any)[col.column] = "";
@@ -625,8 +631,9 @@ export const DataTable = <T extends object>({
     showToast({
       color: "info",
       title: "Adding new row",
-      message: "A new row has been created at the top. Fill in the fields, then click Save to commit it.",
-      icon: "plus-circle"
+      message:
+        "A new row has been created at the top. Fill in the fields, then click Save to commit it.",
+      icon: "plus-circle",
     });
   };
 
@@ -705,86 +712,93 @@ export const DataTable = <T extends object>({
 
   // wrapper that shows a success toast when the saved row was a NEW row
   const { handleSaveRow, handleDelete, handleCancelRow } = useRowActions({
-  setData,
-  editingCell,
-  setEditingCell,
-  onChange,
-  partialRowDeletionID,
-  rowSelection,
-  setRowSelection,
-});
+    setData,
+    editingCell,
+    setEditingCell,
+    onChange,
+    partialRowDeletionID,
+    rowSelection,
+    setRowSelection,
+  });
 
   // Wrapper: shows success toast when the saved row was a "new" row
-  const handleSaveRowWithToast = React.useCallback((...args: any[]) => {
-    const a0 = args[0];
-    const oldId: string | undefined =
-      typeof a0 === "string" ? a0 : a0?.__internalId ?? a0?.rowId ?? a0?.id;
+  const handleSaveRowWithToast = React.useCallback(
+    (...args: any[]) => {
+      const a0 = args[0];
+      const oldId: string | undefined =
+        typeof a0 === "string" ? a0 : (a0?.__internalId ?? a0?.rowId ?? a0?.id);
 
-    // Was this row marked as new?
-    const wasNew = oldId
-      ? data.some(r => r.__internalId === oldId && (r as any).__isNew)
-      : data.some(r => (r as any).__isNew);
+      // Was this row marked as new?
+      const wasNew = oldId
+        ? data.some((r) => r.__internalId === oldId && (r as any).__isNew)
+        : data.some((r) => (r as any).__isNew);
 
-    // If it's a new row, assign a real id before saving
-    let newId: string | null = null;
-    if (wasNew && oldId) {
-      newId = Date.now().toString();
+      // If it's a new row, assign a real id before saving
+      let newId: string | null = null;
+      if (wasNew && oldId) {
+        newId = Date.now().toString();
 
-      setData(prev =>
-        prev.map(r =>
-          r.__internalId === oldId
-            ? { ...r, __internalId: newId!, __isNew: false }
-            : r
-        )
-      );
+        setData((prev) =>
+          prev.map((r) =>
+            r.__internalId === oldId
+              ? { ...r, __internalId: newId!, __isNew: false }
+              : r,
+          ),
+        );
 
-      // If handleSaveRow expects the row object, update args[0] too
-      if (typeof a0 === "object" && a0 !== null) {
-        args[0] = { ...a0, __internalId: newId, __isNew: false };
+        // If handleSaveRow expects the row object, update args[0] too
+        if (typeof a0 === "object" && a0 !== null) {
+          args[0] = { ...a0, __internalId: newId, __isNew: false };
+        }
       }
-    }
 
-    // 🔧 TS2556 fix: use apply instead of spread on an unknown/union fn type
-    const ret = handleSaveRow ? (handleSaveRow as any).apply(undefined, args) : undefined;
+      // 🔧 TS2556 fix: use apply instead of spread on an unknown/union fn type
+      const ret = handleSaveRow
+        ? (handleSaveRow as any).apply(undefined, args)
+        : undefined;
 
-    return Promise.resolve(ret)
-      .then(() => {
-        if (wasNew) {
-          // Emit once with the latest sanitized snapshot
-          const sanitized = latestDataRef.current.map(({ __internalId, ...rest }) => rest);
-          onChange?.(sanitized);
+      return Promise.resolve(ret)
+        .then(() => {
+          if (wasNew) {
+            // Emit once with the latest sanitized snapshot
+            const sanitized = latestDataRef.current.map(
+              ({ __internalId, ...rest }) => rest,
+            );
+            onChange?.(sanitized);
+
+            showToast({
+              color: "success",
+              title: "Row added",
+              message: "Your new row was saved successfully.",
+              icon: "check",
+            });
+          }
+        })
+        .catch((err) => {
+          // Revert id/flag if we changed them
+          if (wasNew && oldId && newId) {
+            setData((prev) =>
+              prev.map((r) =>
+                r.__internalId === newId
+                  ? { ...r, __internalId: oldId, __isNew: true }
+                  : r,
+              ),
+            );
+          }
 
           showToast({
-            color: "success",
-            title: "Row added",
-            message: "Your new row was saved successfully.",
-            icon: "check",
+            color: "danger",
+            title: "Save failed",
+            message:
+              "We couldn’t save the new row. Please review the fields and try again.",
+            icon: "remove_circle_outline",
           });
-        }
-      })
-      .catch((err) => {
-        // Revert id/flag if we changed them
-        if (wasNew && oldId && newId) {
-          setData(prev =>
-            prev.map(r =>
-              r.__internalId === newId
-                ? { ...r, __internalId: oldId, __isNew: true }
-                : r
-            )
-          );
-        }
 
-        showToast({
-          color: "danger",
-          title: "Save failed",
-          message:
-            "We couldn’t save the new row. Please review the fields and try again.",
-          icon: "remove_circle_outline",
+          throw err;
         });
-
-        throw err;
-      });
-  }, [handleSaveRow, data, showToast, onChange]);
+    },
+    [handleSaveRow, data, showToast, onChange],
+  );
 
   // Custom Columns
   const actionColumns = [
@@ -925,7 +939,7 @@ export const DataTable = <T extends object>({
     const selectedIds = new Set(
       selectedRows.map((r) => (r as any).__internalId),
     );
-  
+
     const deletedCount = selectedIds.size; // capture before state changes
 
     setData((old) => {
@@ -945,7 +959,12 @@ export const DataTable = <T extends object>({
       color: "success",
       title: "Bulk delete complete",
       icon: "check",
-      message: <div>Removed <b>{deletedCount}</b> selected row{deletedCount > 1 ? "s" : ""}.</div>
+      message: (
+        <div>
+          Removed <b>{deletedCount}</b> selected row
+          {deletedCount > 1 ? "s" : ""}.
+        </div>
+      ),
     });
   };
 
@@ -1118,7 +1137,7 @@ export const DataTable = <T extends object>({
       )}
 
       {toast && (showDeleteIcon || enableRowAdding) && (
-         <Alert
+        <Alert
           color={toast.color}
           title={toast.title}
           icon={toast.icon}

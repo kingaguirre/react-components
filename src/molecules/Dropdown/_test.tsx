@@ -195,16 +195,16 @@ describe("Dropdown Component", () => {
     
     // A wrapper component that controls the value
     const ControlledDropdown = () => {
-      const [value, setValue] = useState<string | string[]>("1");
+      const [value, setValue] = useState<string | string[] | null>("1");
       return (
         <Dropdown
           options={options}
           placeholder="Select an option"
-          onChange={(newVal: string | string[]) => {
+          onChange={(newVal: string | string[] | null) => {
             setValue(newVal);
             onChange(newVal);
           }}
-          value={value}
+          value={value as any}
         />
       );
     };
@@ -223,11 +223,136 @@ describe("Dropdown Component", () => {
   
     fireEvent.click(clearIcon);
     // onChange should have been called with an empty string.
-    expect(onChange).toHaveBeenCalledWith("");
+    expect(onChange).toHaveBeenCalledWith(null);
     // Wait for the component to re-render with an empty value.
     await waitFor(() => {
       expect(input).toHaveValue("");
     });
   });
   
+  it('does not render clear icon when no selection (single)', () => {
+    render(<Dropdown options={options} placeholder="Select an option" />);
+    // No selection yet → no clear icon
+    expect(screen.queryByTestId('clear-icon')).toBeNull();
+  });
+
+  it('renders clear icon when single selection exists and clears to empty', async () => {
+    // Controlled wrapper so value actually updates after clear
+    const onChange = vi.fn();
+    const Controlled = () => {
+      const [val, setVal] = React.useState<string | null>('2');
+      return (
+        <Dropdown
+          options={options}
+          placeholder="Select an option"
+          value={val as any}
+          onChange={(nv) => {
+            setVal(nv as any);
+            onChange(nv);
+          }}
+        />
+      );
+    };
+
+    render(<Controlled />);
+    const input = screen.getByPlaceholderText('Select an option') as HTMLInputElement;
+    expect(input).toHaveValue('Option 2');
+
+    // clear icon visible
+    const clear = await screen.findByTestId('clear-icon');
+    expect(clear).toBeVisible();
+
+    // click clear → value becomes null, UI empties
+    fireEvent.click(clear);
+    expect(onChange).toHaveBeenCalledWith(null);
+    await waitFor(() => expect(input).toHaveValue(''));
+    expect(screen.queryByTestId('clear-icon')).toBeNull();
+  });
+
+  it('clears multi-select selections via clear icon', async () => {
+    const onChange = vi.fn();
+    const ControlledMulti = () => {
+      const [vals, setVals] = React.useState<string[]>(['1', '2']);
+      return (
+        <Dropdown
+          options={options}
+          placeholder="Select options"
+          multiselect
+          filter
+          value={vals}
+          onChange={(nv) => {
+            setVals(nv as string[]);
+            onChange(nv);
+          }}
+        />
+      );
+    };
+
+    render(<ControlledMulti />);
+    const input = screen.getByPlaceholderText('Select options') as HTMLInputElement;
+
+    // shows summary text
+    expect(input).toHaveValue('2 selected items');
+
+    // clear icon visible and works
+    const clear = await screen.findByTestId('clear-icon');
+    fireEvent.click(clear);
+    expect(onChange).toHaveBeenCalledWith([]);
+    await waitFor(() => expect(input).toHaveValue(''));
+    expect(screen.queryByTestId('clear-icon')).toBeNull();
+  });
+
+  it('single + filter: clear resets filter text, keeps dropdown open, and focuses input', async () => {
+    const onChange = vi.fn();
+    render(
+      <Dropdown
+        options={options}
+        placeholder="Select an option"
+        filter
+        onChange={onChange}
+        value="1"
+      />
+    );
+
+    const input = screen.getByPlaceholderText('Select an option') as HTMLInputElement;
+    // Open, type to filter
+    fireEvent.click(input);
+    await waitFor(() => expect(screen.getByText('Option 1')).toBeVisible());
+    // While open+filter, typing goes into the same FormControl
+    await userEvent.type(input, 'Opt');
+
+    // Clear
+    const clear = await screen.findByTestId('clear-icon');
+    fireEvent.click(clear);
+
+    // Input emptied, dropdown stays open (component sets isOpen true on clear), focus on input
+    await waitFor(() => expect(input).toHaveValue(''));
+    expect(document.activeElement).toBe(input);
+    // Options should still be present because open after clear
+    await waitFor(() => expect(screen.getByText('Option 1')).toBeVisible());
+  });
+
+  it('disabled: hides clear icon and does not open', async () => {
+    render(
+      <Dropdown
+        options={options}
+        placeholder="Select an option"
+        value="1"
+        disabled
+        showDisabledIcon
+      />
+    );
+    const input = screen.getByPlaceholderText('Select an option');
+    // No clear icon even though value exists
+    expect(screen.queryByTestId('clear-icon')).toBeNull();
+    // Lock icon is shown
+    expect(screen.getByTestId('disabled-icon')).toBeInTheDocument();
+
+    // Clicking should not open menu
+    fireEvent.click(input);
+    // Give a tick for any async open; options should not appear
+    await new Promise((r) => setTimeout(r, 10));
+    expect(screen.queryByText('Option 1')).toBeNull();
+  });
+
 });

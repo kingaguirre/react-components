@@ -206,9 +206,7 @@ export function coordToInternalSelection(
 }
 
 /** Initialize rows with a stable internal ID */
-export function initializeDataWithIds(
-  rows: unknown,
-): DataRow[] {
+export function initializeDataWithIds(rows: unknown): DataRow[] {
   if (!Array.isArray(rows)) return [];
   return rows.map((row, i) =>
     (row as DataRow).__internalId

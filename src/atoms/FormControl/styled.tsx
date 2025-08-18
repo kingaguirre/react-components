@@ -643,9 +643,9 @@ export const IconWrapper = styled.div<{
   ${({ $disabled }) =>
     $disabled
       ? `
-    pointer-events: none;
+    pointer-events: none!important;
     * {
-      pointer-events: none;
+      pointer-events: none!important;
     }
   `
       : ""}
@@ -656,6 +656,7 @@ export const IconContainer = styled.span<{
   $color: FormControlProps["color"];
   $hoverColor: FormControlProps["color"];
   $disabled?: boolean;
+  $isInvalid?: boolean;
 }>`
   font-size: 14px;
   display: flex;
@@ -668,7 +669,10 @@ export const IconContainer = styled.span<{
 
   &:last-child {
     border-left: 1px solid
-      ${({ $color = "primary" }) => theme.colors[$color].lighter};
+      ${({ $color = "primary", $isInvalid }) =>
+        theme.colors[!!$isInvalid ? "danger" : $color][
+          $color === "default" ? "pale" : "lighter"
+        ]};
     padding-left: 4px;
   }
 
@@ -679,13 +683,12 @@ export const IconContainer = styled.span<{
   ${({ $disabled }) =>
     $disabled
       ? `
+    pointer-events: none;
+    cursor: not-allowed;
+    * {
       pointer-events: none;
-      cursor: not-allowed;
-      color: ${theme.colors.default.base};
-      * {
-        pointer-events: none;
-      }
-    `
+    }
+  `
       : ""}
 `;
 

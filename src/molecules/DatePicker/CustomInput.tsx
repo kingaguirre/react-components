@@ -15,6 +15,8 @@ export const CustomInput: React.FC<CustomInputProps> = ({
   placeholder = "Select Date",
   helpText,
   handleClear,
+  clearable = true,
+  showDisabledIcon = false,
   ...rest
 }) => (
   <CustomInputWrapper $value={value}>
@@ -31,8 +33,18 @@ export const CustomInput: React.FC<CustomInputProps> = ({
       readOnly
       helpText={helpText}
       onClick={onClick}
+      clearable={false}
+      showDisabledIcon={false}
       iconRight={[
-        value
+        ...(disabled && showDisabledIcon
+          ? [
+              {
+                icon: "lock_outline",
+                className: "disabled-icon",
+              },
+            ]
+          : []),
+        value && !disabled && clearable
           ? {
               icon: "clear",
               onClick: (e: React.MouseEvent<HTMLElement>) => handleClear(e),

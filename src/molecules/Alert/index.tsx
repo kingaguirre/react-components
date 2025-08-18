@@ -101,7 +101,12 @@ export const Alert: React.FC<AlertProps> = ({
   };
 
   const handleMouseLeave = () => {
-    if (toast && !closeable && timerRemainingRef.current > 0 && !timerRef.current) {
+    if (
+      toast &&
+      !closeable &&
+      timerRemainingRef.current > 0 &&
+      !timerRef.current
+    ) {
       startTimer(timerRemainingRef.current);
     }
   };
