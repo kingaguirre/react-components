@@ -66,9 +66,6 @@ function App() {
 
 ## 🗓 Changelog
 
-### Latest – `vX.X.X`
-- **Loader Component**: Added inline, fullscreen, and themed variants  
-
 See the full [Changelog](https://react-components-sc-poc.vercel.app/?path=/docs/changelog--docs) for detailed updates.
 
 ## 🎨 Design Philosophy
@@ -88,3 +85,9 @@ For inquiries or contributions, reach out at:
 ## 📄 License
 
 This is a **personal project**. All rights reserved.
+
+This project was created exclusively for Standard Chartered Bank.
+All rights are reserved.
+
+The source code, documentation, and all related materials are intended solely for internal use by Standard Chartered Bank and its authorized personnel.
+Any reproduction, distribution, modification, or use outside of Standard Chartered Bank is strictly prohibited without prior written consent.
