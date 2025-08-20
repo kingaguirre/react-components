@@ -27,6 +27,7 @@ export const Alert: React.FC<AlertProps> = ({
   placement = "top-right",
   animation = "grow",
   onClose,
+  onKeyDownCapture
 }) => {
   const exitTimerRef = useRef<number | null>(null);
 
@@ -155,6 +156,7 @@ export const Alert: React.FC<AlertProps> = ({
       className={isExiting ? "closing" : ""}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onKeyDownCapture={onKeyDownCapture}
     >
       {icon && (
         <IconWrapper $color={color}>

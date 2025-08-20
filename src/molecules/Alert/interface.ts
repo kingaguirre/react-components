@@ -1,5 +1,5 @@
 // Alert/Molecules/interface.ts
-import { ReactNode } from "react";
+import { KeyboardEventHandler, ReactNode } from "react";
 import { ColorType } from "../../common/interface";
 
 export interface AlertProps {
@@ -33,4 +33,5 @@ export interface AlertProps {
   onClose?: () => void;
   /** The type of animation to use for the alert */
   animation?: "grow" | "slide" | "fade";
+  onKeyDownCapture?: KeyboardEventHandler<HTMLDivElement>;
 }

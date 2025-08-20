@@ -16,6 +16,7 @@ export type FormControlType =
 
 export type IconRight = {
   icon: string;
+  title?: string;
   color?: string;
   hoverColor?: string;
   onClick?: (e: React.MouseEvent) => void;

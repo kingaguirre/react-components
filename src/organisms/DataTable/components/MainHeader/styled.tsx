@@ -99,6 +99,18 @@ export const IconContainer = styled.div`
       }
     }
 
+    &.restore-icon {
+      color: ${theme.colors.info.base};
+
+      &:hover {
+        color: ${theme.colors.info.dark};
+      }
+
+      &:active {
+        color: ${theme.colors.info.darker};
+      }
+    }
+
     &:hover {
       background-color: ${theme.colors.default.pale};
       color: ${theme.colors.primary.dark};

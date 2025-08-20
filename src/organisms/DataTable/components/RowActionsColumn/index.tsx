@@ -86,11 +86,11 @@ export const RowActionsColumn = ({
 
     return enableRowDeleting ? (
       <ActionContainer>
-        <Tooltip content={partiallyDeleted ? "Undo" : "Delete"} type="title">
+        <Tooltip content={partiallyDeleted ? "Restore" : "Delete"} type="title">
           <button
             data-testid={`delete-row-button-${row.id}`}
             disabled={isDisabled}
-            className={partiallyDeleted ? "undo" : "delete"}
+            className={partiallyDeleted ? "restore" : "delete"}
             onClick={() => handleDelete(rowData.__internalId)}
           >
             <Icon icon={partiallyDeleted ? "rotate_left" : "delete_forever"} />

@@ -54,9 +54,9 @@ export const DataTableContainer = styled.div`
 
 export const DataTableContentContainer = styled.div``;
 
-export const RowsToDeleteText = styled.div`
+export const RowsToDeleteText = styled.div<{ $isRestore?: boolean }>`
   > b {
-    color: ${theme.colors.danger.base};
+    color: ${({ $isRestore }) => !!$isRestore ? theme.colors.info.base : theme.colors.danger.base};
   }
 `;
 

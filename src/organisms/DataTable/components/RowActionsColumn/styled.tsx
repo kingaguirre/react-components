@@ -34,7 +34,6 @@ export const ActionContainer = styled.div`
       }
     }
 
-    &.undo,
     &.save {
       &:hover:not(:disabled) {
         color: ${theme.colors.success.base};
@@ -44,6 +43,17 @@ export const ActionContainer = styled.div`
         color: ${theme.colors.success.darker};
       }
     }
+
+    &.restore {
+      &:hover:not(:disabled) {
+        color: ${theme.colors.info.base};
+      }
+
+      &:active:not(:disabled) {
+        color: ${theme.colors.info.darker};
+      }
+    }
+
 
     &:hover:not(:disabled) {
       transform: scale(1.05);

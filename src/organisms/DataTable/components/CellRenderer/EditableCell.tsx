@@ -135,6 +135,7 @@ export const EditableCell = (props: EditableCellProps) => {
         className="editable-element"
         testId={testId}
         disabled={disabled}
+        clearable={false}
       />
     );
   }
