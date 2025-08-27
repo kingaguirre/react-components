@@ -27,7 +27,7 @@ export const Alert: React.FC<AlertProps> = ({
   placement = "top-right",
   animation = "grow",
   onClose,
-  onKeyDownCapture
+  onKeyDownCapture,
 }) => {
   const exitTimerRef = useRef<number | null>(null);
 

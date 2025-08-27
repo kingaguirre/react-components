@@ -24,11 +24,11 @@ export interface AccordionItemProps {
   disabled?: boolean;
 
   /** Called on every header click */
-  onClick?: () => void;
+  onClick?: (e?: React.MouseEvent, id?: string) => void;
   /** Called when this panel transitions from closed → open */
-  onOpen?: () => void;
+  onOpen?: (e?: React.MouseEvent, id?: string) => void;
   /** Called when this panel transitions from open → closed */
-  onClose?: () => void;
+  onClose?: (e?: React.MouseEvent, id?: string) => void;
 }
 
 export interface AccordionProps {

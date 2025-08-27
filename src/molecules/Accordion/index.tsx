@@ -1,4 +1,3 @@
-// index.tsx
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   AccordionProps,
@@ -22,55 +21,103 @@ export const Accordion: React.FC<AccordionProps> = ({
   items,
   allowMultiple = false,
 }) => {
-  // use stable key per item (id if provided, else index string)
+  // stable key per item (id if provided, else index string)
   const getKey = useCallback(
     (idx: number) => String(items[idx]?.id ?? idx),
     [items],
   );
 
-  // open state keyed by item key
+  // --- STATE MAPS ------------------------------------------------------------
+  // open state we actually render
   const [openItems, setOpenItems] = useState<Record<string, boolean>>(() => {
     const init: Record<string, boolean> = {};
     items.forEach((it, idx) => {
-      init[getKey(idx)] = !!it.open; // initial value from props
+      init[getKey(idx)] = !!it.open; // treat as initial
     });
     return init;
   });
 
-  // SYNC: if parent passes item.open, mirror it into internal state
+  // which items are "controlled" (we discovered parent changes open over time)
+  const [controlledKeys, setControlledKeys] = useState<Record<string, boolean>>(
+    () => ({}),
+  );
+
+  // track previous prop "open" to detect parent-driven changes
+  const prevPropOpen = useRef<Record<string, boolean | undefined>>({});
+
+  // SYNC: detect if parent is controlling an item by changing its `open` prop.
+  // - If we detect a change from previous `open`, mark as controlled and mirror it.
+  // - If new items appear, initialize from their `open` as initial state (uncontrolled).
   useEffect(() => {
     setOpenItems((prev) => {
       const next = { ...prev };
+      const nextControlled = { ...controlledKeys };
+      const nextPrevPropOpen = { ...prevPropOpen.current };
+
       items.forEach((it, idx) => {
         const k = getKey(idx);
-        if (typeof it.open === "boolean")
-          next[k] = it.open; // controlled
-        else if (!(k in next)) next[k] = false; // ensure key exists
+        const propOpen =
+          typeof it.open === "boolean" ? (it.open as boolean) : undefined;
+
+        if (!(k in next)) {
+          // new item: initialize from prop once
+          next[k] = !!propOpen;
+        }
+
+        // if parent provides an explicit boolean, check if it changed
+        if (typeof propOpen === "boolean") {
+          const prevVal = nextPrevPropOpen[k];
+          // record the latest prop value for future diffs
+          nextPrevPropOpen[k] = propOpen;
+
+          // If parent changes it across renders, it's controlled; mirror it.
+          if (prevVal !== undefined && prevVal !== propOpen) {
+            nextControlled[k] = true;
+            next[k] = propOpen;
+          } else if (nextControlled[k]) {
+            // already controlled — always mirror props
+            next[k] = propOpen;
+          }
+        }
       });
+
+      prevPropOpen.current = nextPrevPropOpen;
+      setControlledKeys(nextControlled);
       return next;
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, getKey]);
 
-  const toggleItem = (index: number) => {
+  // toggle with event (works for both controlled/uncontrolled)
+  const toggleItem = (index: number, e?: React.MouseEvent) => {
     const item = items[index];
     const key = getKey(index);
+    const idForCallback = item.id ?? key;
 
-    // If this item is controlled (item.open provided), don't mutate internal state.
-    // Fire callbacks and let the parent flip item.open.
-    if (typeof item.open === "boolean") {
-      item.onClick?.();
-      if (!openItems[key]) item.onOpen?.();
-      else item.onClose?.();
+    const isControlled = !!controlledKeys[key];
+
+    if (isControlled) {
+      // Controlled: do not mutate; just fire callbacks. Parent must flip `open`.
+      item.onClick?.(e, idForCallback);
+      if (!openItems[key]) item.onOpen?.(e, idForCallback);
+      else item.onClose?.(e, idForCallback);
       return;
     }
 
-    // Uncontrolled: manage internal state
+    // Uncontrolled: manage internal state + callbacks
     setOpenItems((prev) => {
+      const willOpen = !prev[key];
       const next = allowMultiple
         ? { ...prev }
         : Object.fromEntries(Object.keys(prev).map((k) => [k, false]));
-      next[key] = !prev[key];
-      return next;
+      next[key] = willOpen;
+
+      // Fire callbacks based on previous state
+      item.onClick?.(e, idForCallback);
+      if (willOpen) item.onOpen?.(e, idForCallback);
+      else item.onClose?.(e, idForCallback);
+
+      return next as Record<string, boolean>;
     });
   };
 
@@ -78,14 +125,13 @@ export const Accordion: React.FC<AccordionProps> = ({
     <AccordionContainer>
       {items.map((item, idx) => {
         const key = getKey(idx);
-        const isOpen =
-          typeof item.open === "boolean" ? item.open : !!openItems[key];
+        const isOpen = !!openItems[key];
         return (
           <AccordionItem
             key={key}
             {...item}
             open={isOpen}
-            toggle={() => toggleItem(idx)}
+            toggle={(e) => toggleItem(idx, e)}
           />
         );
       })}
@@ -95,10 +141,11 @@ export const Accordion: React.FC<AccordionProps> = ({
 
 interface AccordionItemInternalProps extends AccordionItemProps {
   open: boolean;
-  toggle: () => void;
+  toggle: (e?: React.MouseEvent) => void;
 }
 
 const AccordionItem: React.FC<AccordionItemInternalProps> = ({
+  id,
   title,
   children,
   color = "primary",
@@ -125,19 +172,18 @@ const AccordionItem: React.FC<AccordionItemInternalProps> = ({
     return () => ro.disconnect();
   }, [updateHeight]);
 
-  // Ensure height recalculates when open changes (some CSS setups need this)
+  // Ensure height recalculates when open changes
   useEffect(() => {
     updateHeight();
   }, [open, updateHeight]);
 
-  // fire all callbacks in the right order
+  // callbacks order preserved:
+  // 1) toggle (which decides controlled/uncontrolled path)
+  // 2) onClick/onOpen/onClose are invoked inside toggle with correct previous state
   const handleHeaderClick = (e: React.MouseEvent) => {
     if (disabled) return;
     e.stopPropagation();
-    toggle();
-    onClick?.();
-    if (!open) onOpen?.();
-    else onClose?.();
+    toggle(e);
   };
 
   return (

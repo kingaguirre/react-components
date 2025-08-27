@@ -167,9 +167,35 @@ const AccordionExamples = () => {
             title: 'Try Me',
             children: <div>Watch the console and alerts.</div>,
             color: 'info',
-            onClick: () => console.log('[Accordion] header clicked'),
-            onOpen: () => alert('[Accordion] just opened'),
-            onClose: () => alert('[Accordion] just closed'),
+            onClick: (e, id) => {
+              console.log("[Accordion] header clicked", { id, type: e?.type });
+              alert(`🖱️ [Accordion]\nHeader clicked\n\n• ID: ${id}\n• Event: ${e?.type}`);
+            },
+
+            onOpen: (e, id) => {
+              console.log(`✅ [Accordion]\nJust opened!\n\n• ID: ${id}\n• Event: ${e?.type}`);
+            },
+
+            onClose: (e, id) => {
+              console.log(`❌ [Accordion]\nJust closed!\n\n• ID: ${id}\n• Event: ${e?.type}`);
+            },
+          },
+          {
+            title: 'Another accordion',
+            children: <div>Watch the console and alerts.</div>,
+            color: 'info',
+            onClick: (e, id) => {
+              console.log("[Accordion] header clicked", { id, type: e?.type });
+              alert(`🖱️ [Accordion]\nHeader clicked\n\n• ID: ${id}\n• Event: ${e?.type}`);
+            },
+
+            onOpen: (e, id) => {
+              console.log(`✅ [Accordion]\nJust opened!\n\n• ID: ${id}\n• Event: ${e?.type}`);
+            },
+
+            onClose: (e, id) => {
+              console.log(`❌ [Accordion]\nJust closed!\n\n• ID: ${id}\n• Event: ${e?.type}`);
+            },
           },
         ]}
         allowMultiple={false}

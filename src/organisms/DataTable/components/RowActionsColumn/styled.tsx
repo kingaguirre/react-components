@@ -54,7 +54,6 @@ export const ActionContainer = styled.div`
       }
     }
 
-
     &:hover:not(:disabled) {
       transform: scale(1.05);
     }
