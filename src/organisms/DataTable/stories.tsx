@@ -50,6 +50,13 @@ export const Playground = {
         />
       </DataTablePlayground>
       <DataTable
+        // enableCellEditing={false}
+        // enableRowSelection={false}
+        // headerRightControls={false}
+        // enableRowAdding={false}
+        // enableRowDeleting={false}
+        // enableGlobalFiltering={false}
+        // enableColumnFiltering={false}
         dataSource={[
   {
     id: '0',
@@ -192,9 +199,6 @@ export const Playground = {
   { title: 'Role', column: 'role' }, // No explicit interactive properties.
 ]}
         maxHeight='300px'
-        enableRowAdding
-        enableCellEditing
-        enableRowDeleting
         pageIndex={1}
         pageSize={5}
         onRowClick={(row) => console.log('Row clicked:', row)}

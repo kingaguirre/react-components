@@ -1374,5 +1374,81 @@ describe('DataTable Row Features and Events', () => {
     expect(screen.getByTestId('row-1')).toBeInTheDocument()
   })
 
+  const baseProps = {
+    dataSource: sampleData,
+    columnSettings: columnsSorting,
+  }
 
+  const getHeader = () =>
+    document.querySelector('.main-header-container') as HTMLElement | null
+
+  test('hidden when ALL conditions are false/absent', () => {
+    render(<DataTable {...baseProps} headerRightControls={false} />)
+
+    const header = getHeader()
+    if (header) {
+      // If you render but hide with CSS
+      expect(header).not.toBeVisible()
+    } else {
+      // If you don’t render at all
+      expect(header).toBeNull()
+    }
+  })
+
+  test.each([
+    ['enableGlobalFiltering', { enableGlobalFiltering: true }],
+    ['enableRowAdding', { enableRowAdding: true }],
+    ['showDeleteIcon', { showDeleteIcon: true } as any],
+    ['headerRightControls', { headerRightControls: true } as any],
+    [
+      'headerRightElements (non-empty)',
+      {
+        headerRightElements: [{ type: 'button', text: 'Export', onClick: vi.fn() }],
+      },
+    ],
+  ])('visible when %s is truthy', (_label, extraProps) => {
+    render(<DataTable {...baseProps} {...(extraProps as any)} />)
+
+    const header = getHeader()
+    expect(header).toBeInTheDocument()
+    expect(header).toBeVisible()
+  })
+
+  test('still hidden when headerRightElements is provided but empty []', () => {
+    render(
+      <DataTable
+        dataSource={sampleData}
+        columnSettings={columnsSorting}
+        // 🔒 make sure the other drivers are OFF
+        enableGlobalFiltering={false}
+        enableRowAdding={false}
+        headerRightControls={false as any}
+        // 🧪 this is the only thing we're toggling
+        headerRightElements={[]}
+      />
+    )
+
+    const header = document.querySelector('.main-header-container') as HTMLElement | null
+    // If you render-but-hide, assert invisibility; if you conditionally don't render, assert null.
+    if (header) {
+      expect(header).not.toBeVisible()
+    } else {
+      expect(header).toBeNull()
+    }
+  })
+
+  test('visible when multiple conditions are truthy', () => {
+    render(
+      <DataTable
+        {...baseProps}
+        enableGlobalFiltering
+        enableRowAdding
+        headerRightElements={[{ type: 'text', name: 'q', value: '' }]}
+      />
+    )
+
+    const header = getHeader()
+    expect(header).toBeInTheDocument()
+    expect(header).toBeVisible()
+  })
 })

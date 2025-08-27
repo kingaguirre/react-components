@@ -932,7 +932,9 @@ export const DataTable = <T extends object>({
   useAutoScroll(selectedCell, tableWrapperRef);
 
   const handleConfirmDelete = () => {
-    const selectedRows = table.getSelectedRowModel().rows.map((r) => r.original as DataRow);
+    const selectedRows = table
+      .getSelectedRowModel()
+      .rows.map((r) => r.original as DataRow);
     const selectedIds = new Set(selectedRows.map((r) => r.__internalId));
     const total = selectedIds.size;
 
@@ -943,8 +945,10 @@ export const DataTable = <T extends object>({
 
     // Group soft-delete semantics
     if (partialRowDeletionID) {
-      const isDeleted = (row: any) => (row as any)[partialRowDeletionID] === true;
-      const allAlreadyDeleted = selectedRows.length > 0 && selectedRows.every(isDeleted);
+      const isDeleted = (row: any) =>
+        (row as any)[partialRowDeletionID] === true;
+      const allAlreadyDeleted =
+        selectedRows.length > 0 && selectedRows.every(isDeleted);
 
       let changed = 0;
 
@@ -980,14 +984,16 @@ export const DataTable = <T extends object>({
 
       showToast({
         color: "success",
-        title: allAlreadyDeleted ? "Bulk restore complete" : "Bulk soft-delete complete",
+        title: allAlreadyDeleted
+          ? "Bulk restore complete"
+          : "Bulk soft-delete complete",
         icon: "check",
         message: (
           <div>
             {changed > 0 ? (
               <>
-                {allAlreadyDeleted ? "Restored" : "Soft-deleted"} <b>{changed}</b>{" "}
-                row{changed > 1 ? "s" : ""}.
+                {allAlreadyDeleted ? "Restored" : "Soft-deleted"}{" "}
+                <b>{changed}</b> row{changed > 1 ? "s" : ""}.
               </>
             ) : (
               <>No changes.</>
@@ -1002,7 +1008,9 @@ export const DataTable = <T extends object>({
     // Hard delete path (no partialRowDeletionID)
     const deletedCount = total;
     setData((old) => {
-      const updated = old.filter((r) => !selectedIds.has((r as any).__internalId));
+      const updated = old.filter(
+        (r) => !selectedIds.has((r as any).__internalId),
+      );
       onChange?.(updated.map(({ __internalId, ...rest }) => rest));
       return updated;
     });
@@ -1016,7 +1024,8 @@ export const DataTable = <T extends object>({
       icon: "check",
       message: (
         <div>
-          Removed <b>{deletedCount}</b> selected row{deletedCount > 1 ? "s" : ""}.
+          Removed <b>{deletedCount}</b> selected row
+          {deletedCount > 1 ? "s" : ""}.
         </div>
       ),
     });
@@ -1127,7 +1136,9 @@ export const DataTable = <T extends object>({
       (r) => (r.original as any)[partialRowDeletionID] === true,
     );
 
-  const bulkMode: "restore" | "delete" = allSelectedSoftDeleted ? "restore" : "delete";
+  const bulkMode: "restore" | "delete" = allSelectedSoftDeleted
+    ? "restore"
+    : "delete";
 
   return (
     <DataTableWrapper
@@ -1136,7 +1147,7 @@ export const DataTable = <T extends object>({
       className={`data-table-wrapper ${isFocused ? "is-focused" : "is-not-focused"}`}
       $disabled={disabled}
       tabIndex={0}
-      onClickCapture={(e) => {
+      onClickCapture={() => {
         if (showAlert) return;
         requestAnimationFrame(markActive);
       }}
@@ -1236,12 +1247,14 @@ export const DataTable = <T extends object>({
           <RowsToDeleteText $isRestore={bulkMode === "restore"}>
             {bulkMode === "restore" ? (
               <>
-                Are you sure you want to <b>restore</b> {selectedCount} selected row
+                Are you sure you want to <b>restore</b> {selectedCount} selected
+                row
                 {selectedCount > 1 ? "s" : ""}?
               </>
             ) : (
               <>
-                Are you sure you want to <b>delete</b> {selectedCount} selected row
+                Are you sure you want to <b>delete</b> {selectedCount} selected
+                row
                 {selectedCount > 1 ? "s" : ""}?
               </>
             )}
