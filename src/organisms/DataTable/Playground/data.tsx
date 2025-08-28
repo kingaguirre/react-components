@@ -20,7 +20,7 @@ const secureRandom = () => {
 };
 
 // Generate 100 rows of sample data with all columns defined
-export const dataSource = (length = 100) => {
+export const dataSource = (length = 1000) => {
   return Array.from({ length }, (_, i) => ({
     id: i + 1,
     name: `Name ${i + 1}`,

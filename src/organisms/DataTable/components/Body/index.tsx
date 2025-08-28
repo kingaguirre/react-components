@@ -1,3 +1,4 @@
+// src/organisms/DataTable/components/Body/index.tsx
 import React, { useCallback } from "react";
 import { Table } from "@tanstack/react-table";
 import { BodyContainer, NoDataContainer, ExpandedRowContainer } from "./styled";
@@ -48,10 +49,23 @@ export const Body = <TData,>({
   uniqueValueMaps,
   expandedRowRightOffset,
 }: BodyProps<TData>) => {
-  // Precompute values from the table
-  const { rows } = table.getRowModel();
+  // 🔎 Detect server/manual mode
+  const isServer = Boolean((table.options as any).manualPagination);
 
-  const filteredRowCount = table.getFilteredRowModel().rows.length;
+  // ⚙️ Pick the correct row model:
+  // - server: getRowModel() already represents the fetched page
+  // - client: use getPaginationRowModel() to render the current page slice
+  const rows = isServer
+    ? table.getRowModel().rows
+    : table.getPaginationRowModel().rows;
+
+  // 📊 Total records:
+  // - server: derive from options.rowCount (set in useReactTable)
+  // - client: filtered row count is the true total displayed
+  const totalRecords = isServer
+    ? ((table.options as any).rowCount ?? rows.length)
+    : table.getFilteredRowModel().rows.length;
+
   // Exclude built-in columns from all/visible leaf columns
   const allLeafColumns = table.getAllLeafColumns();
   const leafColumns = allLeafColumns.filter(
@@ -61,7 +75,7 @@ export const Body = <TData,>({
     .getVisibleLeafColumns()
     .filter((c) => !BUILTIN_COLUMN_IDS.has(c.id));
 
-  // Memoize the row rendering helper to prevent unnecessary re-creations.
+  // Memoized row renderer
   const rowContent = useCallback(
     (row: any) => (
       <React.Fragment key={row.id}>
@@ -104,7 +118,7 @@ export const Body = <TData,>({
     ],
   );
 
-  // If there are literally no user-defined columns (only built-ins), show message
+  // Guards
   if (leafColumns.length === 0) {
     return (
       <BodyContainer className="data-table-body-container">
@@ -115,7 +129,6 @@ export const Body = <TData,>({
     );
   }
 
-  // Handle error and no-data cases
   if (columnError) {
     return (
       <BodyContainer className="data-table-body-container">
@@ -124,7 +137,8 @@ export const Body = <TData,>({
     );
   }
 
-  if (rows.length === 0) {
+  // No data (respect server total)
+  if (totalRecords === 0) {
     return (
       <BodyContainer className="data-table-body-container">
         <NoDataContainer>No data to display</NoDataContainer>
@@ -132,7 +146,6 @@ export const Body = <TData,>({
     );
   }
 
-  // If there ARE user columns but all of them are hidden, clarify that
   if (visibleLeafColumns.length === 0) {
     return (
       <BodyContainer className="data-table-body-container">
@@ -141,7 +154,8 @@ export const Body = <TData,>({
     );
   }
 
-  if (filteredRowCount > 100000) {
+  // Big dataset notice applies only to client-side mode
+  if (!isServer && totalRecords > 100000) {
     return (
       <BodyContainer className="data-table-body-container">
         <NoDataContainer>

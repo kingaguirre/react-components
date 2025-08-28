@@ -26,6 +26,7 @@ const InnerCellContent = memo(
     isEditable?: boolean;
     isDisabled?: boolean;
     isDisabledRow?: boolean;
+    highlightKey?: string;
   }) => {
     const cellContext = flexRender(colDef.cell, cell.getContext());
     const { ref, hasEllipsis } = useHasEllipsis(cellContext);
@@ -57,6 +58,23 @@ const InnerCellContent = memo(
   (a, b) => {
     // Disable memoization for built-in columns (always re-render)
     if (BUILTIN_COLUMN_IDS.has(a.cell.column.id)) return false;
+
+    // 🔑 Re-render when highlight inputs (global/column filter) change
+    if (a.highlightKey !== b.highlightKey) return false;
+
+    // 🔑 If the displayed value changed, re-render
+    const aVal = a.cell.getValue?.();
+    const bVal = b.cell.getValue?.();
+    if (aVal !== bVal) return false;
+
+    // width impacts tooltip/ellipsis
+    if (a.cell.column.getSize() !== b.cell.column.getSize()) return false;
+
+    // meta that affects rendering
+    const aCls = a.colMeta?.className ?? "";
+    const bCls = b.colMeta?.className ?? "";
+    if (aCls !== bCls) return false;
+    if (a.colMeta?.align !== b.colMeta?.align) return false;
 
     return (
       a.isEditMode === b.isEditMode &&
@@ -97,9 +115,21 @@ export const Cell = memo(
   }) => {
     const colDef: any = cell.column.columnDef;
     const { isDragging, setNodeRef, transform } = useSortable({
-      id: colDef.accessorKey,
+      id: cell.column.id,
     });
     const colMeta: any = colDef.meta;
+
+    // 🔑 Highlight key derived from table state (global + this column's filter)
+    const tState: any = cell.getContext().table.getState();
+    const global = (tState?.globalFilter ?? "").toString();
+    const colFilterVal = (() => {
+      const f = (tState?.columnFilters ?? []).find(
+        (x: any) => x.id === cell.column.id,
+      );
+      const v = f?.value;
+      return typeof v === "string" ? v : v == null ? "" : String(v);
+    })();
+    const highlightKey = `${global}␟${colFilterVal}`; // stable small string
 
     const inner = (
       <InnerCellContent
@@ -110,6 +140,7 @@ export const Cell = memo(
         isEditable={isEditable}
         isDisabled={isDisabled}
         isDisabledRow={isDisabledRow}
+        highlightKey={highlightKey}
       />
     );
 

@@ -5,7 +5,14 @@ export interface ModalProps extends Omit<PanelProps, "className"> {
   show: boolean;
   closeable?: boolean;
   showCloseIcon?: boolean;
-  onClose?: () => void;
   modalWidth?: "sm" | "md" | "lg" | "auto";
   zIndex?: number;
+
+  unmountOnHide?: boolean;
+  onOpening?: () => void;
+  onClosing?: () => void;
+  onOpened?: () => void;
+  onClosed?: () => void;
+
+  onClose?: () => void;
 }
