@@ -98,6 +98,7 @@ export default defineConfig({
   },
   test: {
     globals: true,
+    restoreMocks: true,
     environment: 'jsdom',
     setupFiles: './src/setupTests.ts',
     include: [
@@ -111,7 +112,8 @@ export default defineConfig({
         'src/organisms/**/stories.tsx',
         'src/molecules/**/stories.tsx',
         'src/atoms/**/stories.tsx',
-        'src/components/**'
+        'src/components/**',
+        "**/stories/**"
       ],
     },
   },

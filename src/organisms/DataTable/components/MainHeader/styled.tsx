@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import { theme, fadeInOnMount } from "../../../../styles";
+import { theme } from "../../../../styles";
 
 export const MainHeadercontainer = styled.div`
   position: relative;
@@ -71,75 +71,4 @@ export const IconContainer = styled.div`
   display: flex;
   align-items: stretch;
   justify-content: flex-end;
-
-  button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: ${theme.transition};
-    min-width: 38px;
-    height: 100%;
-    border-color: transparent;
-    background-color: ${theme.colors.lightA};
-    color: ${theme.colors.primary.base};
-    font-size: 22px;
-    padding: 0;
-    cursor: pointer;
-    border-radius: 0;
-
-    &.delete-icon {
-      color: ${theme.colors.danger.base};
-
-      &:hover {
-        color: ${theme.colors.danger.dark};
-      }
-
-      &:active {
-        color: ${theme.colors.danger.darker};
-      }
-    }
-
-    &.restore-icon {
-      color: ${theme.colors.info.base};
-
-      &:hover {
-        color: ${theme.colors.info.dark};
-      }
-
-      &:active {
-        color: ${theme.colors.info.darker};
-      }
-    }
-
-    &:hover {
-      background-color: ${theme.colors.default.pale};
-      color: ${theme.colors.primary.dark};
-    }
-
-    &:active {
-      color: ${theme.colors.primary.darker};
-    }
-
-    &:disabled {
-      cursor: not-allowed;
-      color: ${theme.colors.default.base};
-    }
-  }
-`;
-
-export const RightIconButtonContainer = styled.button`
-  outline: none;
-  ${fadeInOnMount}
-
-  &:hover,
-  &.active {
-    background-color: ${theme.colors.primary.pale};
-  }
-
-  &.disabled:hover,
-  &.disabled {
-    background-color: ${theme.colors.default.pale};
-    cursor: not-allowed;
-    color: ${theme.colors.default.base}!important;
-  }
 `;

@@ -1,0 +1,280 @@
+import { Meta } from '@storybook/blocks';
+
+<Meta title="Organisms/DataTable/Upload & Download" />
+
+# Upload & Download
+
+The **DataTable** includes a streamlined **download** menu and an **upload** flow with a pre-import review.  
+You can use the built-in actions (“Download all” / “Download selected”), extend the menu with **custom items**, and wire **server-side exports** when datasets are large.
+
+---
+
+## How It Works
+
+- **Built-in Download Menu**  
+  Turn on with `enableDownload`. By default you get “Download all” and (if row selection is enabled) “Download selected”.
+
+- **Hidden Columns Are Included**  
+  Exports include columns marked `{ hidden: true }` in `columnSettings` by default.  
+  You can override via `downloadControls.includeHiddenColumns`.
+
+- **Config Section (optional)**  
+  Show or hide filename/format controls with `downloadControls.showConfigSection`.
+
+- **Custom Menu Items**  
+  Provide `downloadControls.extraMenuItems`. Each item receives a **rows payload**:  
+  ```ts
+  onClick: (args: {
+    fileName: string;
+    format: 'xlsx' | 'csv';
+    selected: { rows: any[]; count: number };
+    all: { rows: any[]; count: number };
+  }) => void
+  ```
+  Use this to build JSON exports or transform rows → AOA for spreadsheets.
+
+- **Upload with Pre-Import Review**  
+  Turn on with `enableUpload`. The review modal surfaces **empty rows** and **unmatched headers** before import.  
+  Proceed will import only the non-empty rows; Cancel aborts.
+
+---
+
+## Example: Basic Download (built-ins only)
+
+```tsx
+<DataTable
+  dataSource={rows}
+  columnSettings={columns}
+  enableRowSelection
+  enableDownload
+  downloadControls={{
+    fileName: 'products',
+    format: 'xlsx',
+    showConfigSection: false, // hide filename/format UI
+    showBuiltinAll: true,
+    showBuiltinSelected: true, // will only show if enableRowSelection === true
+  }}
+/>
+```
+
+### Notes
+- “Download selected” is hidden automatically when `enableRowSelection` is `false`.
+- The config section (file name + format) can be hidden for a cleaner menu.
+
+---
+
+## Example: Download with Custom Menu (rows payload)
+
+Use **rows payload** for JSON pipelines or convert to AOA on the fly for XLSX/CSV.
+
+```tsx
+<DataTable
+  dataSource={rows}
+  columnSettings={columns}
+  enableRowSelection
+  enableDownload
+  downloadControls={{
+    fileName: 'rows_payload',
+    format: 'xlsx',
+    showConfigSection: true,
+    showBuiltinAll: false,
+    showBuiltinSelected: false,
+    extraMenuItems: [
+      {
+        key: 'json',
+        icon: 'data_object',
+        label: 'Export JSON (uses rows payload)',
+        onClick: ({ fileName, selected, all }) => {
+          // selected.rows / all.rows -> array of objects (incl. hidden columns by default)
+          const blob = new Blob([JSON.stringify({ selected, all }, null, 2)], {
+            type: 'application/json;charset=utf-8',
+          });
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = `${fileName}.json`;
+          a.click();
+          URL.revokeObjectURL(a.href);
+        },
+      },
+      {
+        key: 'xlsx-from-rows',
+        icon: 'grid_on',
+        label: 'Export XLSX (convert rows → AOA)',
+        onClick: async ({ fileName, format, all }) => {
+          // Convert objects → AOA (header + body), then write a sheet
+          const columns = /* your ColumnSetting[] */;
+          const header = columns.map(c => c.title);
+          const body = all.rows.map(r =>
+            columns.map(c => {
+              const v = r?.[c.column];
+              if (Array.isArray(v)) return v.map(x => (x == null ? '' : String(x))).join(',');
+              if (v == null) return '';
+              return v instanceof Date ? v.toISOString() : v;
+            }),
+          );
+
+          const XLSX = await import('xlsx'); // lazy-load
+          const ws = XLSX.utils.aoa_to_sheet([header, ...body]);
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, 'Data');
+          const out = XLSX.write(wb, { bookType: format, type: 'array' });
+          const blob = new Blob([out], {
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          });
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = `${fileName}.xlsx`;
+          a.click();
+          URL.revokeObjectURL(a.href);
+        },
+      },
+    ],
+  }}
+/>
+```
+
+### Tips
+- `includeHiddenColumns` defaults to **true**. Pass `{ includeHiddenColumns: false }` in `downloadControls` if needed.
+- Keep built-ins hidden when you only want custom actions.
+
+---
+
+## Example: Upload with Pre-Import Review
+
+```tsx
+<DataTable
+  dataSource={data}
+  columnSettings={columns}
+  enableUpload
+  uploadControls={{
+    title: 'Upload CSV/XLSX',
+    onImport: (rows) => setData(prev => [...rows, ...prev]),
+    onComplete: ({ importedCount }) => console.log('Imported', importedCount),
+  }}
+/>
+```
+
+### What gets validated?
+- **Unmatched headers** in the file that don’t map to any visible table column (matched by id or header text) are reported and ignored.
+- **Empty rows** (all visible columns empty) are reported and skipped.
+
+#### Quick test file
+You can generate a sample workbook that includes:
+- one **invalid column** (unmatched header), and
+- one **fully empty row**.
+
+```tsx
+const makeSampleWorkbook = async () => {
+  const columns = /* your ColumnSetting[] */;
+  const invalidHeader = 'invalid_col';
+  const headers = [...columns.map(c => c.title), invalidHeader];
+
+  const sample = [
+    ['1','Notebook','PaperPro','stationery','7.5','4.0','EXTRA'],
+    ['','','','','','',''], // empty row
+    ['2','Chair','SeatCo','furniture','45','3.8','EXTRA'],
+  ];
+
+  const XLSX = await import('xlsx'); // lazy-load
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...sample]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Sample');
+  const out = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+  const blob = new Blob([out], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'sample-upload.xlsx';
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+```
+
+---
+
+## Example: Server-side Download (custom)
+
+Fetch the complete dataset directly from your API in a custom menu item (useful for large data).
+
+```tsx
+<DataTable
+  serverMode
+  server={{ fetcher: fetchProductsAdvanced, debounceMs: 350 }}
+  dataSource={[]}
+  columnSettings={columns}
+  enableDownload
+  downloadControls={{
+    fileName: 'all_products',
+    format: 'xlsx',
+    showConfigSection: true,
+    showBuiltinAll: false,
+    showBuiltinSelected: false,
+    extraMenuItems: [
+      {
+        key: 'server-all',
+        icon: 'cloud_download',
+        label: 'Download ALL from server',
+        onClick: async ({ fileName, format }) => {
+          const { data } = await axios.get('https://dummyjson.com/products', {
+            params: { limit: 0, select: 'id,title,brand,category,price,rating' },
+          });
+          const rows = Array.isArray(data?.products) ? data.products : [];
+
+          const header = columns.map(c => c.title);
+          const body = rows.map(r =>
+            columns.map(c => {
+              const v = r?.[c.column];
+              if (Array.isArray(v)) return v.map(x => (x == null ? '' : String(x))).join(',');
+              if (v == null) return '';
+              return v instanceof Date ? v.toISOString() : v;
+            }),
+          );
+
+          const XLSX = await import('xlsx');
+          const ws = XLSX.utils.aoa_to_sheet([header, ...body]);
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, 'Data');
+          const out = XLSX.write(wb, { bookType: format, type: 'array' });
+          const blob = new Blob([out], {
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          });
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = `${fileName}.${format}`;
+          a.click();
+          URL.revokeObjectURL(a.href);
+        },
+      },
+    ],
+  }}
+/>
+```
+
+### Why custom?
+- Server datasets can be huge. A custom export that talks to your API can stream or chunk large results, and produce the exact export shape you need.
+
+---
+
+## Key Props Recap
+
+- **enableDownload** — turn on the download menu.  
+- **downloadControls** — configure behavior:  
+  - `fileName`, `format`  
+  - `includeHiddenColumns` (default: **true**)  
+  - `showConfigSection` (default: **true**)  
+  - `showBuiltinSelected`, `showBuiltinAll`  
+  - `extraMenuItems` (custom actions; **rows payload**)  
+- **enableUpload** — turn on uploads + review modal.  
+- **enableRowSelection** — governs visibility of “Download selected”.  
+
+---
+
+## API
+
+For detailed API usage and configuration examples, please refer to the interactive **Upload & Download** stories.  
+The demos cover:
+- Built-in downloads,
+- Custom menu with **rows payload**,
+- Upload with pre-import review,
+- Server-side download via a custom action.

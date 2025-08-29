@@ -324,7 +324,7 @@ export function CodeBlock({
     padding: 12,
     background: themeColors.bg,
     color: themeColors.fg,
-    borderRadius: 10,
+    borderRadius: 4,
     border: `1px solid ${themeColors.border}`,
     overflowX: "auto",
     fontSize: 12.5,
@@ -357,7 +357,7 @@ export function CodeBlock({
           background:
             theme === "vscode-dark" ? "rgba(0,0,0,0.6)" : "rgba(0,0,0,0.05)",
           border: `1px solid ${themeColors.border}`,
-          borderRadius: 8,
+          borderRadius: 4,
           padding: "6px 8px",
           display: "flex",
           alignItems: "center",
@@ -384,7 +384,7 @@ export function CodeBlock({
                   ? themeColors.hiFg
                   : ((themeColors as any)[t.t] ?? themeColors.fg),
                 padding: t.hit ? "0 3px" : undefined,
-                borderRadius: t.hit ? 4 : undefined,
+                borderRadius: t.hit ? 2 : undefined,
                 fontWeight: t.hit ? 800 : undefined,
                 boxShadow: t.hit && emphasize ? themeColors.hiRing : "none",
                 transition: "box-shadow 180ms ease",

@@ -123,6 +123,11 @@ export const DataTable = <T extends object>({
   selectedCell: selectedCellProp,
   serverMode = false,
   server,
+  enableUpload = false,
+  uploadControls,
+  enableDownload = false,
+  downloadControls,
+  testId
 }: DataTableProps) => {
   const tableWrapperRef = useRef<HTMLDivElement>(null);
   const instanceIdRef = useRef<number>(Date.now() + Math.random());
@@ -145,6 +150,7 @@ export const DataTable = <T extends object>({
   const [serverTotal, setServerTotal] = useState<number>(0);
   const [serverLoading, setServerLoading] = useState<boolean>(false);
   const fetchSeqRef = useRef(0); // guards races between overlapping requests
+  const [importExportLoading, setImportExportLoading] = useState(false);
   const globalFilterDebounceRef = useRef<number | null>(null);
 
   const showToast = React.useCallback(
@@ -996,7 +1002,11 @@ export const DataTable = <T extends object>({
     autoResetPageIndex: serverMode
       ? false
       : !(skipPageResetRef.current || isPageResetSuppressed()),
-    meta: { serverLoading },
+    meta: {
+      disabled,
+      serverLoading,
+      importExportLoading
+    },
   });
 
   // skip emits caused by window/container resize or other programmatic changes
@@ -1227,6 +1237,123 @@ export const DataTable = <T extends object>({
     e.stopPropagation();
   };
 
+  // ---------- Export/Import helpers (no table prop leaks) ----------
+  const sanitizeCell = (v: any) => {
+    if (v == null) return "";
+    if (Array.isArray(v)) return v.map((x) => (x == null ? "" : String(x))).join(",");
+    if (v instanceof Date) return v.toISOString();
+    const t = typeof v;
+    if (t === "string" || t === "number" || t === "boolean") return v;
+    return "";
+  };
+
+  const getVisibleNonBuiltInColumns = React.useCallback(() => {
+    return table
+      .getVisibleLeafColumns()
+      .filter((c) => !UTILS.BUILTIN_COLUMN_IDS.has(String(c.id)))
+      .map((c) => ({
+        id: String(c.id),
+        headerText:
+          typeof c.columnDef?.header === "string"
+            ? (c.columnDef.header as string)
+            : String(c.id),
+      }));
+  }, [table]);
+
+// helper
+  const isBuiltIn = (id: string) => UTILS.BUILTIN_COLUMN_IDS.has(String(id));
+
+  const getExportColumns = React.useCallback(
+    (includeHidden?: boolean) => {
+      const cols = includeHidden
+        ? table.getAllLeafColumns()         // <-- includes hidden
+        : table.getVisibleLeafColumns();    // <-- only visible
+      return cols.filter((c) => !isBuiltIn(String(c.id)));
+    },
+    [table],
+  );
+
+  const getHeaderText = (col: any) => {
+    const h = col?.columnDef?.header;
+    return typeof h === "string" ? h : String(col.id);
+  };
+
+  /* ---------------------------------------------
+   Export helpers (AOA + ROWS) — includeHidden aware
+  ---------------------------------------------- */
+  const getAllExportColumns = React.useCallback(
+    (includeHidden?: boolean) => {
+      // columnSettings should be the same array you pass to DataTable
+      // Default is to include hidden columns in exports
+      const wantHidden = includeHidden ?? true;
+      return wantHidden ? columnSettings : columnSettings.filter((c) => !c.hidden);
+    },
+    [columnSettings],
+  );
+
+  const buildAOAFromRowModels = React.useCallback(
+    (rowModels: Array<any>, opts?: { includeHidden?: boolean }) => {
+      const cols = getAllExportColumns(opts?.includeHidden);
+      const header = cols.map((c) => c.title ?? c.column);
+      const body = rowModels.map((rm) =>
+        cols.map((c) => {
+          const v = (rm.original as any)?.[c.column];
+          if (Array.isArray(v)) return v.map((x) => (x == null ? "" : String(x))).join(",");
+          if (v == null) return "";
+          return v instanceof Date ? v.toISOString() : v;
+        }),
+      );
+      return [header, ...body];
+    },
+    [getAllExportColumns],
+  );
+
+  const buildRowsFromRowModels = React.useCallback(
+    (rowModels: Array<any>, opts?: { includeHidden?: boolean }) => {
+      const cols = getAllExportColumns(opts?.includeHidden);
+      return rowModels.map((rm) => {
+        const src = rm.original as Record<string, any>;
+        const out: Record<string, any> = {};
+        cols.forEach((c) => {
+          out[c.column] = src?.[c.column] ?? "";
+        });
+        return out;
+      });
+    },
+    [getAllExportColumns],
+  );
+
+  /* Selected / All builders (AOA) */
+  const getAOAForSelected = React.useCallback(
+    (opts?: { includeHidden?: boolean }) =>
+      buildAOAFromRowModels(table.getSelectedRowModel().rows, opts),
+    [buildAOAFromRowModels, table],
+  );
+
+  const getAOAForAll = React.useCallback(
+    (opts?: { includeHidden?: boolean }) =>
+      buildAOAFromRowModels(table.getPrePaginationRowModel().rows, opts),
+    [buildAOAFromRowModels, table],
+  );
+
+  /* Selected / All builders (ROWS) — for custom menu items */
+  const getRowsForSelected = React.useCallback(
+    (opts?: { includeHidden?: boolean }) =>
+      buildRowsFromRowModels(table.getSelectedRowModel().rows, opts),
+    [buildRowsFromRowModels, table],
+  );
+
+  const getRowsForAll = React.useCallback(
+    (opts?: { includeHidden?: boolean }) =>
+      buildRowsFromRowModels(table.getPrePaginationRowModel().rows, opts),
+    [buildRowsFromRowModels, table],
+  );
+
+  /* Counts */
+  const downloadSelectedCount = table.getSelectedRowModel().rows.length;
+  const downloadAllCount = table.getPrePaginationRowModel().rows.length;
+
+
   // inside DataTable component
   const openBulkConfirm = React.useCallback(() => {
     // show modal
@@ -1238,6 +1365,35 @@ export const DataTable = <T extends object>({
     // run after the wrapper's onClickCapture RAF so we win the race
     requestAnimationFrame(() => setActiveTable(null));
   }, []);
+
+  // Upload: you still own the prepend here for clarity of data ownership
+  const onImport = React.useCallback((alignedRows: Array<Record<string, any>>) => {
+    noPageReset(() =>
+      setData((old) => {
+        const withIds = alignedRows.map((r) => ({
+          ...r,
+          __internalId: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        }));
+        const updated = [...withIds, ...old]; // PREPEND
+        onChange?.(updated.map(({ __internalId, ...rest }) => rest));
+        return updated;
+      }),
+    );
+  }, [noPageReset, onChange]);
+  
+  const mergedUploadControls = React.useMemo(() => ({
+    ...(uploadControls ?? {}),
+    onImport,
+    onComplete: (meta: { importedCount: number }) => {
+      uploadControls?.onComplete?.(meta);
+      showToast?.({
+        color: "success",
+        title: "Import complete",
+        message: `Imported ${meta.importedCount} row${meta.importedCount === 1 ? "" : "s"}.`,
+        icon: "check",
+      });
+    },
+  }), [uploadControls, showToast]);
 
   const totalSelectedRows = Object.keys(table.getState().rowSelection).filter(
     (key) => (rowSelection as any)[key],
@@ -1262,10 +1418,12 @@ export const DataTable = <T extends object>({
 
   return (
     <DataTableWrapper
+      data-testid={testId}
       ref={tableWrapperRef}
       data-table-instanceid={instanceIdRef.current}
+      data-disabled={disabled || serverLoading || importExportLoading}
       className={`data-table-wrapper ${isFocused ? "is-focused" : "is-not-focused"}`}
-      $disabled={disabled || serverLoading}
+      $disabled={disabled || serverLoading || importExportLoading}
       tabIndex={0}
       onClickCapture={() => {
         if (showAlert) return;
@@ -1305,6 +1463,26 @@ export const DataTable = <T extends object>({
         headerRightControls={headerRightControls}
         headerRightElements={headerRightElements}
         bulkRestoreMode={allSelectedSoftDeleted}
+        enableRowSelection={enableRowSelection}
+
+        getVisibleNonBuiltInColumns={getVisibleNonBuiltInColumns}
+
+        /* AOA builders (built-in menu items use these) */
+        downloadSelectedCount={downloadSelectedCount}
+        downloadAllCount={downloadAllCount}
+        getAOAForSelected={getAOAForSelected}
+        getAOAForAll={getAOAForAll}
+
+        /* ROWS builders (extras use these) */
+        getRowsForSelected={getRowsForSelected}
+        getRowsForAll={getRowsForAll}
+
+        enableDownload={enableDownload}
+        enableUpload={enableUpload}
+        // controls are still defined on DataTable API
+        uploadControls={mergedUploadControls}
+
+        downloadControls={downloadControls}
       />
       <DndContext
         collisionDetection={closestCenter}

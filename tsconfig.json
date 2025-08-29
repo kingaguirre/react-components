@@ -50,5 +50,6 @@
     "**/stories.ts",
     "**/stories.tsx",
     "src/organisms/DataTable/_test-row-actions.e2e.ts",
+    "**/stories/**"
   ],
 }

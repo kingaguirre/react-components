@@ -6,9 +6,16 @@ export const Grid: React.FC<GridProps> = ({
   children,
   spacing = 16,
   style,
+  className,
+  ...rest
 }) => {
   return (
-    <StyledGrid className="grid" spacing={spacing} style={style}>
+    <StyledGrid
+      spacing={spacing}
+      style={style}
+      className={className}
+      {...rest}
+    >
       {children}
     </StyledGrid>
   );
@@ -23,12 +30,12 @@ export const GridItem: React.FC<GridItemProps> = ({
   xl,
   offset,
   order,
+  className,
+  ...rest
 }) => {
   return (
     <StyledGridItem
-      data-testid="grid-item"
-      className="grid-item"
-      data-xs={xs} // Add data-* attributes for testing
+      data-xs={xs}
       data-sm={sm}
       data-md={md}
       data-lg={lg}
@@ -42,6 +49,8 @@ export const GridItem: React.FC<GridItemProps> = ({
       $xl={xl}
       $offset={offset}
       $order={order}
+      className={className}
+      {...rest}
     >
       {children}
     </StyledGridItem>
