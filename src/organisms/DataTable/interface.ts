@@ -6,8 +6,9 @@ import {
   DropdownOption,
 } from "../../molecules/Dropdown/interface";
 import { DatePickerProps } from "../../molecules/DatePicker/interface";
+import { ColumnFiltersState, SortingState } from "@tanstack/react-table";
 
-export interface DataTableProps {
+export interface DataTableProps<T = any> {
   /** Data to display in the table */
   dataSource: any[];
   /** Column definitions for the table */
@@ -69,6 +70,10 @@ export interface DataTableProps {
   partialRowDeletionID?: string;
   /** Coordinates of the currently selected cell */
   selectedCell?: SelectedCellCoordProp;
+  /** Turn on manual/remote mode */
+  serverMode?: boolean;
+  /** Remote data loader for serverMode */
+  server?: ServerConfig<T>;
   /** Callback when a row is clicked */
   onRowClick?: (
     rowData: any,
@@ -94,6 +99,29 @@ export interface DataTableProps {
   /** Callback when the active row changes */
   onActiveRowChange?: (rowData: any, __internalId?: string) => void;
 }
+
+export type ServerFetcherParams = {
+  pageIndex: number;
+  pageSize: number;
+  sorting: SortingState;
+  columnFilters: ColumnFiltersState;
+  globalFilter: string;
+};
+
+export type ServerFetcherResult<T = any> = {
+  /** rows to display for the current page */
+  rows: T[];
+  /** total rows in the collection after filters (for pageCount) */
+  total: number;
+};
+
+/** Optional server-mode config */
+export type ServerConfig<T = any> = {
+  /** Required: your async loader */
+  fetcher: (params: ServerFetcherParams) => Promise<ServerFetcherResult<T>>;
+  /** Optional: debounce for globalFilter (ms). Default 350 */
+  debounceMs?: number;
+};
 
 export type SelectedCellCoordProp = [number, number] | string;
 

@@ -121,6 +121,8 @@ export const DataTable = <T extends object>({
   expandedRowContent,
   onActiveRowChange,
   selectedCell: selectedCellProp,
+  serverMode = false,
+  server,
 }: DataTableProps) => {
   const tableWrapperRef = useRef<HTMLDivElement>(null);
   const instanceIdRef = useRef<number>(Date.now() + Math.random());
@@ -138,6 +140,12 @@ export const DataTable = <T extends object>({
     message: React.ReactNode;
     icon?: string;
   } | null>(null);
+
+  // --- Server mode state ---
+  const [serverTotal, setServerTotal] = useState<number>(0);
+  const [serverLoading, setServerLoading] = useState<boolean>(false);
+  const fetchSeqRef = useRef(0); // guards races between overlapping requests
+  const globalFilterDebounceRef = useRef<number | null>(null);
 
   const showToast = React.useCallback(
     (cfg: {
@@ -157,6 +165,12 @@ export const DataTable = <T extends object>({
   );
 
   const hideToast = React.useCallback(() => setToastShow(false), []);
+
+  // Auto-reset to first page on filter changes (server mode only)
+  const lastFiltersRef = React.useRef({
+    global: "",
+    cols: JSON.stringify([] as ColumnFiltersState),
+  });
 
   // Page reset suppression controller (covers local edit + parent echo)
   const {
@@ -230,7 +244,24 @@ export const DataTable = <T extends object>({
     () => UTILS.initializeDataWithIds(dataSource),
     [dataSource],
   );
+
   const uniqueValueMaps = useUniqueValueMaps(data, safeColumnSettings);
+
+  const currentQueryParams = useMemo(() => {
+    return {
+      pageIndex: pagination.pageIndex,
+      pageSize: pagination.pageSize,
+      sorting,
+      columnFilters,
+      globalFilter: globalFilter ?? "",
+    };
+  }, [
+    pagination.pageIndex,
+    pagination.pageSize,
+    sorting,
+    columnFilters,
+    globalFilter,
+  ]);
 
   // Memoized sizing function so we can call it from RO + window.resize
   const applySizing = React.useCallback(() => {
@@ -458,6 +489,52 @@ export const DataTable = <T extends object>({
 
     onActiveRowChange(sanitized, found?.__internalId);
   }, [activeRowId, data, onActiveRowChange]);
+
+  useEffect(() => {
+    if (!serverMode || !server?.fetcher) return;
+
+    // Debounce on globalFilter only (typing should not hammer the API)
+    if (globalFilterDebounceRef.current) {
+      window.clearTimeout(globalFilterDebounceRef.current);
+      globalFilterDebounceRef.current = null;
+    }
+
+    const doFetch = async () => {
+      const seq = ++fetchSeqRef.current;
+      setServerLoading(true);
+      try {
+        const { rows, total } = await server.fetcher(currentQueryParams);
+        if (seq !== fetchSeqRef.current) return; // stale
+        // write data in one shot; keep your page-reset guard intact
+        noPageReset(() => setData(UTILS.initializeDataWithIds(rows as any)));
+        setServerTotal(total);
+      } catch (err) {
+        console.error("[DataTable] server fetch failed:", err);
+        // leave old data; you can expose a toast if you want
+      } finally {
+        if (seq === fetchSeqRef.current) setServerLoading(false);
+      }
+    };
+
+    const delay = server?.debounceMs ?? 350;
+    if (currentQueryParams.globalFilter) {
+      globalFilterDebounceRef.current = window.setTimeout(doFetch, delay);
+      return () => {
+        if (globalFilterDebounceRef.current) {
+          window.clearTimeout(globalFilterDebounceRef.current);
+          globalFilterDebounceRef.current = null;
+        }
+      };
+    } else {
+      doFetch();
+    }
+  }, [
+    serverMode,
+    server?.fetcher,
+    server?.debounceMs,
+    currentQueryParams,
+    noPageReset,
+  ]);
 
   // Updated handleCellCommit using setDeepValue and getDeepValue.
   const handleCellCommit = (rowId: string, accessor: string, val: any) => {
@@ -859,16 +936,33 @@ export const DataTable = <T extends object>({
       columnFilters,
       columnVisibility,
     },
+    // ---- Add these flags for serverMode ----
+    manualPagination: serverMode,
+    manualSorting: serverMode,
+    manualFiltering: serverMode,
+    // ✅ give TanStack the true total; it will compute pageCount for you
+    rowCount: serverMode ? serverTotal : undefined,
+    pageCount: serverMode
+      ? Math.max(
+          1,
+          Math.ceil((serverTotal || 0) / Math.max(1, pagination.pageSize)),
+        )
+      : undefined,
+
+    // custom filter functions
     filterFns: {
       dateFilter: UTILS.dateFilter,
       dateRangeFilter: UTILS.dateRangeFilter,
     },
+
+    // enable/disable features
     enableColumnFilters: enableColumnFiltering,
     enableGlobalFilter: enableGlobalFiltering,
     enableSorting: enableColumnSorting,
     enableColumnResizing: enableColumnResizing,
     enableColumnPinning: enableColumnPinning,
     enableMultiRowSelection: enableMultiRowSelection,
+
     getRowCanExpand,
     getSubRows: (row) => (row as any)?.subRows,
     getRowId: (row, index, parent) =>
@@ -887,13 +981,22 @@ export const DataTable = <T extends object>({
     getSortedRowModel: getSortedRowModel(),
     onColumnOrderChange: setColumnOrder,
     getPaginationRowModel: getPaginationRowModel(),
+
     // Column filter related settings
     getFacetedRowModel: getFacetedRowModel(), // client-side faceting
     getFacetedUniqueValues: getFacetedUniqueValues(), // generate unique values for select filter/autocomplete
     getFacetedMinMaxValues: getFacetedMinMaxValues(), // generate min/max values for range filter
 
-    // ✅ only reset when we're not in an edit commit window
-    autoResetPageIndex: !(skipPageResetRef.current || isPageResetSuppressed()),
+    // Server mode
+    ...(serverMode ? {} : { getFilteredRowModel: getFilteredRowModel() }),
+    ...(serverMode ? {} : { getSortedRowModel: getSortedRowModel() }),
+    ...(serverMode ? {} : { getPaginationRowModel: getPaginationRowModel() }),
+
+    // ✅ do NOT auto-reset page in server mode
+    autoResetPageIndex: serverMode
+      ? false
+      : !(skipPageResetRef.current || isPageResetSuppressed()),
+    meta: { serverLoading },
   });
 
   // skip emits caused by window/container resize or other programmatic changes
@@ -930,6 +1033,23 @@ export const DataTable = <T extends object>({
 
   // Auto-scroll when a new cell is selected
   useAutoScroll(selectedCell, tableWrapperRef);
+
+  React.useEffect(() => {
+    if (!serverMode) return;
+
+    const globalNow = globalFilter ?? "";
+    const colsNow = JSON.stringify(columnFilters);
+
+    const globalChanged = lastFiltersRef.current.global !== globalNow;
+    const colsChanged = lastFiltersRef.current.cols !== colsNow;
+
+    if (globalChanged || colsChanged) {
+      lastFiltersRef.current = { global: globalNow, cols: colsNow };
+      if (table.getState().pagination.pageIndex !== 0) {
+        table.setPageIndex(0); // triggers your fetcher with pageIndex=0
+      }
+    }
+  }, [serverMode, globalFilter, columnFilters, table]);
 
   const handleConfirmDelete = () => {
     const selectedRows = table
@@ -1145,7 +1265,7 @@ export const DataTable = <T extends object>({
       ref={tableWrapperRef}
       data-table-instanceid={instanceIdRef.current}
       className={`data-table-wrapper ${isFocused ? "is-focused" : "is-not-focused"}`}
-      $disabled={disabled}
+      $disabled={disabled || serverLoading}
       tabIndex={0}
       onClickCapture={() => {
         if (showAlert) return;

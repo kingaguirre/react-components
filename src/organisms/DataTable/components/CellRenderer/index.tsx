@@ -1,6 +1,15 @@
 import React, { useMemo } from "react";
 import { EditableCell } from "./EditableCell";
 
+// helpers (keep these as you had previously or from my last message)
+const ESCAPE_RE = /[.*+?^${}()|[\]\\]/g;
+const escapeRegExp = (s: string) => s.replace(ESCAPE_RE, "\\$&");
+const tokenize = (s?: string) =>
+  (s ?? "")
+    .split(/\s+/)
+    .map((t) => t.trim())
+    .filter(Boolean);
+
 export interface CellRendererProps {
   row: any;
   getValue: () => any;
@@ -114,34 +123,47 @@ const CellRendererComponent: React.FC<CellRendererProps> = ({
 
   const text = cellValue?.toString() || "";
 
-  // Memoize the filter terms.
+  // 1) Build normalized, deduped, length-sorted tokens
   const filterTerms = useMemo(() => {
-    const terms: string[] = [];
-    if (globalFilter && globalFilter.trim()) {
-      terms.push(globalFilter.trim());
-    }
-    if (columnFilters && Array.isArray(columnFilters)) {
-      const currentColumnFilter = columnFilters.find((f) => f.id === column.id);
-      if (currentColumnFilter && currentColumnFilter.value.trim()) {
-        terms.push(currentColumnFilter.value.trim());
-      }
-    }
-    return terms;
-  }, [globalFilter, columnFilters, columnId, column.id]);
+    const globalTokens = tokenize(globalFilter);
+    const colTokens = (() => {
+      if (!columnFilters || !Array.isArray(columnFilters)) return [];
+      const f = columnFilters.find((f) => f.id === column?.id);
+      const v = (typeof f?.value === "string" ? f.value : "")?.trim();
+      return tokenize(v);
+    })();
 
-  // Create a combined regex for the filter terms.
+    const seen = new Set<string>();
+    const all = [...globalTokens, ...colTokens]
+      .map((t) => t.slice(0, 64))
+      .filter((t) => {
+        const key = t.toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+    all.sort((a, b) => b.length - a.length);
+    return all.slice(0, 10);
+  }, [globalFilter, columnFilters, column?.id]);
+
+  // 2) Combined, escaped regex with capturing group
   const combinedRegex = useMemo(() => {
-    return filterTerms.length > 0
-      ? new RegExp(`(${filterTerms.join("|")})`, "gi")
-      : null;
+    if (filterTerms.length === 0) return null;
+    const pattern = filterTerms.map(escapeRegExp).join("|");
+    // NOTE: capturing group is required so split() keeps matches
+    return new RegExp(`(${pattern})`, "gi");
   }, [filterTerms]);
 
-  // Compute the highlighted text.
+  // 3) Highlighted text — no .test() with /g/, use index parity instead
   const highlightedText = useMemo(() => {
-    if (!combinedRegex) return text;
-    return text.split(combinedRegex).map((part, index) =>
-      part.match(combinedRegex) ? (
-        <span key={index} style={{ backgroundColor: "yellow" }}>
+    if (!combinedRegex || !text) return text;
+
+    const parts = text.split(combinedRegex);
+    // parts: [nonMatch, match, nonMatch, match, ...]
+    return parts.map((part, idx) =>
+      idx % 2 === 1 ? (
+        <span key={idx} style={{ backgroundColor: "yellow" }}>
           {part}
         </span>
       ) : (

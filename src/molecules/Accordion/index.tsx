@@ -145,7 +145,6 @@ interface AccordionItemInternalProps extends AccordionItemProps {
 }
 
 const AccordionItem: React.FC<AccordionItemInternalProps> = ({
-  id,
   title,
   children,
   color = "primary",
@@ -154,9 +153,6 @@ const AccordionItem: React.FC<AccordionItemInternalProps> = ({
   open,
   toggle,
   disabled = false,
-  onClick,
-  onOpen,
-  onClose,
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const [maxHeight, setMaxHeight] = useState(0);

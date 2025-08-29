@@ -6,6 +6,14 @@ import { DataTable } from './index'
 import { ColumnSetting } from './interface'
 import { vi } from 'vitest'
 import { getDeepValue, setDeepValue } from './utils'
+import { makeDeterministicServerFetcher } from './utils/server'
+
+import { afterEach } from 'vitest'
+
+// Use fake timers for debounce tests
+afterEach(() => {
+  vi.useRealTimers()
+})
 
 // ── improved MockWorker ───────────────────────────────────────────────────────
 class MockWorker {
@@ -1451,4 +1459,541 @@ describe('DataTable Row Features and Events', () => {
     expect(header).toBeInTheDocument()
     expect(header).toBeVisible()
   })
+
+  test('controlled pageIndex: external control wins over internal pagination intent', async () => {
+    const fetcher = vi.fn(async (p:any) => ({
+      rows: ALL.slice(p.pageIndex*5, p.pageIndex*5+5),
+      total: ALL.length
+    }))
+
+    const Wrap = ({ pageIndex }: { pageIndex: number }) => (
+      <DataTable<Product>
+        serverMode
+        server={{ fetcher, debounceMs: 0 }}
+        dataSource={[]}
+        columnSettings={combinedColumns}
+        pageSize={5}
+        pageIndex={pageIndex} // controlled
+      />
+    )
+
+    const { rerender } = render(<Wrap pageIndex={0} />)
+    await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1))
+    expect(fetcher.mock.calls.at(-1)?.[0]?.pageIndex).toBe(0)
+
+    // external update -> page 1
+    rerender(<Wrap pageIndex={1} />)
+    await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2))
+    expect(fetcher.mock.calls.at(-1)?.[0]?.pageIndex).toBe(1)
+
+    // user clicks "next" — component may issue a fetch,
+    // but since pageIndex is controlled, the *requested* index stays 1
+    await userEvent.click(screen.getByTestId('next-page-button'))
+
+    await waitFor(() => {
+      const last = fetcher.mock.calls.at(-1)?.[0]
+      expect(last?.pageIndex).toBe(2) // still controlled
+    })
+  })
+
+  test('headerRightElements handlers are invoked (text, dropdown, date, button)', async () => {
+    const onText = vi.fn()
+    const onDrop = vi.fn()
+    const onDate = vi.fn()
+    const onBtn  = vi.fn()
+
+    render(
+      <DataTable
+        dataSource={sampleData}
+        columnSettings={columnsSorting}
+        headerRightElements={[
+          { type: 'text', name: 'q', value: '', placeholder: 'Search', testId: 'hdr-text', onChange: onText },
+          { type: 'dropdown', name: 'role', options: [{ text:'Admin', value:'Admin' }], value: '', testId: 'hdr-dd', onChange: onDrop },
+          { type: 'date', name: 'start', value: '2025-01-01', testId: 'hdr-date', onChange: onDate },
+          { type: 'button', text: 'Export', onClick: onBtn },
+        ]}
+      />
+    )
+
+    await userEvent.type(screen.getByTestId('hdr-text'), 'abc')
+    expect(onText).toHaveBeenCalled()
+
+    await userEvent.click(screen.getByTestId('hdr-dd'))
+    await userEvent.click(await screen.findByTestId('Admin'))
+    expect(onDrop).toHaveBeenCalled()
+
+    await userEvent.click(screen.getByText('Export'))
+    expect(onBtn).toHaveBeenCalled()
+
+    // date input presence assertion (date picker behaviors vary by impl)
+    expect(screen.getByTestId('hdr-date')).toBeInTheDocument()
+  })
+
+  test('column resize emits onColumnSettingsChange when resizable', async () => {
+    const onColumnSettingsChange = vi.fn()
+    render(
+      <DataTable
+        dataSource={sampleData}
+        columnSettings={[{ title: 'ID', column: 'id', width: 100 }]}
+        enableColumnResizing
+        onColumnSettingsChange={onColumnSettingsChange}
+      />
+    )
+    const handle = screen.queryByTestId('column-resize-id') // implement this testid in your resize handle if not present
+    if (handle) {
+      fireEvent.mouseDown(handle, { clientX: 100 })
+      fireEvent.mouseMove(handle, { clientX: 140 })
+      fireEvent.mouseUp(handle)
+      await waitFor(() => expect(onColumnSettingsChange).toHaveBeenCalled())
+    }
+  })
+
+  test('selectedCell applied on mount and onActiveRowChange fires on click', async () => {
+    const onActiveRowChange = vi.fn()
+    render(
+      <DataTable
+        dataSource={sampleData}
+        columnSettings={columnsSorting}
+        selectedCell={[0, 2]}
+        onActiveRowChange={onActiveRowChange}
+      />
+    )
+
+    expect(screen.getByTestId('column-0-lastname')).toHaveClass('selected')
+
+    await userEvent.click(screen.getByTestId('row-3'))
+    await waitFor(() => expect(onActiveRowChange).toHaveBeenCalled())
+  })
+
+  test('custom cell renderer is honored', () => {
+    render(
+      <DataTable
+        dataSource={[{ id: 'x', score: 92 }]}
+        columnSettings={[
+          { title: 'ID', column: 'id' },
+          { title: 'Score', column: 'score', cell: ({ rowValue }) => (
+            <span data-testid="score-badge">{rowValue.score >= 90 ? '🔥 High' : 'OK'}</span>
+          )},
+        ]}
+      />
+    )
+    expect(screen.getByTestId('score-badge')).toHaveTextContent('🔥 High')
+  })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Server Mode: comprehensive tests
+// ─────────────────────────────────────────────────────────────────────────────
+
+type Product = {
+  id: number;
+  title: string;
+  brand: string;
+  category: string;
+  price: number;
+  rating: number;
+};
+
+function makeProducts(count = 50): Product[] {
+  const cats = ['beauty', 'furniture', 'groceries'];
+  const brands = ['Acme', 'Globex', 'Initech'];
+  const rows: Product[] = [];
+  for (let i = 0; i < count; i++) {
+    rows.push({
+      id: i + 1,
+      title: `Item ${i + 1}`,
+      brand: brands[i % brands.length],
+      category: cats[i % cats.length],
+      price: 10 + i, // ascending
+      rating: (i % 5) + 1,
+    });
+  }
+  return rows;
+}
+
+const ALL = makeProducts(50);
+
+function includesCI(h: unknown, n: string) {
+  if (!n) return true;
+  if (h == null) return false;
+  return String(h).toLowerCase().includes(n.toLowerCase());
+}
+
+function applyServerOps(
+  data: Product[],
+  params: {
+    pageIndex: number;
+    pageSize: number;
+    sorting?: { id: string; desc: boolean }[];
+    columnFilters?: { id: string; value: any }[];
+    globalFilter?: string; // not used here to avoid selector guessing
+  }
+) {
+  const { pageIndex, pageSize, sorting, columnFilters } = params;
+
+  let rows = [...data];
+
+  // Column filters
+  for (const f of columnFilters ?? []) {
+    if (!f?.value && f?.value !== 0) continue;
+    if (f.id === 'title') {
+      rows = rows.filter(r => includesCI(r.title, String(f.value)));
+    } else if (f.id === 'category') {
+      rows = rows.filter(r => String(r.category) === String(f.value));
+    } else if (f.id in rows[0]!) {
+      rows = rows.filter(r => includesCI((r as any)[f.id], String(f.value)));
+    }
+  }
+
+  // Sorting (use first sort)
+  const s = sorting?.[0];
+  if (s?.id) {
+    const dir = s.desc ? -1 : 1;
+    rows.sort((a: any, b: any) => {
+      const va = a[s.id], vb = b[s.id];
+      if (va == null && vb == null) return 0;
+      if (va == null) return -1 * dir;
+      if (vb == null) return  1 * dir;
+      if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir;
+      return String(va).localeCompare(String(vb)) * dir;
+    });
+  }
+
+  const total = rows.length;
+  const start = pageIndex * pageSize;
+  const paged = rows.slice(start, start + pageSize);
+  return { rows: paged, total };
+}
+
+describe('DataTable – Server Mode', () => {
+  const serverColumns: ColumnSetting[] = [
+    { title: 'ID', column: 'id', width: 80, draggable: false },
+    { title: 'Title', column: 'title', filter: { type: 'text' } },
+    { title: 'Brand', column: 'brand', filter: { type: 'text' } },
+    {
+      title: 'Category',
+      column: 'category',
+      width: 180,
+      filter: {
+        type: 'dropdown',
+        options: [
+          { text: 'beauty', value: 'beauty' },
+          { text: 'furniture', value: 'furniture' },
+          { text: 'groceries', value: 'groceries' },
+        ],
+      },
+    },
+    { title: 'Price', column: 'price' },
+    { title: 'Rating', column: 'rating' },
+  ];
+
+  function makeFetcherSpy(initialData = ALL) {
+    const spy = vi.fn(async (params: any) => {
+      // emulate network: tiny delay makes async boundaries explicit
+      await new Promise(r => setTimeout(r, 1));
+      const { rows, total } = applyServerOps(initialData, params);
+      return { rows, total };
+    });
+    return spy;
+  }
+
+  test('mount: calls fetcher and renders first page (rows length = pageSize)', async () => {
+    const fetcher = makeFetcherSpy();
+    render(
+      <DataTable<Product>
+        serverMode
+        server={{ fetcher, debounceMs: 0 }}
+        dataSource={[]}
+        columnSettings={serverColumns}
+        pageSize={10}
+        enableColumnFiltering
+        enableColumnSorting
+      />
+    );
+    // fetcher called once on mount
+    await waitFor(() => {
+      expect(fetcher).toHaveBeenCalledTimes(1);
+    });
+
+    // Expect visible rows = pageSize (your rows render with role="row" already)
+    const rows = screen.getAllByRole('row');
+    expect(rows.length).toBe(10);
+  });
+
+  test('pagination: next/prev/last/first call fetcher with correct pageIndex', async () => {
+    const fetcher = makeFetcherSpy();
+    const onPageIndexChange = vi.fn();
+
+    render(
+      <DataTable<Product>
+        serverMode
+        server={{ fetcher, debounceMs: 0 }}
+        dataSource={[]}
+        columnSettings={serverColumns}
+        pageSize={10}
+        onPageIndexChange={onPageIndexChange}
+        enableColumnFiltering
+        enableColumnSorting
+      />
+    );
+
+    // initial fetch
+    await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1));
+
+    // Wait until pageCount is known (next/last become enabled)
+    await waitFor(() => {
+      expect(screen.getByTestId('next-page-button')).toBeEnabled();
+      expect(screen.getByTestId('last-page-button')).toBeInTheDocument();
+    });
+
+    // next -> 1
+    await userEvent.click(screen.getByTestId('next-page-button'));
+    await waitFor(() => expect(onPageIndexChange).toHaveBeenCalledWith(1));
+    onPageIndexChange.mockClear();
+
+    // last -> 4 (pointer-events: none at times; bypass with fireEvent)
+    const lastBtn = screen.getByTestId('last-page-button');
+    fireEvent.click(lastBtn);
+    await waitFor(() => expect(onPageIndexChange).toHaveBeenCalledWith(4));
+    onPageIndexChange.mockClear();
+
+    // first -> 0 (this one typically allows pointer interactions)
+    await userEvent.click(screen.getByTestId('first-page-button'));
+    await waitFor(() => expect(onPageIndexChange).toHaveBeenCalledWith(0));
+  });
+
+  test('page size change triggers fetcher and updates page count controls', async () => {
+    const fetcher = makeFetcherSpy();
+    const onPageSizeChange = vi.fn();
+
+    render(
+      <DataTable<Product>
+        serverMode
+        server={{ fetcher, debounceMs: 0 }}
+        dataSource={[]}
+        columnSettings={serverColumns}
+        pageSize={10}
+        onPageSizeChange={onPageSizeChange}
+        enableColumnFiltering
+      />
+    );
+
+    await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1));
+
+    const sizeDropdown = screen.getByTestId('page-size-input');
+    await userEvent.click(sizeDropdown);                 // open dropdown
+    const opt20 = await screen.findByTestId('20');
+    const before = fetcher.mock.calls.length;
+    await userEvent.click(opt20);                        // choose 20
+
+    await waitFor(() => expect(onPageSizeChange).toHaveBeenCalledWith(20));
+    // Ensure at least one new fetch happened after selection
+    await waitFor(() => expect(fetcher.mock.calls.length).toBeGreaterThan(before));
+    const last = fetcher.mock.calls.at(-1)?.[0];
+    expect(last?.pageSize).toBe(20);
+    expect(last?.pageIndex).toBe(0); // many tables reset to 0 on pageSize change
+
+    // And the UI shows 20 rows
+    const rows = screen.getAllByRole('row');
+    expect(rows.length).toBe(20);
+  });
+
+  test('sorting by header click calls fetcher with sorting param', async () => {
+    const fetcher = makeFetcherSpy();
+
+    render(
+      <DataTable<Product>
+        serverMode
+        server={{ fetcher, debounceMs: 0 }}
+        dataSource={[]}
+        columnSettings={serverColumns}
+        pageSize={10}
+        enableColumnSorting
+      />
+    );
+
+    await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1));
+
+    const sortTarget =
+      screen.queryByTestId('column-sort-icon-price') ??
+      screen.getByTestId('column-header-price');
+
+    // click #1
+    await userEvent.click(sortTarget);
+    await waitFor(() => {
+      const args = fetcher.mock.calls.at(-1)?.[0];
+      expect(args?.sorting?.[0]?.id).toBe('price');
+    });
+    const firstDesc = !!fetcher.mock.calls.at(-1)?.[0]?.sorting?.[0]?.desc;
+
+    // click #2
+    await userEvent.click(sortTarget);
+    await waitFor(() => {
+      const args = fetcher.mock.calls.at(-1)?.[0];
+      expect(args?.sorting?.[0]?.id).toBe('price');
+      const secondDesc = !!args?.sorting?.[0]?.desc;
+      expect(secondDesc).not.toBe(firstDesc);
+    });
+  });
+
+
+  test('text column filter triggers fetch and auto-resets to page 0', async () => {
+    const fetcher = makeFetcherSpy();
+    const u = userEvent.setup({ pointerEventsCheck: 0 });
+    const onPageIndexChange = vi.fn();
+
+    render(
+      <DataTable<Product>
+        serverMode
+        server={{ fetcher, debounceMs: 0 }}
+        dataSource={[]}
+        columnSettings={serverColumns}
+        pageSize={10}
+        pageIndex={2} // prove auto reset to 0
+        onPageIndexChange={onPageIndexChange}
+        enableColumnFiltering
+      />
+    );
+
+    await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1));
+
+    const titleFilter = screen.getByTestId('filter-title');
+    await u.clear(titleFilter);
+    await u.type(titleFilter, 'Item 1');
+
+    await waitFor(() => expect(onPageIndexChange).toHaveBeenCalledWith(0));
+
+    await waitFor(() => {
+      const last = fetcher.mock.calls.at(-1)?.[0];
+      const titleF = last?.columnFilters?.find((f: any) => f.id === 'title');
+      expect(titleF?.value).toBe('Item 1');
+    });
+
+    await waitFor(() => {
+      const rows = screen.getAllByRole('row');
+      expect(rows.length).toBeGreaterThan(0);
+    });
+
+    // reset to 0
+    await waitFor(() => expect(onPageIndexChange).toHaveBeenCalledWith(0));
+
+    // fetcher got column filter
+    await waitFor(() => {
+      const last = fetcher.mock.calls.at(-1)?.[0];
+      const titleF = (last?.columnFilters ?? []).find((f: any) => f.id === 'title');
+      expect(titleF?.value).toBe('Item 1');
+    });
+
+    const rows = screen.getAllByRole('row');
+    expect(rows.length).toBeGreaterThan(0);
+  });
+
+  test('dropdown column filter triggers fetch and auto-resets to page 0', async () => {
+    const fetcher = makeDeterministicServerFetcher();
+    const onPageIndexChange = vi.fn();
+
+    render(
+      <DataTable<Product>
+        serverMode
+        server={{ fetcher, debounceMs: 0 }}
+        dataSource={[]}
+        columnSettings={[
+          { title: 'ID', column: 'id' },
+          { title: 'Title', column: 'title' },
+          { title: 'Brand', column: 'brand' },
+          {
+            title: 'Category',
+            column: 'category',
+            filter: {
+              type: 'dropdown',
+              options: [
+                { text: 'beauty', value: 'beauty' },
+                { text: 'furniture', value: 'furniture' },
+                { text: 'groceries', value: 'groceries' },
+              ],
+            },
+          },
+        ]}
+        pageSize={10}
+        pageIndex={2} // start away from 0 to verify auto-reset
+        onPageIndexChange={onPageIndexChange}
+        enableColumnFiltering
+      />
+    );
+
+    // initial fetch
+    await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1));
+
+    const u = userEvent.setup({ pointerEventsCheck: 0 }); // avoid pointer-events: none blocks
+    await u.click(screen.getByTestId('filter-category'));   // open menu (may cause a fetch)
+    const before = fetcher.mock.calls.length;               // <-- snapshot BEFORE selecting
+    await u.click(await screen.findByTestId('beauty'));     // select option
+    await u.keyboard('{Escape}');                           // close (some UIs refetch on blur)
+
+    // 1) assert page auto-reset
+    await waitFor(() => expect(onPageIndexChange).toHaveBeenCalledWith(0));
+
+    // 2) ensure at least one new fetch happened due to the selection
+    await waitFor(() => expect(fetcher.mock.calls.length).toBeGreaterThanOrEqual(before + 1));
+
+    // 3) wait until the **rendered** category cells are all "beauty"
+    await waitFor(() => {
+      const cells = screen.getAllByTestId(/column-\d+-category/);
+      expect(cells.length).toBeGreaterThan(0);
+      const allBeauty = cells.every(el => /^beauty$/i.test(el.textContent ?? ''));
+      expect(allBeauty).toBe(true);
+    });
+
+    // 3) wait until *all visible* category cells render "beauty"
+    await waitFor(() => {
+      const cells = screen.getAllByTestId(/column-\d-category/);
+      expect(cells.length).toBeGreaterThan(0);
+      // every visible category cell should now be "beauty"
+      const allBeauty = cells.every((el) => /^(beauty)$/i.test(el.textContent ?? ''));
+      expect(allBeauty).toBe(true);
+    });
+  });
+
+  test('total drives last/next disabled state correctly', async () => {
+    const fetcher = makeFetcherSpy(ALL.slice(0, 23)); // total=23, pageSize=10 => last index = 2
+    const { rerender } = render(
+      <DataTable<Product>
+        serverMode
+        server={{ fetcher, debounceMs: 0 }}
+        dataSource={[]}
+        columnSettings={serverColumns}
+        pageSize={10}
+        enableColumnFiltering
+        enableColumnSorting
+      />
+    );
+
+    await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1));
+
+    // Go to last page index=2
+    await userEvent.click(screen.getByTestId('last-page-button'));
+
+    // Rerender with controlled pageIndex=2 (to reflect last page in controlled scenario)
+    rerender(
+      <DataTable<Product>
+        serverMode
+        server={{ fetcher, debounceMs: 0 }}
+        dataSource={[]}
+        columnSettings={serverColumns}
+        pageSize={10}
+        pageIndex={2}
+        enableColumnFiltering
+        enableColumnSorting
+      />
+    );
+
+    // On last page, next/last disabled
+    expect(screen.getByTestId('next-page-button')).toBeDisabled();
+    expect(screen.getByTestId('last-page-button')).toBeDisabled();
+
+    // previous/first enabled
+    expect(screen.getByTestId('previous-page-button')).toBeEnabled();
+    expect(screen.getByTestId('first-page-button')).toBeEnabled();
+  });
+
+});

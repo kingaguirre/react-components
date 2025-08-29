@@ -10,7 +10,7 @@ import { FormControl } from '../../atoms/FormControl'
 import { Icon } from '../../atoms/Icon'
 
 const descriptionText =
-  'The Modal component is used to display content in an overlay dialog. It supports various configurations including different sizes, header colors, footer button alignment, and close behaviors'
+  'The Modal component is used to display content in an overlay dialog. It supports various configurations including different sizes, header colors, footer button alignment, close behaviors, and async content.'
 
 const meta: Meta<typeof Modal> = {
   title: 'Organisms/Modal',
@@ -38,7 +38,7 @@ const meta: Meta<typeof Modal> = {
 
 export default meta
 
-// ✅ Default Modal Component (Fixes ESLint Hook Rule)
+// ✅ Default Modal Component
 const DefaultModal = (args: ModalProps) => {
   const [open, setOpen] = useState(false)
   return (
@@ -66,7 +66,7 @@ export const Default: StoryObj<typeof meta> = {
   render: (args) => <DefaultModal {...args} />
 }
 
-// ✅ Modal Examples Component
+// ✅ Modal Examples Component (with async demo included)
 const ModalExamples = () => {
   const [openLong, setOpenLong] = useState(false)
   const [openFooter, setOpenFooter] = useState(false)
@@ -77,6 +77,29 @@ const ModalExamples = () => {
   const [openColor, setOpenColor] = useState(false)
   const [openNoClose, setOpenNoClose] = useState(false)
   const [openNoIcon, setOpenNoIcon] = useState(false)
+
+  // Async demo state
+  const [openAsync, setOpenAsync] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [data, setData] = useState<any>(null)
+  const [name, setName] = useState("")
+
+  const handleAsyncOpen = async () => {
+    setOpenAsync(true)
+    setLoading(true)
+    setData(null)
+
+    try {
+      const response = await fetch("https://dummyjson.com/users/1")
+      const json = await response.json()
+      setData(json)
+      setName(json.firstName)
+    } catch (err) {
+      console.error("API error:", err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const colorOptions = ['primary', 'success', 'warning', 'danger', 'info', 'default'] as const
 
@@ -198,6 +221,39 @@ const ModalExamples = () => {
       </Modal>
       <Modal show={openNoIcon} onClose={() => setOpenNoIcon(false)} title='No Close Icon' showCloseIcon={false}>
         <p>This modal <strong>has no close button (X)</strong>.</p>
+      </Modal>
+
+      {/* ✅ Async API Demo */}
+      <Title>Async API Demo</Title>
+      <Button color='primary' onClick={handleAsyncOpen}>
+        Open Async Modal
+      </Button>
+      <Modal
+        show={openAsync}
+        onClose={() => setOpenAsync(false)}
+        title="Async API Modal"
+        color="info"
+        onOpening={() => console.log("Modal opening")}
+        onOpened={() => console.log("Modal opened")}
+        onClosing={() => console.log("Modal closing")}
+        onClosed={() => console.log("Modal closed")}
+      >
+        <FormControl
+          label="First Name"
+          type="text"
+          value={name}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            setName(e.target.value)
+          }
+        />
+
+        {loading && <p>Loading...</p>}
+
+        {!loading && data && (
+          <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+            {JSON.stringify(data, null, 2)}
+          </pre>
+        )}
       </Modal>
     </StoryWrapper>
   )

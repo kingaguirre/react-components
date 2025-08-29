@@ -28,7 +28,6 @@ interface ExtraRowProps {
   __internalId?: string;
 }
 
-// Assuming your row data is of type TData, you can intersect it with ExtraRowProps:
 type RowDataWithExtras<TData> = TData & ExtraRowProps;
 
 export const Footer = <TData,>({
@@ -39,38 +38,43 @@ export const Footer = <TData,>({
   const hasColumns =
     table.getVisibleLeafColumns().filter((c) => !BUILTIN_COLUMN_IDS.has(c.id))
       .length > 0;
-  const hasTotalRecords = table.getRowModel().rows.length > 0 && hasColumns;
-  const totalFilteredRecords = table.getFilteredRowModel().rows.length;
-  const endRange =
-    (table.getState().pagination.pageIndex + 1) *
-    table.getState().pagination.pageSize;
-  // Set correct end range
-  const _endRange =
-    totalFilteredRecords > endRange ? endRange : totalFilteredRecords;
+
+  // 🔎 Detect server mode
+  const isServer = Boolean((table.options as any).manualPagination);
+
+  // 📊 Total records
+  const totalRecords = isServer
+    ? ((table.options as any).rowCount ?? 0)
+    : table.getFilteredRowModel().rows.length;
+
+  const hasTotalRecords = totalRecords > 0 && hasColumns;
+
+  const { pageIndex, pageSize } = table.getState().pagination;
+  const startRange = totalRecords === 0 ? 0 : pageIndex * pageSize + 1;
+  const endRange = Math.min(totalRecords, (pageIndex + 1) * pageSize);
 
   const isPrevDisabled = !table.getCanPreviousPage();
   const isNextDisabled = !table.getCanNextPage();
 
-  // Inside your footer component's render function:
+  // Selection counts
   const rowSelection = table.getState().rowSelection;
-  // Count only truthy selection values
   const totalSelectedRows = Object.keys(rowSelection).filter(
-    (key) => rowSelection[key],
+    (key) => (rowSelection as any)[key],
   ).length;
 
-  // Get the visible page rows
-  const pageRows = table.getRowModel().rows;
+  // Current page rows (server vs client)
+  const pageRows = isServer
+    ? table.getRowModel().rows
+    : table.getPaginationRowModel().rows;
 
   // Filter out rows that are new or disabled so that they won't be updated on toggle
   const selectablePageRows = pageRows.filter((row) => {
-    // Cast the original data to our extended type
     const original = row.original as RowDataWithExtras<typeof row.original>;
     const isNewRow = !!original.__isNew;
     const isDisabled = disabledRows.includes(original.__internalId ?? "");
     return !(isNewRow || isDisabled);
   });
 
-  // Compute if all or some of the selectable page rows are selected
   const isAllPageSelected =
     selectablePageRows.length > 0 &&
     selectablePageRows.every((row) => row.getIsSelected());
@@ -78,13 +82,11 @@ export const Footer = <TData,>({
     row.getIsSelected(),
   );
 
-  const handleOnChange = (e) => {
+  const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newSelected = e.target.checked;
-    // Start with the current selection state so disabled rows are preserved.
     const newSelection: Record<string, boolean> = {
       ...table.getState().rowSelection,
     };
-    // Only update selection for selectable (visible) rows.
     pageRows.forEach((row) => {
       const original = row.original as RowDataWithExtras<typeof row.original>;
       const isNewRow = !!original.__isNew;
@@ -93,7 +95,6 @@ export const Footer = <TData,>({
         newSelection[row.id] = newSelected;
       }
     });
-    // Use the onRowSelectionChange callback to update the controlled state.
     if (table.options.onRowSelectionChange) {
       table.options.onRowSelectionChange(newSelection);
     } else {
@@ -109,42 +110,38 @@ export const Footer = <TData,>({
             checked={isAllPageSelected}
             indeterminate={isSomePageSelected && !isAllPageSelected}
             onChange={handleOnChange}
-            text={`Page Rows (${table.getRowModel().rows.length})`}
+            text={`Page Rows (${pageRows.length})`}
             rowId="footer"
           />
           {totalSelectedRows > 0 && (
             <SelectedContainer>
               <Icon icon="done_all" /> {formatNumber(totalSelectedRows)} Total
-              Selected Row
-              {totalSelectedRows > 1 ? "s" : ""}
+              Selected Row{totalSelectedRows > 1 ? "s" : ""}
             </SelectedContainer>
           )}
         </SelectRowContainer>
       )}
+
       <FooterDetailsContainer>
         <LeftDetails>
           {hasTotalRecords && (
             <>
               <span>Displaying</span>
-              <span>
-                {table.getState().pagination.pageIndex *
-                  table.getState().pagination.pageSize +
-                  1}
-              </span>
+              <span>{startRange}</span>
               <span>to</span>
-              <span>{_endRange}</span>
+              <span>{endRange}</span>
               <span>of</span>
-              <span>{formatNumber(totalFilteredRecords)}</span>
+              <span>{formatNumber(totalRecords)}</span>
               <span>Records</span>
-              {/* <Button title='Refresh' onClick={() => rerender()}><Icon icon='refresh'></Icon></Button> */}
             </>
           )}
         </LeftDetails>
+
         <RightDetails $totalCount={countDigits(table.getPageCount())}>
           <span>Rows</span>
           <Dropdown
             size="sm"
-            value={table.getState().pagination.pageSize.toString()}
+            value={String(pageSize)}
             onChange={(value) => table.setPageSize(Number(value))}
             clearable={false}
             disabled={!hasTotalRecords}
@@ -158,31 +155,31 @@ export const Footer = <TData,>({
             ]}
             testId="page-size-input"
           />
+
           <Button
             data-testid="first-page-button"
             disabled={isPrevDisabled}
             {...(!isPrevDisabled
-              ? {
-                  onClick: () => table.setPageIndex(0),
-                }
+              ? { onClick: () => table.setPageIndex(0) }
               : {})}
           >
             <Icon icon="first_page" />
           </Button>
+
           <Button
             data-testid="previous-page-button"
             disabled={isPrevDisabled}
             {...(!isPrevDisabled
-              ? {
-                  onClick: () => table.previousPage(),
-                }
+              ? { onClick: () => table.previousPage() }
               : {})}
           >
             <Icon icon="keyboard_arrow_left" />
           </Button>
 
           <Tooltip
-            content={`Jump page (${table.getState().pagination.pageIndex + 1} of ${formatNumber(table.getPageCount())})`}
+            content={`Jump page (${pageIndex + 1} of ${formatNumber(
+              table.getPageCount(),
+            )})`}
           >
             <FormControl
               type="number"
@@ -190,7 +187,7 @@ export const Footer = <TData,>({
               size="sm"
               disabled={!hasTotalRecords}
               max={table.getPageCount()}
-              value={table.getState().pagination.pageIndex + 1}
+              value={pageIndex + 1}
               onChange={(e: ChangeEvent<HTMLInputElement>) => {
                 const page = e.target?.value ? Number(e.target.value) - 1 : 0;
                 table.setPageIndex(page);
@@ -200,24 +197,20 @@ export const Footer = <TData,>({
               clearable={false}
             />
           </Tooltip>
+
           <Button
             data-testid="next-page-button"
             disabled={isNextDisabled}
-            {...(!isNextDisabled
-              ? {
-                  onClick: () => table.nextPage(),
-                }
-              : {})}
+            {...(!isNextDisabled ? { onClick: () => table.nextPage() } : {})}
           >
             <Icon icon="keyboard_arrow_right" />
           </Button>
+
           <Button
             data-testid="last-page-button"
             disabled={isNextDisabled}
             {...(!isNextDisabled
-              ? {
-                  onClick: () => table.setPageIndex(table.getPageCount() - 1),
-                }
+              ? { onClick: () => table.setPageIndex(table.getPageCount() - 1) }
               : {})}
           >
             <Icon icon="last_page" />

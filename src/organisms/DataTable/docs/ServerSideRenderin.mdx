@@ -1,0 +1,67 @@
+import { Meta } from '@storybook/blocks';
+
+<Meta title="Organisms/DataTable/Server-side Rendering" />
+
+# Server-side Rendering
+
+The **DataTable** component supports **server-side rendering mode**, allowing you to connect the table directly to a remote API or backend service. Instead of relying on client-side filtering, sorting, and pagination, the component delegates these responsibilities to your server logic, making it ideal for large datasets or real-time APIs.
+
+
+## How It Works
+
+- **Enable Server Mode**  
+  Activate server-side behavior by passing `serverMode` as a prop.  
+  This switches the DataTable into manual mode, meaning it will no longer perform client-side filtering, sorting, or pagination.
+
+- **Custom Server Fetcher**  
+  You must provide a `server.fetcher` function.  
+  This async function receives parameters like page index, page size, sorting state, global filter, and column filters. It should return the paginated rows and the total record count.
+
+- **Debounce Global Search**  
+  To avoid sending too many requests, you can configure `server.debounceMs`. This delays global search calls until the user stops typing.
+
+---
+
+## Example Configuration
+
+Below is a configuration for a **Products table** connected to the [DummyJSON API](https://dummyjson.com/):
+
+```tsx
+<DataTable<Product>
+  serverMode
+  server={{
+    fetcher: dummyJsonProductsFetcher, // custom async loader
+    debounceMs: 350,                   // debounce global search
+  }}
+  dataSource={[]}  // Data is provided via fetcher, so leave empty
+  pageSize={10}
+  enableGlobalFiltering
+  enableColumnFiltering
+  enableColumnSorting
+  enableColumnResizing
+  enableColumnPinning
+  title="Products (remote)"
+  columnSettings={[
+    { title: 'ID', column: 'id', width: 80, draggable: false },
+    { title: 'Title', column: 'title', width: 300, filter: { type: 'text' } },
+    { title: 'Brand', column: 'brand', width: 180, filter: { type: 'text' } },
+    {
+      title: 'Category',
+      column: 'category',
+      width: 180,
+      filter: { 
+        type: 'dropdown',
+        options: [
+          { text: 'beauty', value: 'beauty' },
+          { text: 'furniture', value: 'furniture' },
+          { text: 'groceries', value: 'groceries' }
+        ]
+      },
+    },
+    { title: 'Price', column: 'price', width: 120, align: 'right' },
+    { title: 'Rating', column: 'rating', width: 120, align: 'right' },
+  ]}
+/>
+```
+## API
+For detailed API usage and configuration examples, please refer to the interactive **server side rendering** story. The demo provides a comprehensive example of how to configure and utilize the **DataTable**.

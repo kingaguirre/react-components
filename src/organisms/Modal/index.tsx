@@ -1,9 +1,11 @@
 // src/components/Modal/index.tsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import ReactDOM from "react-dom";
 import { ModalOverlay, ModalContainer } from "./styled";
 import { ModalProps } from "./interface";
 import { Panel } from "../../molecules/Panel";
+
+const ANIMATION_DURATION = 300;
 
 export const Modal: React.FC<ModalProps> = ({
   show,
@@ -18,78 +20,75 @@ export const Modal: React.FC<ModalProps> = ({
   leftIcon,
   rightIcons,
   disabled = false,
+  unmountOnHide = true,
+  onOpening,
+  onClosing,
+  onOpened,
+  onClosed,
 }) => {
+  const [isMounted, setIsMounted] = useState(show);
   const [isVisible, setIsVisible] = useState(show);
-  const [isClosing, setIsClosing] = useState(false);
-
-  // Function to open the modal
-  const openModal = () => {
-    // Calculate scrollbar width if the body is scrollable.
-    const scrollbarWidth =
-      window.innerWidth - document.documentElement.clientWidth;
-    if (scrollbarWidth > 0) {
-      document.body.style.paddingRight = `${scrollbarWidth}px`;
-    }
-    document.body.style.overflow = "hidden";
-    setIsVisible(true);
-    setIsClosing(false);
-  };
-
-  // Function to close the modal
-  const closeModal = () => {
-    setIsClosing(true);
-    document.body.style.overflow = "";
-    document.body.style.paddingRight = "";
-    setTimeout(() => {
-      setIsVisible(false);
-      setIsClosing(false);
-    }, 300);
-  };
+  const prevShow = useRef(show);
 
   useEffect(() => {
-    if (show) {
-      openModal();
-    } else {
-      closeModal();
+    // Opening transition
+    if (show && !prevShow.current) {
+      if (!isMounted) setIsMounted(true); // ensure DOM is mounted
+      requestAnimationFrame(() => setIsVisible(true));
+      onOpening?.();
+
+      const timer = setTimeout(() => {
+        onOpened?.();
+      }, ANIMATION_DURATION);
+
+      prevShow.current = show;
+      return () => clearTimeout(timer);
+    }
+
+    // Closing transition
+    if (!show && prevShow.current) {
+      setIsVisible(false);
+      onClosing?.();
+
+      const timer = setTimeout(() => {
+        if (unmountOnHide) setIsMounted(false);
+        onClosed?.();
+      }, ANIMATION_DURATION);
+
+      prevShow.current = show;
+      return () => clearTimeout(timer);
     }
   }, [show]);
 
-  // Add escape key listener for closing the modal if closeable is true
+  // Escape key support
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && closeable) {
         onClose?.();
       }
     };
-
     document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-    };
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [closeable, onClose]);
 
   const handleOverlayClick = () => {
-    if (closeable) {
-      onClose?.();
-    }
+    if (closeable) onClose?.();
   };
 
-  if (!isVisible) return null;
+  if (!isMounted) return null;
 
   return ReactDOM.createPortal(
     <ModalOverlay
-      className="modal-overlay"
       data-testid="modal-overlay"
       $zIndex={zIndex}
-      $show={!isClosing}
+      $show={isVisible}
       onClick={handleOverlayClick}
       $closeable={closeable}
     >
       <ModalContainer
-        className="modal-container"
         data-testid="modal-container"
         $modalWidth={modalWidth}
-        $show={!isClosing}
+        $show={isVisible}
         onClick={(e) => e.stopPropagation()}
       >
         <Panel
@@ -100,9 +99,7 @@ export const Modal: React.FC<ModalProps> = ({
             showCloseIcon
               ? [
                   ...(rightIcons || []),
-                  ...(onClose !== undefined
-                    ? [{ icon: "clear", onClick: onClose }]
-                    : []),
+                  ...(onClose ? [{ icon: "clear", onClick: onClose }] : []),
                 ]
               : rightIcons
           }
