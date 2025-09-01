@@ -1,19 +1,36 @@
 import styled, { css } from "styled-components";
 
-const getWidth = (span: number | undefined) => {
-  if (!span) return;
-  const width = (span / 12) * 100;
-  return `${width}%`;
+const pct = (span?: number) =>
+  typeof span === "number" && span > 0
+    ? `${((span / 12) * 100).toFixed(6)}%`
+    : undefined;
+
+const widthRule = (span?: number) => {
+  const p = pct(span);
+  if (!p) return "";
+  return css`
+    width: ${p};
+    flex-basis: ${p};
+    max-width: ${p};
+  `;
 };
 
 export const StyledGrid = styled.div<{ spacing: number }>`
-  display: flex;
-  flex-wrap: wrap;
-  margin: -${(props) => props.spacing / 2}px;
+  /* ↑↑ Double ampersand = higher specificity (beats Tailwind .grid) */
+  && {
+    display: flex;
+    flex-wrap: wrap;
+
+    /* Defuse any stray grid props if someone slaps class="grid" on it */
+    grid-template-columns: initial;
+    grid-auto-rows: initial;
+  }
+
+  margin: -${(p) => p.spacing / 2}px;
   box-sizing: border-box;
 
   & > * {
-    padding: ${(props) => props.spacing / 2}px;
+    padding: ${(p) => p.spacing / 2}px;
   }
 `;
 
@@ -28,50 +45,34 @@ export const StyledGridItem = styled.div<{
 }>`
   flex: 0 0 auto;
   box-sizing: border-box;
+  min-width: 0;
 
-  ${({ $offset: offset }) =>
-    offset &&
+  ${({ $offset }) =>
+    typeof $offset === "number" &&
+    $offset > 0 &&
     css`
-      margin-left: ${(offset / 12) * 100}%;
+      margin-left: ${pct($offset)};
     `}
 
-  ${({ $order: order }) =>
-    order &&
+  ${({ $order }) =>
+    typeof $order === "number" &&
     css`
-      order: ${order};
+      order: ${$order};
     `}
 
-  ${({ $xs: xs }) =>
-    xs &&
-    css`
-      width: ${getWidth(xs)};
-    `}
+  /* XS (base) */
+  ${({ $xs }) => widthRule($xs)}
+
   @media (min-width: 576px) {
-    ${({ $sm: sm }) =>
-      sm &&
-      css`
-        width: ${getWidth(sm)};
-      `}
+    ${({ $sm }) => widthRule($sm)}
   }
   @media (min-width: 768px) {
-    ${({ $md: md }) =>
-      md &&
-      css`
-        width: ${getWidth(md)};
-      `}
+    ${({ $md }) => widthRule($md)}
   }
   @media (min-width: 992px) {
-    ${({ $lg: lg }) =>
-      lg &&
-      css`
-        width: ${getWidth(lg)};
-      `}
+    ${({ $lg }) => widthRule($lg)}
   }
   @media (min-width: 1200px) {
-    ${({ $xl: xl }) =>
-      xl &&
-      css`
-        width: ${getWidth(xl)};
-      `}
+    ${({ $xl }) => widthRule($xl)}
   }
 `;

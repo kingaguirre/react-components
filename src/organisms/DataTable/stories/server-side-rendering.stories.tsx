@@ -126,7 +126,7 @@ function Card({
     <div
       style={{
         padding: 14,
-        borderRadius: 12,
+        borderRadius: 4,
         border: `1px solid ${theme.border}`,
         background: theme.bg,
         boxShadow: theme.shadow,
@@ -158,7 +158,7 @@ function Card({
    Storybook meta
 ----------------------------------------------------------------------------- */
 const meta: Meta<typeof DataTable> = {
-  title: "organisms/DataTable/Server Side Rendering",
+  title: "organisms/DataTable/Serve-side Data Rendering",
   component: DataTable,
   tags: ["!autodocs"],
 };
@@ -680,6 +680,133 @@ const fetchProductsAdvanced = async (params) => {
           tone="success"
         >
           <CodeBlock code={bottomSnippet} highlighted="fetchProductsAdvanced" />
+        </Card>
+      </StoryWrapper>
+    );
+  },
+};
+
+/* =============================================================================
+   UPLOAD & DOWNLOAD — Full demo on top of serverMode
+============================================================================= */
+export const UploadAndDownload = {
+  name: "Upload & Download (server mode)",
+  render: () => {
+    // Reuse the advanced fetcher so sorting/filtering/pagination all work
+    // (You already defined fetchProductsAdvanced above)
+    const fetcher = fetchProductsAdvanced;
+
+    // Column set: hide "Rating" to demonstrate that exports can still include hidden cols
+    const COLS_WITH_HIDDEN: ColumnSetting[] = useMemo(
+      () =>
+        DEMO_COLUMNS.map((c) =>
+          c.column === "rating" ? { ...c, hidden: true } : c,
+        ),
+      [],
+    );
+
+    // Upload controls: show how to wire events. onImport just logs here.
+    const uploadControls = useMemo(
+      () => ({
+        title: "Upload CSV/XLSX",
+        onOpen: () => console.log("[Upload] picker opened"),
+        onUpload: (file: File) => console.log("[Upload] selected:", file?.name),
+        onUploading: (busy: boolean) => console.log("[Upload] busy:", busy),
+        onImport: (rows: Array<Record<string, any>>) => {
+          // In real app, you'd prepend/merge rows into your data source.
+          console.log("[Upload] aligned rows ready:", rows.length, rows.slice(0, 3));
+        },
+        onComplete: ({ importedCount }: { importedCount: number }) =>
+          console.log(`[Upload] complete: imported ${importedCount} rows`),
+        onError: (err: any) => console.error("[Upload] error:", err),
+      }),
+      [],
+    );
+
+    // Download controls: custom labels/icons, defaults, and event hooks.
+    const downloadControls = useMemo(
+      () => ({
+        fileName: "products",
+        format: "xlsx" as const,
+        labels: { selected: "Export selected", all: "Export all" },
+        icons: { selected: "download_done", all: "file_download" },
+        onOpen: () => console.log("[Download] menu open"),
+        onClose: () => console.log("[Download] menu close"),
+        onConfigChange: (cfg: { fileName: string; format: "xlsx" | "csv" }) =>
+          console.log("[Download] config:", cfg),
+        onDownloading: (
+          kind: "selected" | "all",
+          meta: { fileName: string; format: "xlsx" | "csv"; count: number },
+        ) => console.log(`[Download] ${kind}:`, meta),
+        onComplete: (
+          kind: "selected" | "all",
+          meta: { fileName: string; format: "xlsx" | "csv"; count: number },
+        ) => console.log(`[Download] ${kind} complete:`, meta),
+        onError: (err: any) => console.error("[Download] error:", err),
+        // Note: visibility of “Download selected” is controlled by enableRowSelection on the table
+      }),
+      [],
+    );
+
+    return (
+      <StoryWrapper
+        title="Server-side Rendering / Upload & Download"
+        subTitle="End-to-end demo of the import/export controls in server mode. Sorting, filtering and pagination are server-driven; exports include hidden columns by default."
+      >
+        <Card
+          title="What this shows"
+          subtitle="Upload with review modal • custom export labels/icons • hidden column included in export • selected/all downloads"
+          tone="info"
+        >
+          <ul style={{ margin: 0, paddingLeft: 18 }}>
+            <li>
+              <strong>Row selection enabled</strong> so “Download selected” appears (and disables with 0 selected).
+            </li>
+            <li>
+              <strong>Hidden column</strong> (<code>Rating</code>) is not visible, but is included in exported files.
+            </li>
+            <li>
+              Upload uses your web-worker + review modal; events are logged to the console.
+            </li>
+          </ul>
+        </Card>
+
+        <Title>Products (remote)</Title>
+        <DataTable
+          serverMode
+          server={{ fetcher, debounceMs: 350 }}
+          dataSource={[]} // ignored in serverMode
+          enableGlobalFiltering
+          enableColumnFiltering
+          enableColumnSorting
+          enableColumnResizing
+          enableColumnPinning
+          enableRowSelection   // <- ensures “Download selected” is visible
+          enableUpload         // <- turn on the Upload button (defaults work)
+          enableDownload       // <- turn on the Download button (defaults work)
+          uploadControls={uploadControls}
+          downloadControls={downloadControls}
+          columnSettings={COLS_WITH_HIDDEN}
+        />
+
+        <Card
+          title="Notes"
+          tone="success"
+          subtitle="A few helpful details for wiring in your app"
+        >
+          <ul style={{ margin: 0, paddingLeft: 18 }}>
+            <li>
+              <code>enableRowSelection</code> controls visibility of “Download selected”. You set it to{" "}
+              <strong>true</strong> here.
+            </li>
+            <li>
+              The default export includes <em>hidden</em> columns. In this demo, <code>Rating</code> is hidden on
+              the grid but present in the exported file.
+            </li>
+            <li>
+              Upload’s <code>onImport</code> gives you aligned rows; merge them with your data in your app’s state.
+            </li>
+          </ul>
         </Card>
       </StoryWrapper>
     );

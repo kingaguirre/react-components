@@ -66,7 +66,7 @@ export const Default: StoryObj<typeof meta> = {
   render: (args) => <DefaultModal {...args} />
 }
 
-// ✅ Modal Examples Component (with async demo included)
+// ✅ Modal Examples Component (with async + controlled demos)
 const ModalExamples = () => {
   const [openLong, setOpenLong] = useState(false)
   const [openFooter, setOpenFooter] = useState(false)
@@ -102,6 +102,9 @@ const ModalExamples = () => {
   }
 
   const colorOptions = ['primary', 'success', 'warning', 'danger', 'info', 'default'] as const
+
+  // 🔒 Controlled demo state
+  const [openControlled, setOpenControlled] = useState(false)
 
   return (
     <StoryWrapper title='Modal Examples' subTitle={descriptionText}>
@@ -254,6 +257,33 @@ const ModalExamples = () => {
             {JSON.stringify(data, null, 2)}
           </pre>
         )}
+      </Modal>
+
+      {/* ✅ Controlled (Parent-State) Demo */}
+      <Title>Controlled Modal (Parent State)</Title>
+      <p style={{ marginBottom: 8 }}>
+        This modal’s <code>show</code> is driven by parent state. Closing it calls <code>onClose</code>, which flips the same state.
+      </p>
+      <Button color='primary' onClick={() => setOpenControlled(true)}>
+        Open Controlled Modal
+      </Button>
+      <Modal
+        show={openControlled}
+        onClose={() => setOpenControlled(false)}
+        title="Controlled Modal"
+        color="default"
+        // Keep the DOM mounted to prove no re-mount flicker while toggling visibility.
+        // Remove this if you want it unmounted when hidden.
+        unmountOnHide={false}
+      >
+        <p>
+          Fully controlled via <code>const [openControlled, setOpenControlled] = useState(false)</code>.
+          Overlay click, Escape, and the “X” button all call <code>onClose</code> which sets the state to <code>false</code>.
+        </p>
+        <div style={{ display: 'flex', gap: 8, marginTop: 16, justifyContent: 'flex-end' }}>
+          <Button color='default' onClick={() => setOpenControlled(false)}>Cancel</Button>
+          <Button color='primary' onClick={() => setOpenControlled(false)}>Done</Button>
+        </div>
       </Modal>
     </StoryWrapper>
   )

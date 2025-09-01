@@ -591,6 +591,8 @@ export const Dropdown: React.FC<DropdownProps> = ({
       $dropdownHeight={dropdownHeight}
       $position={dropdownPosition.position}
       className="dropdown-list"
+      role="dropdown-menu"
+      data-testid="dropdown-menu"
     >
       {isMulti && filter && (
         <DropdownFilterContainer>
@@ -613,8 +615,10 @@ export const Dropdown: React.FC<DropdownProps> = ({
           {isMulti && (
             <DropdownItem
               $size={size}
-              key="select-all"
+              role="dropdown-menu-item"
               data-testid="select-all"
+              aria-disabled={undefined}
+              key="select-all"
               className={`select-all ${selectedValues.length === options.filter((o) => !o.disabled).length ? "selected" : ""}`}
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => {
@@ -663,6 +667,13 @@ export const Dropdown: React.FC<DropdownProps> = ({
               disabled={disabled}
               onMouseDown={(e) => e.preventDefault()}
               className={getSelectedClass(index, value)}
+              role="dropdown-menu-item"
+              aria-disabled={disabled || undefined}
+              aria-selected={
+                (isMulti && selectedValues.includes(value)) ||
+                (!isMulti && value === selectedValue) ||
+                undefined
+              }
               onClick={(e: React.MouseEvent<HTMLLIElement, MouseEvent>) =>
                 !disabled && handleSelect(value, e)
               }

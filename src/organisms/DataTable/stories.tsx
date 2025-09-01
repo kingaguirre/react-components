@@ -51,6 +51,24 @@ export const Playground = {
         />
       </DataTablePlayground>
       <DataTable
+      enableDownload
+      enableUpload
+      enableRowSelection
+      downloadControls={{
+        extraMenuItems: [{
+          label: 'tesst',
+          icon: 'info',
+          onClick: () => {}
+        }, {
+          label: 'tesst1',
+          icon: 'info',
+          onClick: () => {}
+        }, {
+          label: 'tesst2',
+          icon: 'info',
+          onClick: () => {}
+        }]
+      }}
         // enableCellEditing={false}
         // enableRowSelection={false}
         // headerRightControls={false}

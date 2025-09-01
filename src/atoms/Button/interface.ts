@@ -20,7 +20,7 @@ export interface ButtonProps {
   fullWidth?: boolean;
   /** Additional class names */
   className?: string;
+  testId?: string;
   /** Any additional attributes */
-
   [key: string]: any;
 }
