@@ -1,7 +1,9 @@
 import styled, { css } from "styled-components";
 
 const pct = (span?: number) =>
-  typeof span === "number" && span > 0 ? `${((span / 12) * 100).toFixed(6)}%` : undefined;
+  typeof span === "number" && span > 0
+    ? `${((span / 12) * 100).toFixed(6)}%`
+    : undefined;
 
 const widthRule = (span?: number) => {
   const p = pct(span);
@@ -46,7 +48,8 @@ export const StyledGridItem = styled.div<{
   min-width: 0;
 
   ${({ $offset }) =>
-    typeof $offset === "number" && $offset > 0 &&
+    typeof $offset === "number" &&
+    $offset > 0 &&
     css`
       margin-left: ${pct($offset)};
     `}

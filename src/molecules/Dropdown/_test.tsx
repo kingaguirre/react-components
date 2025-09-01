@@ -5,25 +5,40 @@ import {
   screen,
   fireEvent,
   waitFor,
+  cleanup,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { Dropdown } from "./index";
 import ReactDOM from "react-dom";
+import { Dropdown } from "./index";
 
-// Override createPortal to render inline for testing.
-vi.spyOn(ReactDOM, "createPortal").mockImplementation((node) => node as React.ReactPortal);
+// Keep a handle to the real createPortal and ensure we call through to it.
+// This defuses any lingering mocks from other suites.
+const realCreatePortal = ReactDOM.createPortal;
+
+let user: ReturnType<typeof userEvent.setup>;
 
 beforeEach(() => {
-  // Reset any DOM changes between tests.
-  document.body.innerHTML = "";
-  // Provide a dummy scrollIntoView implementation.
-  Element.prototype.scrollIntoView = vi.fn();
+  vi.restoreAllMocks();
+
+  // Force ReactDOM.createPortal back to the real implementation
+  vi.spyOn(ReactDOM, "createPortal").mockImplementation(
+    ((...args: Parameters<typeof realCreatePortal>) =>
+      realCreatePortal(...args)) as any
+  );
+
+  // Fresh user-event per test
+  user = userEvent.setup();
+
+  // Provide a dummy scrollIntoView if missing
+  if (!(Element.prototype as any).scrollIntoView) {
+    // @ts-ignore
+    Element.prototype.scrollIntoView = vi.fn();
+  }
 });
 
 afterEach(() => {
-  // Clean up any leftover DOM.
-  document.body.innerHTML = "";
+  cleanup(); // cleanly unmounts portals
 });
 
 // Sample options for testing.
@@ -33,19 +48,28 @@ const options = [
   { value: "3", text: "Option 3", disabled: true },
 ];
 
+// Helper: click somewhere outside the dropdown/menu
+const clickOutside = async () => {
+  const outside = document.createElement("div");
+  outside.setAttribute("data-testid", "outside");
+  document.body.appendChild(outside);
+  await user.click(outside);
+  outside.remove();
+};
+
 describe("Dropdown Component", () => {
   it("renders with placeholder when no selection is made", () => {
     render(<Dropdown options={options} placeholder="Select an option" />);
-    const input = screen.getByPlaceholderText("Select an option");
+    const input = screen.getByPlaceholderText("Select an option") as HTMLInputElement;
     expect(input).toBeInTheDocument();
-    expect(input).toHaveValue("");
+    expect(input.value).toBe("");
   });
 
   it("opens dropdown on input click and displays options", async () => {
     render(<Dropdown options={options} placeholder="Select an option" />);
     const input = screen.getByPlaceholderText("Select an option");
-    fireEvent.click(input);
-    // Wait for the dropdown options to appear.
+    await user.click(input);
+
     await waitFor(() => {
       expect(screen.getByText("Option 1")).toBeVisible();
       expect(screen.getByText("Option 2")).toBeVisible();
@@ -62,19 +86,19 @@ describe("Dropdown Component", () => {
         onChange={onChange}
       />
     );
-    const input = screen.getByPlaceholderText("Select an option");
-    fireEvent.click(input);
-    const option1 = await waitFor(() => screen.getByText("Option 1"));
-    fireEvent.click(option1);
-    // onChange should be called with "1"
+
+    const input = screen.getByPlaceholderText("Select an option") as HTMLInputElement;
+    await user.click(input);
+
+    await user.click(await screen.findByText("Option 1"));
     expect(onChange).toHaveBeenCalledWith("1");
-    // Wait until the dropdown options are hidden.
+
+    // menu should close; item should become absent or hidden
     await waitFor(() => {
       const opt = screen.queryByText("Option 1");
       if (opt) expect(opt).not.toBeVisible();
     });
-    // The input should now display Option 1's text.
-    expect(input).toHaveValue("Option 1");
+    expect(input.value).toBe("Option 1");
   });
 
   it("does not select a disabled option in single select mode", async () => {
@@ -87,14 +111,12 @@ describe("Dropdown Component", () => {
       />
     );
     const input = screen.getByPlaceholderText("Select an option");
-    fireEvent.click(input);
-    const option3 = await waitFor(() => screen.getByText("Option 3"));
-    fireEvent.click(option3);
+    await user.click(input);
+    await user.click(await screen.findByText("Option 3")); // disabled
     expect(onChange).not.toHaveBeenCalled();
   });
 
   it("filters options when filter is enabled (multiselect)", async () => {
-    // For filtering, use multiselect so that the filter input is rendered.
     render(
       <Dropdown
         options={options}
@@ -104,15 +126,13 @@ describe("Dropdown Component", () => {
       />
     );
     const input = screen.getByPlaceholderText("Select options");
-    fireEvent.click(input);
-    // Wait for the filter input to appear.
-    const filterInput = await waitFor(() =>
-      screen.getByPlaceholderText("Filter options...")
-    );
+    await user.click(input);
+
+    const filterInput = await screen.findByPlaceholderText("Filter options...");
     expect(filterInput).toBeVisible();
-    // Type filter text that should only match "Option 2".
-    userEvent.type(filterInput, "Option 2");
-    // Wait for options to update.
+
+    await user.type(filterInput, "Option 2");
+
     await waitFor(() => {
       const opt1 = screen.queryByText("Option 1");
       if (opt1) expect(opt1).not.toBeVisible();
@@ -132,33 +152,35 @@ describe("Dropdown Component", () => {
       />
     );
     const input = screen.getByPlaceholderText("Select options");
-    fireEvent.click(input);
-    // Wait for filter input.
-    await waitFor(() => screen.getByPlaceholderText("Filter options..."));
-    // Select Option 1.
-    const option1 = await waitFor(() => screen.queryByText("Option 1"));
-    fireEvent.click(option1!);
+    await user.click(input);
+
+    await screen.findByPlaceholderText("Filter options...");
+
+    const opt1 = await screen.findByText("Option 1");
+    await user.click(opt1);
     expect(onChange).toHaveBeenCalledWith(["1"]);
-    // Select Option 2.
-    const option2 = await waitFor(() => screen.queryByText("Option 2"));
-    fireEvent.click(option2!);
+
+    const opt2 = await screen.findByText("Option 2");
+    await user.click(opt2);
     expect(onChange).toHaveBeenCalledWith(["1", "2"]);
-    // Toggle Option 1 off.
-    fireEvent.click(option1!);
+
+    // toggle Option 1 off
+    await user.click(opt1);
     expect(onChange).toHaveBeenCalledWith(["2"]);
-    // The input should display a summary (e.g., "1 selected item").
+
+    // summary text shown in input
     expect(screen.getByDisplayValue("1 selected item")).toBeInTheDocument();
   });
 
   it("closes dropdown when clicking outside", async () => {
     render(<Dropdown options={options} placeholder="Select an option" />);
     const input = screen.getByPlaceholderText("Select an option");
-    fireEvent.click(input);
-    await waitFor(() => {
-      expect(screen.getByText("Option 1")).toBeVisible();
-    });
-    // Simulate clicking outside.
-    fireEvent.mouseDown(document.body);
+    await user.click(input);
+
+    await waitFor(() => expect(screen.getByText("Option 1")).toBeVisible());
+
+    await clickOutside();
+
     await waitFor(() => {
       const opt = screen.queryByText("Option 1");
       if (opt) expect(opt).not.toBeVisible();
@@ -177,23 +199,19 @@ describe("Dropdown Component", () => {
       />
     );
     const input = screen.getByPlaceholderText("Select options");
-    fireEvent.click(input);
-    // Wait for the filter input.
-    const filterInput = await waitFor(() =>
-      screen.getByPlaceholderText("Filter options...")
-    );
+    await user.click(input);
+
+    const filterInput = await screen.findByPlaceholderText("Filter options...");
     filterInput.focus();
-    // Press ArrowDown to change focus.
-    fireEvent.keyDown(filterInput, { key: "ArrowDown" });
-    // Press Enter to select the focused option.
-    fireEvent.keyDown(filterInput, { key: "Enter" });
-    expect(onChange).toHaveBeenCalled();
+
+    await user.keyboard("{ArrowDown}{Enter}");
+    expect(onChange).toHaveBeenCalled(); // selected first focusable item
   });
 
   it("clears selection on clear icon click in single select mode", async () => {
     const onChange = vi.fn();
-    
-    // A wrapper component that controls the value
+
+    // Controlled wrapper so value truly updates after clear
     const ControlledDropdown = () => {
       const [value, setValue] = useState<string | string[] | null>("1");
       return (
@@ -208,39 +226,32 @@ describe("Dropdown Component", () => {
         />
       );
     };
-  
+
     render(<ControlledDropdown />);
-    
-    const input = screen.getByPlaceholderText("Select an option");
-    // Initially, the input displays Option 1.
-    expect(input).toHaveValue("Option 1");
-  
-    // Open the dropdown so the clear icon is rendered.
-    fireEvent.click(input);
-    // Assume the clear icon has a test id "clear-icon".
-    const clearIcon = await waitFor(() => screen.getByTestId("clear-icon"));
+
+    const input = screen.getByPlaceholderText("Select an option") as HTMLInputElement;
+    expect(input.value).toBe("Option 1");
+
+    // open menu so clear icon is rendered in control
+    await user.click(input);
+    const clearIcon = await screen.findByTestId("clear-icon");
     expect(clearIcon).toBeVisible();
-  
-    fireEvent.click(clearIcon);
-    // onChange should have been called with an empty string.
+
+    await user.click(clearIcon);
     expect(onChange).toHaveBeenCalledWith(null);
-    // Wait for the component to re-render with an empty value.
-    await waitFor(() => {
-      expect(input).toHaveValue("");
-    });
-  });
-  
-  it('does not render clear icon when no selection (single)', () => {
-    render(<Dropdown options={options} placeholder="Select an option" />);
-    // No selection yet → no clear icon
-    expect(screen.queryByTestId('clear-icon')).toBeNull();
+
+    await waitFor(() => expect(input.value).toBe(""));
   });
 
-  it('renders clear icon when single selection exists and clears to empty', async () => {
-    // Controlled wrapper so value actually updates after clear
+  it("does not render clear icon when no selection (single)", () => {
+    render(<Dropdown options={options} placeholder="Select an option" />);
+    expect(screen.queryByTestId("clear-icon")).toBeNull();
+  });
+
+  it("renders clear icon when single selection exists and clears to empty", async () => {
     const onChange = vi.fn();
     const Controlled = () => {
-      const [val, setVal] = React.useState<string | null>('2');
+      const [val, setVal] = React.useState<string | null>("2");
       return (
         <Dropdown
           options={options}
@@ -255,24 +266,22 @@ describe("Dropdown Component", () => {
     };
 
     render(<Controlled />);
-    const input = screen.getByPlaceholderText('Select an option') as HTMLInputElement;
-    expect(input).toHaveValue('Option 2');
+    const input = screen.getByPlaceholderText("Select an option") as HTMLInputElement;
+    expect(input.value).toBe("Option 2");
 
-    // clear icon visible
-    const clear = await screen.findByTestId('clear-icon');
+    const clear = await screen.findByTestId("clear-icon");
     expect(clear).toBeVisible();
 
-    // click clear → value becomes null, UI empties
-    fireEvent.click(clear);
+    await user.click(clear);
     expect(onChange).toHaveBeenCalledWith(null);
-    await waitFor(() => expect(input).toHaveValue(''));
-    expect(screen.queryByTestId('clear-icon')).toBeNull();
+    await waitFor(() => expect(input.value).toBe(""));
+    expect(screen.queryByTestId("clear-icon")).toBeNull();
   });
 
-  it('clears multi-select selections via clear icon', async () => {
+  it("clears multi-select selections via clear icon", async () => {
     const onChange = vi.fn();
     const ControlledMulti = () => {
-      const [vals, setVals] = React.useState<string[]>(['1', '2']);
+      const [vals, setVals] = React.useState<string[]>(["1", "2"]);
       return (
         <Dropdown
           options={options}
@@ -289,20 +298,18 @@ describe("Dropdown Component", () => {
     };
 
     render(<ControlledMulti />);
-    const input = screen.getByPlaceholderText('Select options') as HTMLInputElement;
+    const input = screen.getByPlaceholderText("Select options") as HTMLInputElement;
 
-    // shows summary text
-    expect(input).toHaveValue('2 selected items');
+    expect(input.value).toBe("2 selected items");
 
-    // clear icon visible and works
-    const clear = await screen.findByTestId('clear-icon');
-    fireEvent.click(clear);
+    const clear = await screen.findByTestId("clear-icon");
+    await user.click(clear);
     expect(onChange).toHaveBeenCalledWith([]);
-    await waitFor(() => expect(input).toHaveValue(''));
-    expect(screen.queryByTestId('clear-icon')).toBeNull();
+    await waitFor(() => expect(input.value).toBe(""));
+    expect(screen.queryByTestId("clear-icon")).toBeNull();
   });
 
-  it('single + filter: clear resets filter text, keeps dropdown open, and focuses input', async () => {
+  it("single + filter: clear resets filter text, keeps dropdown open, and focuses input", async () => {
     const onChange = vi.fn();
     render(
       <Dropdown
@@ -314,25 +321,24 @@ describe("Dropdown Component", () => {
       />
     );
 
-    const input = screen.getByPlaceholderText('Select an option') as HTMLInputElement;
-    // Open, type to filter
-    fireEvent.click(input);
-    await waitFor(() => expect(screen.getByText('Option 1')).toBeVisible());
-    // While open+filter, typing goes into the same FormControl
-    await userEvent.type(input, 'Opt');
+    const input = screen.getByPlaceholderText("Select an option") as HTMLInputElement;
+    await user.click(input);
+    await waitFor(() => expect(screen.getByText("Option 1")).toBeVisible());
 
-    // Clear
-    const clear = await screen.findByTestId('clear-icon');
-    fireEvent.click(clear);
+    // When filter=true (single), typing usually goes into the same input
+    await user.type(input, "Opt");
 
-    // Input emptied, dropdown stays open (component sets isOpen true on clear), focus on input
-    await waitFor(() => expect(input).toHaveValue(''));
+    const clear = await screen.findByTestId("clear-icon");
+    await user.click(clear);
+
+    await waitFor(() => expect(input.value).toBe(""));
     expect(document.activeElement).toBe(input);
-    // Options should still be present because open after clear
-    await waitFor(() => expect(screen.getByText('Option 1')).toBeVisible());
+
+    // still open after clear
+    await waitFor(() => expect(screen.getByText("Option 1")).toBeVisible());
   });
 
-  it('disabled: hides clear icon and does not open', async () => {
+  it("disabled: hides clear icon and does not open", async () => {
     render(
       <Dropdown
         options={options}
@@ -342,17 +348,16 @@ describe("Dropdown Component", () => {
         showDisabledIcon
       />
     );
-    const input = screen.getByPlaceholderText('Select an option');
-    // No clear icon even though value exists
-    expect(screen.queryByTestId('clear-icon')).toBeNull();
-    // Lock icon is shown
-    expect(screen.getByTestId('disabled-icon')).toBeInTheDocument();
+    const input = screen.getByPlaceholderText("Select an option");
 
-    // Clicking should not open menu
-    fireEvent.click(input);
-    // Give a tick for any async open; options should not appear
-    await new Promise((r) => setTimeout(r, 10));
-    expect(screen.queryByText('Option 1')).toBeNull();
+    expect(screen.queryByTestId("clear-icon")).toBeNull();
+    expect(screen.getByTestId("disabled-icon")).toBeInTheDocument();
+
+    await user.click(input);
+
+    // give a microtask turn for any async open; options should not appear
+    await waitFor(() => {
+      expect(screen.queryByText("Option 1")).toBeNull();
+    });
   });
-
 });

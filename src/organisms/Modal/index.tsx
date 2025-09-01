@@ -82,7 +82,9 @@ export const Modal: React.FC<ModalProps> = (props) => {
     if (!visible) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = prev; };
+    return () => {
+      document.body.style.overflow = prev;
+    };
   }, [visible]);
 
   // OPEN/CLOSE transitions
@@ -120,11 +122,11 @@ export const Modal: React.FC<ModalProps> = (props) => {
                 window.setTimeout(() => {
                   setPhase("entered");
                   onOpened?.();
-                }, ANIMATION_DURATION + 16)
+                }, ANIMATION_DURATION + 16),
               );
-            })
+            }),
           );
-        })
+        }),
       );
     } else {
       if (mounted) {
@@ -136,7 +138,7 @@ export const Modal: React.FC<ModalProps> = (props) => {
             setPhase("exited");
             onClosed?.();
             if (unmountOnHide) setMounted(false);
-          }, ANIMATION_DURATION + 16)
+          }, ANIMATION_DURATION + 16),
         );
       }
     }
@@ -237,7 +239,9 @@ export const Modal: React.FC<ModalProps> = (props) => {
             showCloseIcon
               ? [
                   ...(rightIcons || []),
-                  ...(onClose ? [{ icon: "clear", onClick: requestClose }] : []),
+                  ...(onClose
+                    ? [{ icon: "clear", onClick: requestClose }]
+                    : []),
                 ]
               : rightIcons
           }
@@ -247,6 +251,6 @@ export const Modal: React.FC<ModalProps> = (props) => {
         </Panel>
       </ModalContainer>
     </ModalOverlay>,
-    document.body
+    document.body,
   );
 };

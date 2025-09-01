@@ -33,25 +33,43 @@ const SwapRoot = styled.div<{ $disabled?: boolean }>`
   border-radius: 2px;
 `;
 const Slot = styled.div<{ $visible: boolean }>`
-  position: absolute; inset: 0;
-  display: inline-flex; align-items: center; justify-content: center;
+  position: absolute;
+  inset: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   opacity: ${(p) => (p.$visible ? 1 : 0)};
   transform: scale(${(p) => (p.$visible ? "1" : "0")});
-  transition: all .24s ease;
+  transition: all 0.24s ease;
   pointer-events: ${(p) => (p.$visible ? "auto" : "none")};
-  @media (prefers-reduced-motion: reduce) { transition: none; }
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 `;
 const SpinnerIconShell = styled.div`
-  display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
 `;
 const Spinner = styled.span`
-  width: 16px; height: 16px; border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
   border: 2px solid ${theme.colors.default.light};
   border-top-color: ${theme.colors.primary.base};
   border-left-color: ${theme.colors.primary.base};
   display: inline-block;
   animation: dt-spin 0.7s linear infinite;
-  @keyframes dt-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes dt-spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
 `;
 
 /* modal content bits (radius = 2px everywhere) */
@@ -74,32 +92,46 @@ const GridItem = styled.div`
 const StatCard = styled.div<{ $warn?: boolean }>`
   background: ${(p) =>
     p.$warn
-      ? ((theme as any).colors?.warning?.pale || "#FFF7E6")
+      ? (theme as any).colors?.warning?.pale || "#FFF7E6"
       : theme.colors.lightA};
   border: 1px solid
     ${(p) =>
       p.$warn
-        ? ((theme as any).colors?.warning?.base || "#F59E0B")
+        ? (theme as any).colors?.warning?.base || "#F59E0B"
         : theme.colors.default.pale};
   border-radius: 2px;
   padding: 10px;
   display: grid;
   gap: 2px;
-  small { color: ${theme.colors.default.dark}; }
-  strong { font-size: 16px; }
+  small {
+    color: ${theme.colors.default.dark};
+  }
+  strong {
+    font-size: 16px;
+  }
 `;
 
 const TagList = styled.div`
-  display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
 `;
 const Tag = styled.span`
-  display: inline-flex; align-items: center; gap: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   border: 1px solid ${theme.colors.default.pale};
   background: ${theme.colors.lightB};
-  padding: 4px 8px; border-radius: 2px; font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 2px;
+  font-size: 12px;
 `;
 const Actions = styled.div`
-  display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
 `;
 
 export const UploadIconButton: React.FC<UploadIconButtonProps> = ({
@@ -116,7 +148,10 @@ export const UploadIconButton: React.FC<UploadIconButtonProps> = ({
       onImport:
         controls?.onImport ??
         ((rows) => {
-          console.warn("[UploadIconButton] onImport not provided; parsed rows are ignored.", rows.length);
+          console.warn(
+            "[UploadIconButton] onImport not provided; parsed rows are ignored.",
+            rows.length,
+          );
         }),
       onComplete: controls?.onComplete ?? (() => {}),
       onError: controls?.onError ?? (() => {}),
@@ -141,13 +176,21 @@ export const UploadIconButton: React.FC<UploadIconButtonProps> = ({
     alignedAll: Record<string, any>[];
   }>(null);
 
-  React.useEffect(() => () => { aliveRef.current = false; }, []);
+  React.useEffect(
+    () => () => {
+      aliveRef.current = false;
+    },
+    [],
+  );
 
-  const setBusy = React.useCallback((b: boolean) => {
-    if (!aliveRef.current) return;
-    setWorking(b);
-    cfg.onUploading?.(b);
-  }, [cfg]);
+  const setBusy = React.useCallback(
+    (b: boolean) => {
+      if (!aliveRef.current) return;
+      setWorking(b);
+      cfg.onUploading?.(b);
+    },
+    [cfg],
+  );
 
   const acceptAttr =
     ".csv,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx,.xls";
@@ -166,11 +209,11 @@ export const UploadIconButton: React.FC<UploadIconButtonProps> = ({
         const val = Object.prototype.hasOwnProperty.call(r, headerText)
           ? r[headerText]
           : Object.prototype.hasOwnProperty.call(r, id)
-          ? r[id]
-          : "";
+            ? r[id]
+            : "";
         out[id] = Array.isArray(val)
           ? val.map((x) => (x == null ? "" : String(x))).join(",")
-          : val ?? "";
+          : (val ?? "");
       });
       return out;
     });
@@ -230,7 +273,10 @@ export const UploadIconButton: React.FC<UploadIconButtonProps> = ({
 
       worker.onmessage = (ev: MessageEvent<any>) => {
         // if user already dismissed, stop processing and kill the worker
-        if (closingRef.current) { safeTerminate(); return; }
+        if (closingRef.current) {
+          safeTerminate();
+          return;
+        }
 
         const msg = ev.data;
 
@@ -298,7 +344,8 @@ export const UploadIconButton: React.FC<UploadIconButtonProps> = ({
         cfg.onError?.(err);
       };
 
-      if (payload.kind === "xlsx") worker.postMessage(payload, [payload.buffer]);
+      if (payload.kind === "xlsx")
+        worker.postMessage(payload, [payload.buffer]);
       else worker.postMessage(payload);
     } catch (err) {
       setBusy(false);
@@ -409,10 +456,16 @@ export const UploadIconButton: React.FC<UploadIconButtonProps> = ({
             </Grid>
 
             {reviewData.unmatchedHeaders.length > 0 && (
-              <Alert color="warning" icon="warning" title="Some headers don’t match">
+              <Alert
+                color="warning"
+                icon="warning"
+                title="Some headers don’t match"
+              >
                 <div style={{ fontSize: 12, color: theme.colors.default.dark }}>
-                  The following columns exist in the file but don’t match any visible column
-                  <em> (matched by ID or Header)</em>. Their values will be ignored.
+                  The following columns exist in the file but don’t match any
+                  visible column
+                  <em> (matched by ID or Header)</em>. Their values will be
+                  ignored.
                   <TagList>
                     {reviewData.unmatchedHeaders.map((h) => (
                       <Tag key={h}>{h}</Tag>
@@ -424,9 +477,15 @@ export const UploadIconButton: React.FC<UploadIconButtonProps> = ({
 
             {/* WARNING (no info alert) */}
             {reviewData.ignoredEmptyRows > 0 && (
-              <Alert color="warning" icon="warning" title="Empty rows will be ignored">
+              <Alert
+                color="warning"
+                icon="warning"
+                title="Empty rows will be ignored"
+              >
                 <div style={{ fontSize: 12, color: theme.colors.default.dark }}>
-                  {reviewData.ignoredEmptyRows} row{reviewData.ignoredEmptyRows === 1 ? "" : "s"} mapped to empty values across all visible columns and will be skipped.
+                  {reviewData.ignoredEmptyRows} row
+                  {reviewData.ignoredEmptyRows === 1 ? "" : "s"} mapped to empty
+                  values across all visible columns and will be skipped.
                 </div>
               </Alert>
             )}
@@ -435,7 +494,12 @@ export const UploadIconButton: React.FC<UploadIconButtonProps> = ({
               <Button size="sm" color="default" onClick={handleCancelImport}>
                 Cancel
               </Button>
-              <Button testId="upload-confirm-button" size="sm" color="warning" onClick={handleProceedImport}>
+              <Button
+                testId="upload-confirm-button"
+                size="sm"
+                color="warning"
+                onClick={handleProceedImport}
+              >
                 Proceed import
               </Button>
             </Actions>

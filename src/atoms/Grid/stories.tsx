@@ -40,7 +40,7 @@ export const Examples = () => (
   <StoryWrapper title='Grid Examples' subTitle={descriptionText}>
     <Title>Basic Example</Title>
     <Wrapper>
-      <Grid spacing={16}>
+      <Grid spacing={16} className='grid'>
         {/* Row 1 */}
         <GridItem xs={12} sm={8} md={6} lg={4}>
           <Cell>xs=12, sm=8, md=6, lg=4</Cell>
@@ -106,6 +106,38 @@ export const Examples = () => (
             xs=4, order=2 <br /> Ordered 2nd but 3rd in DOM
           </Cell>
         </GridItem>
+      </Grid>
+    </Wrapper>
+
+    {/* ─────────────────────────────────────────────────────────────────────── */}
+    <Title>Validation: No GridItem children (shows warning)</Title>
+    <Wrapper>
+      <Grid spacing={16}>
+        {/* Invalid-only children */}
+        <div>Plain div — invalid</div>
+        {'Text node — invalid'}
+        <>
+          <span>Span — invalid</span>
+        </>
+      </Grid>
+    </Wrapper>
+
+    <Title>Validation: Mixed children (GridItem + others)</Title>
+    <Wrapper>
+      <Grid spacing={16}>
+        <GridItem xs={6}>
+          <Cell>Valid GridItem (xs=6)</Cell>
+        </GridItem>
+
+        {/* Invalid sibling — will be ignored, warning will show */}
+        <div>Invalid div — ignored</div>
+
+        <GridItem xs={6}>
+          <Cell>Valid GridItem (xs=6)</Cell>
+        </GridItem>
+
+        {/* Non-whitespace text node counts as invalid */}
+        {'Inline text — ignored'}
       </Grid>
     </Wrapper>
   </StoryWrapper>

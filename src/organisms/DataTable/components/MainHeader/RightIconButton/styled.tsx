@@ -1,4 +1,3 @@
-
 import styled from "styled-components";
 import { theme, fadeInOnMount } from "../../../../../styles";
 
@@ -55,7 +54,6 @@ export const RightIconButtonContainer = styled.button`
     cursor: not-allowed;
     color: ${theme.colors.default.base};
   }
-
 
   ${fadeInOnMount}
 

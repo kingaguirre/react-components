@@ -53,11 +53,11 @@ export type DownloadControls = {
   onConfigChange?: (cfg: { fileName: string; format: ExportFormat }) => void;
   onDownloading?: (
     kind: "selected" | "all",
-    meta: { fileName: string; format: ExportFormat; count: number }
+    meta: { fileName: string; format: ExportFormat; count: number },
   ) => void;
   onComplete?: (
     kind: "selected" | "all",
-    meta: { fileName: string; format: ExportFormat; count: number }
+    meta: { fileName: string; format: ExportFormat; count: number },
   ) => void;
   onError?: (err: any) => void;
 };
@@ -79,7 +79,7 @@ export interface DownloadIconDropdownProps {
   disabled?: boolean;
   icon?: string;
   title?: string;
-  enableRowSelection?: boolean
+  enableRowSelection?: boolean;
 }
 
 const fadeIn = keyframes`
@@ -91,9 +91,23 @@ const fadeOut = keyframes`
   to   { opacity: 0; transform: translate(-100%, -6px); }
 `;
 
-const MenuWrapper = styled.div<{ $closing?: boolean; $top: number; $left: number }>`
+const MenuWrapper = styled.div<{
+  $closing?: boolean;
+  $top: number;
+  $left: number;
+}>`
   color: ${theme.colors.default.darker};
-  font-family: "Nunito Sans",-apple-system,".SFNSText-Regular","San Francisco",BlinkMacSystemFont,"Segoe UI","Helvetica Neue",Helvetica,Arial,sans-serif;
+  font-family:
+    "Nunito Sans",
+    -apple-system,
+    ".SFNSText-Regular",
+    "San Francisco",
+    BlinkMacSystemFont,
+    "Segoe UI",
+    "Helvetica Neue",
+    Helvetica,
+    Arial,
+    sans-serif;
   position: fixed;
   top: ${(p) => p.$top}px;
   left: ${(p) => p.$left}px;
@@ -103,7 +117,7 @@ const MenuWrapper = styled.div<{ $closing?: boolean; $top: number; $left: number
   border-radius: 2px;
   min-width: 280px;
   z-index: 200;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.10);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   will-change: transform, opacity;
   animation: ${(p) => (p.$closing ? fadeOut : fadeIn)} 140ms ease-out;
@@ -121,17 +135,33 @@ const HeaderBar = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
-  .icon { font-size: 16px; }
+  .icon {
+    font-size: 16px;
+  }
 `;
 const CloseBtn = styled.span`
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 28px; height: 28px; border: none; color: #fff; border-radius: 4px;
-  cursor: pointer; position: absolute; right: 4px; top: 50%;
-  transition: all .3s ease; transform: translateY(-50%);
-  &:hover { color: ${theme.colors.default.pale}; }
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transition: all 0.3s ease;
+  transform: translateY(-50%);
+  &:hover {
+    color: ${theme.colors.default.pale};
+  }
 `;
 const HeaderTitle = styled.div`
-  display: inline-flex; align-items: center; gap: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 `;
 
 const Section = styled.div`
@@ -143,35 +173,72 @@ const Section = styled.div`
   }
 `;
 const FieldRow = styled.div`
-  display: flex; align-items: center; gap: 8px; margin-top: 4px;
-  .form-control-wrapper { border-bottom: none; }
-  > * { flex: 1; }
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  .form-control-wrapper {
+    border-bottom: none;
+  }
+  > * {
+    flex: 1;
+  }
 `;
 const Label = styled.span`
-  font-size: 12px; min-width: 68px; max-width: 68px;
+  font-size: 12px;
+  min-width: 68px;
+  max-width: 68px;
 `;
-const MenuItem = styled.button<{ disabled?: boolean; $separatorAbove?: boolean }>`
-  width: 100%; text-align: left; padding: 8px 10px; border: none; background: transparent; font-size: 12px;
+const MenuItem = styled.button<{
+  disabled?: boolean;
+  $separatorAbove?: boolean;
+}>`
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  font-size: 12px;
   cursor: ${(p) => (p.disabled ? "not-allowed" : "pointer")};
   opacity: ${(p) => (p.disabled ? 0.5 : 1)};
-  display: flex; align-items: center; gap: 8px;
-  transition: all .3s ease; color: ${theme.colors.default.darker}; border-radius: 2px;
-  ${(p) => p.$separatorAbove ? `border-top: 1px solid ${theme.colors.default.pale}; margin-top: 4px; padding-top: 12px;` : ""}
-  .icon { font-size: 16px; }
-  ${(p) => (p.disabled ? "" : `
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  color: ${theme.colors.default.darker};
+  border-radius: 2px;
+  ${(p) =>
+    p.$separatorAbove
+      ? `border-top: 1px solid ${theme.colors.default.pale}; margin-top: 4px; padding-top: 12px;`
+      : ""}
+  .icon {
+    font-size: 16px;
+  }
+  ${(p) =>
+    p.disabled
+      ? ""
+      : `
     &:hover { background: ${theme.colors.primary.pale}; color: ${theme.colors.primary.darker}; }
     &:active { background: #c8e4fb; }
-  `)};
+  `};
 `;
 const RowCount = styled.span`
-  color: ${theme.colors.default.dark}; font-size: 12px; margin-left: auto;
+  color: ${theme.colors.default.dark};
+  font-size: 12px;
+  margin-left: auto;
 `;
 
 /** merge helpers */
 const NOOP = () => {};
 const compose =
   <T extends any[]>(a?: (...args: T) => void, b?: (...args: T) => void) =>
-  (...args: T) => { try { a?.(...args); } finally { b?.(...args); } };
+  (...args: T) => {
+    try {
+      a?.(...args);
+    } finally {
+      b?.(...args);
+    }
+  };
 
 export const DownloadIconDropdown: React.FC<DownloadIconDropdownProps> = ({
   controls,
@@ -184,36 +251,50 @@ export const DownloadIconDropdown: React.FC<DownloadIconDropdownProps> = ({
   title = "Download",
   enableRowSelection,
   getRowsForSelected,
-  getRowsForAll
+  getRowsForAll,
 }) => {
   const triggerRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [closing, setClosing] = useState(false);
-  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
+  const [coords, setCoords] = useState<{ top: number; left: number } | null>(
+    null,
+  );
   const closeTimer = useRef<number | null>(null);
   const outsideReadyRef = useRef(false);
 
   const cfg = React.useMemo(() => {
-    const defaultLabels = { selected: "Download selected", all: "Download all" };
-    const defaultIcons  = { selected: "done_all",            all: "playlist_add_check" };
+    const defaultLabels = {
+      selected: "Download selected",
+      all: "Download all",
+    };
+    const defaultIcons = { selected: "done_all", all: "playlist_add_check" };
 
     const dHandlers = {
       onOpen: NOOP,
       onClose: NOOP,
-      onConfigChange: NOOP as (cfg: { fileName: string; format: ExportFormat }) => void,
-      onDownloading: NOOP as (k: "selected" | "all", m: { fileName: string; format: ExportFormat; count: number }) => void,
-      onComplete: NOOP as (k: "selected" | "all", m: { fileName: string; format: ExportFormat; count: number }) => void,
+      onConfigChange: NOOP as (cfg: {
+        fileName: string;
+        format: ExportFormat;
+      }) => void,
+      onDownloading: NOOP as (
+        k: "selected" | "all",
+        m: { fileName: string; format: ExportFormat; count: number },
+      ) => void,
+      onComplete: NOOP as (
+        k: "selected" | "all",
+        m: { fileName: string; format: ExportFormat; count: number },
+      ) => void,
       onError: NOOP as (err: any) => void,
     };
 
     return {
       fileName: controls?.fileName ?? "data",
       format: (controls?.format ?? "xlsx") as ExportFormat,
-      includeHiddenColumns: controls?.includeHiddenColumns ?? true,     // default TRUE
-      showConfigSection: controls?.showConfigSection ?? true,           // default TRUE
-      showBuiltinSelected: controls?.showBuiltinSelected ?? true,       // default TRUE
-      showBuiltinAll: controls?.showBuiltinAll ?? true,                 // default TRUE
+      includeHiddenColumns: controls?.includeHiddenColumns ?? true, // default TRUE
+      showConfigSection: controls?.showConfigSection ?? true, // default TRUE
+      showBuiltinSelected: controls?.showBuiltinSelected ?? true, // default TRUE
+      showBuiltinAll: controls?.showBuiltinAll ?? true, // default TRUE
 
       labels: { ...defaultLabels, ...(controls?.labels ?? {}) },
       icons: { ...defaultIcons, ...(controls?.icons ?? {}) },
@@ -221,7 +302,10 @@ export const DownloadIconDropdown: React.FC<DownloadIconDropdownProps> = ({
 
       onOpen: compose(dHandlers.onOpen, controls?.onOpen),
       onClose: compose(dHandlers.onClose, controls?.onClose),
-      onConfigChange: compose(dHandlers.onConfigChange, controls?.onConfigChange),
+      onConfigChange: compose(
+        dHandlers.onConfigChange,
+        controls?.onConfigChange,
+      ),
       onDownloading: compose(dHandlers.onDownloading, controls?.onDownloading),
       onComplete: compose(dHandlers.onComplete, controls?.onComplete),
       onError: compose(dHandlers.onError, controls?.onError),
@@ -238,7 +322,9 @@ export const DownloadIconDropdown: React.FC<DownloadIconDropdownProps> = ({
 
   /** AOA builders — pass includeHidden flag (functions may ignore it; that’s fine) */
   const buildSelectedAOA = useCallback(() => {
-    return getAOAForSelected?.({ includeHidden: cfg.includeHiddenColumns }) ?? [];
+    return (
+      getAOAForSelected?.({ includeHidden: cfg.includeHiddenColumns }) ?? []
+    );
   }, [getAOAForSelected, cfg.includeHiddenColumns]);
 
   const buildAllAOA = useCallback(() => {
@@ -247,7 +333,9 @@ export const DownloadIconDropdown: React.FC<DownloadIconDropdownProps> = ({
 
   // builders for rows payload
   const buildSelectedRows = useCallback(() => {
-    return getRowsForSelected?.({ includeHidden: cfg.includeHiddenColumns }) ?? [];
+    return (
+      getRowsForSelected?.({ includeHidden: cfg.includeHiddenColumns }) ?? []
+    );
   }, [getRowsForSelected, cfg.includeHiddenColumns]);
 
   const buildAllRows = useCallback(() => {
@@ -267,7 +355,7 @@ export const DownloadIconDropdown: React.FC<DownloadIconDropdownProps> = ({
   const downloadSheetFromAOA = async (
     aoa: any[][],
     kind: "selected" | "all",
-    count: number
+    count: number,
   ) => {
     if (!hasValidName) return;
     try {
@@ -286,13 +374,19 @@ export const DownloadIconDropdown: React.FC<DownloadIconDropdownProps> = ({
         const csv = XLSX.utils.sheet_to_csv(ws);
         const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
         const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob); a.download = filename; a.click();
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        a.click();
         URL.revokeObjectURL(a.href);
       } else {
         const out = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-        const blob = new Blob([out], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+        const blob = new Blob([out], {
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        });
         const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob); a.download = filename; a.click();
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        a.click();
         URL.revokeObjectURL(a.href);
       }
 
@@ -322,7 +416,9 @@ export const DownloadIconDropdown: React.FC<DownloadIconDropdownProps> = ({
     cfg.onOpen();
 
     outsideReadyRef.current = false;
-    window.setTimeout(() => { outsideReadyRef.current = true; }, 180);
+    window.setTimeout(() => {
+      outsideReadyRef.current = true;
+    }, 180);
   };
 
   const positionMenu = useCallback(() => {
@@ -338,7 +434,8 @@ export const DownloadIconDropdown: React.FC<DownloadIconDropdownProps> = ({
     const onScrollOrResize = () => positionMenu();
     window.addEventListener("scroll", onScrollOrResize, true);
     window.addEventListener("resize", onScrollOrResize);
-    const onKeyDown = (e: KeyboardEvent) => e.key === "Escape" && closeMenu(true);
+    const onKeyDown = (e: KeyboardEvent) =>
+      e.key === "Escape" && closeMenu(true);
     window.addEventListener("keydown", onKeyDown);
     return () => {
       window.removeEventListener("scroll", onScrollOrResize, true);
@@ -356,27 +453,41 @@ export const DownloadIconDropdown: React.FC<DownloadIconDropdownProps> = ({
       setClosing(true);
       if (closeTimer.current) window.clearTimeout(closeTimer.current);
       closeTimer.current = window.setTimeout(() => {
-        setClosing(false); setOpen(false); setCoords(null); cfg.onClose();
+        setClosing(false);
+        setOpen(false);
+        setCoords(null);
+        cfg.onClose();
       }, 140);
     } else {
-      setOpen(false); setCoords(null); cfg.onClose();
+      setOpen(false);
+      setCoords(null);
+      cfg.onClose();
     }
   };
 
   useOnClickOutside(
     menuRef,
-    () => { if (open && outsideReadyRef.current && !closing) closeMenu(true); },
+    () => {
+      if (open && outsideReadyRef.current && !closing) closeMenu(true);
+    },
     { ignoreClassNames: "dl-trigger" },
   );
 
   const shouldRenderPortal = open && coords !== null;
-  const builtInLabels = { selected: cfg.labels.selected!, all: cfg.labels.all! };
-  const builtInIcons  = { selected: cfg.icons.selected!,   all: cfg.icons.all! };
+  const builtInLabels = {
+    selected: cfg.labels.selected!,
+    all: cfg.labels.all!,
+  };
+  const builtInIcons = { selected: cfg.icons.selected!, all: cfg.icons.all! };
 
   const showSelectedItem = enableRowSelection && cfg.showBuiltinSelected;
 
   return (
-    <div ref={triggerRef} className="dl-trigger" style={{ position: "relative", display: "inline-block" }}>
+    <div
+      ref={triggerRef}
+      className="dl-trigger"
+      style={{ position: "relative", display: "inline-block" }}
+    >
       <RightIconButton
         icon={icon}
         title={title}
@@ -386,7 +497,8 @@ export const DownloadIconDropdown: React.FC<DownloadIconDropdownProps> = ({
         testId="download-icon"
       />
 
-      {shouldRenderPortal && typeof document !== "undefined" &&
+      {shouldRenderPortal &&
+        typeof document !== "undefined" &&
         createPortal(
           <MenuWrapper
             ref={menuRef}
@@ -397,7 +509,14 @@ export const DownloadIconDropdown: React.FC<DownloadIconDropdownProps> = ({
             $closing={closing}
           >
             <HeaderBar>
-              <CloseBtn aria-label="Close" title="Close" onClick={(e) => { e.stopPropagation(); closeMenu(true); }}>
+              <CloseBtn
+                aria-label="Close"
+                title="Close"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  closeMenu(true);
+                }}
+              >
                 <Icon icon="clear" />
               </CloseBtn>
               <HeaderTitle>
@@ -417,7 +536,10 @@ export const DownloadIconDropdown: React.FC<DownloadIconDropdownProps> = ({
                     value={name}
                     placeholder="file-name"
                     onChange={(val: any) => {
-                      const v = typeof val === "string" ? val : val?.target?.value ?? "";
+                      const v =
+                        typeof val === "string"
+                          ? val
+                          : (val?.target?.value ?? "");
                       setName(v);
                       cfg.onConfigChange({ fileName: v, format: fmt });
                     }}
@@ -435,7 +557,9 @@ export const DownloadIconDropdown: React.FC<DownloadIconDropdownProps> = ({
                       { text: "CSV (.csv)", value: "csv" },
                     ]}
                     onChange={(v: any) => {
-                      const newFmt = (typeof v === "string" ? v : v?.target?.value) as ExportFormat;
+                      const newFmt = (
+                        typeof v === "string" ? v : v?.target?.value
+                      ) as ExportFormat;
                       setFmt(newFmt);
                       cfg.onConfigChange({ fileName: name, format: newFmt });
                     }}
@@ -452,10 +576,18 @@ export const DownloadIconDropdown: React.FC<DownloadIconDropdownProps> = ({
                   onClick={async () => {
                     closeMenu(true);
                     if (!selectedCount || !hasValidName) return;
-                    await downloadSheetFromAOA(buildSelectedAOA(), "selected", selectedCount);
+                    await downloadSheetFromAOA(
+                      buildSelectedAOA(),
+                      "selected",
+                      selectedCount,
+                    );
                   }}
                   disabled={selectedCount === 0 || !hasValidName}
-                  title={!hasValidName ? "Enter a file name to enable download" : undefined}
+                  title={
+                    !hasValidName
+                      ? "Enter a file name to enable download"
+                      : undefined
+                  }
                 >
                   <Icon icon={builtInIcons.selected} />
                   {builtInLabels.selected}
@@ -471,7 +603,12 @@ export const DownloadIconDropdown: React.FC<DownloadIconDropdownProps> = ({
                     await downloadSheetFromAOA(buildAllAOA(), "all", allCount);
                   }}
                   disabled={allCount === 0 || !hasValidName}
-                  title={!hasValidName ? "Enter a file name to enable download" : undefined}
+                  data-testid="download-item-all"
+                  title={
+                    !hasValidName
+                      ? "Enter a file name to enable download"
+                      : undefined
+                  }
                 >
                   <Icon icon={builtInIcons.all} />
                   {builtInLabels.all}

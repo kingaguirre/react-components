@@ -5,10 +5,14 @@ import { ModalProps } from "./interface";
 
 const getModalWidth = (width: ModalProps["modalWidth"]) => {
   switch (true) {
-    case width === "sm": return "300px";
-    case width === "md": return "500px";
-    case width === "lg": return "800px";
-    default: return "auto";
+    case width === "sm":
+      return "300px";
+    case width === "md":
+      return "500px";
+    case width === "lg":
+      return "800px";
+    default:
+      return "auto";
   }
 };
 
@@ -38,13 +42,21 @@ export const ModalOverlay = styled.div<{
   /* Non-interactive while not shown */
   pointer-events: ${({ $show }) => ($show ? "auto" : "none")};
 
-  * { box-sizing: border-box; }
+  * {
+    box-sizing: border-box;
+  }
 
   ${({ $closeable }) =>
     !$closeable &&
     css`
-      ${ModalContainer} { transition: transform 300ms ease; }
-      &:active { ${ModalContainer} { transform: translateY(0) scale(0.99); } }
+      ${ModalContainer} {
+        transition: transform 300ms ease;
+      }
+      &:active {
+        ${ModalContainer} {
+          transform: translateY(0) scale(0.99);
+        }
+      }
     `}
 
   /* HARD HIDE ONLY when fully exited AND we're keeping it mounted */
@@ -52,10 +64,10 @@ export const ModalOverlay = styled.div<{
     $keepMounted &&
     css`
       &[data-state="exited"] {
-        z-index: -1;            /* drop out of stacking so it never blocks */
-        visibility: hidden;     /* hide from a11y/paint */
-        pointer-events: none;   /* belt & suspenders */
-        opacity: 0;             /* ensure fully transparent */
+        z-index: -1; /* drop out of stacking so it never blocks */
+        visibility: hidden; /* hide from a11y/paint */
+        pointer-events: none; /* belt & suspenders */
+        opacity: 0; /* ensure fully transparent */
       }
     `}
 `;
@@ -73,7 +85,9 @@ export const ModalContainer = styled.div<{
 
   opacity: ${({ $show }) => ($show ? 1 : 0)};
   transform: ${({ $show }) => ($show ? "translateY(0)" : "translateY(20px)")};
-  transition: opacity 300ms ease-in-out, transform 300ms ease-in-out;
+  transition:
+    opacity 300ms ease-in-out,
+    transform 300ms ease-in-out;
   will-change: opacity, transform;
   pointer-events: ${({ $show }) => ($show ? "auto" : "none")};
 
@@ -83,7 +97,7 @@ export const ModalContainer = styled.div<{
       &[data-state="exited"] {
         transition: none !important;
         opacity: 0 !important;
-        transform: translateY(20px)!important;
+        transform: translateY(20px) !important;
       }
     `}
 `;

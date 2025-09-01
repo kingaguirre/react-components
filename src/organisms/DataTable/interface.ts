@@ -7,8 +7,8 @@ import {
 } from "../../molecules/Dropdown/interface";
 import { DatePickerProps } from "../../molecules/DatePicker/interface";
 import { ColumnFiltersState, SortingState } from "@tanstack/react-table";
-import { UploadControls } from './components/MainHeader/UploadIconButton'
-import { DownloadControls } from './components/MainHeader/DownloadIconDropdown'
+import { UploadControls } from "./components/MainHeader/UploadIconButton";
+import { DownloadControls } from "./components/MainHeader/DownloadIconDropdown";
 
 export interface DataTableProps<T = any> {
   /** Data to display in the table */

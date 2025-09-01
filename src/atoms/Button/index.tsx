@@ -30,7 +30,7 @@ export const Button: React.FC<ButtonProps> = ({
     disabled={disabled}
     role="button"
     className={`button ${className} ${disabled ? "disabled" : ""} ${active ? "active" : ""}`.trim()}
-    data-testid={testId ?? (rest as any)['data-testid']}
+    data-testid={testId ?? (rest as any)["data-testid"]}
   >
     <span>{children}</span>
   </ButtonContainer>

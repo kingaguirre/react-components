@@ -43,7 +43,7 @@ export default defineConfig({
       outDir: 'dist',   // explicit output directory.
       exclude: [
         'public/**',
-        'node_module/**',
+        'node_modules/**',
         'src/poc/**',
         '**/stories.ts',
         '**/stories.tsx',
@@ -61,6 +61,7 @@ export default defineConfig({
       'react': path.resolve('node_modules', 'react'),
       'react-dom': path.resolve('node_modules', 'react-dom'),
     },
+    dedupe: ['react', 'react-dom', 'styled-components'],
   },
   server: {
     proxy: {
@@ -92,6 +93,7 @@ export default defineConfig({
         globals: {
           react: 'React',
           'react-dom': 'ReactDOM',
+          'styled-components': 'styled',
         },
       },
     },
@@ -101,6 +103,7 @@ export default defineConfig({
     restoreMocks: true,
     environment: 'jsdom',
     setupFiles: './src/setupTests.ts',
+    css: true,
     include: [
       'src/**/*_test.{ts,tsx}',
       'src/**/*.{test,spec}.{ts,tsx}'

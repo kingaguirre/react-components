@@ -127,7 +127,7 @@ export const DataTable = <T extends object>({
   uploadControls,
   enableDownload = false,
   downloadControls,
-  testId
+  testId,
 }: DataTableProps) => {
   const tableWrapperRef = useRef<HTMLDivElement>(null);
   const instanceIdRef = useRef<number>(Date.now() + Math.random());
@@ -149,8 +149,7 @@ export const DataTable = <T extends object>({
   // --- Server mode state ---
   const [serverTotal, setServerTotal] = useState<number>(0);
   const [serverLoading, setServerLoading] = useState<boolean>(false);
-  const fetchSeqRef = useRef(0); // guards races between overlapping requests
-  const [importExportLoading, setImportExportLoading] = useState(false);
+  const fetchSeqRef = useRef(0);
   const globalFilterDebounceRef = useRef<number | null>(null);
 
   const showToast = React.useCallback(
@@ -1005,7 +1004,6 @@ export const DataTable = <T extends object>({
     meta: {
       disabled,
       serverLoading,
-      importExportLoading
     },
   });
 
@@ -1238,15 +1236,6 @@ export const DataTable = <T extends object>({
   };
 
   // ---------- Export/Import helpers (no table prop leaks) ----------
-  const sanitizeCell = (v: any) => {
-    if (v == null) return "";
-    if (Array.isArray(v)) return v.map((x) => (x == null ? "" : String(x))).join(",");
-    if (v instanceof Date) return v.toISOString();
-    const t = typeof v;
-    if (t === "string" || t === "number" || t === "boolean") return v;
-    return "";
-  };
-
   const getVisibleNonBuiltInColumns = React.useCallback(() => {
     return table
       .getVisibleLeafColumns()
@@ -1260,24 +1249,6 @@ export const DataTable = <T extends object>({
       }));
   }, [table]);
 
-// helper
-  const isBuiltIn = (id: string) => UTILS.BUILTIN_COLUMN_IDS.has(String(id));
-
-  const getExportColumns = React.useCallback(
-    (includeHidden?: boolean) => {
-      const cols = includeHidden
-        ? table.getAllLeafColumns()         // <-- includes hidden
-        : table.getVisibleLeafColumns();    // <-- only visible
-      return cols.filter((c) => !isBuiltIn(String(c.id)));
-    },
-    [table],
-  );
-
-  const getHeaderText = (col: any) => {
-    const h = col?.columnDef?.header;
-    return typeof h === "string" ? h : String(col.id);
-  };
-
   /* ---------------------------------------------
    Export helpers (AOA + ROWS) — includeHidden aware
   ---------------------------------------------- */
@@ -1286,7 +1257,9 @@ export const DataTable = <T extends object>({
       // columnSettings should be the same array you pass to DataTable
       // Default is to include hidden columns in exports
       const wantHidden = includeHidden ?? true;
-      return wantHidden ? columnSettings : columnSettings.filter((c) => !c.hidden);
+      return wantHidden
+        ? columnSettings
+        : columnSettings.filter((c) => !c.hidden);
     },
     [columnSettings],
   );
@@ -1298,7 +1271,8 @@ export const DataTable = <T extends object>({
       const body = rowModels.map((rm) =>
         cols.map((c) => {
           const v = (rm.original as any)?.[c.column];
-          if (Array.isArray(v)) return v.map((x) => (x == null ? "" : String(x))).join(",");
+          if (Array.isArray(v))
+            return v.map((x) => (x == null ? "" : String(x))).join(",");
           if (v == null) return "";
           return v instanceof Date ? v.toISOString() : v;
         }),
@@ -1353,7 +1327,6 @@ export const DataTable = <T extends object>({
   const downloadSelectedCount = table.getSelectedRowModel().rows.length;
   const downloadAllCount = table.getPrePaginationRowModel().rows.length;
 
-
   // inside DataTable component
   const openBulkConfirm = React.useCallback(() => {
     // show modal
@@ -1367,33 +1340,39 @@ export const DataTable = <T extends object>({
   }, []);
 
   // Upload: you still own the prepend here for clarity of data ownership
-  const onImport = React.useCallback((alignedRows: Array<Record<string, any>>) => {
-    noPageReset(() =>
-      setData((old) => {
-        const withIds = alignedRows.map((r) => ({
-          ...r,
-          __internalId: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-        }));
-        const updated = [...withIds, ...old]; // PREPEND
-        onChange?.(updated.map(({ __internalId, ...rest }) => rest));
-        return updated;
-      }),
-    );
-  }, [noPageReset, onChange]);
-  
-  const mergedUploadControls = React.useMemo(() => ({
-    ...(uploadControls ?? {}),
-    onImport,
-    onComplete: (meta: { importedCount: number }) => {
-      uploadControls?.onComplete?.(meta);
-      showToast?.({
-        color: "success",
-        title: "Import complete",
-        message: `Imported ${meta.importedCount} row${meta.importedCount === 1 ? "" : "s"}.`,
-        icon: "check",
-      });
+  const onImport = React.useCallback(
+    (alignedRows: Array<Record<string, any>>) => {
+      noPageReset(() =>
+        setData((old) => {
+          const withIds = alignedRows.map((r) => ({
+            ...r,
+            __internalId: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          }));
+          const updated = [...withIds, ...old]; // PREPEND
+          onChange?.(updated.map(({ __internalId, ...rest }) => rest));
+          return updated;
+        }),
+      );
     },
-  }), [uploadControls, showToast]);
+    [noPageReset, onChange],
+  );
+
+  const mergedUploadControls = React.useMemo(
+    () => ({
+      ...(uploadControls ?? {}),
+      onImport,
+      onComplete: (meta: { importedCount: number }) => {
+        uploadControls?.onComplete?.(meta);
+        showToast?.({
+          color: "success",
+          title: "Import complete",
+          message: `Imported ${meta.importedCount} row${meta.importedCount === 1 ? "" : "s"}.`,
+          icon: "check",
+        });
+      },
+    }),
+    [uploadControls, showToast],
+  );
 
   const totalSelectedRows = Object.keys(table.getState().rowSelection).filter(
     (key) => (rowSelection as any)[key],
@@ -1421,9 +1400,9 @@ export const DataTable = <T extends object>({
       data-testid={testId}
       ref={tableWrapperRef}
       data-table-instanceid={instanceIdRef.current}
-      data-disabled={disabled || serverLoading || importExportLoading}
+      data-disabled={disabled || serverLoading}
       className={`data-table-wrapper ${isFocused ? "is-focused" : "is-not-focused"}`}
-      $disabled={disabled || serverLoading || importExportLoading}
+      $disabled={disabled || serverLoading}
       tabIndex={0}
       onClickCapture={() => {
         if (showAlert) return;
@@ -1464,24 +1443,19 @@ export const DataTable = <T extends object>({
         headerRightElements={headerRightElements}
         bulkRestoreMode={allSelectedSoftDeleted}
         enableRowSelection={enableRowSelection}
-
         getVisibleNonBuiltInColumns={getVisibleNonBuiltInColumns}
-
         /* AOA builders (built-in menu items use these) */
         downloadSelectedCount={downloadSelectedCount}
         downloadAllCount={downloadAllCount}
         getAOAForSelected={getAOAForSelected}
         getAOAForAll={getAOAForAll}
-
         /* ROWS builders (extras use these) */
         getRowsForSelected={getRowsForSelected}
         getRowsForAll={getRowsForAll}
-
         enableDownload={enableDownload}
         enableUpload={enableUpload}
         // controls are still defined on DataTable API
         uploadControls={mergedUploadControls}
-
         downloadControls={downloadControls}
       />
       <DndContext

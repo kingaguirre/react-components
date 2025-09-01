@@ -1,5 +1,5 @@
 /// <reference lib="webworker" />
-/* eslint-disable no-restricted-globals */
+
 import * as XLSX from "xlsx";
 
 type MsgIn =

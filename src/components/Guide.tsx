@@ -95,7 +95,7 @@ export function Guide({
               ))}
             </GuideUl>
           )}
-          {sec.code && <CodeBlock code={sec.code}/>}
+          {sec.code && <CodeBlock code={sec.code} />}
           {i < sections.length - 1 && <GuideHr />}
         </GuideSection>
       ))}

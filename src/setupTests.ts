@@ -1,7 +1,16 @@
 // src/setupTests.ts
 import '@testing-library/jest-dom';
-import { vi } from 'vitest';
+import { vi, afterEach } from 'vitest';
+import { cleanup } from "@testing-library/react";
+import '@testing-library/jest-dom/vitest';
+import 'vitest-styled-components';
+import 'jest-styled-components';
 
+// Ensure all tests start with a clean slate; avoids leaked portal mocks
+afterEach(() => {
+  cleanup();
+  // Do NOT mutate document.body.innerHTML here.
+});
 // ── SheetJS mock ──
 // Drives upload parsing from globalThis.__mockUploadRows and captures exports into globalThis.__lastAOA
 vi.mock('xlsx', () => {
@@ -137,43 +146,3 @@ class MockFileReader {
   }
 }
 vi.stubGlobal('FileReader', MockFileReader);
-
-/* ──────────────────────────────────────────────────────────────
-   Globals used by tests
-────────────────────────────────────────────────────────────── */
-declare global {
-  // eslint-disable-next-line no-var
-  var __lastAOA: any[] | null;
-  // eslint-disable-next-line no-var
-  var __mockUploadRows: Array<Record<string, any>>;
-}
-globalThis.__lastAOA = null;
-globalThis.__mockUploadRows = [];
-
-/* ──────────────────────────────────────────────────────────────
-   Mock `xlsx` for deterministic tests
-   - aoa_to_sheet captures the AOA -> __lastAOA
-   - sheet_to_json returns __mockUploadRows (controlled by tests)
-────────────────────────────────────────────────────────────── */
-vi.mock('xlsx', async () => {
-  const utils = {
-    aoa_to_sheet: (aoa: any[][]) => {
-      globalThis.__lastAOA = aoa;
-      return { __aoa: aoa };
-    },
-    sheet_to_csv: () => 'a,b\n1,2',
-    sheet_to_json: () => globalThis.__mockUploadRows,
-    book_new: () => ({ sheets: [] as any[] }),
-    book_append_sheet: (wb: any, ws: any, name: string) => {
-      wb.sheets.push({ name, ws });
-    },
-  };
-  const write = () => new Uint8Array([1, 2, 3]); // dummy buffer
-
-  return {
-    default: { utils, write },
-    utils,
-    write,
-  };
-});
-

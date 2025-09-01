@@ -63,7 +63,7 @@ export interface MainHeaderProps {
   }) => void;
   /** optional: real full-dataset export in server mode */
   fetchAllRows?: () => Promise<any[]>;
-  
+
   enableDownload?: boolean;
   enableUpload?: boolean;
   downloadControls?: DownloadControls;
@@ -106,7 +106,7 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
   enableDownload = false,
   enableUpload = false,
   getRowsForSelected,
-  getRowsForAll
+  getRowsForAll,
 }) => {
   const inputRef = React.useRef<HTMLInputElement | null>(null);
 
