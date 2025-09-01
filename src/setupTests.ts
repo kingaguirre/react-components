@@ -11,37 +11,38 @@ afterEach(() => {
   cleanup();
   // Do NOT mutate document.body.innerHTML here.
 });
-// ── SheetJS mock ──
-// Drives upload parsing from globalThis.__mockUploadRows and captures exports into globalThis.__lastAOA
-vi.mock('xlsx', () => {
-  const utils = {
-    aoa_to_sheet: (aoa: any[][]) => {
-      (globalThis as any).__lastAOA = aoa; // capture for assertions
-      return { __aoa: aoa } as any;
-    },
-    book_new: () => ({ SheetNames: [], Sheets: {} } as any),
-    book_append_sheet: (wb: any, _ws: any, name: string) => {
-      wb.SheetNames.push(name);
-      wb.Sheets[name] = {}; // minimal shape
-    },
-    // Your upload flow will call sheet_to_json(ws). Just return the mocked rows.
-    sheet_to_json: (_ws: any) => (globalThis as any).__mockUploadRows ?? [],
+
+// ──────────────────────────────────────────────────────────────
+// Block ALL anchor navigations in tests (fixes jsdom navigation errors)
+// ──────────────────────────────────────────────────────────────
+let __removeAnchorBlocker: (() => void) | null = null;
+
+beforeAll(() => {
+  // Some code may try window.open on blob URLs
+  vi.spyOn(window, 'open').mockImplementation(() => null as any);
+
+  const anchorBlocker = (e: Event) => {
+    // robust target detection across portals/animations
+    const path = (e as any).composedPath?.() ?? [];
+    const fromPath = path.find((n: any) => n?.tagName === 'A') as HTMLAnchorElement | undefined;
+    const fromTarget =
+      (e.target as Element | null)?.closest?.('a') as HTMLAnchorElement | null;
+
+    const a = fromPath ?? fromTarget ?? null;
+    if (a) {
+      e.preventDefault();
+      e.stopPropagation?.();
+    }
   };
 
-  const read = vi.fn((_data: any, _opts?: any) => ({
-    SheetNames: ['Sheet1'],
-    Sheets: { Sheet1: {} }, // we don’t parse real file content in tests
-  }));
+  // Capture phase so we beat library handlers
+  document.addEventListener('click', anchorBlocker, true);
+  __removeAnchorBlocker = () => document.removeEventListener('click', anchorBlocker, true);
+});
 
-  const write = vi.fn((_wb: any, _opts?: any) => new ArrayBuffer(8));
-
-  return {
-    __esModule: true,
-    default: { utils, read, write },
-    utils,
-    read,
-    write,
-  };
+afterAll(() => {
+  __removeAnchorBlocker?.();
+  (window.open as any).mockRestore?.();
 });
 
 /* ──────────────────────────────────────────────────────────────

@@ -22,7 +22,7 @@ async function getXLSX() {
 const COLS: ColumnSetting[] = [
   { title: "ID", column: "id", width: 80, draggable: false, filter: false },
   { title: "Title", column: "title", width: 280 },
-  { title: "Brand", column: "brand", width: 180 },
+  { title: "Brand", column: "brand"},
   { title: "Category", column: "category", width: 180 },
   { title: "Price", column: "price", width: 120, align: "right" },
   // keep hidden TRUE to prove exports include hidden columns by default
@@ -333,7 +333,7 @@ export const UploadDemo = {
         ["2", "Chair", "SeatCo", "furniture", "45", "3.8", "EXTRA"],
       ];
 
-      const XLSX = await ensureXLSX();
+      const XLSX = await getXLSX();
       const ws = XLSX.utils.aoa_to_sheet([headers, ...sample]);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Sample");

@@ -18,7 +18,6 @@ export const Filter = ({ column }: { column: Column<any, unknown> }) => {
   );
   const facetedUniqueValuesSize = facetedUniqueValues.size;
 
-  // Now, derive a boolean based on the memoized value.
   const showFacetedValues =
     filterType === "select" ||
     (filterType !== "select" && facetedUniqueValues.size < 10000);
@@ -26,8 +25,6 @@ export const Filter = ({ column }: { column: Column<any, unknown> }) => {
   const sortedUniqueValues = React.useMemo(() => {
     if (filterType === "number-range") return [];
     if (!showFacetedValues) return [];
-
-    // Using the memoized facetedUniqueValues.
     return Array.from(facetedUniqueValues.keys())
       .sort((a, b) => a - b)
       .slice(0, 5000);
@@ -56,6 +53,8 @@ export const Filter = ({ column }: { column: Column<any, unknown> }) => {
                       ? `(${column.getFacetedMinMaxValues()?.[0]})`
                       : ""
                   }`}
+                  columnId={column.id}
+                  testId={`filter-${column.id}-min`}
                 />
                 <DebouncedInput
                   type="number"
@@ -73,9 +72,12 @@ export const Filter = ({ column }: { column: Column<any, unknown> }) => {
                       ? `(${column.getFacetedMinMaxValues()?.[1]})`
                       : ""
                   }`}
+                  columnId={column.id}
+                  testId={`filter-${column.id}-max`}
                 />
               </>
             );
+
           case "date":
             return (
               <DebouncedInput
@@ -84,8 +86,10 @@ export const Filter = ({ column }: { column: Column<any, unknown> }) => {
                 type="date"
                 value={(columnFilterValue ?? "") as string}
                 columnId={column.id}
+                testId={`filter-${column.id}`}
               />
             );
+
           case "date-range":
             return (
               <DebouncedInput
@@ -95,9 +99,11 @@ export const Filter = ({ column }: { column: Column<any, unknown> }) => {
                 range
                 value={(columnFilterValue ?? "") as string}
                 columnId={column.id}
-              />
+                testId={`filter-${column.id}`}
+            />
             );
-          case "dropdown":
+
+          case "dropdown": {
             const options = colMeta?.filter?.options ?? [];
             let _options: any[] = [];
 
@@ -119,13 +125,20 @@ export const Filter = ({ column }: { column: Column<any, unknown> }) => {
             return (
               <DebouncedInput
                 onChange={(value) => column.setFilterValue(value)}
-                placeholder={`Select Options ${showFacetedValues && options?.length > 0 ? `(${facetedUniqueValuesSize})` : ""}`}
+                placeholder={`Select Options ${
+                  showFacetedValues && options?.length > 0
+                    ? `(${facetedUniqueValuesSize})`
+                    : ""
+                }`}
                 type="dropdown"
                 options={_options}
                 value={(columnFilterValue ?? "") as string}
                 columnId={column.id}
+                testId={`filter-${column.id}`}
               />
             );
+          }
+
           case "number":
             return (
               <DebouncedInput
@@ -134,23 +147,23 @@ export const Filter = ({ column }: { column: Column<any, unknown> }) => {
                 type="number"
                 value={(columnFilterValue ?? "") as string}
                 columnId={column.id}
+                testId={`filter-${column.id}`}
               />
             );
+
           default:
             return (
               <>
-                {/* <datalist id={column.id + 'list'}>
-                  {sortedUniqueValues.map((value: any, i: number) => (
-                    <option value={value} key={`${value}-${i}`} />
-                  ))}
-                </datalist> */}
                 <DebouncedInput
                   onChange={(value) => column.setFilterValue(value)}
                   type="text"
                   value={(columnFilterValue ?? "") as string}
-                  placeholder={`Search... ${showFacetedValues ? `(${facetedUniqueValuesSize})` : ""}`}
+                  placeholder={`Search... ${
+                    showFacetedValues ? `(${facetedUniqueValuesSize})` : ""
+                  }`}
                   list={column.id + "list"}
                   columnId={column.id}
+                  testId={`filter-${column.id}`}
                 />
               </>
             );
@@ -160,21 +173,32 @@ export const Filter = ({ column }: { column: Column<any, unknown> }) => {
   );
 };
 
-// A typical debounced input react component
+// DebouncedInput (drop-in replacement)
 export const DebouncedInput = ({
   value: initialValue,
   onChange,
   debounce = 150,
   columnId,
+  testId,
   ...props
 }: {
   value: string | number;
   onChange: (value: string | number) => void;
   debounce?: number;
+  columnId?: string;
+  testId?: string;
   [key: string]: any;
 } & Omit<React.InputHTMLAttributes<HTMLInputElement>, "onChange">) => {
   const [value, setValue] = React.useState(initialValue);
-  const controlRef = React.useRef<any>(null);
+
+  // keep latest onChange without retriggering the effect
+  const onChangeRef = React.useRef(onChange);
+  React.useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
+  // prevent re-emitting identical values
+  const lastEmittedRef = React.useRef<typeof initialValue>(initialValue);
 
   const inferredBlur =
     props.type === "dropdown" ||
@@ -186,39 +210,46 @@ export const DebouncedInput = ({
   }, [initialValue]);
 
   React.useEffect(() => {
-    const timeout = setTimeout(() => {
-      onChange?.(value);
+    // don’t emit if nothing changed (breaks the loop)
+    if (Object.is(value, lastEmittedRef.current)) return;
 
+    const timeout = setTimeout(() => {
+      lastEmittedRef.current = value;
+      onChangeRef.current?.(value);
+
+      // only try to blur when we actually emitted
       if (
         inferredBlur &&
         typeof window !== "undefined" &&
         typeof document !== "undefined"
       ) {
-        // 1) try forwarded ref
-        if (
-          controlRef.current &&
-          typeof controlRef.current.blur === "function"
-        ) {
-          controlRef.current.blur();
-        } else {
-          // 2) try data-testid hook
-          const sel = columnId ? `[data-testid="filter-${columnId}"]` : "";
-          const el = sel
-            ? (document.querySelector(sel) as HTMLElement | null)
-            : null;
-          if (el && typeof el.blur === "function") {
-            el.blur();
-          } else {
-            // 3) fall back: active element
-            const active = document.activeElement as HTMLElement | null;
-            if (active && typeof active.blur === "function") active.blur();
-          }
-        }
+        // 1) try a forwarded ref if your control supports it (not shown here)
+        // 2) prefer explicit testId (more precise than generic columnId)
+        const selector = testId
+          ? `[data-testid="${testId}"]`
+          : columnId
+          ? `[data-testid="filter-${columnId}"]`
+          : null;
+
+        const el = selector
+          ? (document.querySelector(selector) as HTMLElement | null)
+          : (document.activeElement as HTMLElement | null);
+
+        if (el && typeof el.blur === "function") el.blur();
       }
     }, debounce);
 
     return () => clearTimeout(timeout);
-  }, [value]);
+  }, [value, debounce, inferredBlur, testId, columnId]);
+
+  const resolvedTestId = testId ?? (columnId ? `filter-${columnId}` : undefined);
+
+  // small helper to normalize numbers
+  const coerceNumber = (s: string) => {
+    if (s === "" || s === null || s === undefined) return "";
+    const n = Number(s);
+    return Number.isNaN(n) ? "" : n;
+  };
 
   return (() => {
     switch (props.type) {
@@ -229,42 +260,51 @@ export const DebouncedInput = ({
             value={value as string}
             onChange={(date: any) => setValue(date as string)}
             placeholder={props.placeholder}
+            testId={resolvedTestId} // your DatePicker should render -date internally
           />
         );
+
       case "date-range":
         return (
           <DatePicker
             size="sm"
             value={value as string}
             onChange={(date: any) => setValue(date as string)}
-            range={props.type === "date-range"}
+            range
             placeholder={props.placeholder}
+            testId={resolvedTestId} // your DatePicker should render -start / -end internally
           />
         );
+
       case "dropdown":
         return (
           <Dropdown
             size="sm"
             value={value as string}
-            onChange={(value: any) => setValue(value as string)}
+            onChange={(val: any) => setValue(val as string)}
             placeholder={props.placeholder}
             options={props.options}
             hideOnScroll
-            testId={`filter-${columnId}`}
+            testId={resolvedTestId}
           />
         );
+
       default:
+        // supports text/number inputs rendered via FormControl
         return (
           <FormControl
             {...props}
             size="sm"
             value={value}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setValue(e.target.value)
+              setValue(
+                props.type === "number" ? coerceNumber(e.target.value) : e.target.value
+              )
             }
-            testId={`filter-${columnId}`}
+            testId={resolvedTestId}
           />
         );
     }
   })();
 };
+
