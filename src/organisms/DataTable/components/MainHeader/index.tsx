@@ -124,6 +124,7 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
             onChange={onChange}
             placeholder="Search all columns..."
             ref={inputRef}
+            testId="global-filter-input"
             iconRight={[
               ...(value
                 ? [
