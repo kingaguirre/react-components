@@ -7,13 +7,13 @@ import { StoryWrapper, Title } from "../../../components/StoryWrapper";
 import { Guide } from "../../../components/Guide";
 
 /* -----------------------------------------------------------------------------
-   Lazy XLSX (avoids type errors if @types/xlsx isn't installed)
+   Lazy ExcelJS (avoids type issues if types aren't installed)
 ----------------------------------------------------------------------------- */
-let XLSXMod: typeof import("xlsx") | null = null;
-async function getXLSX() {
-  if (XLSXMod) return XLSXMod;
-  XLSXMod = await import("xlsx"); // normal dynamic import, no vite-ignore needed
-  return XLSXMod;
+let ExcelJSMod: typeof import("exceljs") | null = null;
+async function getExcelJS() {
+  if (ExcelJSMod) return ExcelJSMod;
+  ExcelJSMod = await import("exceljs");
+  return ExcelJSMod;
 }
 
 /* -----------------------------------------------------------------------------
@@ -49,29 +49,30 @@ async function downloadAOA(
   aoa: any[][],
   opts: { fileName: string; format: "xlsx" | "csv" },
 ) {
-  const XLSX = await getXLSX();
-  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  const ExcelJS = await getExcelJS();
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet("Data");
+  ws.addRows(aoa);
 
+  const base = opts.fileName.replace(/\.(xlsx|csv)$/i, "");
   if (opts.format === "csv") {
-    const csv = XLSX.utils.sheet_to_csv(ws);
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const buf = await wb.csv.writeBuffer();
+    const blob = new Blob([buf], { type: "text/csv;charset=utf-8" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = opts.fileName.endsWith(".csv") ? opts.fileName : `${opts.fileName}.csv`;
+    a.download = `${base}.csv`;
     a.click();
     URL.revokeObjectURL(a.href);
     return;
   }
 
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Data");
-  const out = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-  const blob = new Blob([out], {
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = opts.fileName.endsWith(".xlsx") ? opts.fileName : `${opts.fileName}.xlsx`;
+  a.download = `${base}.xlsx`;
   a.click();
   URL.revokeObjectURL(a.href);
 }
@@ -333,12 +334,13 @@ export const UploadDemo = {
         ["2", "Chair", "SeatCo", "furniture", "45", "3.8", "EXTRA"],
       ];
 
-      const XLSX = await getXLSX();
-      const ws = XLSX.utils.aoa_to_sheet([headers, ...sample]);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Sample");
-      const out = XLSX.write(wb, { type: "array", bookType: "xlsx" });
-      const blob = new Blob([out], {
+      const ExcelJS = await getExcelJS();
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet("Sample");
+      ws.addRows([headers, ...sample]);
+
+      const buf = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buf], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
       const a = document.createElement("a");
