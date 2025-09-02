@@ -1,4 +1,4 @@
-// src/atoms/Grid/Grid.stories.tsx
+// src/atoms/Grid/stories.tsx
 import React from 'react'
 import type { Meta } from '@storybook/react'
 import { Grid, GridItem } from './index'
@@ -138,6 +138,19 @@ export const Examples = () => (
 
         {/* Non-whitespace text node counts as invalid */}
         {'Inline text — ignored'}
+      </Grid>
+    </Wrapper>
+
+    <Title>Debug Warnings Enabled</Title>
+    <Wrapper>
+      <Grid spacing={16} debugWarnings>
+        <GridItem xs={6}>
+          <Cell>Valid GridItem</Cell>
+        </GridItem>
+
+        {/* Non-GridItem children — allowed, but will trigger warning box */}
+        <div>Plain div — not allowed</div>
+        {'Inline text — not allowed'}
       </Grid>
     </Wrapper>
   </StoryWrapper>
