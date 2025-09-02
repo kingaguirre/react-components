@@ -29,6 +29,10 @@ export const Tabs: React.FC<TabsProps> = ({
   const tabListRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
+  // --- helpers for ARIA wiring ---
+  const getTabId = (i: number) => `tab-${i}`;
+  const getPanelId = (i: number) => `tabpanel-${i}`;
+
   useEffect(() => {
     if (activeTab !== undefined) {
       setSelectedTab(activeTab);
@@ -118,7 +122,11 @@ export const Tabs: React.FC<TabsProps> = ({
       role="button"
       aria-pressed="false"
     >
-      <TabWrapper className="tab-wrapper" role="tablist">
+      <TabWrapper
+        className="tab-wrapper"
+        role="tablist"
+        aria-orientation="horizontal"
+      >
         {firstLastNavControl && (
           <NavButton
             className="nav-button-first"
@@ -147,32 +155,41 @@ export const Tabs: React.FC<TabsProps> = ({
           className="tabs-container"
           $fullHeader={fullHeader}
         >
-          {tabs?.map((tab, index) => (
-            <TabItem
-              key={`key-${tab.title}-${tab.color}`}
-              className="tab-item"
-              $active={selectedTab === index}
-              $focused={focusedTab === index}
-              $disabled={tab.disabled || false}
-              $color={tab.color ?? "primary"}
-              $fullHeader={fullHeader}
-              tabIndex={-1}
-              onFocus={() => !tab.disabled && setFocusedTab(index)}
-              onClick={() => {
-                handleTabChange(index);
-                setFocusedTab(index);
-                wrapperRef.current?.focus();
-              }}
-            >
-              {tab.icon && <Icon icon={tab.icon} color={tab.iconColor} />}
-              <span className="title">{tab.title}</span>
-              {tab.badgeValue !== undefined && (
-                <Badge color={tab.badgeColor ?? "danger"}>
-                  {tab.badgeValue}
-                </Badge>
-              )}
-            </TabItem>
-          ))}
+          {tabs?.map((tab, index) => {
+            const active = selectedTab === index;
+            const disabled = !!tab.disabled;
+            return (
+              <TabItem
+                key={`key-${tab.title}-${tab.color}`}
+                className="tab-item"
+                $active={active}
+                $focused={focusedTab === index}
+                $disabled={disabled}
+                $color={tab.color ?? "primary"}
+                $fullHeader={fullHeader}
+                role="tab"
+                id={getTabId(index)}
+                aria-selected={active}
+                aria-controls={getPanelId(index)}
+                aria-disabled={disabled}
+                tabIndex={active ? 0 : -1}
+                aria-label={tab.title}
+                onFocus={() => !disabled && setFocusedTab(index)}
+                onClick={() => {
+                  handleTabChange(index);
+                  setFocusedTab(index);
+                  wrapperRef.current?.focus();
+                }}
+              >
+                {tab.icon && <Icon icon={tab.icon} color={tab.iconColor} />}
+                <span className="title">{tab.title}</span>
+                {tab.badgeValue !== undefined && (
+                  <Badge color={tab.badgeColor ?? "danger"}>{tab.badgeValue}</Badge>
+                )}
+              </TabItem>
+            );
+          })}
+
         </TabsContainer>
         {isScrollable && (
           <ScrollButton
@@ -198,8 +215,16 @@ export const Tabs: React.FC<TabsProps> = ({
           </NavButton>
         )}
       </TabWrapper>
+
+      {/* --- Single visible panel; ARIA linked to the selected tab --- */}
       <TabContentWrapper $color={tabs?.[selectedTab]?.color ?? "primary"}>
-        <TabContent key={selectedTab} className="fade-in">
+        <TabContent
+          key={selectedTab}
+          className="fade-in"
+          role="tabpanel"
+          id={getPanelId(selectedTab)}
+          aria-labelledby={getTabId(selectedTab)}
+        >
           {tabs?.[selectedTab]?.content}
         </TabContent>
       </TabContentWrapper>

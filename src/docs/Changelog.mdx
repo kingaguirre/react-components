@@ -5,16 +5,29 @@ import pkg from '../../package.json';
 
 # Changelog
 ---
+## 🚀 New PoC Component – v{pkg.version}
+We’re excited to introduce a new proof-of-concept component that expands the capabilities of **react-components-lib**.
 
-## Latest Update – v{pkg.version}
-This update introduces new features and enhancements to the **react-components-lib** data table, providing more flexibility and control for your applications.
+### 🚧 Experimental
+- **FormRender (PoC):**  
+  The **FormRender** component is designed to **dynamically generate and render forms** from structured configuration rather than static markup. This makes it easier to:
+  - Centralize form logic in one place.
+  - Reduce repetitive boilerplate code.
+  - Improve maintainability for complex, data-driven forms.  
 
-**Feature:** New loader component to visually indicate loading states with support for inline, fullscreen, and themed variants.
+  > ⚠️ **Beta Notice:** FormRender is currently in **beta** and intended for early testing. It may not cover all use cases and can evolve significantly in upcoming releases.  
+  If you find issues or have suggestions, please share feedback with **emmanuel.arguellesaguirre@sc.com**.
+
+
+
+## Loader Component – v1.2.0
+This version introduced a new **Loader** component to improve the user experience by visually indicating loading states.
 
 ### Atoms
-- **Loader:** A visual indicator used to show that content is loading or a process is in progress.
+- **Loader:** A visual indicator used to show that content is loading or a process is in progress.  
+  - Supports **inline**, **fullscreen**, and **themed** variants to match different use cases.
 
----
+
 
 ## DataTable Enhancement – v1.1.0
 **Enhancement:** New data table enhancements for improved functionality and flexibility.
@@ -29,7 +42,7 @@ This update introduces new features and enhancements to the **react-components-l
   - **Conditional Cell Disabled:** Enabled cells to be disabled based on custom conditions.
   - **Documentation:** Added an accompanying `.mdx` (or doc) file that details these new updates and how to integrate them into your project.
 
----
+
 
 ## Initial Release – v1.0.0
 This release marks the initial launch of **react-components-lib** with a comprehensive set of core components:
@@ -54,7 +67,7 @@ This release marks the initial launch of **react-components-lib** with a compreh
 - **Tabs:** A component that enables switching between multiple content views via tabbed navigation.
 - **DataTable:** A robust data table component built for displaying, sorting, filtering, and paginating complex datasets—engineered to deliver performance without the frills.
 
----
+
 
 ## Current Version: v{pkg.version}
 The current version of **react-components-lib** is v{pkg.version}. This version includes all the features and updates described above.

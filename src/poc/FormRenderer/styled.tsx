@@ -44,9 +44,12 @@ export const PageHeader = styled.div`
 export const SubHeader = styled(PageHeader)`
   background: ${theme.colors.lightA};
   color: ${theme.colors.primary.dark};
+  border-left: 2px solid ${theme.colors.primary.base};
   position: sticky;
   z-index: 999;
   top: 28px;
+  padding: 6px 14px;
+  font-size: 11px;
 `;
 
 // sticky tabs container under header

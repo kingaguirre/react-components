@@ -143,7 +143,7 @@ export interface SubmitResult<T> {
   invalidFields?: Array<{ field: string; error: string; value: any }>;
 }
 
-export interface DynamicFormProps<T extends Record<string, any>> {
+export interface FormRendererProps<T extends Record<string, any>> {
   fieldSettings: SettingsItem[];
   dataSource: T;
   onSubmit: (result: SubmitResult<T>) => void;
@@ -153,7 +153,7 @@ export interface DynamicFormProps<T extends Record<string, any>> {
   loading?: boolean;
 }
 
-export interface DynamicFormRef<T> {
+export interface FormRendererRef<T> {
   submit: () => void;
   getValues: () => T;
 }

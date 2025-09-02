@@ -194,6 +194,7 @@ export const RadioButtonGroup: React.FC<FormControlProps> = ({
   selectedValue,
   color,
   isInvalid,
+  testId,
   ...rest
 }) => (
   <GroupControlContainer
@@ -213,6 +214,7 @@ export const RadioButtonGroup: React.FC<FormControlProps> = ({
             value={option.value}
             checked={selectedValue === option.value}
             onChange={() => onChange(option.value)}
+            data-testid={`${testId}-${option.value}`}
           />
           <Button
             size={size}

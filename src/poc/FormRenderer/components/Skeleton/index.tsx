@@ -175,7 +175,7 @@ export function renderSkeletonSection(
     const array = getDataByPath(table.config.dataSource, values);
     const rawLength = Array.isArray(array) ? array.length : DEFAULT_TABLE_ROWS;
     const dataLength = Math.min(rawLength, DEFAULT_TABLE_ROWS);
-    const skeletonHeight = BASE_TABLE_HEIGHT + dataLength * ROW_HEIGHT;
+    const skeletonHeight = BASE_TABLE_HEIGHT + dataLength * ROW_HEIGHT + 1;
 
     return (
       <React.Fragment key={`skel-dt-${idx}`}>

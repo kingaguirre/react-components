@@ -182,7 +182,7 @@ describe('FormControl Component', () => {
     const input = screen.getByTestId('controlled-text') as HTMLInputElement
     expect(input.value).toBe('hello')
 
-    const clear = screen.getByTestId('clear-icon')
+    const clear = screen.getByTestId('controlled-text-clear-icon')
     expect(clear).toBeInTheDocument()
 
     await userEvent.click(clear)
@@ -211,10 +211,10 @@ describe('FormControl Component', () => {
     await userEvent.type(input, 'X')
     expect(input.value).toBe('seedX')
 
-    const clear = screen.getByTestId('clear-icon')
+    const clear = screen.getByTestId('uncontrolled-seed-clear-icon')
     await userEvent.click(clear)
     expect(input.value).toBe('')
-    expect(screen.queryByTestId('clear-icon')).toBeNull()
+    expect(screen.queryByTestId('uncontrolled-seed-clear-icon')).toBeNull()
     expect(onClearIcon).toHaveBeenCalledTimes(1)
   })
 
@@ -228,7 +228,7 @@ describe('FormControl Component', () => {
         clearable={false}
       />
     )
-    expect(screen.queryByTestId('clear-icon')).toBeNull()
+    expect(screen.queryByTestId('no-clear-clear-icon')).toBeNull()
   })
 
   test('clear icon hidden when readOnly', () => {
@@ -242,7 +242,7 @@ describe('FormControl Component', () => {
         clearable
       />
     )
-    expect(screen.queryByTestId('clear-icon')).toBeNull()
+    expect(screen.queryByTestId('readonly-clear-icon')).toBeNull()
   })
 
   test('clear icon hidden when disabled', () => {
@@ -256,7 +256,7 @@ describe('FormControl Component', () => {
         clearable
       />
     )
-    expect(screen.queryByTestId('clear-icon')).toBeNull()
+    expect(screen.queryByTestId('disabled-clear-icon')).toBeNull()
   })
 
   test('showDisabledIcon=true renders lock when disabled', () => {
@@ -294,7 +294,7 @@ describe('FormControl Component', () => {
         onClearIcon={onClearIcon}
       />
     )
-    const clear = screen.getByTestId('clear-icon')
+    const clear = screen.getByTestId('with-clear-cb-clear-icon')
     await userEvent.click(clear)
     expect(onClearIcon).toHaveBeenCalledTimes(1)
   })
@@ -310,7 +310,7 @@ describe('FormControl Component', () => {
       />
     )
     const input = screen.getByTestId('focus-after-clear') as HTMLInputElement
-    const clear = screen.getByTestId('clear-icon')
+    const clear = screen.getByTestId('focus-after-clear-clear-icon')
     await userEvent.click(clear)
     expect(document.activeElement).toBe(input)
   })
@@ -349,7 +349,7 @@ describe('FormControl Component', () => {
     )
     const input = screen.getByTestId('num-valid') as HTMLInputElement
     expect(input.value).toBe('3.14')
-    expect(screen.getByTestId('clear-icon')).toBeInTheDocument()
+    expect(screen.getByTestId('num-valid-clear-icon')).toBeInTheDocument()
   })
 
   test('type=number (uncontrolled) seeded with invalid numeric string renders empty and no clear icon', () => {
@@ -364,7 +364,7 @@ describe('FormControl Component', () => {
     )
     const input = screen.getByTestId('num-unctrl-invalid') as HTMLInputElement
     expect(input.value).toBe('')
-    expect(screen.queryByTestId('clear-icon')).toBeNull()
+    expect(screen.queryByTestId('num-unctrl-invalid-clear-icon')).toBeNull()
   })
 
   test('type=number (uncontrolled) seeded with valid string is editable and clearable', async () => {
@@ -383,10 +383,10 @@ describe('FormControl Component', () => {
     await userEvent.type(input, '5') // becomes "105"
     expect(input.value).toBe('105')
 
-    const clear = screen.getByTestId('clear-icon')
+    const clear = screen.getByTestId('num-unctrl-valid-clear-icon')
     await userEvent.click(clear)
     expect(input.value).toBe('')
-    expect(screen.queryByTestId('clear-icon')).toBeNull()
+    expect(screen.queryByTestId('num-unctrl-valid-clear-icon')).toBeNull()
   })
 
     test('shows * in the label when required=true (text input)', () => {

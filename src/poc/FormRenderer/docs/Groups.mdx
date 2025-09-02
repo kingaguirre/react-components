@@ -1,0 +1,164 @@
+
+import { Meta } from '@storybook/blocks';
+
+<Meta title="poc/FormRenderer/Groups" />
+
+# Groups
+Use **headers**, **tabs**, and **accordions** to organize fields visually and functionally. Groups accept the same `hidden` / `disabled` patterns (boolean or function of values). Fields rendered inside a header get horizontal padding to emphasize containment.
+
+
+## Field Groups (Header + nested fields)
+- A **group** is an object with `header` and a `fields` array.
+- `isSubHeader` renders a smaller header.
+- `hidden` and `disabled` can be boolean or `(values)=>boolean`.
+- You can nest groups and even `dataTable` sections inside groups.
+
+```tsx
+import React from 'react';
+import { FormRenderer } from '@/poc/Form';
+import type { SettingsItem } from '@/poc/Form/interface';
+
+const fieldSettings: SettingsItem[] = [
+  {
+    header: 'Personal Information',
+    description: 'Fields under a header are padded to show grouping.',
+    fields: [
+      { name: 'user.firstName', label: 'First Name', type: 'text', placeholder: 'Jane' },
+      { name: 'user.lastName',  label: 'Last Name',  type: 'text', placeholder: 'Doe' },
+      { name: 'user.email',     label: 'Email',      type: 'email', placeholder: 'jane@acme.com' },
+    ],
+  },
+  {
+    header: 'Flags (subheader)',
+    isSubHeader: true,
+    fields: [
+      { name: 'user.isActive', label: 'Is Active', type: 'switch' },
+      { name: 'user.isStaff',  label: 'Is Staff',  type: 'checkbox' },
+    ],
+  },
+];
+
+export default function Demo() {
+  return (
+    <FormRenderer
+      fieldSettings={fieldSettings}
+      dataSource={{
+        user: {
+          firstName: '',
+          lastName:  '',
+          email:     '',
+          isActive:  false,
+          isStaff:   false,
+        },
+      }}
+      onSubmit={(r) => console.log('[submit]', r)}
+      onChange={(v) => console.log('[change]', v)}
+    />
+  );
+}
+```
+
+---
+
+## Tabs
+- Define `tabs: { title, fields }[]` inside a group item.
+- Each tab’s fields render when the tab is selected.
+- You can hide tabs based on values with `hidden: (values)=>boolean`.
+- Tabs are keyboard accessible (arrow keys, Enter).
+
+```tsx
+import React from 'react';
+import { FormRenderer } from '@/poc/Form';
+import type { SettingsItem } from '@/poc/Form/interface';
+
+const fieldSettings: SettingsItem[] = [
+  {
+    header: 'Profile',
+    tabs: [
+      {
+        title: 'General',
+        fields: [
+          { name: 'profile.username', label: 'Username', type: 'text', placeholder: 'acme_user' },
+          { name: 'profile.role',     label: 'Role',     type: 'dropdown', placeholder: 'Select role',
+            options: [{ value:'admin', text:'Admin' }, { value:'user', text:'User' }] },
+        ],
+      },
+      {
+        title: 'Advanced',
+        hidden: (v)=> v?.profile?.role !== 'admin',
+        fields: [
+          { name: 'profile.token',     label: 'API Token', type: 'text', placeholder: '••••••' },
+          { name: 'profile.allowSudo', label: 'Allow sudo', type: 'switch' },
+        ],
+      },
+    ],
+  },
+];
+
+export default function Demo() {
+  return (
+    <FormRenderer
+      fieldSettings={fieldSettings}
+      dataSource={{ profile: { username:'', role:'', token:'', allowSudo:false } }}
+      onSubmit={(r)=> console.log('[submit]', r)}
+      onChange={(v)=> console.log('[change]', v)}
+    />
+  );
+}
+```
+
+---
+
+## Accordion
+- Use `accordion: AccordionSection[]` inside a group item.
+- Each section has `title`, `fields`, and optional `open`, `hidden`, or `disabled`.
+- `allowMultiple` (on the group item) allows more than one section open at a time.
+- `rightDetails` can surface compact metadata to the right of the summary (optional API).
+
+```tsx
+import React from 'react';
+import { FormRenderer } from '@/poc/Form';
+import type { SettingsItem } from '@/poc/Form/interface';
+
+const fieldSettings: SettingsItem[] = [
+  {
+    header: 'Advanced Settings',
+    description: 'Accordion panels that can be independently expanded.',
+    accordion: [
+      {
+        title: 'Limits',
+        open: true,
+        fields: [
+          { name:'limits.cpu',    label:'CPU Limit',    type:'number', placeholder:'2' },
+          { name:'limits.memory', label:'Memory Limit', type:'number', placeholder:'4096' },
+        ],
+      },
+      {
+        title: 'Flags',
+        fields: [
+          { name:'flags.debug',     label:'Debug',     type:'switch' },
+          { name:'flags.readonly',  label:'Readonly',  type:'checkbox' },
+        ],
+      },
+    ],
+    allowMultiple: true,
+  },
+];
+
+export default function Demo() {
+  return (
+    <FormRenderer
+      fieldSettings={fieldSettings}
+      dataSource={{ limits:{ cpu:undefined, memory:undefined }, flags:{ debug:false, readonly:false } }}
+      onSubmit={(r)=> console.log('[submit]', r)}
+      onChange={(v)=> console.log('[change]', v)}
+    />
+  );
+}
+```
+
+## Tips
+- Use **groups** to introduce semantic sections and get automatic padding for contained fields.
+- Prefer **tabs** when content is mutually exclusive or large.
+- Prefer **accordion** for long, optional, or drill-down content.
+- `hidden` and `disabled` can be either static booleans or functions of `values`.

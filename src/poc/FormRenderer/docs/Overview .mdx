@@ -1,0 +1,79 @@
+
+import { Meta } from '@storybook/blocks';
+
+<Meta title="poc/FormRenderer/Overview" />
+
+# FormRenderer — Overview
+A schema‑driven form component that renders inputs, groups (headers, tabs, accordion), and in‑form DataTables from a single `fieldSettings` array. It supports conditional `hidden`/`disabled`, Zod validations, and an imperative API via `ref`.
+
+
+## Props
+
+- **`fieldSettings: SettingsItem[]`**  
+  The form schema. Each item can be a field, a headered group, tabs, an accordion section, or a `dataTable` block. **Required.**
+
+- **`dataSource: Record<string, any>`**  
+  Initial values and the working data model. The form mutates this object internally and emits its latest snapshot. **Required.**
+
+- **`onSubmit: (result: SubmitResult<T>) => void`**  
+  Called when the form is submitted (via user action or `ref.submit()`), receiving `{ valid, values, invalidFields }`. **Required.**
+
+- **`onChange?: (values: T) => void`**  
+  Fires on every change with the latest values (debounce is UI‑dependent; treat this as “live model”).
+
+- **`disabled?: boolean`**  
+  Disables the entire form (all inputs, nested tables, and action buttons).
+
+- **`loading?: boolean`**  
+  Shows a skeleton and hides all inputs.
+
+
+## How It Works
+
+- **Schema first:** You declare a single `fieldSettings` array. Each item can represent a field or a container (headered group, tabs, accordion, or `dataTable` with its nested fields).  
+- **Conditional UI:** Most objects support `hidden`/`disabled` as either a boolean or a function `(values) => boolean` that runs against the current `dataSource`.  
+- **Validation:** Each field may define `validation: (z, values) => ZodTypeAny`. The function receives a Zod instance `z` and the latest `values`, so validation can be conditional.  
+- **Events:** `onChange(values)` emits the live model. `onSubmit(result)` returns validity and either the final `values` or `invalidFields` with field paths.  
+- **Imperative API:** With a ref you can call `submit()` or `getValues()`. This is useful for external toolbars or multi‑step flows.
+
+
+## Quick start
+
+```tsx
+import React from 'react';
+import { z } from 'zod';
+import { FormRenderer } from '@/poc/Form';
+import type { SettingsItem } from '@/poc/Form/interface';
+
+const fields: SettingsItem[] = [
+  { name: 'user.firstName', label: 'First name', type: 'text', placeholder: 'Jane' },
+  { name: 'user.age', label: 'Age', type: 'number', placeholder: '0', validation: (z) => z.number().min(0) },
+  { name: 'user.joinDate', label: 'Join date', type: 'date', placeholder: 'YYYY-MM-DD' },
+  {
+    name: 'user.role',
+    label: 'Role',
+    type: 'dropdown',
+    options: [
+      { value: 'admin', text: 'Admin' },
+      { value: 'user',  text: 'User'  },
+    ],
+  },
+];
+
+export default function Demo() {
+  return (
+    <FormRenderer
+      fieldSettings={fields}
+      dataSource={{ user: { firstName: '', age: undefined, joinDate: '', role: '' } }}
+      onSubmit={(res) => console.log('[FormRenderer submit]', res)}
+      onChange={(v) => console.log('[FormRenderer change]', v)}
+    />
+  );
+}
+```
+
+**What this does:**  
+- Renders four inputs (text, number, date, dropdown) under the `user.*` namespace.  
+- Validates `user.age >= 0` on submit.  
+- Streams the live model via `onChange` (open the console to observe changes).  
+- Keeps the surface small and declarative—swap or extend fields by editing the `fields` array.
