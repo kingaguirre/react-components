@@ -145,14 +145,7 @@ export const UploadIconButton: React.FC<UploadIconButtonProps> = ({
       onOpen: controls?.onOpen ?? (() => {}),
       onUpload: controls?.onUpload ?? (() => {}),
       onUploading: controls?.onUploading ?? (() => {}),
-      onImport:
-        controls?.onImport ??
-        ((rows) => {
-          console.warn(
-            "[UploadIconButton] onImport not provided; parsed rows are ignored.",
-            rows.length,
-          );
-        }),
+      onImport: controls?.onImport ?? (() => {}),
       onComplete: controls?.onComplete ?? (() => {}),
       onError: controls?.onError ?? (() => {}),
     }),
@@ -359,7 +352,10 @@ export const UploadIconButton: React.FC<UploadIconButtonProps> = ({
     const importable = reviewData.alignedAll.filter((row) =>
       Object.values(row).some((v) => v !== "" && v != null),
     );
-    if (importable.length) cfg.onImport?.(importable);
+    if (importable.length) {
+      cfg.onImport?.(importable);
+      cfg.onComplete?.({ importedCount: importable.length });
+    }
 
     // user chose to close — ignore any late worker messages
     closingRef.current = true;

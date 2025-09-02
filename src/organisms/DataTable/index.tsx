@@ -1340,7 +1340,7 @@ export const DataTable = <T extends object>({
   }, []);
 
   // Upload: you still own the prepend here for clarity of data ownership
-  const onImport = React.useCallback(
+  const onImportInternal = React.useCallback(
     (alignedRows: Array<Record<string, any>>) => {
       noPageReset(() =>
         setData((old) => {
@@ -1357,22 +1357,32 @@ export const DataTable = <T extends object>({
     [noPageReset, onChange],
   );
 
-  const mergedUploadControls = React.useMemo(
-    () => ({
-      ...(uploadControls ?? {}),
-      onImport,
-      onComplete: (meta: { importedCount: number }) => {
-        uploadControls?.onComplete?.(meta);
+  const compose =
+    <A extends any[]>(a?: (...args: A) => void, b?: (...args: A) => void) =>
+    (...args: A) => {
+      try { a?.(...args); } finally { b?.(...args); }
+    };
+
+  const mergedUploadControls = React.useMemo(() => ({
+    ...(uploadControls ?? {}),
+    // run user's onImport first (so they can log), then always run internal
+    onImport: compose(uploadControls?.onImport, onImportInternal),
+    onOpen: compose(uploadControls?.onOpen, undefined),
+    onUpload: compose(uploadControls?.onUpload, undefined),
+    onUploading: compose(uploadControls?.onUploading, undefined),
+    onError: compose(uploadControls?.onError, undefined),
+    onComplete: compose(
+      uploadControls?.onComplete,
+      (meta: { importedCount: number }) => {
         showToast?.({
           color: "success",
           title: "Import complete",
           message: `Imported ${meta.importedCount} row${meta.importedCount === 1 ? "" : "s"}.`,
           icon: "check",
         });
-      },
-    }),
-    [uploadControls, showToast],
-  );
+      }
+    ),
+  }), [uploadControls, onImportInternal, showToast]);
 
   const totalSelectedRows = Object.keys(table.getState().rowSelection).filter(
     (key) => (rowSelection as any)[key],
