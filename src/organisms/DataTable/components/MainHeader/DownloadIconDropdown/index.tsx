@@ -7,11 +7,13 @@ import { FormControl } from "src/atoms/FormControl";
 import { scrollStyle, theme } from "src/styles";
 import { useOnClickOutside } from "src/organisms/DataTable/hooks/useOnClickOutside";
 
-let XLSXMod: typeof import("xlsx") | null = null;
-async function getXLSX() {
-  if (XLSXMod) return XLSXMod;
-  XLSXMod = await import("xlsx"); // normal dynamic import, no vite-ignore needed
-  return XLSXMod;
+// ---------- ExcelJS (dynamic import) ----------
+type ExcelJSType = typeof import("exceljs");
+let ExcelJSMod: ExcelJSType | null = null;
+async function getExcelJS() {
+  if (ExcelJSMod) return ExcelJSMod;
+  ExcelJSMod = await import("exceljs");
+  return ExcelJSMod;
 }
 
 type ExportFormat = "xlsx" | "csv";
@@ -361,26 +363,32 @@ export const DownloadIconDropdown: React.FC<DownloadIconDropdownProps> = ({
     try {
       cfg.onDownloading(kind, { fileName: name, format: fmt, count });
 
-      const XLSX = await getXLSX();
-      const ws = XLSX.utils.aoa_to_sheet(aoa);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Data");
+      const ExcelJS = await getExcelJS();
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet("Data");
+      // Add rows from AOA (array-of-arrays)
+      if (Array.isArray(aoa) && aoa.length) {
+        // exceljs expects an array of row arrays; header included by your builder
+        ws.addRows(aoa);
+      }
 
       const base = (name || "data-table").trim() || "data-table";
-      const ext = fmt === "csv" ? ".csv" : ".xlsx";
+      const isCSV = fmt === "csv";
+      const ext = isCSV ? ".csv" : ".xlsx";
       const filename = base.toLowerCase().endsWith(ext) ? base : base + ext;
 
-      if (fmt === "csv") {
-        const csv = XLSX.utils.sheet_to_csv(ws);
-        const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      if (isCSV) {
+        // ExcelJS can write CSV from the workbook (uses first worksheet)
+        const buf = await wb.csv.writeBuffer();
+        const blob = new Blob([buf], { type: "text/csv;charset=utf-8" });
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
         a.download = filename;
         a.click();
         URL.revokeObjectURL(a.href);
       } else {
-        const out = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-        const blob = new Blob([out], {
+        const buf = await wb.xlsx.writeBuffer();
+        const blob = new Blob([buf], {
           type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         });
         const a = document.createElement("a");

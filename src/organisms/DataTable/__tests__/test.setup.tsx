@@ -1,13 +1,3 @@
-/* Global setup for DataTable tests:
-   - Portals → inline
-   - XLSX mock (captures AOA, feeds __mockUploadRows)
-   - Axios mock (ESM-safe)
-   - Worker mock using getDeepValue / setDeepValue
-   - URL/anchor stubs for download flows
-   - Scroll stubs
-   - Shared sample data + column configs
-   - Server helpers (applyServerOps, makeFetcherSpy, ALL products)
-*/
 import ReactDOM from 'react-dom';
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
@@ -25,25 +15,43 @@ globalThis.__lastAOA = null;
 globalThis.__mockUploadRows = null;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// XLSX mock – captures AOA on export; feeds mocked rows on import
+// ExcelJS mock – captures AOA on export; provides csv/xlsx writeBuffer
 // ─────────────────────────────────────────────────────────────────────────────
-vi.mock('xlsx', async () => {
-  const utils = {
-    aoa_to_sheet: (aoa: any[][]) => {
-      globalThis.__lastAOA = aoa;
-      return { __ws: true, __aoa: aoa };
-    },
-    sheet_to_csv: () => 'id,title\n1,Test',
-    sheet_to_json: () => globalThis.__mockUploadRows ?? [],
-    book_new: () => ({ __wb: true, Sheets: {}, SheetNames: [] }),
-    book_append_sheet: () => {},
+vi.mock('exceljs', () => {
+  class MockWorksheet {
+    name: string;
+    rows: any[][] = [];
+    constructor(name: string) { this.name = name; }
+    addRows(aoa: any[][]) {
+      // Mirror previous behaviour: expose the last AOA for assertions
+      (globalThis as any).__lastAOA = aoa;
+      this.rows.push(...aoa);
+    }
+  }
+
+  class Workbook {
+    worksheets: MockWorksheet[] = [];
+
+    addWorksheet(name: string) {
+      const ws = new MockWorksheet(name);
+      this.worksheets.push(ws);
+      return ws as unknown as import('exceljs').Worksheet;
+    }
+
+    // match the API used in your component:
+    // await wb.xlsx.writeBuffer() and await wb.csv.writeBuffer()
+    xlsx = {
+      writeBuffer: vi.fn(async () => new Uint8Array([0, 1, 2])),
+    };
+    csv = {
+      writeBuffer: vi.fn(async () => new Uint8Array([3, 4, 5])),
+    };
+  }
+
+  return {
+    __esModule: true,
+    Workbook,
   };
-  const api = {
-    utils,
-    write: () => new Uint8Array([0, 1, 2]),
-    read: () => ({ SheetNames: ['Sheet1'], Sheets: { Sheet1: {} } }),
-  };
-  return { __esModule: true, default: api, ...api };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

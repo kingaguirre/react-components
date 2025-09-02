@@ -229,4 +229,55 @@ describe('DataTable – Upload & Download', () => {
     expect(screen.queryByRole('menuitem', { name: /download selected/i })).toBeNull();
     expect(screen.getByRole('menuitem', { name: /only custom/i })).toBeInTheDocument();
   });
+
+  test('Download selected: row + header checkbox select all/unselect all works correctly', async () => {
+    render(
+      <DataTable
+        dataSource={PROD_ROWS}
+        columnSettings={DL_COLS}
+        enableRowSelection
+        enableMultiRowSelection
+        enableDownload
+        downloadControls={{
+          fileName: 'selected_only',
+          format: 'xlsx',
+          showConfigSection: false,
+          showBuiltinAll: true,
+          showBuiltinSelected: true,
+        }}
+      />
+    );
+
+    const u = userEvent.setup({ pointerEventsCheck: 0 });
+
+    // 1) Select first row only
+    await u.click(screen.getByTestId('select-row-0'));
+    await openDownloadMenu();
+    await u.click(screen.getByRole('menuitem', { name: /download selected/i }));
+
+    await waitFor(() => expect(globalThis.__lastAOA).not.toBeNull());
+    let aoa = globalThis.__lastAOA!;
+    expect(aoa.length).toBe(2); // header + 1 row
+    expect(aoa[1]).toEqual([1, 'A', 'Acme', 'beauty', 10, 4.7]);
+
+    // 2) Click header once → selects all rows
+    globalThis.__lastAOA = null;
+    await u.click(screen.getByTestId('select-row-header'));
+    await openDownloadMenu();
+    await u.click(screen.getByRole('menuitem', { name: /download selected/i }));
+
+    await waitFor(() => expect(globalThis.__lastAOA).not.toBeNull());
+    aoa = globalThis.__lastAOA!;
+    expect(aoa.length).toBe(PROD_ROWS.length + 1); // header + all rows
+    expect(aoa[1]).toEqual([1, 'A', 'Acme', 'beauty', 10, 4.7]);
+    expect(aoa[2]).toEqual([2, 'B', 'Globex', 'furniture', 20, 4.0]);
+    expect(aoa[3]).toEqual([3, 'C', 'Initech', 'groceries', 30, 3.5]);
+
+    // 3) Click header again → unselect all
+    globalThis.__lastAOA = null;
+    await u.click(screen.getByTestId('select-row-header'));
+    await openDownloadMenu();
+    expect(screen.getByRole('menuitem', { name: /download selected/i })).toBeDisabled();
+  });
+
 });
