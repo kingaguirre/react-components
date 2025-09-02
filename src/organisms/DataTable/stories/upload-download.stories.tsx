@@ -306,20 +306,25 @@ export const DownloadCustom = {
 export const UploadDemo = {
   name: "Upload",
   render: () => {
-    const [data, setData] = useState<any[]>([
-      { id: 101, title: "Pencil", brand: "HB", category: "stationery", price: 1.2, rating: 4.2 },
-    ]);
+    // keep a static initial dataset; DataTable will prepend uploaded rows internally
+    const data = useMemo(
+      () => [
+        { id: 101, title: "Pencil", brand: "HB", category: "stationery", price: 1.2, rating: 4.2 },
+      ],
+      []
+    );
 
     const uploadControls = useMemo(
       () => ({
         title: "Upload CSV/XLSX",
-        onImport: (rows: Array<Record<string, any>>) =>
-          setData((old) => {
-            const withIds = rows.map((r, i) => ({ id: 1000 + Date.now() + i, ...r }));
-            return [...withIds, ...old];
-          }),
+        onImport: (rows: Array<Record<string, any>>) => {
+          // don't push into state; just log what DataTable returns
+          // (DataTable handles prepending internally)
+          // eslint-disable-next-line no-console
+          console.log("[UploadDemo] onImport rows:", rows);
+        },
       }),
-      [],
+      []
     );
 
     const makeSampleWorkbook = useCallback(async () => {
@@ -357,10 +362,10 @@ export const UploadDemo = {
   enableUpload
   uploadControls={{
     title: 'Upload CSV/XLSX',
-    onImport: (rows) => setData((old) => [...mapWithIds(rows), ...old])
+    onImport: (rows) => console.log('[UploadDemo] onImport rows:', rows)
   }}
 />`,
-      [],
+      []
     );
 
     return (
@@ -379,6 +384,7 @@ export const UploadDemo = {
                 bullets: [
                   "A <b>review modal</b> reports empty rows and unmatched headers before you proceed.",
                   "Empty rows are automatically ignored on import.",
+                  "Uploaded rows are prepended internally by the DataTable (no state mutation here).",
                 ],
               },
               {

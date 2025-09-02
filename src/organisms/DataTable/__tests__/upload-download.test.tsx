@@ -280,4 +280,100 @@ describe('DataTable – Upload & Download', () => {
     expect(screen.getByRole('menuitem', { name: /download selected/i })).toBeDisabled();
   });
 
+  // test('Upload CSV: shows review (unmatched + empty), proceeds and imports only non-empty rows', async () => {
+  //   // Worker will emit these rows regardless of file contents
+  //   // - includes an unmatched header "invalid_col"
+  //   // - includes an empty row (should be ignored)
+  //   (globalThis as any).__mockUploadRows = [
+  //     { ID: '1', Title: 'Notebook', Brand: 'PaperPro', Category: 'stationery', Price: '7.5', invalid_col: 'X' },
+  //     { }, // empty row → ignored
+  //     { ID: '2', Title: 'Chair',   Brand: 'SeatCo',   Category: 'furniture',  Price: '45',  invalid_col: 'Y' },
+  //   ];
+
+  //   const onImport = vi.fn();
+
+  //   render(
+  //     <DataTable
+  //       dataSource={[]}
+  //       columnSettings={DL_COLS}
+  //       enableUpload
+  //       uploadControls={{ title: 'Upload CSV/XLSX', onImport }}
+  //     />
+  //   );
+
+  //   const u = userEvent.setup({ pointerEventsCheck: 0 });
+
+  //   // Open picker and "upload" a CSV file (content isn't parsed by the mock, but triggers the code path)
+  //   await u.click(screen.getByTestId('upload-icon'));
+  //   const input = screen.getByTestId('upload-input') as HTMLInputElement;
+  //   const file = new File(
+  //     [
+  //       'ID,Title,Brand,Category,Price,invalid_col\n',
+  //       '1,Notebook,PaperPro,stationery,7.5,X\n',
+  //       ',,,,,\n',
+  //       '2,Chair,SeatCo,furniture,45,Y\n',
+  //     ],
+  //     'test.csv',
+  //     { type: 'text/csv' }
+  //   );
+  //   await u.upload(input, file);
+
+  //   // Review modal should appear (unmatched headers + empty rows)
+  //   expect(await screen.findByText(/import review/i)).toBeInTheDocument();
+  //   expect(screen.getByText(/Some headers don’t match/i)).toBeInTheDocument();
+  //   expect(screen.getByText('invalid_col')).toBeInTheDocument(); // unmatched tag is rendered
+  //   // Optional: check the "Ignored (empty)" stat reflects 1 row
+  //   expect(screen.getByText(/Ignored \(empty\)/i).nextSibling).toHaveTextContent('1');
+
+  //   // Proceed with import
+  //   await u.click(screen.getByTestId('upload-confirm-button'));
+
+  //   // onImport receives only non-empty aligned rows (visible columns only)
+  //   await waitFor(() => expect(onImport).toHaveBeenCalled());
+  //   const payload = onImport.mock.calls.at(-1)?.[0] as Array<Record<string, any>>;
+  //   expect(Array.isArray(payload)).toBe(true);
+  //   expect(payload).toHaveLength(2);
+  //   // Headers are aligned to column ids: id, title, brand, category, price
+  //   expect(payload[0]).toMatchObject({ id: '1', title: 'Notebook', brand: 'PaperPro', category: 'stationery', price: '7.5' });
+  //   expect(payload[1]).toMatchObject({ id: '2', title: 'Chair',    brand: 'SeatCo',   category: 'furniture',  price: '45' });
+  // });
+
+  // test('Upload XLSX: no issues → imports immediately (no review modal)', async () => {
+  //   // All headers match visible columns; no empty rows → skip review
+  //   (globalThis as any).__mockUploadRows = [
+  //     { ID: '10', Title: 'Soap', Brand: 'Clean Co', Category: 'beauty',    Price: '4.5' },
+  //     { ID: '11', Title: 'Desk', Brand: 'Oakline',  Category: 'furniture', Price: '199' },
+  //   ];
+
+  //   const onImport = vi.fn();
+
+  //   render(
+  //     <DataTable
+  //       dataSource={[]}
+  //       columnSettings={DL_COLS}
+  //       enableUpload
+  //       uploadControls={{ title: 'Upload CSV/XLSX', onImport }}
+  //     />
+  //   );
+
+  //   const u = userEvent.setup({ pointerEventsCheck: 0 });
+
+  //   // Trigger XLSX path
+  //   await u.click(screen.getByTestId('upload-icon'));
+  //   const input = screen.getByTestId('upload-input') as HTMLInputElement;
+  //   const xlsxFile = new File([new Uint8Array([0,1,2,3])], 'ok.xlsx', {
+  //     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  //   });
+  //   await u.upload(input, xlsxFile);
+
+  //   // Should import directly without showing the review modal
+  //   await waitFor(() => expect(onImport).toHaveBeenCalled());
+  //   expect(screen.queryByText(/import review/i)).toBeNull();
+
+  //   const rows = onImport.mock.calls.at(-1)?.[0] as Array<Record<string, any>>;
+  //   expect(rows).toHaveLength(2);
+  //   expect(rows[0]).toMatchObject({ id: '10', title: 'Soap', brand: 'Clean Co', category: 'beauty',    price: '4.5' });
+  //   expect(rows[1]).toMatchObject({ id: '11', title: 'Desk', brand: 'Oakline',  category: 'furniture', price: '199' });
+  // });
+
 });

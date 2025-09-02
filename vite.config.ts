@@ -3,7 +3,6 @@ import react from '@vitejs/plugin-react';
 import path from 'node:path';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import dts from 'vite-plugin-dts';
-import commonjs from 'rollup-plugin-commonjs';
 import cssInjectedByJsPlugin from 'vite-plugin-css-injected-by-js';
 import fs from 'fs'
 
@@ -48,7 +47,10 @@ export default defineConfig({
         '**/stories.ts',
         '**/stories.tsx',
         '**/_test.ts',
-        '**/_test.tsx'
+        '**/_test.tsx',
+        '**/stories/**',
+        '**/__tests__/**',
+        'src/components/**',
       ],
     }),
     react(),
@@ -77,19 +79,20 @@ export default defineConfig({
     lib: {
       entry: path.resolve(__dirname, 'src/index.ts'),
       name: 'ReactComponentsLib',
-      formats: ['es', 'cjs', 'umd'],
+      formats: ['es', 'cjs'],
       fileName: (format) => {
         if (format === 'cjs') return 'react-components-lib.cjs';
         return `react-components-lib.${format}.js`;
       },
     },
     rollupOptions: {
-      plugins: [commonjs()],
       external: [
         'react',
         'react-dom',
+        'styled-components'
       ],
       output: {
+        exports: 'named',
         globals: {
           react: 'React',
           'react-dom': 'ReactDOM',
@@ -116,7 +119,7 @@ export default defineConfig({
         'src/molecules/**/stories.tsx',
         'src/atoms/**/stories.tsx',
         'src/components/**',
-        "**/stories/**"
+        '**/stories/**'
       ],
     },
   },
