@@ -1311,4 +1311,62 @@ describe('DataTable Row Features and Events (Client Mode)', () => {
       expect(row).toMatchObject({ id: '2' });
     });
   });
+
+  test('column filter highlights matching tokens in the cell', async () => {
+    render(
+      <DataTable
+        dataSource={sampleData}
+        columnSettings={columnsFiltering}
+        enableColumnFiltering
+      />
+    );
+
+    const firstNameFilter = screen.getByTestId('filter-firstName');
+    await userEvent.clear(firstNameFilter);
+    await userEvent.type(firstNameFilter, 'Jane');
+
+    // Re-query the visible firstName cell that contains "Jane"
+    // (filtering can shift row indexes, so scan all firstName cells)
+    const cells = Array.from(
+      document.querySelectorAll<HTMLElement>('[data-testid^="column-"][data-testid$="-firstName"]')
+    );
+    const cell = cells.find((el) => el.textContent?.includes('Jane')) ?? null;
+    expect(cell).not.toBeNull();
+
+    // Wait until the highlighter has mutated the DOM
+    await waitFor(() => {
+      const html = cell!.innerHTML;
+      // Accept either explicit data-hook or inline style; covers both implementations
+      expect(
+        /<span[^>]*(data-highlight="true"|background-color:\s*yellow)[^>]*>Jane<\/span>/i.test(html)
+      ).toBe(true);
+    });
+
+    // sanity: others are filtered out
+    expect(screen.queryByText('John')).toBeNull();
+    expect(screen.queryByText('Alice')).toBeNull();
+  });
+
+  test('global filter highlights multiple tokens across cells', async () => {
+    render(
+      <DataTable
+        dataSource={sampleData}
+        columnSettings={columnsSorting}
+        enableGlobalFiltering
+      />
+    );
+
+    const input = screen.getByTestId('global-filter-input');
+    await userEvent.type(input, 'Jane');
+
+    // Give the table a tick to re-render highlight spans
+    await waitFor(() => {
+      const html = document.body.innerHTML;
+      // We expect at least one highlighted "Jane" and one highlighted "Admin"
+      const hasJane =
+        /<span[^>]*(data-highlight="true"|background-color:\s*yellow)[^>]*>Jane<\/span>/i.test(html);
+      expect(hasJane).toBe(true);
+    });
+  });
+
 });

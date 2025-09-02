@@ -1,0 +1,173 @@
+
+import { Meta } from '@storybook/blocks';
+
+<Meta title="poc/FormRenderer/Fields" />
+
+# Fields
+All core input types, with `hidden`/`disabled` supported as static booleans or value‑driven functions. You can also supply a **custom renderer** for complete control.
+
+**What this page covers**
+- A copy‑paste config showing **every built‑in input**.
+- How to **hide/disable** fields (static vs value‑driven).
+- A **custom renderer** example using the `render({ field, fieldState, common })` escape hatch.
+- Notes for **validation & testing hooks**.
+
+
+## All core inputs (copy‑paste)
+This shows every built‑in type with sensible placeholders. Add Zod validations as needed.
+
+```tsx
+import { z } from 'zod';
+import type { SettingsItem } from '@/poc/Form/interface';
+
+const fieldSettings: SettingsItem[] = [
+  { name: 'textName',     label: 'Text',          type: 'text',          placeholder: 'Type your name' },
+  { name: 'numQty',       label: 'Number',        type: 'number',        placeholder: '0' },
+  { name: 'bio',          label: 'Textarea',      type: 'textarea',      placeholder: 'A short bio' },
+  {
+    name: 'role',
+    label: 'Dropdown',
+    type: 'dropdown',
+    placeholder: 'Pick a role',
+    options: [{ value:'Admin', text:'Admin' }, { value:'User', text:'User' }],
+  },
+  { name: 'email',        label: 'Email',         type: 'email',         placeholder: 'name@company.com', validation: (z)=> z.string().email() },
+  { name: 'joined',       label: 'Date',          type: 'date',          placeholder: 'YYYY-MM-DD' },
+  { name: 'optIn',        label: 'Checkbox',      type: 'checkbox' },
+  { name: 'flag',         label: 'Switch',        type: 'switch' },
+  {
+    name: 'priority',
+    label: 'Radio group',
+    type: 'radio-group',
+    options: [
+      { value: 'low',  text: 'Low' },
+      { value: 'med',  text: 'Medium' },
+      { value: 'high', text: 'High' }
+    ]
+  },
+  {
+    name: 'features',
+    label: 'Checkbox group',
+    type: 'checkbox-group',
+    options: [
+      { value: 'a', text: 'Feature A' },
+      { value: 'b', text: 'Feature B' },
+      { value: 'c', text: 'Feature C' }
+    ]
+  },
+  {
+    name: 'mode',
+    label: 'Radio buttons',
+    type: 'radio-button-group',
+    options: [{ value:'manual', text:'Manual' }, { value:'auto', text:'Automatic' }]
+  },
+  {
+    name: 'alerts',
+    label: 'Switch group',
+    type: 'switch-group',
+    options: [{ value:'email', text:'Email' }, { value:'sms', text:'SMS' }]
+  },
+];
+```
+
+**Notes**
+- For group types (`checkbox-group`, `switch-group`) your value is an array of strings. If your upstream sends a comma string, preprocess in validation (see Validation page).
+- `placeholder` is supported by text/number/textarea/date/email/dropdown.
+
+
+## Hidden / Disabled (static & functional)
+You can set `hidden`/`disabled` to a boolean or a function that receives the **current form values**.
+
+```tsx
+import type { SettingsItem } from '@/poc/Form/interface';
+
+const fieldSettings: SettingsItem[] = [
+  { name:'alwaysHidden',    label:'Hidden (static)',     type:'text', hidden: true },
+  { name:'alwaysDisabled',  label:'Disabled (static)',   type:'text', disabled: true },
+
+  // Depends on other values
+  { name:'adminOnly',       label:'Admin‑only',          type:'text', disabled: (v)=> v.role !== 'Admin' },
+  { name:'experiments',     label:'Experiments',         type:'text', hidden:   (v)=> !v.optIn },
+];
+```
+
+**Tips**
+- When a field is `hidden`, it is not rendered and therefore not focusable.
+- When a field is `disabled`, it renders with `disabled` and will not emit `onChange`.
+
+
+## Custom renderer (escape hatch)
+Use `render` to fully control the UI while still integrating with RHF + validation. Prefer to wire labels with `htmlFor` for accessibility.
+
+```tsx
+import { z } from 'zod';
+import type { SettingsItem } from '@/poc/Form/interface';
+
+const fieldSettings: SettingsItem[] = [
+  {
+    name: 'custom.id',
+    label: 'Custom ID (uppercased)',
+    placeholder: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
+    validation: (z)=> z.string().uuid({ message: 'Must be a valid UUID' }),
+    render: ({ field, fieldState, common }) => {
+      const value = (common.value ?? '').toString().toUpperCase();
+      return (
+        <div style={{ marginBottom: 10 }}>
+          <label htmlFor={common.name} style={{ display:'block', fontWeight:600, marginBottom: 4 }}>
+            {common.label}
+          </label>
+          <input
+            id={common.name}
+            name={common.name}
+            value={value}
+            onChange={(e)=> common.onChange(e.currentTarget.value)}
+            onBlur={common.onBlur}
+            placeholder={common.placeholder}
+            disabled={common.disabled}
+            style={{ width:'100%', padding:'8px 10px', border:'1px solid #d1d5db', borderRadius:4 }}
+          />
+          {fieldState.error && (
+            <div style={{ color:'#b91c1c', marginTop:6, fontSize:12 }}>{fieldState.error.message}</div>
+          )}
+        </div>
+      );
+    },
+  },
+];
+```
+
+**What you get in `render`**
+- `field`: RHF field (rarely needed if you use `common`).
+- `fieldState`: `{ error, isTouched, isDirty }` etc.
+- `common`: ergonomic props (`name`, `value`, `onChange`, `onBlur`, `label`, `placeholder`, `disabled`, …).
+
+
+## Validation snippets per type
+Use Zod via `validation: (z, values)=> …`. A few handy patterns:
+
+```tsx
+// string
+(z)=> z.string().min(1, 'Required')
+
+// number (positive int)
+(z)=> z.number().int().positive('Must be > 0')
+
+// email / url
+(z)=> z.string().email('Invalid email')
+(z)=> z.string().url('Invalid URL')
+
+// array of strings with at least 1
+(z)=> z.array(z.string().min(1)).min(1, 'Choose at least one')
+
+// conditional (values‑aware)
+(z, values)=> values.mode === 'strict'
+  ? z.string().min(3).max(5)
+  : z.string().optional()
+```
+
+
+## Testing hooks
+- Inputs receive `data-testid` as `${type}-${sanitize(name)}` (dots → hyphens).  
+  e.g. `name: 'user.email'` → `data-testid="text-user-email"`.
+- Dropdowns are native `<select>` in tests (mocks); use `userEvent.selectOptions`.
+- For visibility/disabled assertions prefer `queryByTestId` + `.toBeNull()` and `.toBeDisabled()`.

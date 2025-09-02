@@ -163,7 +163,11 @@ const CellRendererComponent: React.FC<CellRendererProps> = ({
     // parts: [nonMatch, match, nonMatch, match, ...]
     return parts.map((part, idx) =>
       idx % 2 === 1 ? (
-        <span key={idx} style={{ backgroundColor: "yellow" }}>
+        <span
+          key={idx}
+          data-highlight="true"
+          style={{ backgroundColor: "yellow" }}
+        >
           {part}
         </span>
       ) : (

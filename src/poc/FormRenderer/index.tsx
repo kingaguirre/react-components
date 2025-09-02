@@ -1,13 +1,13 @@
 // src/poc/Form/index.tsx
 import React, { forwardRef, useImperativeHandle, useMemo } from 'react';
-import { useForm, Controller, UseFormSetError, UseFormClearErrors } from 'react-hook-form';
+import { useForm, Controller, UseFormSetError, UseFormClearErrors, useWatch } from 'react-hook-form';
 import type { Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
 import {
   SettingsItem, FieldGroup, FieldSetting, AccordionSection,
-  DynamicFormProps, DynamicFormRef, SubmitResult, DataTableSection,
+  FormRendererProps, FormRendererRef, SubmitResult, DataTableSection,
 } from './interface';
 
 import {
@@ -34,6 +34,15 @@ import {
 } from './styled';
 
 import './validation';
+
+/** ───────── small util: debounce ───────── */
+const debounce = <F extends (...args: any[]) => void>(fn: F, ms = 150) => {
+  let t: ReturnType<typeof setTimeout> | null = null;
+  return (...args: Parameters<F>) => {
+    if (t) clearTimeout(t);
+    t = setTimeout(() => fn(...args), ms);
+  };
+};
 
 // ───────── Type guards ─────────
 const isFieldGroup = (item: SettingsItem): item is FieldGroup =>
@@ -95,8 +104,8 @@ function shiftNestedTableKeys(map: Record<string, any[]>, baseKey: string, start
   for (const k of keys) {
     const m = k.match(re);
     if (!m) continue;
+    if (Number(m[1]) < startIndex) continue;
     const idx = Number(m[1]);
-    if (Number.isNaN(idx) || idx < startIndex) continue;
     const newKey = k.replace(re, `${baseKey}.${idx + delta}.`);
     next[newKey] = next[k];
     delete next[k];
@@ -127,7 +136,7 @@ function coerceChangeValue(fs: FieldSetting & { name: string }, v: any) {
   if (v && typeof v === 'object' && 'target' in v) {
     const t: any = (v as any).target;
     if (isBooleanControl(fs)) return !!t?.checked;
-    if (t?.value !== undefined) return t.value;
+    if (t?.value !== undefined) return t.value; // preserve '' for clear
     return undefined;
   }
   if (fs.type === 'dropdown') {
@@ -147,9 +156,6 @@ function emptyFor(fs: FieldSetting & { name: string }) {
 }
 
 // Discover every DataTable instance in the current form values, including nested ones.
-// Returns absolute table keys like "parent", "parent.2.child", "parent.2.child.0.grandChild", ...
-// Discover every DataTable instance in the current form values, including nested ones.
-// Yields absolute keys like "parent", "parent.2.child", "parent.2.child.5.grandChild", ...
 function collectDataTableContexts(
   values: Record<string, any>,
   items: SettingsItem[],
@@ -197,56 +203,97 @@ function collectDataTableContexts(
   return contexts;
 }
 
-// Validate only contexts that are actually visible: all ancestor DTs must have
-// their active row matching the index encoded in the tableKey (e.g. parent.2.child.5 -> parent=2, child=5)
-function ancestorsAreActive(tableKey: string, activeMap: Record<string, number | null>) {
-  const segs = tableKey.split('.');
-  let acc: string[] = [];
-  for (let i = 0; i < segs.length; i++) {
-    const seg = segs[i];
-    acc.push(seg);
-    if (/^\d+$/.test(seg)) {
-      // numeric index belongs to the DT key WITHOUT the index segment
-      const ancestorKey = acc.slice(0, -1).join('.');
-      const expected = Number(seg);
-      if (activeMap[ancestorKey] !== expected) return false;
-    }
-  }
-  return true;
-}
+/* ──────────────────────────────────────────────────────────────────────────────
+ * RenderSection as a memoized component (subscribes to visible/draft names)
+ * ────────────────────────────────────────────────────────────────────────────*/
+type RenderSectionProps = {
+  items: SettingsItem[];
+  errors: any;
+  onChange: () => void;
+  control: any;
+  z: typeof import('zod') | any;
+  globalDisabled: boolean;
+  originalData: Record<string, any>;
+  getValues: () => Record<string, any>;
+  setValue: (name: string, value: any, opts?: any) => void;
+  trigger: (name?: string | string[], opts?: any) => Promise<boolean>;
+  setError: UseFormSetError<any>;
+  clearErrors: UseFormClearErrors<any>;
+  conditionalKeys: string[];
+  activeRowIndexMap: Record<string, number | null>;
+  setActiveRowIndexMap: React.Dispatch<React.SetStateAction<Record<string, number | null>>>;
+  tableDataMap: Record<string, any[]>;
+  setTableDataMap: React.Dispatch<React.SetStateAction<Record<string, any[]>>>;
+  rowSnapshots: React.MutableRefObject<Record<string, any>>;
+  lastProcessedRef: React.MutableRefObject<Record<string, number | null>>;
+  ancestorRowSelected?: boolean | null;
+  tableVersionMap?: Record<string, number>;
+  setTableVersionMap?: React.Dispatch<React.SetStateAction<Record<string, number>>>;
+};
 
-// ───────── Renderer ─────────
-export const renderSection = (
-  items: SettingsItem[],
-  errors: any,
-  onChange: () => void,
-  control: any,
-  z: typeof import('zod') | any,
-  globalDisabled: boolean,
-  originalData: Record<string, any>,
-  getValues: () => Record<string, any>,
-  setValue: (name: string, value: any, opts?: any) => void,
-  trigger: (name?: string | string[], opts?: any) => Promise<boolean>,
-  setError: UseFormSetError<any>,
-  clearErrors: UseFormClearErrors<any>,
-  conditionalKeys: string[],
-  activeRowIndexMap: Record<string, number | null>,
-  setActiveRowIndexMap: React.Dispatch<React.SetStateAction<Record<string, number | null>>>,
-  tableDataMap: Record<string, any[]>,
-  setTableDataMap: React.Dispatch<React.SetStateAction<Record<string, any[]>>>,
-  rowSnapshots: React.MutableRefObject<Record<string, any>>,
-  lastProcessedRef: React.MutableRefObject<Record<string, number | null>>,
-  ancestorRowSelected: boolean | null = null,
-  tableVersionMap?: Record<string, number>,
-  setTableVersionMap?: React.Dispatch<React.SetStateAction<Record<string, number>>>
-): React.ReactNode[] => {
+const RenderSection = React.memo(function RenderSection(props: RenderSectionProps) {
+  const {
+    items, errors, onChange, control, z, globalDisabled, originalData,
+    getValues, setValue, trigger, setError, clearErrors, conditionalKeys,
+    activeRowIndexMap, setActiveRowIndexMap, tableDataMap, setTableDataMap,
+    rowSnapshots, lastProcessedRef, ancestorRowSelected = null, tableVersionMap, setTableVersionMap,
+  } = props;
+
+  /** Build the list of field names this section renders, including DataTable DRAFT names. */
+  const namesToWatch = useMemo(() => {
+    const names: string[] = [];
+
+    const walk = (nodes: SettingsItem[], basePath = '') => {
+      for (const it of nodes) {
+        if (hasDataTable(it)) {
+          const mapKey = (it as any).dataTable.config.dataSource;
+          const leafs = toLeafFieldSettings((it as any).dataTable.fields);
+          for (const lf of leafs) names.push(`${basePath ? basePath + '.' : ''}${mapKey}.${lf.name}`); // DRAFT inputs
+          // Active row inputs are handled by recursion when rendered (prefixItems with index)
+          continue;
+        }
+        if (hasFields(it)) {
+          walk((it as FieldGroup).fields!, basePath);
+          continue;
+        }
+        if (hasAccordion(it)) {
+          for (const sec of (it as any).accordion) walk(sec.fields, basePath);
+          continue;
+        }
+        if (hasTabs(it)) {
+          for (const tab of (it as any).tabs) walk(tab.fields, basePath);
+          continue;
+        }
+        const fs = it as FieldSetting;
+        if (typeof fs?.name === 'string') names.push(`${basePath ? basePath + '.' : ''}${fs.name}`);
+      }
+    };
+    walk(items);
+    // Also watch conditional keys that influence visibility/disabled
+    for (const k of conditionalKeys) if (!names.includes(k)) names.push(k);
+    return names;
+  }, [items, conditionalKeys]);
+
+  // Subscribe locally so this section re-renders when its own fields change (fixes enable/disable & draft detection).
+  useWatch({ control, name: namesToWatch });
+
   const values = getValues();
   const nodes: React.ReactNode[] = [];
   let standalone: FieldSetting[] = [];
   let flushCount = 0;
 
-  const bumpVersion = (k: string) =>
-    setTableVersionMap?.(m => ({ ...m, [k]: (m[k] ?? 0) + 1 }));
+  /** debounced, batched trigger queue (component-local) */
+  const pendingNamesRef = React.useRef<Set<string>>(new Set());
+  const flushTriggers = React.useCallback((names: string[]) => {
+    void trigger(names);
+    pendingNamesRef.current.clear();
+  }, [trigger]);
+  const debouncedFlush = React.useMemo(() => debounce(flushTriggers, 150), [flushTriggers]);
+  const queueTriggers = React.useCallback((names: string[]) => {
+    const set = pendingNamesRef.current;
+    for (const n of names) set.add(n);
+    debouncedFlush(Array.from(set));
+  }, [debouncedFlush]);
 
   const flush = () => {
     if (!standalone.length) return;
@@ -271,48 +318,64 @@ export const renderSection = (
                       render={({ field, fieldState }) => {
                         const errorMsg = fieldState.error?.message ?? err;
 
-                        // ── FORCE CONTROLLED VALUES ──
+                        // Controlled display value
                         let displayValue: any = field.value;
-                        if (isBooleanControl(fs)) {
-                          // boolean controls handled via "checked"
-                        } else if (fs.type === 'number') {
-                          displayValue =
-                            typeof displayValue === 'number' && !isNaN(displayValue) ? displayValue : '';
-                        } else {
-                          // text / date / dropdown -> never undefined/null
+                        if (!isBooleanControl(fs) && fs.type !== 'number') {
                           if (displayValue === undefined || displayValue === null) displayValue = '';
+                        } else if (fs.type === 'number') {
+                          displayValue = (typeof displayValue === 'number' && !isNaN(displayValue)) ? displayValue : '';
                         }
 
                         const wrapped = (raw: any) => {
                           let next = coerceChangeValue(fs as any, raw);
-                          next = normalizeByType(fs as any, next);
 
-                          const inAnyTable = Object.keys(tableDataMap)
-                            .some(tableKey => key.startsWith(`${tableKey}.`));
+                          // ✅ Number clearing: if user clears the input, keep '' in form state.
+                          // This prevents RHF/controlled value from snapping back to the previous number.
+                          const isClearedNumber =
+                            fs.type === 'number' && (next === '' || next === null || (typeof next === 'number' && Number.isNaN(next)));
+
+                          if (!isClearedNumber) {
+                            next = normalizeByType(fs as any, next);
+                          } else {
+                            next = ''; // keep as empty string during editing
+                          }
+
+                          // Ensure text-like empties are preserved as ''
+                          if (!isBooleanControl(fs) && fs.type !== 'number' && (next === undefined || next === null)) next = '';
+
+                          const inAnyTable = Object.keys(tableDataMap).some(tableKey => key.startsWith(`${tableKey}.`));
 
                           if (inAnyTable) {
-                            // Inline edit: validate but DO NOT notify parent
-                            setValue(key as any, next, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
-                            void trigger(key as any);
+                            setValue(key as any, next, { shouldDirty: true, shouldTouch: true, shouldValidate: false });
+                            // Debounced single-cell validation so errors clear while typing
+                            queueTriggers([key]);
                             return;
                           }
 
-                          field.onChange(next);
+                          setValue(key as any, next, { shouldDirty: true, shouldTouch: true, shouldValidate: false });
                           onChange();
-                          conditionalKeys.forEach(k => void trigger(k as any));
+
+                          // Debounced validation for this field + conditional dependencies
+                          queueTriggers([key, ...conditionalKeys]);
                         };
 
-                        const testId =
-                          fs.type === 'date' ? `date-${key}` :
-                            fs.type === 'dropdown' ? `select-${key}` :
-                              `input-${key}`;
+
+                        const handleBlur = () => {
+                          // On blur, ensure we at least validate the current field immediately
+                          // (use a direct trigger to avoid waiting for the debounce timer)
+                          void trigger(key as any);
+                        };
+
+                        const testId = `${fs.type ?? 'text'}-${key.replace(/\./g, '-')}`;
 
                         const common: any = {
                           ...field,
                           name: key,
+                          testId,
                           'data-testid': testId,
                           ...(isBooleanControl(fs) ? { checked: !!field.value } : { value: displayValue }),
                           onChange: wrapped,
+                          onBlur: handleBlur,
                           label: fs.label,
                           placeholder: fs.placeholder,
                           helpText: errorMsg,
@@ -339,9 +402,15 @@ export const renderSection = (
   };
 
   items.forEach((item, idx) => {
-    const hide = (item as any).hidden;
-    const isHidden = typeof hide === 'function' ? hide(values) : hide === true;
-    if (isHidden) { flush(); return; }
+    const hideProp = (item as any).hidden;
+    const isHidden = typeof hideProp === 'function' ? hideProp(values) : hideProp === true;
+    const isContainer = hasDataTable(item) || hasAccordion(item) || hasTabs(item) || hasFields(item);
+
+    // Hidden simple fields should NOT break grouping; hidden containers flush.
+    if (isHidden) {
+      if (isContainer) flush();
+      return;
+    }
 
     if (hasDataTable(item)) {
       flush();
@@ -369,7 +438,7 @@ export const renderSection = (
           <SectionWrapper className='data-table-wrapper-section' $hasHeader={!!header}>
             <VirtualizedItem fieldKey={`table:${mapKey}`}>
               <DataTable
-                key={`dt:${mapKey}:${tableVersionMap?.[mapKey] ?? 0}`}
+                key={`dt:${mapKey}:${(tableVersionMap?.[mapKey] ?? 0)}`}
                 maxHeight="176px"
                 pageSize={5}
                 dataSource={canonicalTable}
@@ -380,16 +449,13 @@ export const renderSection = (
                   if (isBlockedByAncestor) return;
                   setTableDataMap(prev => ({ ...prev, [mapKey]: newData }));
                   setValue(mapKey, newData);
-                  // notify only on table-level mutation
                   setTableVersionMap?.(m => ({ ...m, [mapKey]: (m[mapKey] ?? 0) + 1 }));
                   onChange();
                 }}
                 onActiveRowChange={(_, rowIndex) => {
-                  // Always derive from canonical table; ignore rowData to avoid stale state after prepend
                   const idx = rowIndex != null ? Number(rowIndex) : null;
                   const canonicalRow = (idx != null) ? (canonicalTable[idx] ?? null) : null;
 
-                  // no-op guard uses canonical snapshot
                   if (lastProcessedRef.current[mapKey] === idx &&
                       JSON.stringify(rowSnapshots.current[mapKey] ?? null) === JSON.stringify(canonicalRow ?? null)) {
                     return;
@@ -429,7 +495,6 @@ export const renderSection = (
                 }}
               />
 
-              {/* ───────── DataTable Action Buttons ───────── */}
               {(() => {
                 const leafDraftFS = toLeafFieldSettings(dtFields);
                 const draftValues = leafDraftFS.map((fs: any) => getDeepValue(getValues(), `${mapKey}.${fs.name}`));
@@ -439,7 +504,6 @@ export const renderSection = (
 
                 return (
                   <ButtonContainer className='button-wrapper'>
-                    {/* Add */}
                     <Button
                       type="button"
                       size='sm'
@@ -527,7 +591,6 @@ export const renderSection = (
                       Add
                     </Button>
 
-                    {/* Update */}
                     <Button
                       type="button"
                       size="sm"
@@ -560,7 +623,6 @@ export const renderSection = (
                         setTableDataMap(m => ({ ...m, [mapKey]: newTable }));
                         setValue(mapKey, newTable);
 
-                        // Clear errors + deselect + reset drafts
                         const leafDraftFS2 = toLeafFieldSettings(dtFields);
                         clearErrors([mapKey, ...leafDraftFS2.map(fs => `${mapKey}.${activeIdx}.${fs.name}`)] as any);
                         setActiveRowIndexMap(prev => ({ ...prev, [mapKey]: null }));
@@ -578,7 +640,6 @@ export const renderSection = (
                       Update
                     </Button>
 
-                    {/* Delete */}
                     <Button
                       type="button"
                       size='sm'
@@ -609,7 +670,6 @@ export const renderSection = (
                       Delete
                     </Button>
 
-                    {/* Cancel */}
                     <Button
                       type="button"
                       size='sm'
@@ -619,8 +679,9 @@ export const renderSection = (
                       data-testid={`btn-cancel-${mapKey}`}
                       onClick={() => {
                         setActiveRowIndexMap(prev => ({ ...prev, [mapKey]: null }));
-                        clearErrors(leafDraftFS.map((fs: any) => `${mapKey}.${fs.name}`));
-                        leafDraftFS.forEach((fs: any) => {
+                        const leafDraftFS2 = toLeafFieldSettings(dtFields);
+                        clearErrors(leafDraftFS2.map((fs: any) => `${mapKey}.${fs.name}`));
+                        leafDraftFS2.forEach((fs: any) => {
                           setValue(`${mapKey}.${fs.name}`, isBooleanControl(fs) ? false : '', { shouldDirty: false, shouldTouch: false, shouldValidate: false });
                         });
                       }}
@@ -633,30 +694,30 @@ export const renderSection = (
             </VirtualizedItem>
 
             {/* Recursive render for dtFields with id prefix */}
-            {renderSection(
-              prefixItems(dtFields, childPath),
-              errors,
-              onChange,
-              control,
-              z,
-              globalDisabled || isBlockedByAncestor,
-              getValues(),
-              getValues,
-              setValue,
-              trigger,
-              setError,
-              clearErrors,
-              conditionalKeys,
-              activeRowIndexMap,
-              setActiveRowIndexMap,
-              tableDataMap,
-              setTableDataMap,
-              rowSnapshots,
-              lastProcessedRef,
-              activeIdx != null,
-              tableVersionMap,
-              setTableVersionMap
-            )}
+            <RenderSection
+              items={prefixItems(dtFields, childPath)}
+              errors={errors}
+              onChange={onChange}
+              control={control}
+              z={z}
+              globalDisabled={globalDisabled || isBlockedByAncestor}
+              originalData={getValues()}
+              getValues={getValues}
+              setValue={setValue}
+              trigger={trigger}
+              setError={setError}
+              clearErrors={clearErrors}
+              conditionalKeys={conditionalKeys}
+              activeRowIndexMap={activeRowIndexMap}
+              setActiveRowIndexMap={setActiveRowIndexMap}
+              tableDataMap={tableDataMap}
+              setTableDataMap={setTableDataMap}
+              rowSnapshots={rowSnapshots}
+              lastProcessedRef={lastProcessedRef}
+              ancestorRowSelected={activeIdx != null}
+              tableVersionMap={tableVersionMap}
+              setTableVersionMap={setTableVersionMap}
+            />
           </SectionWrapper>
         </React.Fragment>
       );
@@ -692,32 +753,31 @@ export const renderSection = (
                   title: sec.title,
                   ...(secHasError ? { open: true } : { open: sec.open }),
                   children: (
-                    <React.Fragment key={sec.id ?? i}>
-                      {renderSection(
-                        sec.fields,
-                        errors,
-                        onChange,
-                        control,
-                        z,
-                        globalDisabled,
-                        originalData,
-                        getValues,
-                        setValue,
-                        trigger,
-                        setError,
-                        clearErrors,
-                        conditionalKeys,
-                        activeRowIndexMap,
-                        setActiveRowIndexMap,
-                        tableDataMap,
-                        setTableDataMap,
-                        rowSnapshots,
-                        lastProcessedRef,
-                        ancestorRowSelected,
-                        tableVersionMap,
-                        setTableVersionMap
-                      )}
-                    </React.Fragment>
+                    <RenderSection
+                      key={sec.id ?? i}
+                      items={sec.fields}
+                      errors={errors}
+                      onChange={onChange}
+                      control={control}
+                      z={z}
+                      globalDisabled={globalDisabled}
+                      originalData={originalData}
+                      getValues={getValues}
+                      setValue={setValue}
+                      trigger={trigger}
+                      setError={setError}
+                      clearErrors={clearErrors}
+                      conditionalKeys={conditionalKeys}
+                      activeRowIndexMap={activeRowIndexMap}
+                      setActiveRowIndexMap={setActiveRowIndexMap}
+                      tableDataMap={tableDataMap}
+                      setTableDataMap={setTableDataMap}
+                      rowSnapshots={rowSnapshots}
+                      lastProcessedRef={lastProcessedRef}
+                      ancestorRowSelected={ancestorRowSelected}
+                      tableVersionMap={tableVersionMap}
+                      setTableVersionMap={setTableVersionMap}
+                    />
                   ),
                   disabled: typeof sec.disabled === 'function' ? sec.disabled(values) : sec.disabled,
                   rightContent: sec.rightContent,
@@ -736,16 +796,13 @@ export const renderSection = (
       flush();
       const group = item as FieldGroup;
 
-      // 1) filter out any hidden tabs
       const visibleTabs = group.tabs!.filter(tab => {
         const hideTab = tab.hidden;
         return typeof hideTab === 'function' ? !hideTab(values) : hideTab !== true;
       });
 
-      // 2) if no tabs remain, skip the whole group
       if (visibleTabs.length === 0) return;
 
-      // 3) dynamic key so Tabs remounts when visibleTabs changes
       const tabsKey = visibleTabs.map(tab => tab.title).join('|');
 
       nodes.push(
@@ -760,7 +817,6 @@ export const renderSection = (
           <Tabs
             key={`tabs-${idx}-${tabsKey}`}
             tabs={visibleTabs.map((tab, i) => {
-              // Count field-level errors in this tab (same method as Accordion)
               const errorCount = (flattenForSchema(tab.fields) as any[]).reduce((count, fs) => {
                 const errObj = getDeepValue(errors, fs.name as string);
                 return count + (errObj?.message ? 1 : 0);
@@ -768,33 +824,33 @@ export const renderSection = (
 
               return {
                 title: tab.title,
-                // NEW: surface count to the Tabs component
                 badgeValue: errorCount > 0 ? errorCount : undefined,
                 content: (
-                  <React.Fragment key={`tab-${idx}-${i}`}>
-                    {renderSection(
-                      tab.fields,
-                      errors,
-                      onChange,
-                      control,
-                      z,
-                      globalDisabled,
-                      originalData,
-                      getValues,
-                      setValue,
-                      trigger,
-                      setError,
-                      clearErrors,
-                      conditionalKeys,
-                      activeRowIndexMap,
-                      setActiveRowIndexMap,
-                      tableDataMap,
-                      setTableDataMap,
-                      rowSnapshots,
-                      lastProcessedRef,
-                      ancestorRowSelected
-                    )}
-                  </React.Fragment>
+                  <RenderSection
+                    key={`tab-${idx}-${i}`}
+                    items={tab.fields}
+                    errors={errors}
+                    onChange={onChange}
+                    control={control}
+                    z={z}
+                    globalDisabled={globalDisabled}
+                    originalData={originalData}
+                    getValues={getValues}
+                    setValue={setValue}
+                    trigger={trigger}
+                    setError={setError}
+                    clearErrors={clearErrors}
+                    conditionalKeys={conditionalKeys}
+                    activeRowIndexMap={activeRowIndexMap}
+                    setActiveRowIndexMap={setActiveRowIndexMap}
+                    tableDataMap={tableDataMap}
+                    setTableDataMap={setTableDataMap}
+                    rowSnapshots={rowSnapshots}
+                    lastProcessedRef={lastProcessedRef}
+                    ancestorRowSelected={ancestorRowSelected}
+                    tableVersionMap={tableVersionMap}
+                    setTableVersionMap={setTableVersionMap}
+                  />
                 ),
               };
             })}
@@ -812,36 +868,37 @@ export const renderSection = (
           {group.header && (group.isSubHeader ? <SubHeader className='header sub-header'>{group.header}</SubHeader> : <PageHeader className='header main-header'>{group.header}</PageHeader>)}
           {group.description && <Description>{group.description}</Description>}
           <FieldsWrapper className='fields-wrapper' $hasHeader={!!group.header}>
-            {renderSection(
-              group.fields!,
-              errors,
-              onChange,
-              control,
-              z,
-              globalDisabled,
-              originalData,
-              getValues,
-              setValue,
-              trigger,
-              setError,
-              clearErrors,
-              conditionalKeys,
-              activeRowIndexMap,
-              setActiveRowIndexMap,
-              tableDataMap,
-              setTableDataMap,
-              rowSnapshots,
-              lastProcessedRef,
-              ancestorRowSelected,
-              tableVersionMap,
-              setTableVersionMap
-            )}
+            <RenderSection
+              items={group.fields!}
+              errors={errors}
+              onChange={onChange}
+              control={control}
+              z={z}
+              globalDisabled={globalDisabled}
+              originalData={originalData}
+              getValues={getValues}
+              setValue={setValue}
+              trigger={trigger}
+              setError={setError}
+              clearErrors={clearErrors}
+              conditionalKeys={conditionalKeys}
+              activeRowIndexMap={activeRowIndexMap}
+              setActiveRowIndexMap={setActiveRowIndexMap}
+              tableDataMap={tableDataMap}
+              setTableDataMap={setTableDataMap}
+              rowSnapshots={rowSnapshots}
+              lastProcessedRef={lastProcessedRef}
+              ancestorRowSelected={ancestorRowSelected}
+              tableVersionMap={tableVersionMap}
+              setTableVersionMap={setTableVersionMap}
+            />
           </FieldsWrapper>
         </React.Fragment>
       );
       return;
     }
 
+    // simple field
     const fs = item as FieldSetting;
     const isFieldHidden = typeof (fs as any).hidden === 'function' ? (fs as any).hidden(values) : (fs as any).hidden === true;
     if (!isFieldHidden) standalone.push(fs);
@@ -849,12 +906,16 @@ export const renderSection = (
 
   flush();
   return nodes;
-};
+});
 
-// ───────── Component ─────────
-export const DynamicForm = forwardRef(<T extends Record<string, any>>(
-  props: DynamicFormProps<T>,
-  ref: React.Ref<DynamicFormRef<T>>
+RenderSection.displayName = 'RenderSection';
+
+/* ──────────────────────────────────────────────────────────────────────────────
+ * Component: FormRenderer
+ * ────────────────────────────────────────────────────────────────────────────*/
+export const FormRenderer = forwardRef(<T extends Record<string, any>>(
+  props: FormRendererProps<T>,
+  ref: React.Ref<FormRendererRef<T>>
 ) => {
   const { fieldSettings, dataSource, onSubmit, onChange, disabled: globalDisabled = false, loading = false } = props;
   const rowSnapshots = React.useRef<Record<string, any>>({});
@@ -875,46 +936,91 @@ export const DynamicForm = forwardRef(<T extends Record<string, any>>(
   const baseSchema = buildSchema(flattenForSchema(fieldSettings), dataSource);
   type FormData = z.infer<typeof baseSchema>;
 
+  /** Dynamic resolver with narrow-by-changed-names optimization */
   const dynamicResolver: Resolver<FormData> = async (values, context, options) => {
-    const itemsForSchema: SettingsItem[] = [];
+    const changed = options?.names ? Array.from(options.names) : null;
 
-    // 1) All non-DataTable items
-    fieldSettings.forEach(item => {
-      if (!(item as any).dataTable) itemsForSchema.push(item);
-    });
+    const collectFor = (settings: SettingsItem[]) =>
+      (flattenForSchema(settings) as Array<FieldSetting & { name: string }>);
 
-    // 2 & 3) For every discovered DataTable context (top-level  nested with indices)
-    const contexts = collectDataTableContexts(values as any, fieldSettings);
-    for (const ctx of contexts) {
-      const leafFS = toLeafFieldSettings(ctx.fields);
+    const allFlatTop = collectFor(fieldSettings);
 
-      // Draft: include only if the user has typed something (avoid premature errors)
-      const hasDraft = leafFS.some(fs => {
-        const v = getDeepValue(values, `${ctx.tableKey}.${fs.name}`);
-        return v != null && v !== '' && !(typeof v === 'boolean' && v === false);
+    let itemsForSchema: SettingsItem[] = [];
+
+    if (changed && changed.length) {
+      // Intersect top-level non-table fields
+      const intersectTop = allFlatTop
+        .filter(fs => !(fs as any).dataTable)
+        .filter(fs =>
+          changed.some(n => n === fs.name || n.startsWith(fs.name + '.') || fs.name.startsWith(n + '.'))
+        );
+      if (intersectTop.length) itemsForSchema.push(...intersectTop);
+
+      // Table contexts: include only related fields
+      const contexts = collectDataTableContexts(values as any, fieldSettings);
+      for (const ctx of contexts) {
+        const leafFS = toLeafFieldSettings(ctx.fields);
+        const relatedChanged = changed.filter(n => n === ctx.tableKey || n.startsWith(ctx.tableKey + '.'));
+        if (relatedChanged.length === 0) continue;
+
+        const rowIndex = activeRowIndexMap[ctx.tableKey];
+        if (rowIndex != null) {
+          itemsForSchema.push(...prefixItems(leafFS, `${ctx.tableKey}.${rowIndex}`));
+        }
+
+        const hasDraft = leafFS.some(fs => {
+          const v = getDeepValue(values, `${ctx.tableKey}.${fs.name}`);
+          return v != null && v !== '' && !(typeof v === 'boolean' && v === false);
+        });
+        if (hasDraft) itemsForSchema.push(...prefixItems(leafFS, ctx.tableKey));
+      }
+
+      // Safety: if nothing gathered, include any intersecting settings
+      if (itemsForSchema.length === 0) {
+        itemsForSchema = fieldSettings.filter(s =>
+          collectFor([s]).some(fs =>
+            changed.some(n => n === fs.name || n.startsWith(fs.name + '.') || fs.name.startsWith(n + '.'))
+          )
+        );
+      }
+    } else {
+      // Submit / programmatic triggers → full original behavior
+      fieldSettings.forEach(item => {
+        if (!(item as any).dataTable) itemsForSchema.push(item);
       });
-      if (hasDraft) itemsForSchema.push(...prefixItems(ctx.fields, ctx.tableKey));
 
-      // Active row: include if selected
-      const rowIndex = activeRowIndexMap[ctx.tableKey];
-      if (rowIndex != null) {
-        itemsForSchema.push(...prefixItems(ctx.fields, `${ctx.tableKey}.${rowIndex}`));
+      const contexts = collectDataTableContexts(values as any, fieldSettings);
+      for (const ctx of contexts) {
+        const leafFS = toLeafFieldSettings(ctx.fields);
+
+        const hasDraft = leafFS.some(fs => {
+          const v = getDeepValue(values, `${ctx.tableKey}.${fs.name}`);
+          return v != null && v !== '' && !(typeof v === 'boolean' && v === false);
+        });
+        if (hasDraft) itemsForSchema.push(...prefixItems(ctx.fields, ctx.tableKey));
+
+        const rowIndex = activeRowIndexMap[ctx.tableKey];
+        if (rowIndex != null) {
+          itemsForSchema.push(...prefixItems(ctx.fields, `${ctx.tableKey}.${rowIndex}`));
+        }
       }
     }
 
-    // 4) Build + run zod
     const flatFields = flattenForSchema(itemsForSchema);
     const schema = buildSchema(flatFields, values);
     return zodResolver(schema)(values, context, options);
   };
 
-  const { control, watch, handleSubmit, getValues, setValue, trigger, setError, clearErrors, formState: { errors } } =
+  const { control, handleSubmit, getValues, setValue, trigger, setError, clearErrors, formState: { errors } } =
     useForm<FormData>({ defaultValues: dataSource as any, resolver: dynamicResolver, mode: 'onChange', reValidateMode: 'onChange' });
 
   const conditionalKeys = useMemo(
     () => flattenForSchema(fieldSettings).filter((fs: any) => fs.validation?.length === 2).map((fs: any) => fs.name!),
     [fieldSettings]
   );
+
+  // Scoped reactivity at parent (optional; main subscription is inside RenderSection)
+  useWatch({ control, name: conditionalKeys });
 
   const buildFullPayload = (): T => {
     const formValues = getValues() as any;
@@ -1055,38 +1161,39 @@ export const DynamicForm = forwardRef(<T extends Record<string, any>>(
     [handleSubmit, onSubmit, getValues, activeRowIndexMap, tableDataMap, trigger, setError]
   );
 
-  watch(); // keep renderSection synced with RHF
-
   const handleChange = () => onChange?.(getValues() as T);
 
   return (
     <FormWrapper onSubmit={e => e.preventDefault()}>
       {loading
         ? renderSkeletonSection(fieldSettings, getValues())
-        : renderSection(
-            fieldSettings,
-            errors,
-            handleChange,
-            control,
-            z,
-            globalDisabled,
-            dataSource,
-            getValues,
-            setValue,
-            trigger,
-            setError,
-            clearErrors,
-            conditionalKeys,
-            activeRowIndexMap,
-            setActiveRowIndexMap,
-            tableDataMap,
-            setTableDataMap,
-            rowSnapshots,
-            lastProcessedRef,
-            null,
-            tableVersionMap,
-            setTableVersionMap
-          )}
+        : (
+          <RenderSection
+            items={fieldSettings}
+            errors={errors}
+            onChange={handleChange}
+            control={control}
+            z={z}
+            globalDisabled={globalDisabled}
+            originalData={dataSource}
+            getValues={getValues}
+            setValue={setValue}
+            trigger={trigger}
+            setError={setError}
+            clearErrors={clearErrors}
+            conditionalKeys={conditionalKeys}
+            activeRowIndexMap={activeRowIndexMap}
+            setActiveRowIndexMap={setActiveRowIndexMap}
+            tableDataMap={tableDataMap}
+            setTableDataMap={setTableDataMap}
+            rowSnapshots={rowSnapshots}
+            lastProcessedRef={lastProcessedRef}
+            ancestorRowSelected={null}
+            tableVersionMap={tableVersionMap}
+            setTableVersionMap={setTableVersionMap}
+          />
+        )
+      }
     </FormWrapper>
   );
 });

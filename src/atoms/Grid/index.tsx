@@ -119,7 +119,7 @@ export const Grid: React.FC<GridProps> = ({
 
   for (const node of flat) {
     if (isGridItemElement(node)) {
-      valid.push(node);
+      valid.push(node as any);
     } else {
       invalidNames.push(getNodeName(node));
     }

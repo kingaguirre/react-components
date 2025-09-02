@@ -1,0 +1,93 @@
+
+import { Meta } from '@storybook/blocks';
+
+<Meta title="poc/FormRenderer/Validation" />
+
+# Validation
+FormRenderer accepts **per-field Zod schemas** via a `validation` function: `(z, values?) => ZodType`. This enables both static and **value‑dependent** validation. On submit, the component aggregates results and returns `{ valid, values, invalidFields }`.
+
+## Static validation
+```tsx
+import React from 'react';
+import { z } from 'zod';
+import { FormRenderer } from '@/poc/Form';
+import type { SettingsItem } from '@/poc/Form/interface';
+
+const fieldSettings: SettingsItem[] = [
+  { name:'user.email', label:'Email', type:'email', validation: (z)=> z.string().email('Invalid email') },
+  { name:'user.age',   label:'Age',   type:'number', validation: (z)=> z.number().int().min(18, '18+') },
+];
+
+export default function Demo() {
+  return (
+    <FormRenderer
+      fieldSettings={fieldSettings}
+      dataSource={{ user: { email: '', age: undefined } }}
+      onSubmit={(r)=> console.log('[submit]', r)}
+    />
+  );
+}
+```
+
+
+## Conditional validation (depends on values)
+```tsx
+import React from 'react';
+import { z } from 'zod';
+import { FormRenderer } from '@/poc/Form';
+import type { SettingsItem } from '@/poc/Form/interface';
+
+const fieldSettings: SettingsItem[] = [
+  {
+    name: 'mode',
+    label: 'Mode',
+    type: 'radio-button-group',
+    options: [
+      { value:'basic', text:'Basic' },
+      { value:'custom', text:'Custom' },
+    ],
+  },
+  {
+    name: 'custom.input',
+    label: 'Custom Input',
+    type: 'text',
+    // enabled & constrained only when mode === 'custom'
+    disabled: (values)=> values?.mode !== 'custom',
+    validation: (z, values)=> values?.mode === 'custom'
+      ? z.string().min(1, 'Required in Custom mode').max(5, 'Max 5 chars')
+      : z.string().optional(),
+  },
+];
+
+export default function Demo() {
+  return (
+    <FormRenderer
+      fieldSettings={fieldSettings}
+      dataSource={{ mode:'basic', custom:{ input:'' } }}
+      onSubmit={(r)=> console.log('[submit]', r)}
+    />
+  );
+}
+```
+
+
+## Error payload shape
+- `valid: boolean` — overall result.
+- `values: T` — last known values when **valid**.
+- `invalidFields: Array<{ field: string; error: string; value: any }>` — flat list of errors. Example:
+
+```json
+{
+  "valid": false,
+  "invalidFields": [
+    { "field": "user.email", "error": "Invalid email", "value": "nope" },
+    { "field": "custom.input", "error": "Required in Custom mode", "value": "" }
+  ]
+}
+```
+
+
+## Tips
+- Put **format checks** (email/url/regex) and **numeric bounds** directly in schemas.
+- Use the second parameter (`values`) to implement **contextual** validation.
+- Validation runs on **submit**; you can also validate ad‑hoc by calling `ref.submit()` imperatively.

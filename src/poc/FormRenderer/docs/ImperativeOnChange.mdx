@@ -1,0 +1,75 @@
+
+import { Meta } from '@storybook/blocks';
+
+<Meta title="poc/FormRenderer/Imperative & OnChange" />
+
+# Imperative API & onChange
+FormRenderer exposes an imperative API via `ref`: **submit** the form and **getValues** at any time. The `onChange` callback streams the latest values as the user types.
+
+- `ref.submit()` – triggers validation and calls `onSubmit` with `{ valid, values, invalidFields }`.
+- `ref.getValues()` – reads the current values without validating.
+- `onChange(values)` – live snapshot of the data model; does **not** validate.
+
+
+## Example
+```tsx
+import React from 'react';
+import { z } from 'zod';
+import { FormRenderer } from '@/poc/Form';
+import type { FormRendererRef, SettingsItem } from '@/poc/Form/interface';
+
+const fields: SettingsItem[] = [
+  { name:'profile.name',  label:'Name',  type:'text',   placeholder:'Jane' },
+  { name:'profile.email', label:'Email', type:'email',  placeholder:'jane@acme.com', validation: (z)=> z.string().email() },
+  { name:'profile.age',   label:'Age',   type:'number', placeholder:'21', validation: (z)=> z.number().int().min(0) },
+];
+
+export default function Demo() {
+  const ref = React.useRef<FormRendererRef<any>>(null);
+
+  const handleSubmit = (result: any) => {
+    // Runs after validation
+    console.log('[onSubmit]', result);
+  };
+
+  const handleChange = (values: any) => {
+    // Live model updates; useful for autosave, dependent UI, etc.
+    console.log('[onChange]', values);
+  };
+
+  return (
+    <div>
+      <FormRenderer
+        ref={ref}
+        fieldSettings={fields}
+        dataSource={{ profile:{ name:'', email:'', age:undefined } }}
+        onSubmit={handleSubmit}
+        onChange={handleChange}
+      />
+
+      <div style={{ marginTop: 12 }}>
+        <button
+          type="button"
+          onClick={() => ref.current?.submit()}
+          style={{ padding: '8px 12px' }}
+        >
+          Submit (imperative)
+        </button>
+        <button
+          type="button"
+          onClick={() => console.log('[getValues]', ref.current?.getValues())}
+          style={{ padding: '8px 12px', marginLeft: 8 }}
+        >
+          Log getValues()
+        </button>
+      </div>
+    </div>
+  );
+}
+```
+
+
+## Notes
+- **Submit** always validates. Use `getValues()` if you need the model without running validation.
+- `onChange` is **debounce‑free** and fires on every edit; if you forward it to logging, expect a lot of updates.
+- When using complex groups/tables, `onChange` still receives a **single flat object** mirroring your `dataSource` shape.

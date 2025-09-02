@@ -1,0 +1,97 @@
+
+import { Meta } from '@storybook/blocks';
+
+<Meta title="poc/FormRenderer/DataTable" />
+
+# DataTable in FormRenderer
+Compose editable grids **inside the same schema** you use for fields. Tables can have draft inputs, row editors, and even **nested child tables**—all driven by `fieldSettings`. Visibility and disabled state can be static booleans or derived from the current form values.
+
+## What this shows
+- A parent table (`items`) with an inline **draft editor** and a row editor.
+- A **nested child** table (`items.0.lines`) rendered below the parent row editors.
+- **Conditional disabled/hidden** logic using functions that read form values.
+- A compact example you can **copy‑paste** into your project.
+
+## Key behaviors
+- **Draft → Add:** Fields placed directly in the table’s `fields` array before any nested groups act as a **draft editor**. Clicking **Add** prepends a new row.
+- **Active row selection:** Clicking a row marks it active; the same `fields` become a **row editor** (namespaced to e.g. `items.0.*`).
+- **Update/Delete:** When a row is active, Update writes back to that row and de‑selects; Delete removes the row.
+- **Nested tables:** Use `{ dataTable: childConfig }` inside a table’s `fields` to render a child grid that edits an array under the **same parent row**.
+- **Hidden/Disabled:** Provide `hidden`/`disabled` as either `true/false` or a function `(values)=>boolean`. Hidden prevents rendering; disabled greys out controls and blocks actions.
+- **Validation:** Add `validation: (z)=>schema` to row/draft fields; these are checked during submit (and can be re‑checked on change in your host app if desired).
+
+## Example with nested table
+```tsx
+import React from 'react';
+import { FormRenderer } from '@/poc/Form';
+import type { SettingsItem, DataTableSection } from '@/poc/Form/interface';
+
+const parentColumns = [
+  { title: 'Name', column: 'name' },
+  { title: 'Qty',  column: 'qty'  },
+];
+const childColumns = [
+  { title: 'Line', column: 'line' },
+];
+
+const childDT: DataTableSection = {
+  header: 'Lines',
+  description: 'Per-item detail rows. This table edits items[0].lines in this demo.',
+  config: {
+    // You can also use a dynamic index like items.{activeRow}.lines in your renderer,
+    // but for a runnable, copy‑paste demo we’ll fix to the first row.
+    dataSource: 'items.0.lines',
+    columnSettings: childColumns,
+  },
+  fields: [
+    { name: 'line', label: 'Line', type: 'text', placeholder: 'L‑001' },
+  ],
+};
+
+const itemsDT: DataTableSection = {
+  header: 'Items',
+  description: 'Draft below, click Add to prepend. Select a row to edit.',
+  config: { dataSource: 'items', columnSettings: parentColumns },
+  // Disabled/Hidden can be static or read the current form values
+  disabled: (v) => v?.tableMode === 'disabled',
+  hidden:   (v) => v?.tableMode === 'hidden',
+  fields: [
+    // Draft & row editor fields
+    { name: 'name', label: 'Item name', type: 'text',   placeholder: 'Widget' },
+    { name: 'qty',  label: 'Qty',       type: 'number', placeholder: '1' },
+    // Nested table below the editors
+    { dataTable: childDT },
+  ],
+};
+
+const fieldSettings: SettingsItem[] = [
+  {
+    name: 'tableMode',
+    label: 'Table Mode',
+    type: 'dropdown',
+    options: [
+      { value: 'enabled',  text: 'Enabled'  },
+      { value: 'disabled', text: 'Disabled' },
+      { value: 'hidden',   text: 'Hidden'   },
+    ],
+  },
+  { dataTable: itemsDT },
+];
+
+export default function Demo() {
+  return (
+    <FormRenderer
+      fieldSettings={fieldSettings}
+      dataSource={{ tableMode: 'enabled', items: [{ name: 'A', qty: 1, lines: [{ line: 'L1' }] }] }}
+      onSubmit={(r) => console.log('[submit]', r)}
+      onChange={(v) => console.log('[change]', v)}
+    />
+  );
+}
+```
+
+## Notes & tips
+- **Column settings** control visible columns only; the editable shape comes from your `fields`.
+- To **auto‑init child arrays** (e.g., `lines` on Add), initialize them to `[]` in your app logic when you assemble the new row.
+- If your app uses portals or virtualized rows, prefer **labels** over test IDs in your tests and consider mocking heavy components in unit tests.
+- Validation messages should be short and actionable; keep error placement consistent across draft and row editors.

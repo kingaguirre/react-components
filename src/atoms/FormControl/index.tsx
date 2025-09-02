@@ -72,6 +72,8 @@ export const FormControl = forwardRef<
     const [selectedValues, setSelectedValues] = useState<string[]>([]);
     const [selectedValue, setSelectedValue] = useState<string | null>(null);
 
+    const baseTestId = (rest as any)?.testId;
+
     const isTextLike =
       type === "text" ||
       type === "password" ||
@@ -231,25 +233,25 @@ export const FormControl = forwardRef<
       const disabledLock =
         disabled && showDisabledIcon
           ? [
-              {
-                icon: "lock_outline",
-                className: "disabled lock-icon",
-                disabled: true,
-              } as IconRight,
-            ]
+            {
+              icon: "lock_outline",
+              className: "disabled lock-icon",
+              disabled: true,
+            } as IconRight,
+          ]
           : [];
 
       const maybeClear =
         clearable && hasInputValue && !isEffectivelyReadOnly
           ? [
-              {
-                icon: "clear",
-                onClick: handleClearClick,
-                color: "default",
-                hoverColor: "danger",
-                className: "clear-icon",
-              } as IconRight,
-            ]
+            {
+              icon: "clear",
+              onClick: handleClearClick,
+              color: "default",
+              hoverColor: "danger",
+              className: "clear-icon",
+            } as IconRight,
+          ]
           : [];
 
       return [...disabledLock, ...(iconRight ?? []), ...maybeClear];
@@ -391,11 +393,16 @@ export const FormControl = forwardRef<
                         ? undefined
                         : icon?.onClick;
 
+                    const computedTestId =
+                      icon.className === "clear-icon" && baseTestId
+                        ? `${baseTestId}-clear-icon`
+                        : icon.className;
+
                     return (
                       <IconContainer
                         key={`${icon.icon}-${idx}`}
                         onClick={handleIconClick}
-                        data-testid={icon.className}
+                        data-testid={computedTestId}
                         className={`container-icon ${icon.className ?? ""} ${iconIsDisabled ? "disabled" : ""} ${isInvalid ? "invalid" : ""}`}
                         $disabled={iconIsDisabled}
                         $size={size}
@@ -432,7 +439,7 @@ export const FormControl = forwardRef<
           <HelpText
             className="help-text"
             color={isInvalid ? "danger" : color}
-            data-testid={`${(rest as any).testId}-help-text`}
+            data-testid={`${baseTestId}-help-text`}
           >
             {helpText}
           </HelpText>

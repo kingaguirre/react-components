@@ -23,6 +23,10 @@ const Wrapper = styled.div`
       margin-right: 12px;
     }
   }
+
+  * + .guide {
+    margin-top: 24px;
+  }
 `;
 
 const Container = styled.div`

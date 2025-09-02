@@ -2,7 +2,7 @@
 import React, { useRef, useState } from 'react'
 import { Button } from '../../atoms/Button'
 import type { Meta, StoryObj } from '@storybook/react'
-import { DynamicForm } from './index'
+import { FormRenderer } from './index'
 import { StoryWrapper, Title } from '../../components/StoryWrapper'
 import {  demoData, demoSettings } from './data'
 // import { FieldSettingsAIAgent } from './FieldSettingsAIAgent'
@@ -10,9 +10,9 @@ import {  demoData, demoSettings } from './data'
 const descriptionText =
   'A fully dynamic, schema-validated form built with React Hook Form + Zod + styled-components.'
 
-const meta: Meta<typeof DynamicForm> = {
-  title: 'POC/Form',
-  component: DynamicForm,
+const meta: Meta<typeof FormRenderer> = {
+  title: 'POC/FormRenderer',
+  component: FormRenderer,
   parameters: {
     docs: {
       description: {
@@ -28,7 +28,7 @@ const meta: Meta<typeof DynamicForm> = {
 
 export default meta
 
-export const Playground: StoryObj<typeof DynamicForm> = {
+export const Playground: StoryObj<typeof FormRenderer> = {
   tags: ['!autodocs'],
   render: () => {
     const [loading, setLoading] = useState<boolean>(false)
@@ -52,7 +52,7 @@ export const Playground: StoryObj<typeof DynamicForm> = {
         </div>
 
         {/* <div style={{height: 200, overflow: 'auto'}}> */}
-          <DynamicForm
+          <FormRenderer
             ref={formRef}
             dataSource={demoData}
             fieldSettings={demoSettings}

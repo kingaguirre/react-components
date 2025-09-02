@@ -75,7 +75,7 @@ export const Row = ({
       $isDisabled={!!isDisabledRow}
       $isNewRow={!!isNewRow}
       className={`data-table-row ${isNewRow ? "new" : ""} ${isActiveRow ? "active" : ""} ${row.getIsSelected() ? "selected" : ""} ${isDisabledRow ? "disabled" : ""}`}
-      data-testid={`row-${row.original.id}`}
+      data-testid={`row-${row.original.id ?? row.original.__internalId}`}
       role="row"
     >
       {row.getVisibleCells().map((cell: any, i: number) => {
