@@ -1,4 +1,5 @@
-import React from "react";
+// src/organisms/DataTable/components/ColumnHeader/Filter.tsx
+import React, { useMemo, useRef, useEffect } from "react";
 import { FormControl } from "../../../../atoms/FormControl";
 import { FilterContainer } from "./styled";
 import { Column } from "@tanstack/react-table";
@@ -12,22 +13,32 @@ export const Filter = ({ column }: { column: Column<any, unknown> }) => {
   const { filter } = colMeta;
   const { type: filterType } = filter ?? {};
 
-  const facetedUniqueValues = React.useMemo(
+  const facetedUniqueValues = useMemo(
     () => column.getFacetedUniqueValues(),
     [column],
   );
+
   const facetedUniqueValuesSize = facetedUniqueValues.size;
 
   const showFacetedValues =
     filterType === "select" ||
     (filterType !== "select" && facetedUniqueValues.size < 10000);
 
-  const sortedUniqueValues = React.useMemo(() => {
+  // Sort numbers numerically, everything else lexicographically.
+  const sortedUniqueValues = useMemo(() => {
     if (filterType === "number-range") return [];
     if (!showFacetedValues) return [];
-    return Array.from(facetedUniqueValues.keys())
-      .sort((a, b) => a - b)
-      .slice(0, 5000);
+
+    const raw = Array.from(facetedUniqueValues.keys()).slice(0, 5000);
+    const allNumbers = raw.every((v) => typeof v === "number");
+
+    if (allNumbers) {
+      return raw.sort((a: number, b: number) => a - b);
+    }
+    // Fallback to string sorting; ensure null/undefined handled
+    return raw
+      .map((v) => (v == null ? "" : String(v)))
+      .sort((a, b) => a.localeCompare(b));
   }, [facetedUniqueValues, filterType, showFacetedValues]);
 
   return (
@@ -100,7 +111,7 @@ export const Filter = ({ column }: { column: Column<any, unknown> }) => {
                 value={(columnFilterValue ?? "") as string}
                 columnId={column.id}
                 testId={`filter-${column.id}`}
-            />
+              />
             );
 
           case "dropdown": {
@@ -117,7 +128,7 @@ export const Filter = ({ column }: { column: Column<any, unknown> }) => {
                     ? { value, text: value?.toString() }
                     : undefined;
                 })
-                .filter((i) => i);
+                .filter(Boolean) as { value: any; text: string }[];
 
               _options = generatedOptions.length > 0 ? generatedOptions : [];
             }
@@ -153,19 +164,17 @@ export const Filter = ({ column }: { column: Column<any, unknown> }) => {
 
           default:
             return (
-              <>
-                <DebouncedInput
-                  onChange={(value) => column.setFilterValue(value)}
-                  type="text"
-                  value={(columnFilterValue ?? "") as string}
-                  placeholder={`Search... ${
-                    showFacetedValues ? `(${facetedUniqueValuesSize})` : ""
-                  }`}
-                  list={column.id + "list"}
-                  columnId={column.id}
-                  testId={`filter-${column.id}`}
-                />
-              </>
+              <DebouncedInput
+                onChange={(value) => column.setFilterValue(value)}
+                type="text"
+                value={(columnFilterValue ?? "") as string}
+                placeholder={`Search... ${
+                  showFacetedValues ? `(${facetedUniqueValuesSize})` : ""
+                }`}
+                list={column.id + "list"}
+                columnId={column.id}
+                testId={`filter-${column.id}`}
+              />
             );
         }
       })()}
@@ -192,24 +201,27 @@ export const DebouncedInput = ({
   const [value, setValue] = React.useState(initialValue);
 
   // keep latest onChange without retriggering the effect
-  const onChangeRef = React.useRef(onChange);
-  React.useEffect(() => {
+  const onChangeRef = useRef(onChange);
+  useEffect(() => {
     onChangeRef.current = onChange;
   }, [onChange]);
 
   // prevent re-emitting identical values
-  const lastEmittedRef = React.useRef<typeof initialValue>(initialValue);
+  const lastEmittedRef = useRef<typeof initialValue>(initialValue);
 
-  const inferredBlur =
-    props.type === "dropdown" ||
-    props.type === "date" ||
-    props.type === "date-range";
+  const inferredBlur = useMemo(
+    () =>
+      props.type === "dropdown" ||
+      props.type === "date" ||
+      props.type === "date-range",
+    [props.type],
+  );
 
-  React.useEffect(() => {
+  useEffect(() => {
     setValue(initialValue);
   }, [initialValue]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     // don’t emit if nothing changed (breaks the loop)
     if (Object.is(value, lastEmittedRef.current)) return;
 
@@ -223,13 +235,11 @@ export const DebouncedInput = ({
         typeof window !== "undefined" &&
         typeof document !== "undefined"
       ) {
-        // 1) try a forwarded ref if your control supports it (not shown here)
-        // 2) prefer explicit testId (more precise than generic columnId)
         const selector = testId
           ? `[data-testid="${testId}"]`
           : columnId
-          ? `[data-testid="filter-${columnId}"]`
-          : null;
+            ? `[data-testid="filter-${columnId}"]`
+            : null;
 
         const el = selector
           ? (document.querySelector(selector) as HTMLElement | null)
@@ -242,69 +252,69 @@ export const DebouncedInput = ({
     return () => clearTimeout(timeout);
   }, [value, debounce, inferredBlur, testId, columnId]);
 
-  const resolvedTestId = testId ?? (columnId ? `filter-${columnId}` : undefined);
+  const resolvedTestId =
+    testId ?? (columnId ? `filter-${columnId}` : undefined);
 
   // small helper to normalize numbers
   const coerceNumber = (s: string) => {
-    if (s === "" || s === null || s === undefined) return "";
+    if (s === "" || s == null) return "";
     const n = Number(s);
     return Number.isNaN(n) ? "" : n;
   };
 
-  return (() => {
-    switch (props.type) {
-      case "date":
-        return (
-          <DatePicker
-            size="sm"
-            value={value as string}
-            onChange={(date: any) => setValue(date as string)}
-            placeholder={props.placeholder}
-            testId={resolvedTestId} // your DatePicker should render -date internally
-          />
-        );
+  // NOTE: We intentionally preserve the existing behavior/UX of each control.
+  switch (props.type) {
+    case "date":
+      return (
+        <DatePicker
+          size="sm"
+          value={value as string}
+          onChange={(date: any) => setValue(date as string)}
+          placeholder={props.placeholder}
+          testId={resolvedTestId}
+        />
+      );
 
-      case "date-range":
-        return (
-          <DatePicker
-            size="sm"
-            value={value as string}
-            onChange={(date: any) => setValue(date as string)}
-            range
-            placeholder={props.placeholder}
-            testId={resolvedTestId} // your DatePicker should render -start / -end internally
-          />
-        );
+    case "date-range":
+      return (
+        <DatePicker
+          size="sm"
+          value={value as string}
+          onChange={(date: any) => setValue(date as string)}
+          range
+          placeholder={props.placeholder}
+          testId={resolvedTestId}
+        />
+      );
 
-      case "dropdown":
-        return (
-          <Dropdown
-            size="sm"
-            value={value as string}
-            onChange={(val: any) => setValue(val as string)}
-            placeholder={props.placeholder}
-            options={props.options}
-            hideOnScroll
-            testId={resolvedTestId}
-          />
-        );
+    case "dropdown":
+      return (
+        <Dropdown
+          size="sm"
+          value={value as string}
+          onChange={(val: any) => setValue(val as string)}
+          placeholder={props.placeholder}
+          options={props.options}
+          hideOnScroll
+          testId={resolvedTestId}
+        />
+      );
 
-      default:
-        // supports text/number inputs rendered via FormControl
-        return (
-          <FormControl
-            {...props}
-            size="sm"
-            value={value}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setValue(
-                props.type === "number" ? coerceNumber(e.target.value) : e.target.value
-              )
-            }
-            testId={resolvedTestId}
-          />
-        );
-    }
-  })();
+    default:
+      return (
+        <FormControl
+          {...props}
+          size="sm"
+          value={value}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            setValue(
+              props.type === "number"
+                ? coerceNumber(e.target.value)
+                : e.target.value,
+            )
+          }
+          testId={resolvedTestId}
+        />
+      );
+  }
 };
-

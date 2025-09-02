@@ -1,7 +1,6 @@
-import React from "react";
 import { ColumnSetting, HeaderRightElement } from "../interface";
 import { Badge } from "../../../atoms/Badge";
-import { Dropdown } from "src/molecules/Dropdown";
+import { Dropdown } from "../../../molecules/Dropdown";
 
 const loremAddresses = [
   "Lorem ipsum dolor sit amet",

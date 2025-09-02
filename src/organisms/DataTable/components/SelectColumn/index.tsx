@@ -1,7 +1,6 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { CheckboxCell } from "./CheckboxCell";
 import { CellContainer } from "../ColumnHeader/styled";
-import React from "react";
 export const DATA_TABLE_SELECT_ID = "data-table-select";
 
 export const SelectColumn = <T extends object>(

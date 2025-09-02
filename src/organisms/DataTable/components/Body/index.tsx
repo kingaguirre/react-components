@@ -1,4 +1,3 @@
-// src/organisms/DataTable/components/Body/index.tsx
 import React, { useCallback } from "react";
 import { Table } from "@tanstack/react-table";
 import { BodyContainer, NoDataContainer, ExpandedRowContainer } from "./styled";
@@ -75,7 +74,7 @@ export const Body = <TData,>({
     .getVisibleLeafColumns()
     .filter((c) => !BUILTIN_COLUMN_IDS.has(c.id));
 
-  // Memoized row renderer
+  // Memoized row renderer (Row is memoized too)
   const rowContent = useCallback(
     (row: any) => (
       <React.Fragment key={row.id}>

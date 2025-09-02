@@ -541,6 +541,33 @@ export const DataTable = <T extends object>({
     noPageReset,
   ]);
 
+  // ------- shared fallback for cell commit (worker error + message error)
+  const fallbackCommit = React.useCallback(
+    (rowId: string, accessor: string, val: any) => {
+      noPageReset(() => {
+        setData((old) => {
+          const idx = old.findIndex((r) => r.__internalId === rowId);
+          if (idx === -1) return old;
+          const cur = UTILS.getDeepValue(old[idx], accessor);
+          const curStr = cur == null ? "" : String(cur);
+          const newStr = val == null ? "" : String(val);
+          if (curStr === newStr) return old;
+
+          const updatedRow = UTILS.setDeepValue(old[idx], accessor, val);
+          const updated = old.slice();
+          updated[idx] = updatedRow;
+
+          if (!updated[idx].__isNew && onChange) {
+            const sanitized = updated.map(({ __internalId, ...rest }) => rest);
+            onChange(sanitized);
+          }
+          return updated;
+        });
+      });
+    },
+    [noPageReset, onChange],
+  );
+
   // Updated handleCellCommit using setDeepValue and getDeepValue.
   const handleCellCommit = (rowId: string, accessor: string, val: any) => {
     setCellLoading(true);
@@ -563,29 +590,7 @@ export const DataTable = <T extends object>({
       };
 
       if (e.data.error) {
-        // sync fallback
-        noPageReset(() => {
-          setData((old) => {
-            const idx = old.findIndex((r) => r.__internalId === rowId);
-            if (idx === -1) return old;
-            const cur = UTILS.getDeepValue(old[idx], accessor);
-            const curStr = cur == null ? "" : String(cur);
-            const newStr = val == null ? "" : String(val);
-            if (curStr === newStr) return old;
-
-            const updatedRow = UTILS.setDeepValue(old[idx], accessor, val);
-            const updated = old.slice();
-            updated[idx] = updatedRow;
-
-            if (!updated[idx].__isNew && onChange) {
-              const sanitized = updated.map(
-                ({ __internalId, ...rest }) => rest,
-              );
-              onChange(sanitized);
-            }
-            return updated;
-          });
-        });
+        fallbackCommit(rowId, accessor, val);
         return done();
       }
 
@@ -618,27 +623,7 @@ export const DataTable = <T extends object>({
 
     worker.onerror = (err) => {
       console.error("Worker encountered an error:", err);
-      // same sync fallback as above
-      noPageReset(() => {
-        setData((old) => {
-          const idx = old.findIndex((r) => r.__internalId === rowId);
-          if (idx === -1) return old;
-          const cur = UTILS.getDeepValue(old[idx], accessor);
-          const curStr = cur == null ? "" : String(cur);
-          const newStr = val == null ? "" : String(val);
-          if (curStr === newStr) return old;
-
-          const updatedRow = UTILS.setDeepValue(old[idx], accessor, val);
-          const updated = old.slice();
-          updated[idx] = updatedRow;
-
-          if (!updated[idx].__isNew && onChange) {
-            const sanitized = updated.map(({ __internalId, ...rest }) => rest);
-            onChange(sanitized);
-          }
-          return updated;
-        });
-      });
+      fallbackCommit(rowId, accessor, val);
       setEditingCell(null);
       setCellLoading(false);
       worker.terminate();
@@ -981,21 +966,22 @@ export const DataTable = <T extends object>({
     onColumnPinningChange: setColumnPinning,
     onGlobalFilterChange: setGlobalFilter,
     onColumnFiltersChange: setColumnFilters,
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getSortedRowModel: getSortedRowModel(),
     onColumnOrderChange: setColumnOrder,
-    getPaginationRowModel: getPaginationRowModel(),
 
-    // Column filter related settings
-    getFacetedRowModel: getFacetedRowModel(), // client-side faceting
-    getFacetedUniqueValues: getFacetedUniqueValues(), // generate unique values for select filter/autocomplete
-    getFacetedMinMaxValues: getFacetedMinMaxValues(), // generate min/max values for range filter
+    // Core + client-only row model fns (no duplicates in server mode)
+    getCoreRowModel: getCoreRowModel(),
+    ...(serverMode
+      ? {}
+      : {
+          getFilteredRowModel: getFilteredRowModel(),
+          getSortedRowModel: getSortedRowModel(),
+          getPaginationRowModel: getPaginationRowModel(),
+        }),
 
-    // Server mode
-    ...(serverMode ? {} : { getFilteredRowModel: getFilteredRowModel() }),
-    ...(serverMode ? {} : { getSortedRowModel: getSortedRowModel() }),
-    ...(serverMode ? {} : { getPaginationRowModel: getPaginationRowModel() }),
+    // Column filter related settings (kept as-is)
+    getFacetedRowModel: getFacetedRowModel(),
+    getFacetedUniqueValues: getFacetedUniqueValues(),
+    getFacetedMinMaxValues: getFacetedMinMaxValues(),
 
     // ✅ do NOT auto-reset page in server mode
     autoResetPageIndex: serverMode
@@ -1099,7 +1085,7 @@ export const DataTable = <T extends object>({
               changed++;
               return { ...row, [partialRowDeletionID]: true } as any;
             }
-            return row; // already deleted -> leave as-is
+            return row;
           }
         });
 
@@ -1256,12 +1242,11 @@ export const DataTable = <T extends object>({
       .map((c) => ({
         id: String(c.id),
         headerText:
-          typeof c.columnDef?.header === 'string'
+          typeof c.columnDef?.header === "string"
             ? (c.columnDef.header as string)
             : String(c.id),
       }));
   }, [table]);
-
 
   /* ---------------------------------------------
    Export helpers (AOA + ROWS) — includeHidden aware
@@ -1374,29 +1359,36 @@ export const DataTable = <T extends object>({
   const compose =
     <A extends any[]>(a?: (...args: A) => void, b?: (...args: A) => void) =>
     (...args: A) => {
-      try { a?.(...args); } finally { b?.(...args); }
+      try {
+        a?.(...args);
+      } finally {
+        b?.(...args);
+      }
     };
 
-  const mergedUploadControls = React.useMemo(() => ({
-    ...(uploadControls ?? {}),
-    // run user's onImport first (so they can log), then always run internal
-    onImport: compose(uploadControls?.onImport, onImportInternal),
-    onOpen: compose(uploadControls?.onOpen, undefined),
-    onUpload: compose(uploadControls?.onUpload, undefined),
-    onUploading: compose(uploadControls?.onUploading, undefined),
-    onError: compose(uploadControls?.onError, undefined),
-    onComplete: compose(
-      uploadControls?.onComplete,
-      (meta: { importedCount: number }) => {
-        showToast?.({
-          color: "success",
-          title: "Import complete",
-          message: `Imported ${meta.importedCount} row${meta.importedCount === 1 ? "" : "s"}.`,
-          icon: "check",
-        });
-      }
-    ),
-  }), [uploadControls, onImportInternal, showToast]);
+  const mergedUploadControls = React.useMemo(
+    () => ({
+      ...(uploadControls ?? {}),
+      // run user's onImport first (so they can log), then always run internal
+      onImport: compose(uploadControls?.onImport, onImportInternal),
+      onOpen: compose(uploadControls?.onOpen, undefined),
+      onUpload: compose(uploadControls?.onUpload, undefined),
+      onUploading: compose(uploadControls?.onUploading, undefined),
+      onError: compose(uploadControls?.onError, undefined),
+      onComplete: compose(
+        uploadControls?.onComplete,
+        (meta: { importedCount: number }) => {
+          showToast?.({
+            color: "success",
+            title: "Import complete",
+            message: `Imported ${meta.importedCount} row${meta.importedCount === 1 ? "" : "s"}.`,
+            icon: "check",
+          });
+        },
+      ),
+    }),
+    [uploadControls, onImportInternal, showToast],
+  );
 
   const totalSelectedRows = Object.keys(table.getState().rowSelection).filter(
     (key) => (rowSelection as any)[key],

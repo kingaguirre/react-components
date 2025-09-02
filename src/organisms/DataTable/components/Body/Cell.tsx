@@ -1,4 +1,3 @@
-// src/organisms/DataTable/components/Body/Cell.tsx
 import React, { memo } from "react";
 import { Cell as CellProps, flexRender } from "@tanstack/react-table";
 import { CellContainer, CellContent, TooltipContent } from "./styled";

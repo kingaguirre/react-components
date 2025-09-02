@@ -1,4 +1,4 @@
-import React from "react";
+import { useMemo } from "react";
 import { getValidationError } from "../../utils/validation";
 import { getDeepValue } from "../../utils";
 import { ColumnSetting } from "../../interface";
@@ -34,29 +34,30 @@ export const RowActionsColumn = ({
   enablePinning: false,
   enableSorting: false,
   meta: { className: "custom-column" },
-  cell: ({ row }) => {
+  cell: ({ row }: { row: any }) => {
     const rowData = row.original as any;
-    const isDisabled = disabledRows?.includes(
-      (row.original as any).__internalId,
-    );
+    const isDisabled = disabledRows?.includes(rowData.__internalId);
     const partiallyDeleted = partialRowDeletionID
-      ? rowData?.[partialRowDeletionID]
+      ? Boolean(rowData?.[partialRowDeletionID])
       : false;
 
     if (rowData.__isNew) {
-      const getDisabledStatus = (disabled) =>
-        typeof disabled === "function" ? disabled(rowData) : disabled;
+      const hasError = useMemo(() => {
+        const getDisabledStatus = (
+          disabled?: boolean | ((r: any) => boolean),
+        ) => (typeof disabled === "function" ? disabled(rowData) : disabled);
 
-      const hasError = columnSettings.some(
-        (col: ColumnSetting) =>
-          col.editor !== false &&
-          col.editor?.validation &&
-          !getDisabledStatus(col.disabled) &&
-          getValidationError(
-            getDeepValue(rowData, col.column),
-            col.editor.validation,
-          ),
-      );
+        return columnSettings.some(
+          (col: ColumnSetting) =>
+            col.editor !== false &&
+            col.editor?.validation &&
+            !getDisabledStatus(col.disabled) &&
+            !!getValidationError(
+              getDeepValue(rowData, col.column),
+              col.editor.validation,
+            ),
+        );
+      }, [columnSettings, rowData]);
 
       return (
         <ActionContainer>

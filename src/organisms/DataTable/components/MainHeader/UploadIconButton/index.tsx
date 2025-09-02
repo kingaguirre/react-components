@@ -10,10 +10,10 @@ import { Button } from "src/atoms/Button";
 // inside UploadIconButton (top-level helpers)
 async function readFileAsArrayBuffer(file: Blob): Promise<ArrayBuffer> {
   const anyFile = file as any;
-  if (typeof anyFile.arrayBuffer === 'function') {
+  if (typeof anyFile.arrayBuffer === "function") {
     return await anyFile.arrayBuffer();
   }
-  if (typeof Response !== 'undefined') {
+  if (typeof Response !== "undefined") {
     // Works in jsdom too
     return await new Response(file).arrayBuffer();
   }
@@ -28,10 +28,10 @@ async function readFileAsArrayBuffer(file: Blob): Promise<ArrayBuffer> {
 
 async function readFileAsText(file: Blob): Promise<string> {
   const anyFile = file as any;
-  if (typeof anyFile.text === 'function') {
+  if (typeof anyFile.text === "function") {
     return await anyFile.text();
   }
-  if (typeof Response !== 'undefined') {
+  if (typeof Response !== "undefined") {
     return await new Response(file).text();
   }
   return await new Promise<string>((resolve, reject) => {
@@ -174,7 +174,7 @@ export const UploadIconButton: React.FC<UploadIconButtonProps> = ({
   controls,
   disabled,
   getVisibleNonBuiltInColumns,
-  getAllNonBuiltInColumns
+  getAllNonBuiltInColumns,
 }) => {
   const cfg = React.useMemo<Required<UploadControls>>(
     () => ({
@@ -274,15 +274,17 @@ export const UploadIconButton: React.FC<UploadIconButtonProps> = ({
   const getUnmatchedHeaders = React.useCallback(
     (sampleKeys: string[]) => {
       // Use ALL non-built-in columns if provided; fall back to visible-only.
-      const cols =
-        (typeof getAllNonBuiltInColumns === 'function'
+      const cols = (
+        typeof getAllNonBuiltInColumns === "function"
           ? getAllNonBuiltInColumns
-          : getVisibleNonBuiltInColumns)();
+          : getVisibleNonBuiltInColumns
+      )();
 
       const acceptedLower = new Set<string>();
       cols.forEach(({ id, headerText }) => {
         if (id) acceptedLower.add(String(id).trim().toLowerCase());
-        if (headerText) acceptedLower.add(String(headerText).trim().toLowerCase());
+        if (headerText)
+          acceptedLower.add(String(headerText).trim().toLowerCase());
       });
 
       return sampleKeys.filter(
@@ -291,7 +293,6 @@ export const UploadIconButton: React.FC<UploadIconButtonProps> = ({
     },
     [getAllNonBuiltInColumns, getVisibleNonBuiltInColumns],
   );
-
 
   const handleFile = async (file: File) => {
     if (!file) return;

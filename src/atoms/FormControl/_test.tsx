@@ -224,7 +224,7 @@ describe('FormControl Component', () => {
         label="No clear"
         testId="no-clear"
         value="abc"
-        onChange={() => {}}
+        onChange={() => { }}
         clearable={false}
       />
     )
@@ -237,7 +237,7 @@ describe('FormControl Component', () => {
         label="Read only"
         testId="readonly"
         value="abc"
-        onChange={() => {}}
+        onChange={() => { }}
         readOnly
         clearable
       />
@@ -251,7 +251,7 @@ describe('FormControl Component', () => {
         label="Disabled"
         testId="disabled"
         value="abc"
-        onChange={() => {}}
+        onChange={() => { }}
         disabled
         clearable
       />
@@ -289,7 +289,7 @@ describe('FormControl Component', () => {
         label="With clear cb"
         testId="with-clear-cb"
         value="foo"
-        onChange={() => {}}
+        onChange={() => { }}
         clearable
         onClearIcon={onClearIcon}
       />
@@ -305,7 +305,7 @@ describe('FormControl Component', () => {
         label="Focus after clear"
         testId="focus-after-clear"
         value="foo"
-        onChange={() => {}}
+        onChange={() => { }}
         clearable
       />
     )
@@ -389,7 +389,7 @@ describe('FormControl Component', () => {
     expect(screen.queryByTestId('num-unctrl-valid-clear-icon')).toBeNull()
   })
 
-    test('shows * in the label when required=true (text input)', () => {
+  test('shows * in the label when required=true (text input)', () => {
     render(
       <FormControl
         label="Required Field"
@@ -439,5 +439,233 @@ describe('FormControl Component', () => {
     expect(within(labelEl).getByText('*')).toBeInTheDocument()
   })
 
+  test('checkbox-group: renders options, respects value, fires onChange with value', async () => {
+    const onChange = vi.fn()
+    render(
+      <FormControl
+        label="Prefs"
+        type="checkbox-group"
+        testId="prefs"
+        options={[
+          { value: 'a', text: 'Alpha' },
+          { value: 'b', text: 'Beta' },
+          { value: 'c', text: 'Gamma' },
+        ]}
+        value={['b']}
+        onChange={onChange}
+      />
+    )
+
+    const a = screen.getByTestId('prefs-a') as HTMLInputElement
+    const b = screen.getByTestId('prefs-b') as HTMLInputElement
+    const c = screen.getByTestId('prefs-c') as HTMLInputElement
+
+    expect(a.checked).toBe(false)
+    expect(b.checked).toBe(true)
+    expect(c.checked).toBe(false)
+
+    await userEvent.click(c)
+    expect(onChange).toHaveBeenCalledWith('b,c')
+  })
+
+  test('checkbox-group: disabled option cannot be toggled', async () => {
+    const onChange = vi.fn();
+    render(
+      <FormControl
+        label="Prefs"
+        type="checkbox-group"
+        testId="prefs2"
+        options={[
+          { value: 'a', text: 'Alpha', disabled: true },
+          { value: 'b', text: 'Beta' },
+        ]}
+        value={null}
+        onChange={onChange}
+      />
+    );
+
+    const a = screen.getByTestId('prefs2-a') as HTMLInputElement;
+    expect(a).toBeDisabled();
+    await userEvent.click(a);
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  test('checkbox-group: empty options shows "No Options found"', () => {
+    render(
+      <FormControl
+        label="Empty"
+        type="checkbox-group"
+        options={[]}
+      />
+    );
+    expect(screen.getByText('No Options found')).toBeInTheDocument();
+  });
+
+  test('radio-group: renders options, respects value, fires onChange with value', async () => {
+    const onChange = vi.fn()
+    render(
+      <FormControl
+        label="Choice"
+        type="radio-group"
+        testId="choice"
+        options={[
+          { value: 'x', text: 'X' },
+          { value: 'y', text: 'Y' },
+        ]}
+        // IMPORTANT: public API usually "value" (single)
+        value="x"
+        onChange={onChange}
+      />
+    )
+
+    const x = screen.getByTestId('choice-x') as HTMLInputElement
+    const y = screen.getByTestId('choice-y') as HTMLInputElement
+
+    expect(x.checked).toBe(true)
+    expect(y.checked).toBe(false)
+
+    await userEvent.click(y)
+    expect(onChange).toHaveBeenCalledWith('y')
+  })
+
+  test('radio-group: empty options shows "No Options found"', () => {
+    render(
+      <FormControl
+        label="Choice empty"
+        type="radio-group"
+        options={[]}
+      />
+    );
+    expect(screen.getByText('No Options found')).toBeInTheDocument();
+  });
+
+  test('switch-group: renders options, respects value, fires onChange', async () => {
+    const onChange = vi.fn()
+    render(
+      <FormControl
+        label="Toggles"
+        type="switch-group"
+        testId="toggles"
+        options={[
+          { value: 'on', text: 'On' },
+          { value: 'off', text: 'Off' },
+        ]}
+        value={['on']}
+        onChange={onChange}
+      />
+    )
+
+    const on = screen.getByTestId('toggles-on') as HTMLInputElement
+    const off = screen.getByTestId('toggles-off') as HTMLInputElement
+
+    expect(on.checked).toBe(true)
+    expect(off.checked).toBe(false)
+
+    await userEvent.click(off)
+    expect(onChange).toHaveBeenCalledWith('on,off')
+  })
+
+  test('switch-group: empty options shows "No Options found"', () => {
+    render(
+      <FormControl
+        label="Toggles empty"
+        type="switch-group"
+        options={[]}
+      />
+    );
+    expect(screen.getByText('No Options found')).toBeInTheDocument();
+  });
+
+  test('radio-button-group: renders options, respects value, fires onChange via input', async () => {
+    const onChange = vi.fn()
+    render(
+      <FormControl
+        label="RBGroup"
+        type="radio-button-group"
+        testId="rb"
+        options={[
+          { value: 'r1', text: 'R1' },
+          { value: 'r2', text: 'R2' },
+        ]}
+        value="r1"
+        onChange={onChange}
+      />
+    )
+
+    const r1 = screen.getByTestId('rb-r1') as HTMLInputElement
+    const r2 = screen.getByTestId('rb-r2') as HTMLInputElement
+
+    expect(r1.checked).toBe(true)
+    expect(r2.checked).toBe(false)
+
+    await userEvent.click(r2)
+    expect(onChange).toHaveBeenCalledWith('r2')
+  })
+
+  // --- LAYOUT & SIZE FLAGS (smoke checks) ---
+
+  test('group containers render with vertical layout flag without crashing', () => {
+    render(
+      <>
+        <FormControl
+          label="CG vertical"
+          type="checkbox-group"
+          options={[{ value: 'a', text: 'A' }]}
+          isVerticalOptions
+        />
+        <FormControl
+          label="RG vertical"
+          type="radio-group"
+          options={[{ value: 'x', text: 'X' }]}
+          isVerticalOptions
+        />
+        <FormControl
+          label="SG vertical"
+          type="switch-group"
+          options={[{ value: 's1', text: 'S1' }]}
+          isVerticalOptions
+        />
+        <FormControl
+          label="RBG vertical"
+          type="radio-button-group"
+          options={[{ value: 'r1', text: 'R1' }]}
+          isVerticalOptions
+        />
+      </>
+    );
+
+    // Containers exist
+    expect(document.querySelector('.group-control-container.checkbox-group')).toBeInTheDocument();
+    expect(document.querySelector('.group-control-container.radio-group')).toBeInTheDocument();
+    expect(document.querySelector('.group-control-container.switch-group')).toBeInTheDocument();
+    expect(document.querySelector('.group-control-container.radio-button-group')).toBeInTheDocument();
+  });
+
+  test('size="sm" renders groups without errors (gap changes internally)', () => {
+    render(
+      <>
+        <FormControl
+          label="CG sm"
+          type="checkbox-group"
+          size="sm"
+          testId="cg-sm"
+          options={[{ value: 'a', text: 'A' }]}
+          values={[]} // no preselect
+        />
+        <FormControl
+          label="RG sm"
+          type="radio-group"
+          size="sm"
+          testId="rg-sm"
+          options={[{ value: 'x', text: 'X' }]}
+          value="" // no preselect
+        />
+      </>
+    )
+
+    // Inputs exist and are addressable via testId pattern
+    expect(screen.getByTestId('cg-sm-a')).toBeInTheDocument()
+    expect(screen.getByTestId('rg-sm-x')).toBeInTheDocument()
+  })
 
 })

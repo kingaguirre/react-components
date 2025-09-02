@@ -5,6 +5,8 @@ import React, {
   ChangeEvent,
   FocusEvent,
   KeyboardEvent,
+  useMemo,
+  useCallback,
 } from "react";
 import { ZodSchema } from "zod";
 import { filterUniqueMap } from "../../utils";
@@ -24,7 +26,6 @@ interface EditableCellProps {
   onKeyDown?: (e: KeyboardEvent<HTMLInputElement | HTMLSelectElement>) => void;
   onCancel?: () => void;
   autoFocus?: boolean;
-  // Now validation receives our custom validator helper which has a schema() method.
   validation?: (v: ValidatorHelper) => ZodSchema<any>;
   name: string;
   testId: string;
@@ -37,7 +38,7 @@ interface EditableCellProps {
   disabled?: boolean;
 }
 
-export const EditableCell = (props: EditableCellProps) => {
+export const EditableCell: React.FC<EditableCellProps> = (props) => {
   const {
     value,
     editorType,
@@ -56,46 +57,57 @@ export const EditableCell = (props: EditableCellProps) => {
     disabled,
   } = props;
 
-  const handleValidationError = (localValue, validation) =>
-    getValidationError(
-      localValue,
-      validation,
-      columnId,
-      filterUniqueMap(uniqueValueMaps?.[columnId] as string[], value),
-      rowData,
-    );
+  // Stable validation helper
+  const computeValidationError = useCallback(
+    (val: any) =>
+      getValidationError(
+        val,
+        validation,
+        columnId,
+        filterUniqueMap(uniqueValueMaps?.[columnId] as string[], value),
+        rowData,
+      ),
+    [validation, columnId, uniqueValueMaps, rowData, value],
+  );
 
-  // --------- Branch 1: Text-like editors (text, textarea, number) ---------
-  if (["text", "textarea", "number"].includes(editorType)) {
-    const [localValue, setLocalValue] = useState(value);
+  /** ----------------------------------------------------------------
+   *  Branch 1: Text-like editors (text, textarea, number)
+   *  ---------------------------------------------------------------- */
+  if (
+    editorType === "text" ||
+    editorType === "textarea" ||
+    editorType === "number"
+  ) {
+    const [localValue, setLocalValue] = useState<any>(value);
     const [localError, setLocalError] = useState<string | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    // Re-validate whenever the localValue changes.
-    useEffect(() => {
-      setLocalError(handleValidationError?.(localValue, validation));
-    }, [localValue]);
-
+    // Keep local state in sync if external value changes
     useEffect(() => {
       setLocalValue(value);
     }, [value]);
 
-    const handleChange = (e: any) => {
-      const value = e.currentTarget.value;
-      setLocalValue(
-        editorType === "number" && !isNaN(value) && !isNaN(parseFloat(value))
-          ? +value
-          : value,
-      );
+    // Validate on change
+    useEffect(() => {
+      setLocalError(computeValidationError(localValue));
+    }, [localValue, computeValidationError]);
+
+    const handleChange = (
+      e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+    ) => {
+      const v = e.currentTarget.value;
+      if (editorType === "number") {
+        const num = Number(v);
+        setLocalValue(isNaN(num) ? v : num);
+      } else {
+        setLocalValue(v);
+      }
     };
 
-    // Helper to trim the value before committing.
     const commitValue = () => {
       if (typeof localValue === "string") {
         const trimmed = localValue.trim();
-        if (trimmed !== localValue) {
-          setLocalValue(trimmed);
-        }
+        if (trimmed !== localValue) setLocalValue(trimmed);
         onChange(trimmed);
       } else {
         onChange(localValue);
@@ -117,8 +129,9 @@ export const EditableCell = (props: EditableCellProps) => {
       } else if (e.key === "Escape" && onCancel) {
         onCancel();
       }
-      if (onKeyDown)
-        onKeyDown(e as KeyboardEvent<HTMLInputElement | HTMLSelectElement>);
+      onKeyDown?.(
+        e as unknown as KeyboardEvent<HTMLInputElement | HTMLSelectElement>,
+      );
     };
 
     return (
@@ -136,17 +149,27 @@ export const EditableCell = (props: EditableCellProps) => {
         testId={testId}
         disabled={disabled}
         clearable={false}
+        name={name}
       />
     );
   }
 
-  // --------- Branch for date and date-range editors ---------
+  /** ----------------------------------------------------------------
+   *  Branch 2: Date & Date-Range editors
+   *  ---------------------------------------------------------------- */
   if (editorType === "date" || editorType === "date-range") {
     const isRange = editorType === "date-range";
-    const computedError = handleValidationError?.(value, validation);
+    const computedError = useMemo(
+      () => computeValidationError(value),
+      [value, computeValidationError],
+    );
     const containerRef = useRef<HTMLDivElement>(null);
 
-    useOnClickOutside(containerRef, () => onChange(value), {
+    const stableOnChange = useCallback(
+      () => onChange(value),
+      [onChange, value],
+    );
+    useOnClickOutside(containerRef, stableOnChange, {
       ignoreClassNames: "react-datepicker-popper",
     });
 
@@ -166,32 +189,43 @@ export const EditableCell = (props: EditableCellProps) => {
     );
   }
 
-  // --------- Branch 2: Boolean-like editors (checkbox, radio, switch) ---------
-  if (["checkbox", "radio", "switch"].includes(editorType)) {
-    const computedError = handleValidationError?.(Boolean(value), validation);
+  /** ----------------------------------------------------------------
+   *  Branch 3: Boolean-like (checkbox, radio, switch)
+   *  ---------------------------------------------------------------- */
+  if (
+    editorType === "checkbox" ||
+    editorType === "radio" ||
+    editorType === "switch"
+  ) {
+    const boolVal = Boolean(value);
+    const computedError = useMemo(
+      () => computeValidationError(boolVal),
+      [boolVal, computeValidationError],
+    );
     const containerRef = useRef<HTMLDivElement>(null);
+
+    const stableOnChange = useCallback(
+      () => onChange(boolVal),
+      [onChange, boolVal],
+    );
+    useOnClickOutside(containerRef, stableOnChange);
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === "Enter") {
         e.preventDefault();
         if (editorType === "radio") {
-          // Only allow selection, not deselection for radio
-          if (!value) {
-            onChange(true);
-          }
+          if (!boolVal) onChange(true);
         } else {
-          onChange(!value);
+          onChange(!boolVal);
         }
       }
     };
-
-    useOnClickOutside(containerRef, () => onChange(Boolean(value)));
 
     return (
       <div ref={containerRef} tabIndex={0}>
         <FormControl
           type={editorType}
-          checked={Boolean(value)}
+          checked={boolVal}
           onChange={(e: ChangeEvent<HTMLInputElement>) =>
             onChange(e.currentTarget.checked)
           }
@@ -208,12 +242,21 @@ export const EditableCell = (props: EditableCellProps) => {
     );
   }
 
-  // --------- Branch 4: Select editor ---------
+  /** ----------------------------------------------------------------
+   *  Branch 4: Dropdown
+   *  ---------------------------------------------------------------- */
   if (editorType === "dropdown") {
-    const computedError = handleValidationError?.(value, validation);
+    const computedError = useMemo(
+      () => computeValidationError(value),
+      [value, computeValidationError],
+    );
     const containerRef = useRef<HTMLDivElement>(null);
 
-    useOnClickOutside(containerRef, () => onChange(value), {
+    const stableOnChange = useCallback(
+      () => onChange(value),
+      [onChange, value],
+    );
+    useOnClickOutside(containerRef, stableOnChange, {
       ignoreClassNames: "dropdown-list",
     });
 
@@ -229,14 +272,20 @@ export const EditableCell = (props: EditableCellProps) => {
           className="editable-element"
           hideOnScroll
           disabled={disabled}
+          name={name}
         />
       </div>
     );
   }
 
-  // --------- Branch 5: Group editors (checkbox-group, switch-group, radio-group) ---------
-  if (["checkbox-group", "switch-group", "radio-group"].includes(editorType)) {
-    // const options = ['Option1', 'Option2', 'Option3']
+  /** ----------------------------------------------------------------
+   *  Branch 5: Group editors (checkbox-group, switch-group, radio-group)
+   *  ---------------------------------------------------------------- */
+  if (
+    editorType === "checkbox-group" ||
+    editorType === "switch-group" ||
+    editorType === "radio-group"
+  ) {
     const [localValue, setLocalValue] = useState<any>(
       Array.isArray(value) ? value : [],
     );
@@ -248,17 +297,21 @@ export const EditableCell = (props: EditableCellProps) => {
     }, [value]);
 
     useEffect(() => {
-      setLocalError(handleValidationError?.(localValue, validation));
-    }, [localValue]);
+      setLocalError(computeValidationError(localValue));
+    }, [localValue, computeValidationError]);
 
-    useOnClickOutside(containerRef, () => onChange(localValue));
+    const stableOnChange = useCallback(
+      () => onChange(localValue),
+      [onChange, localValue],
+    );
+    useOnClickOutside(containerRef, stableOnChange);
 
     return (
       <div ref={containerRef} tabIndex={0}>
         <FormControl
           type={editorType}
-          value={value}
-          onChange={(value: string | string[]) => setLocalValue(value)}
+          value={localValue}
+          onChange={(v: string | string[]) => setLocalValue(v)}
           autoFocus={autoFocus}
           color={localError ? "danger" : undefined}
           helpText={localError}

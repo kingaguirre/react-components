@@ -1,4 +1,3 @@
-import React from "react";
 import { RightIconButtonContainer } from "./styled";
 import { Icon } from "../../../../../atoms/Icon";
 import { Tooltip } from "../../../../../atoms/Tooltip";

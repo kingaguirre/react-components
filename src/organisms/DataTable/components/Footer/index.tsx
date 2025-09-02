@@ -1,4 +1,4 @@
-import React, { ChangeEvent } from "react";
+import React, { ChangeEvent, useMemo } from "react";
 import { Table } from "@tanstack/react-table";
 import { FooterContainer } from "./styled";
 import { CheckboxCell } from "../SelectColumn/CheckboxCell";
@@ -35,19 +35,19 @@ export const Footer = <TData,>({
   disabledRows,
   enableRowSelection,
 }: FooterProps<TData>) => {
-  const hasColumns =
-    table.getVisibleLeafColumns().filter((c) => !BUILTIN_COLUMN_IDS.has(c.id))
-      .length > 0;
+  const hasColumns = useMemo(
+    () =>
+      table.getVisibleLeafColumns().some((c) => !BUILTIN_COLUMN_IDS.has(c.id)),
+    [table],
+  );
 
-  // 🔎 Detect server mode
   const isServer = Boolean((table.options as any).manualPagination);
 
-  // 📊 Total records
   const totalRecords = isServer
     ? ((table.options as any).rowCount ?? 0)
     : table.getFilteredRowModel().rows.length;
 
-  const hasTotalRecords = totalRecords > 0 && hasColumns;
+  const hasTotalRecords = hasColumns && totalRecords > 0;
 
   const { pageIndex, pageSize } = table.getState().pagination;
   const startRange = totalRecords === 0 ? 0 : pageIndex * pageSize + 1;

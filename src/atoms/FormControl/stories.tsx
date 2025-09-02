@@ -90,6 +90,7 @@ const generateColorStories = (type: string, md = 4) => (
           options={SAMPLE_OPTIONS}
           name={`name-${color}`}
           text='Click Me!'
+          testId={`${type}`}
         />
         <FormControl
           type={type}

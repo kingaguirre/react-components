@@ -1,38 +1,46 @@
-import React from "react";
+import React, { useEffect, useRef, forwardRef, memo } from "react";
 import { FormControl } from "../../../../atoms/FormControl";
 
 // IndeterminateCheckbox supporting an “indeterminate” state.
-export const CheckboxCell = React.forwardRef<
-  HTMLInputElement,
-  {
-    indeterminate?: boolean;
-    text?: string;
-    disabled?: boolean;
-    type?: string;
-    rowId?: string;
-  } & React.InputHTMLAttributes<HTMLInputElement>
->(({ indeterminate, disabled, type = "checkbox", rowId, ...rest }, ref) => {
-  const defaultRef = React.useRef<HTMLInputElement>(null);
-  const resolvedRef = ref || defaultRef;
+export const CheckboxCell = memo(
+  forwardRef<
+    HTMLInputElement,
+    {
+      indeterminate?: boolean;
+      text?: string;
+      disabled?: boolean;
+      type?: string;
+      rowId?: string;
+    } & React.InputHTMLAttributes<HTMLInputElement>
+  >(({ indeterminate, disabled, type = "checkbox", rowId, ...rest }, ref) => {
+    const innerRef = useRef<HTMLInputElement>(null);
 
-  React.useEffect(() => {
-    if (
-      resolvedRef &&
-      typeof resolvedRef !== "function" &&
-      resolvedRef.current
-    ) {
-      resolvedRef.current.indeterminate = indeterminate ?? false;
-    }
-  }, [resolvedRef, indeterminate]);
+    // allow external refs
+    useEffect(() => {
+      if (!ref) return;
+      if (typeof ref === "function") {
+        ref(innerRef.current);
+      } else {
+        (ref as React.MutableRefObject<HTMLInputElement | null>).current =
+          innerRef.current;
+      }
+    }, [ref]);
 
-  return (
-    <FormControl
-      testId={`select-row-${rowId}`}
-      simple
-      type={type}
-      disabled={disabled}
-      ref={resolvedRef}
-      {...rest}
-    />
-  );
-});
+    useEffect(() => {
+      if (innerRef.current) {
+        innerRef.current.indeterminate = Boolean(indeterminate);
+      }
+    }, [indeterminate]);
+
+    return (
+      <FormControl
+        testId={`select-row-${rowId}`}
+        simple
+        type={type}
+        disabled={disabled}
+        ref={innerRef}
+        {...rest}
+      />
+    );
+  }),
+);

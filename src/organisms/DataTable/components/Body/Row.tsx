@@ -1,4 +1,3 @@
-// src/organisms/DataTable/components/Body/Row.tsx
 import React from "react";
 import { DataTableRow } from "./styled";
 import {
@@ -14,20 +13,7 @@ import {
 import { getValidationError } from "../../utils/validation";
 import { useClickAndDoubleClick } from "../../hooks/useClickAndDoubleClick";
 
-export const Row = ({
-  row,
-  activeRow,
-  disabledRows,
-  onRowClick,
-  onRowDoubleClick,
-  enableCellEditing,
-  editingCell,
-  setEditingCell,
-  selectedCell,
-  setSelectedCell,
-  columnOrder,
-  uniqueValueMaps,
-}: {
+type Props = {
   row: any;
   activeRow?: string;
   disabledRows?: string[];
@@ -43,7 +29,22 @@ export const Row = ({
     string,
     string[] | Record<string, number> | undefined
   >;
-}) => {
+};
+
+function RowComponent({
+  row,
+  activeRow,
+  disabledRows,
+  onRowClick,
+  onRowDoubleClick,
+  enableCellEditing,
+  editingCell,
+  setEditingCell,
+  selectedCell,
+  setSelectedCell,
+  columnOrder,
+  uniqueValueMaps,
+}: Props) {
   const isActiveRow =
     activeRow && (row.original as any).__internalId === activeRow;
   const isNewRow =
@@ -168,4 +169,26 @@ export const Row = ({
       })}
     </DataTableRow>
   );
-};
+}
+
+// 🧠 Memoize Row to reduce rerenders on large tables
+export const Row = React.memo(RowComponent, (prev, next) => {
+  // If the row identity changes, re-render
+  if (prev.row.id !== next.row.id) return false;
+
+  // Props that affect row visual state / behavior
+  if (prev.activeRow !== next.activeRow) return false;
+  if (prev.editingCell !== next.editingCell) return false;
+  if (prev.selectedCell !== next.selectedCell) return false;
+
+  // Keep simple reference checks for arrays/objects that, if replaced, should re-render
+  if (prev.disabledRows !== next.disabledRows) return false;
+  if (prev.columnOrder !== next.columnOrder) return false;
+  if (prev.uniqueValueMaps !== next.uniqueValueMaps) return false;
+
+  // If handlers change identity, re-render
+  if (prev.onRowClick !== next.onRowClick) return false;
+  if (prev.onRowDoubleClick !== next.onRowDoubleClick) return false;
+
+  return true;
+});

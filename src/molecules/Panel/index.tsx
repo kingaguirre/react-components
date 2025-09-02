@@ -1,4 +1,3 @@
-// src/components/Panel/index.tsx
 import React from "react";
 import {
   PanelContainer,
@@ -18,6 +17,8 @@ export const Panel: React.FC<PanelProps> = ({
   rightIcons = [],
   color = "primary",
   disabled = false,
+  isSubHeader = false,
+  hasShadow = true,
 }) => {
   const isHeadless = !title && !leftIcon && rightIcons.length === 0;
 
@@ -25,6 +26,7 @@ export const Panel: React.FC<PanelProps> = ({
     <PanelContainer
       $color={color}
       $disabled={disabled}
+      $hasShadow={hasShadow}
       className={`panel ${disabled ? "panel-disabled" : ""}`.trim()}
     >
       {!isHeadless && (
@@ -34,14 +36,15 @@ export const Panel: React.FC<PanelProps> = ({
           $disabled={disabled}
           $hasLeftIcon={!!leftIcon}
           $hasRightIcons={rightIcons.length > 0}
+          $isSubHeader={isSubHeader}
         >
           {leftIcon && <IconComponent disabled={disabled} icon={leftIcon} />}
           <div className="title">{title}</div>
           {rightIcons.length > 0 && (
             <div className="right-header-icons-container">
-              {rightIcons.map((icon) => (
+              {rightIcons.map((icon, idx) => (
                 <IconComponent
-                  key={`key-${icon.icon}-${icon.color}`}
+                  key={`key-${idx}`}
                   disabled={disabled}
                   icon={icon}
                 />
@@ -59,9 +62,7 @@ interface IconComponentProps {
   disabled?: PanelProps["disabled"];
   icon: IconObject;
 }
-const IconComponent = (props: IconComponentProps) => {
-  const { icon, disabled } = props;
-
+const IconComponent = ({ icon, disabled }: IconComponentProps) => {
   const iconDetails = (
     <IconWrapper
       onClick={!disabled && icon.onClick ? icon.onClick : undefined}

@@ -21,6 +21,7 @@ import renderSkeletonSection from './components/Skeleton';
 
 import { FormControl } from '../../atoms/FormControl';
 import { DatePicker } from '../../molecules/DatePicker';
+import { Panel } from '../../molecules/Panel';
 import { Dropdown } from '../../molecules/Dropdown';
 import { Grid, GridItem } from '../../atoms/Grid';
 import { Tabs } from '../../organisms/Tabs';
@@ -29,7 +30,7 @@ import { DataTable } from '../../organisms/DataTable';
 import { Button } from '../../atoms/Button';
 
 import {
-  PageHeader, FieldsWrapper, SubHeader, FormWrapper, Description,
+  FormWrapper, Description,
   SectionWrapper, ButtonContainer
 } from './styled';
 
@@ -298,7 +299,7 @@ const RenderSection = React.memo(function RenderSection(props: RenderSectionProp
   const flush = () => {
     if (!standalone.length) return;
     nodes.push(
-      <FieldsWrapper className='fields-wrapper' key={`flush-${flushCount++}`}>
+      <SectionWrapper className='fields-wrapper' key={`flush-${flushCount++}`}>
         <Grid>
           {standalone.map((fs: any) => {
             const key = fs.name!;
@@ -396,7 +397,7 @@ const RenderSection = React.memo(function RenderSection(props: RenderSectionProp
             );
           })}
         </Grid>
-      </FieldsWrapper>
+      </SectionWrapper>
     );
     standalone = [];
   };
@@ -432,293 +433,293 @@ const RenderSection = React.memo(function RenderSection(props: RenderSectionProp
 
       nodes.push(
         <React.Fragment key={`tbl-${idx}`}>
-          {header && (isSubHeader ? <SubHeader className='header sub-header'>{header}</SubHeader> : <PageHeader className='header main-header'>{header}</PageHeader>)}
-          {description && <Description>{description}</Description>}
+          <Panel title={header} isSubHeader={isSubHeader} hasShadow={false}>
+            {description && <Description>{description}</Description>}
+            <SectionWrapper className='data-table-wrapper-section' $hasHeader={!!header}>
+              <VirtualizedItem fieldKey={`table:${mapKey}`}>
+                <DataTable
+                  key={`dt:${mapKey}:${(tableVersionMap?.[mapKey] ?? 0)}`}
+                  maxHeight="176px"
+                  pageSize={5}
+                  dataSource={canonicalTable}
+                  columnSettings={config.columnSettings}
+                  disabled={isDisabled}
+                  activeRow={activeRowIndexMap[mapKey]?.toString()}
+                  onChange={newData => {
+                    if (isBlockedByAncestor) return;
+                    setTableDataMap(prev => ({ ...prev, [mapKey]: newData }));
+                    setValue(mapKey, newData);
+                    setTableVersionMap?.(m => ({ ...m, [mapKey]: (m[mapKey] ?? 0) + 1 }));
+                    onChange();
+                  }}
+                  onActiveRowChange={(_, rowIndex) => {
+                    const idx = rowIndex != null ? Number(rowIndex) : null;
+                    const canonicalRow = (idx != null) ? (canonicalTable[idx] ?? null) : null;
 
-          <SectionWrapper className='data-table-wrapper-section' $hasHeader={!!header}>
-            <VirtualizedItem fieldKey={`table:${mapKey}`}>
-              <DataTable
-                key={`dt:${mapKey}:${(tableVersionMap?.[mapKey] ?? 0)}`}
-                maxHeight="176px"
-                pageSize={5}
-                dataSource={canonicalTable}
-                columnSettings={config.columnSettings}
-                disabled={isDisabled}
-                activeRow={activeRowIndexMap[mapKey]?.toString()}
-                onChange={newData => {
-                  if (isBlockedByAncestor) return;
-                  setTableDataMap(prev => ({ ...prev, [mapKey]: newData }));
-                  setValue(mapKey, newData);
-                  setTableVersionMap?.(m => ({ ...m, [mapKey]: (m[mapKey] ?? 0) + 1 }));
-                  onChange();
-                }}
-                onActiveRowChange={(_, rowIndex) => {
-                  const idx = rowIndex != null ? Number(rowIndex) : null;
-                  const canonicalRow = (idx != null) ? (canonicalTable[idx] ?? null) : null;
+                    if (lastProcessedRef.current[mapKey] === idx &&
+                        JSON.stringify(rowSnapshots.current[mapKey] ?? null) === JSON.stringify(canonicalRow ?? null)) {
+                      return;
+                    }
 
-                  if (lastProcessedRef.current[mapKey] === idx &&
-                      JSON.stringify(rowSnapshots.current[mapKey] ?? null) === JSON.stringify(canonicalRow ?? null)) {
-                    return;
-                  }
+                    setActiveRowIndexMap(prev => (prev[mapKey] === idx ? prev : { ...prev, [mapKey]: idx }));
+                    rowSnapshots.current[mapKey] = canonicalRow ? { ...canonicalRow } : null;
+                    lastProcessedRef.current[mapKey] = idx;
 
-                  setActiveRowIndexMap(prev => (prev[mapKey] === idx ? prev : { ...prev, [mapKey]: idx }));
-                  rowSnapshots.current[mapKey] = canonicalRow ? { ...canonicalRow } : null;
-                  lastProcessedRef.current[mapKey] = idx;
+                    clearErrors(mapKey as any);
 
-                  clearErrors(mapKey as any);
+                    const namedFields = flattenForSchema(dtFields)
+                      .filter((fs: any): fs is FieldSetting & { name: string } => typeof fs?.name === 'string' && fs.name.length > 0);
 
-                  const namedFields = flattenForSchema(dtFields)
-                    .filter((fs: any): fs is FieldSetting & { name: string } => typeof fs?.name === 'string' && fs.name.length > 0);
+                    const toTrigger: string[] = [];
 
-                  const toTrigger: string[] = [];
+                    const getFromRow = (path: string, row: any) => {
+                      if (!row) return undefined;
+                      const parts = path.split('.');
+                      const full = parts.reduce((o: any, seg) => o?.[seg], row);
+                      if (full !== undefined) return full;
+                      const leaf = parts[parts.length - 1];
+                      return row?.[leaf];
+                    };
 
-                  const getFromRow = (path: string, row: any) => {
-                    if (!row) return undefined;
-                    const parts = path.split('.');
-                    const full = parts.reduce((o: any, seg) => o?.[seg], row);
-                    if (full !== undefined) return full;
-                    const leaf = parts[parts.length - 1];
-                    return row?.[leaf];
-                  };
+                    // Seed *every* leaf with canonical value OR an empty sentinel
+                    namedFields.forEach((fs) => {
+                      const raw = fs.name;
+                      const full = idx != null ? `${mapKey}.${idx}.${raw}` : `${mapKey}.${raw}`;
+                      const from = canonicalRow ? getFromRow(raw, canonicalRow) : undefined;
+                      const val = (from !== undefined && from !== null) ? from : emptyFor(fs);
+                      setValue(full, val, { shouldDirty: false, shouldTouch: false, shouldValidate: false });
+                      if (idx != null) toTrigger.push(full);
+                    });
 
-                  // Seed *every* leaf with canonical value OR an empty sentinel
-                  namedFields.forEach((fs) => {
-                    const raw = fs.name;
-                    const full = idx != null ? `${mapKey}.${idx}.${raw}` : `${mapKey}.${raw}`;
-                    const from = canonicalRow ? getFromRow(raw, canonicalRow) : undefined;
-                    const val = (from !== undefined && from !== null) ? from : emptyFor(fs);
-                    setValue(full, val, { shouldDirty: false, shouldTouch: false, shouldValidate: false });
-                    if (idx != null) toTrigger.push(full);
-                  });
+                    if (toTrigger.length) void trigger(toTrigger);
+                  }}
+                />
 
-                  if (toTrigger.length) void trigger(toTrigger);
-                }}
-              />
+                {(() => {
+                  const leafDraftFS = toLeafFieldSettings(dtFields);
+                  const draftValues = leafDraftFS.map((fs: any) => getDeepValue(getValues(), `${mapKey}.${fs.name}`));
+                  const hasDraft = draftValues.some(v => v != null && v !== '' && !(typeof v === 'boolean' && v === false));
+                  const canAdd = activeIdx == null && hasDraft && !isBlockedByAncestor;
+                  const canCancel = activeIdx != null || hasDraft;
 
-              {(() => {
-                const leafDraftFS = toLeafFieldSettings(dtFields);
-                const draftValues = leafDraftFS.map((fs: any) => getDeepValue(getValues(), `${mapKey}.${fs.name}`));
-                const hasDraft = draftValues.some(v => v != null && v !== '' && !(typeof v === 'boolean' && v === false));
-                const canAdd = activeIdx == null && hasDraft && !isBlockedByAncestor;
-                const canCancel = activeIdx != null || hasDraft;
+                  return (
+                    <ButtonContainer className='button-wrapper'>
+                      <Button
+                        type="button"
+                        size='sm'
+                        disabled={!canAdd}
+                        data-testid={`btn-add-${mapKey}`}
+                        onClick={async () => {
+                          if (isBlockedByAncestor) return;
 
-                return (
-                  <ButtonContainer className='button-wrapper'>
-                    <Button
-                      type="button"
-                      size='sm'
-                      disabled={!canAdd}
-                      data-testid={`btn-add-${mapKey}`}
-                      onClick={async () => {
-                        if (isBlockedByAncestor) return;
+                          const absDraftItems = prefixItems(dtFields, mapKey);
+                          const absFlatAll = (flattenForSchema(absDraftItems) as any[])
+                            .filter((fs: any) => typeof fs?.name === 'string') as Array<FieldSetting & { name: string }>;
+                          const absFlatLeaves = absFlatAll.filter(fs =>
+                            !absFlatAll.some(other => other !== fs && other.name.startsWith(fs.name + '.'))
+                          );
 
-                        const absDraftItems = prefixItems(dtFields, mapKey);
-                        const absFlatAll = (flattenForSchema(absDraftItems) as any[])
-                          .filter((fs: any) => typeof fs?.name === 'string') as Array<FieldSetting & { name: string }>;
-                        const absFlatLeaves = absFlatAll.filter(fs =>
-                          !absFlatAll.some(other => other !== fs && other.name.startsWith(fs.name + '.'))
-                        );
+                          const relFlat = absFlatLeaves.map(fs => ({
+                            ...fs,
+                            name: fs.name.replace(new RegExp(`^${escapeRegExp(mapKey)}\\.`), ''),
+                          }));
 
-                        const relFlat = absFlatLeaves.map(fs => ({
-                          ...fs,
-                          name: fs.name.replace(new RegExp(`^${escapeRegExp(mapKey)}\\.`), ''),
-                        }));
-
-                        let draftValuesObj: Record<string, any> = {};
-                        absFlatLeaves.forEach(abs => {
-                          const relName = abs.name.replace(new RegExp(`^${escapeRegExp(mapKey)}\\.`), '');
-                          const v = getDeepValue(getValues(), abs.name);
-                          draftValuesObj = setDeepValue(draftValuesObj, relName, v);
-                        });
-
-                        let ctx = { ...getValues(), ...draftValuesObj };
-                        for (const [relKey, v] of Object.entries(draftValuesObj)) {
-                          ctx = setDeepValue(ctx, `${mapKey}.${relKey}`, v);
-                        }
-
-                        const draftSchema = buildSchema(relFlat as any, ctx);
-                        const result = await draftSchema.safeParseAsync(draftValuesObj);
-
-                        if (!result.success) {
-                          result.error.errors.forEach(err => {
-                            const relPath = Array.isArray(err.path) ? err.path.join('.') : String(err.path ?? '');
-                            setError(`${mapKey}.${relPath}` as any, { type: 'manual', message: err.message });
+                          let draftValuesObj: Record<string, any> = {};
+                          absFlatLeaves.forEach(abs => {
+                            const relName = abs.name.replace(new RegExp(`^${escapeRegExp(mapKey)}\\.`), '');
+                            const v = getDeepValue(getValues(), abs.name);
+                            draftValuesObj = setDeepValue(draftValuesObj, relName, v);
                           });
 
-                          const firstRel = Array.isArray(result.error.errors[0].path)
-                            ? result.error.errors[0].path.join('.') : String(result.error.errors[0].path ?? '');
-                          const el = document.querySelector<HTMLElement>(`[name="${mapKey}.${firstRel}"]`);
-                          el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                          el?.focus();
-                          return;
-                        }
+                          let ctx = { ...getValues(), ...draftValuesObj };
+                          for (const [relKey, v] of Object.entries(draftValuesObj)) {
+                            ctx = setDeepValue(ctx, `${mapKey}.${relKey}`, v);
+                          }
 
-                        // Build/normalize new row and prepend
-                        let newRow: Record<string, any> = {};
-                        absFlatLeaves.forEach(abs => {
-                          const relName = abs.name.replace(new RegExp(`^${escapeRegExp(mapKey)}\\.`), '');
-                          let v = getDeepValue(getValues(), abs.name);
-                          v = normalizeByType(abs, v);
-                          newRow = setDeepValue(newRow, relName, v);
-                        });
+                          const draftSchema = buildSchema(relFlat as any, ctx);
+                          const result = await draftSchema.safeParseAsync(draftValuesObj);
 
-                        const childTableKeys = dtFields
-                          .filter((it: any) => 'dataTable' in it)
-                          .map((it: any) => it.dataTable.config.dataSource as string);
-                        for (const key of childTableKeys) if (newRow[key] == null) newRow[key] = [];
+                          if (!result.success) {
+                            result.error.errors.forEach(err => {
+                              const relPath = Array.isArray(err.path) ? err.path.join('.') : String(err.path ?? '');
+                              setError(`${mapKey}.${relPath}` as any, { type: 'manual', message: err.message });
+                            });
 
-                        const prevFormRows: any[] = Array.isArray(tableDataMap[mapKey]) ? tableDataMap[mapKey] : [];
-                        const newTable = [newRow, ...prevFormRows];
-                        const shifted = shiftNestedTableKeys(tableDataMap, mapKey, 0, +1);
+                            const firstRel = Array.isArray(result.error.errors[0].path)
+                              ? result.error.errors[0].path.join('.') : String(result.error.errors[0].path ?? '');
+                            const el = document.querySelector<HTMLElement>(`[name="${mapKey}.${firstRel}"]`);
+                            el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            el?.focus();
+                            return;
+                          }
 
-                        setTableDataMap({ ...shifted, [mapKey]: newTable });
-                        setValue(mapKey, newTable);
+                          // Build/normalize new row and prepend
+                          let newRow: Record<string, any> = {};
+                          absFlatLeaves.forEach(abs => {
+                            const relName = abs.name.replace(new RegExp(`^${escapeRegExp(mapKey)}\\.`), '');
+                            let v = getDeepValue(getValues(), abs.name);
+                            v = normalizeByType(abs, v);
+                            newRow = setDeepValue(newRow, relName, v);
+                          });
 
-                        // Reset selection caches so reseed after prepend is not skipped
-                        rowSnapshots.current[mapKey] = null as any;
-                        lastProcessedRef.current[mapKey] = null;
+                          const childTableKeys = dtFields
+                            .filter((it: any) => 'dataTable' in it)
+                            .map((it: any) => it.dataTable.config.dataSource as string);
+                          for (const key of childTableKeys) if (newRow[key] == null) newRow[key] = [];
 
-                        // Notify parent on table mutation
-                        setTableVersionMap?.(m => ({ ...m, [mapKey]: (m[mapKey] ?? 0) + 1 }));
-                        onChange();
+                          const prevFormRows: any[] = Array.isArray(tableDataMap[mapKey]) ? tableDataMap[mapKey] : [];
+                          const newTable = [newRow, ...prevFormRows];
+                          const shifted = shiftNestedTableKeys(tableDataMap, mapKey, 0, +1);
 
-                        // Clear draft inputs
-                        absFlatLeaves.forEach(abs => {
-                          setValue(abs.name, isBooleanControl(abs) ? false : '', { shouldDirty: false, shouldTouch: false, shouldValidate: false });
-                        });
-                      }}
-                    >
-                      Add
-                    </Button>
+                          setTableDataMap({ ...shifted, [mapKey]: newTable });
+                          setValue(mapKey, newTable);
 
-                    <Button
-                      type="button"
-                      size="sm"
-                      disabled={activeIdx == null || isBlockedByAncestor}
-                      data-testid={`btn-update-${mapKey}`}
-                      onClick={async () => {
-                        if (isBlockedByAncestor || activeIdx == null) return;
-                        (document.activeElement as HTMLElement | null)?.blur?.();
+                          // Reset selection caches so reseed after prepend is not skipped
+                          rowSnapshots.current[mapKey] = null as any;
+                          lastProcessedRef.current[mapKey] = null;
 
-                        const flatFS: Array<FieldSetting & { name: string }> = flattenForSchema(dtFields)
-                          .filter((fs: any) => typeof fs?.name === 'string' && fs.name.length > 0) as any[];
-                        const fieldNames = flatFS.map(fs => `${mapKey}.${activeIdx}.${fs.name}`);
-                        const isValid = await trigger(fieldNames, { shouldFocus: true });
-                        if (!isValid) return;
+                          // Notify parent on table mutation
+                          setTableVersionMap?.(m => ({ ...m, [mapKey]: (m[mapKey] ?? 0) + 1 }));
+                          onChange();
 
-                        const prevFormRows: any[] = Array.isArray(tableDataMap[mapKey])
-                          ? tableDataMap[mapKey] : (getDeepValue(getValues(), mapKey) ?? []);
-                        let updatedRow: Record<string, any> = { ...(prevFormRows[activeIdx] ?? {}) };
+                          // Clear draft inputs
+                          absFlatLeaves.forEach(abs => {
+                            setValue(abs.name, isBooleanControl(abs) ? false : '', { shouldDirty: false, shouldTouch: false, shouldValidate: false });
+                          });
+                        }}
+                      >
+                        Add
+                      </Button>
 
-                        flatFS.forEach(fs => {
-                          const fullPath = `${mapKey}.${activeIdx}.${fs.name}`;
-                          let v = getDeepValue(getValues(), fullPath);
-                          v = normalizeByType(fs as any, v);
-                          updatedRow = setDeepValue(updatedRow, fs.name, v);
-                        });
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={activeIdx == null || isBlockedByAncestor}
+                        data-testid={`btn-update-${mapKey}`}
+                        onClick={async () => {
+                          if (isBlockedByAncestor || activeIdx == null) return;
+                          (document.activeElement as HTMLElement | null)?.blur?.();
 
-                        const newTable = prevFormRows.slice();
-                        newTable[activeIdx] = updatedRow;
+                          const flatFS: Array<FieldSetting & { name: string }> = flattenForSchema(dtFields)
+                            .filter((fs: any) => typeof fs?.name === 'string' && fs.name.length > 0) as any[];
+                          const fieldNames = flatFS.map(fs => `${mapKey}.${activeIdx}.${fs.name}`);
+                          const isValid = await trigger(fieldNames, { shouldFocus: true });
+                          if (!isValid) return;
 
-                        setTableDataMap(m => ({ ...m, [mapKey]: newTable }));
-                        setValue(mapKey, newTable);
+                          const prevFormRows: any[] = Array.isArray(tableDataMap[mapKey])
+                            ? tableDataMap[mapKey] : (getDeepValue(getValues(), mapKey) ?? []);
+                          let updatedRow: Record<string, any> = { ...(prevFormRows[activeIdx] ?? {}) };
 
-                        const leafDraftFS2 = toLeafFieldSettings(dtFields);
-                        clearErrors([mapKey, ...leafDraftFS2.map(fs => `${mapKey}.${activeIdx}.${fs.name}`)] as any);
-                        setActiveRowIndexMap(prev => ({ ...prev, [mapKey]: null }));
-                        rowSnapshots.current[mapKey] = null as any;
-                        lastProcessedRef.current[mapKey] = null;
-                        leafDraftFS2.forEach((fs: any) => {
-                          setValue(`${mapKey}.${fs.name}`, isBooleanControl(fs) ? false : '', { shouldDirty: false, shouldTouch: false, shouldValidate: false });
-                        });
+                          flatFS.forEach(fs => {
+                            const fullPath = `${mapKey}.${activeIdx}.${fs.name}`;
+                            let v = getDeepValue(getValues(), fullPath);
+                            v = normalizeByType(fs as any, v);
+                            updatedRow = setDeepValue(updatedRow, fs.name, v);
+                          });
 
-                        setTableVersionMap?.(m => ({ ...m, [mapKey]: (m[mapKey] ?? 0) + 1 }));
-                        onChange();
-                        void trigger(mapKey as any);
-                      }}
-                    >
-                      Update
-                    </Button>
+                          const newTable = prevFormRows.slice();
+                          newTable[activeIdx] = updatedRow;
 
-                    <Button
-                      type="button"
-                      size='sm'
-                      color='danger'
-                      disabled={activeIdx == null || isBlockedByAncestor}
-                      variant={activeIdx !== null ? 'outlined' : undefined}
-                      data-testid={`btn-delete-${mapKey}`}
-                      onClick={() => {
-                        if (isBlockedByAncestor || activeIdx == null) return;
+                          setTableDataMap(m => ({ ...m, [mapKey]: newTable }));
+                          setValue(mapKey, newTable);
 
-                        const prevFormRows: any[] = Array.isArray(tableDataMap[mapKey])
-                          ? tableDataMap[mapKey] : (getDeepValue(getValues(), mapKey) ?? []);
-                        const newTable = prevFormRows.filter((_, i) => i !== activeIdx);
+                          const leafDraftFS2 = toLeafFieldSettings(dtFields);
+                          clearErrors([mapKey, ...leafDraftFS2.map(fs => `${mapKey}.${activeIdx}.${fs.name}`)] as any);
+                          setActiveRowIndexMap(prev => ({ ...prev, [mapKey]: null }));
+                          rowSnapshots.current[mapKey] = null as any;
+                          lastProcessedRef.current[mapKey] = null;
+                          leafDraftFS2.forEach((fs: any) => {
+                            setValue(`${mapKey}.${fs.name}`, isBooleanControl(fs) ? false : '', { shouldDirty: false, shouldTouch: false, shouldValidate: false });
+                          });
 
-                        let nextMap = dropNestedKeysForIndex(tableDataMap, mapKey, activeIdx);
-                        nextMap = shiftNestedTableKeys(nextMap, mapKey, activeIdx + 1, -1);
+                          setTableVersionMap?.(m => ({ ...m, [mapKey]: (m[mapKey] ?? 0) + 1 }));
+                          onChange();
+                          void trigger(mapKey as any);
+                        }}
+                      >
+                        Update
+                      </Button>
 
-                        setTableDataMap({ ...nextMap, [mapKey]: newTable });
-                        rowSnapshots.current[mapKey] = null as any;
-                        setActiveRowIndexMap(prev => ({ ...prev, [mapKey]: null }));
-                        lastProcessedRef.current[mapKey] = null;
-                        setValue(mapKey, newTable);
+                      <Button
+                        type="button"
+                        size='sm'
+                        color='danger'
+                        disabled={activeIdx == null || isBlockedByAncestor}
+                        variant={activeIdx !== null ? 'outlined' : undefined}
+                        data-testid={`btn-delete-${mapKey}`}
+                        onClick={() => {
+                          if (isBlockedByAncestor || activeIdx == null) return;
 
-                        setTableVersionMap?.(m => ({ ...m, [mapKey]: (m[mapKey] ?? 0) + 1 }));
-                        onChange();
-                      }}
-                    >
-                      Delete
-                    </Button>
+                          const prevFormRows: any[] = Array.isArray(tableDataMap[mapKey])
+                            ? tableDataMap[mapKey] : (getDeepValue(getValues(), mapKey) ?? []);
+                          const newTable = prevFormRows.filter((_, i) => i !== activeIdx);
 
-                    <Button
-                      type="button"
-                      size='sm'
-                      color='default'
-                      variant={canCancel ? 'outlined' : undefined}
-                      disabled={!canCancel}
-                      data-testid={`btn-cancel-${mapKey}`}
-                      onClick={() => {
-                        setActiveRowIndexMap(prev => ({ ...prev, [mapKey]: null }));
-                        const leafDraftFS2 = toLeafFieldSettings(dtFields);
-                        clearErrors(leafDraftFS2.map((fs: any) => `${mapKey}.${fs.name}`));
-                        leafDraftFS2.forEach((fs: any) => {
-                          setValue(`${mapKey}.${fs.name}`, isBooleanControl(fs) ? false : '', { shouldDirty: false, shouldTouch: false, shouldValidate: false });
-                        });
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                  </ButtonContainer>
-                );
-              })()}
-            </VirtualizedItem>
+                          let nextMap = dropNestedKeysForIndex(tableDataMap, mapKey, activeIdx);
+                          nextMap = shiftNestedTableKeys(nextMap, mapKey, activeIdx + 1, -1);
 
-            {/* Recursive render for dtFields with id prefix */}
-            <RenderSection
-              items={prefixItems(dtFields, childPath)}
-              errors={errors}
-              onChange={onChange}
-              control={control}
-              z={z}
-              globalDisabled={globalDisabled || isBlockedByAncestor}
-              originalData={getValues()}
-              getValues={getValues}
-              setValue={setValue}
-              trigger={trigger}
-              setError={setError}
-              clearErrors={clearErrors}
-              conditionalKeys={conditionalKeys}
-              activeRowIndexMap={activeRowIndexMap}
-              setActiveRowIndexMap={setActiveRowIndexMap}
-              tableDataMap={tableDataMap}
-              setTableDataMap={setTableDataMap}
-              rowSnapshots={rowSnapshots}
-              lastProcessedRef={lastProcessedRef}
-              ancestorRowSelected={activeIdx != null}
-              tableVersionMap={tableVersionMap}
-              setTableVersionMap={setTableVersionMap}
-            />
-          </SectionWrapper>
+                          setTableDataMap({ ...nextMap, [mapKey]: newTable });
+                          rowSnapshots.current[mapKey] = null as any;
+                          setActiveRowIndexMap(prev => ({ ...prev, [mapKey]: null }));
+                          lastProcessedRef.current[mapKey] = null;
+                          setValue(mapKey, newTable);
+
+                          setTableVersionMap?.(m => ({ ...m, [mapKey]: (m[mapKey] ?? 0) + 1 }));
+                          onChange();
+                        }}
+                      >
+                        Delete
+                      </Button>
+
+                      <Button
+                        type="button"
+                        size='sm'
+                        color='default'
+                        variant={canCancel ? 'outlined' : undefined}
+                        disabled={!canCancel}
+                        data-testid={`btn-cancel-${mapKey}`}
+                        onClick={() => {
+                          setActiveRowIndexMap(prev => ({ ...prev, [mapKey]: null }));
+                          const leafDraftFS2 = toLeafFieldSettings(dtFields);
+                          clearErrors(leafDraftFS2.map((fs: any) => `${mapKey}.${fs.name}`));
+                          leafDraftFS2.forEach((fs: any) => {
+                            setValue(`${mapKey}.${fs.name}`, isBooleanControl(fs) ? false : '', { shouldDirty: false, shouldTouch: false, shouldValidate: false });
+                          });
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </ButtonContainer>
+                  );
+                })()}
+              </VirtualizedItem>
+
+              {/* Recursive render for dtFields with id prefix */}
+              <RenderSection
+                items={prefixItems(dtFields, childPath)}
+                errors={errors}
+                onChange={onChange}
+                control={control}
+                z={z}
+                globalDisabled={globalDisabled || isBlockedByAncestor}
+                originalData={getValues()}
+                getValues={getValues}
+                setValue={setValue}
+                trigger={trigger}
+                setError={setError}
+                clearErrors={clearErrors}
+                conditionalKeys={conditionalKeys}
+                activeRowIndexMap={activeRowIndexMap}
+                setActiveRowIndexMap={setActiveRowIndexMap}
+                tableDataMap={tableDataMap}
+                setTableDataMap={setTableDataMap}
+                rowSnapshots={rowSnapshots}
+                lastProcessedRef={lastProcessedRef}
+                ancestorRowSelected={activeIdx != null}
+                tableVersionMap={tableVersionMap}
+                setTableVersionMap={setTableVersionMap}
+              />
+            </SectionWrapper>
+          </Panel>
         </React.Fragment>
       );
       return;
@@ -735,58 +736,59 @@ const RenderSection = React.memo(function RenderSection(props: RenderSectionProp
 
       nodes.push(
         <React.Fragment key={`hdr-acc-${idx}`}>
-          {group.header && (group.isSubHeader ? <SubHeader className='header sub-header'>{group.header}</SubHeader> : <PageHeader className='header main-header'>{group.header}</PageHeader>)}
-          {group.description && <Description>{group.description}</Description>}
+          <Panel title={group.header} isSubHeader={group.isSubHeader} hasShadow={false}>
+            {group.description && <Description>{group.description}</Description>}
 
-          <SectionWrapper className='accordion-wrapper' $hasHeader={!!group.header}>
-            <Accordion
-              allowMultiple={group.allowMultiple}
-              items={visible.map((sec, i) => {
-                const errorCount = (flattenForSchema(sec.fields) as any[]).reduce((count, fs) => {
-                  const errObj = getDeepValue(errors, fs.name as string);
-                  return count + (errObj?.message ? 1 : 0);
-                }, 0);
-                const secHasError = errorCount > 0;
+            <SectionWrapper className='accordion-wrapper' $hasHeader={!!group.header}>
+              <Accordion
+                allowMultiple={group.allowMultiple}
+                items={visible.map((sec, i) => {
+                  const errorCount = (flattenForSchema(sec.fields) as any[]).reduce((count, fs) => {
+                    const errObj = getDeepValue(errors, fs.name as string);
+                    return count + (errObj?.message ? 1 : 0);
+                  }, 0);
+                  const secHasError = errorCount > 0;
 
-                return {
-                  id: sec.id ?? `${group.header}-sec-${i}`,
-                  title: sec.title,
-                  ...(secHasError ? { open: true } : { open: sec.open }),
-                  children: (
-                    <RenderSection
-                      key={sec.id ?? i}
-                      items={sec.fields}
-                      errors={errors}
-                      onChange={onChange}
-                      control={control}
-                      z={z}
-                      globalDisabled={globalDisabled}
-                      originalData={originalData}
-                      getValues={getValues}
-                      setValue={setValue}
-                      trigger={trigger}
-                      setError={setError}
-                      clearErrors={clearErrors}
-                      conditionalKeys={conditionalKeys}
-                      activeRowIndexMap={activeRowIndexMap}
-                      setActiveRowIndexMap={setActiveRowIndexMap}
-                      tableDataMap={tableDataMap}
-                      setTableDataMap={setTableDataMap}
-                      rowSnapshots={rowSnapshots}
-                      lastProcessedRef={lastProcessedRef}
-                      ancestorRowSelected={ancestorRowSelected}
-                      tableVersionMap={tableVersionMap}
-                      setTableVersionMap={setTableVersionMap}
-                    />
-                  ),
-                  disabled: typeof sec.disabled === 'function' ? sec.disabled(values) : sec.disabled,
-                  rightContent: sec.rightContent,
-                  rightDetails: secHasError ? [...(sec.rightDetails ?? []), { value: String(errorCount), valueColor: 'danger' }] : sec.rightDetails,
-                  onClick: sec.onClick,
-                }
-              })}
-            />
-          </SectionWrapper>
+                  return {
+                    id: sec.id ?? `${group.header}-sec-${i}`,
+                    title: sec.title,
+                    ...(secHasError ? { open: true } : { open: sec.open }),
+                    children: (
+                      <RenderSection
+                        key={sec.id ?? i}
+                        items={sec.fields}
+                        errors={errors}
+                        onChange={onChange}
+                        control={control}
+                        z={z}
+                        globalDisabled={globalDisabled}
+                        originalData={originalData}
+                        getValues={getValues}
+                        setValue={setValue}
+                        trigger={trigger}
+                        setError={setError}
+                        clearErrors={clearErrors}
+                        conditionalKeys={conditionalKeys}
+                        activeRowIndexMap={activeRowIndexMap}
+                        setActiveRowIndexMap={setActiveRowIndexMap}
+                        tableDataMap={tableDataMap}
+                        setTableDataMap={setTableDataMap}
+                        rowSnapshots={rowSnapshots}
+                        lastProcessedRef={lastProcessedRef}
+                        ancestorRowSelected={ancestorRowSelected}
+                        tableVersionMap={tableVersionMap}
+                        setTableVersionMap={setTableVersionMap}
+                      />
+                    ),
+                    disabled: typeof sec.disabled === 'function' ? sec.disabled(values) : sec.disabled,
+                    rightContent: sec.rightContent,
+                    rightDetails: secHasError ? [...(sec.rightDetails ?? []), { value: String(errorCount), valueColor: 'danger' }] : sec.rightDetails,
+                    onClick: sec.onClick,
+                  }
+                })}
+              />
+            </SectionWrapper>
+          </Panel>
         </React.Fragment>
       );
       return;
@@ -807,54 +809,53 @@ const RenderSection = React.memo(function RenderSection(props: RenderSectionProp
 
       nodes.push(
         <React.Fragment key={`hdr-tabs-${idx}`}>
-          {group.header && (
-            group.isSubHeader
-              ? <SubHeader className='header sub-header'>{group.header}</SubHeader>
-              : <PageHeader className='header main-header'>{group.header}</PageHeader>
-          )}
-          {group.description && <Description>{group.description}</Description>}
+          <Panel title={group.header} isSubHeader={group.isSubHeader} hasShadow={false}>
+            {group.description && <Description>{group.description}</Description>}
+            
+            <SectionWrapper className='tabs-wrapper' $hasHeader={!!group.header}>
+              <Tabs
+                key={`tabs-${idx}-${tabsKey}`}
+                tabs={visibleTabs.map((tab, i) => {
+                  const errorCount = (flattenForSchema(tab.fields) as any[]).reduce((count, fs) => {
+                    const errObj = getDeepValue(errors, fs.name as string);
+                    return count + (errObj?.message ? 1 : 0);
+                  }, 0);
 
-          <Tabs
-            key={`tabs-${idx}-${tabsKey}`}
-            tabs={visibleTabs.map((tab, i) => {
-              const errorCount = (flattenForSchema(tab.fields) as any[]).reduce((count, fs) => {
-                const errObj = getDeepValue(errors, fs.name as string);
-                return count + (errObj?.message ? 1 : 0);
-              }, 0);
-
-              return {
-                title: tab.title,
-                badgeValue: errorCount > 0 ? errorCount : undefined,
-                content: (
-                  <RenderSection
-                    key={`tab-${idx}-${i}`}
-                    items={tab.fields}
-                    errors={errors}
-                    onChange={onChange}
-                    control={control}
-                    z={z}
-                    globalDisabled={globalDisabled}
-                    originalData={originalData}
-                    getValues={getValues}
-                    setValue={setValue}
-                    trigger={trigger}
-                    setError={setError}
-                    clearErrors={clearErrors}
-                    conditionalKeys={conditionalKeys}
-                    activeRowIndexMap={activeRowIndexMap}
-                    setActiveRowIndexMap={setActiveRowIndexMap}
-                    tableDataMap={tableDataMap}
-                    setTableDataMap={setTableDataMap}
-                    rowSnapshots={rowSnapshots}
-                    lastProcessedRef={lastProcessedRef}
-                    ancestorRowSelected={ancestorRowSelected}
-                    tableVersionMap={tableVersionMap}
-                    setTableVersionMap={setTableVersionMap}
-                  />
-                ),
-              };
-            })}
-          />
+                  return {
+                    title: tab.title,
+                    badgeValue: errorCount > 0 ? errorCount : undefined,
+                    content: (
+                      <RenderSection
+                        key={`tab-${idx}-${i}`}
+                        items={tab.fields}
+                        errors={errors}
+                        onChange={onChange}
+                        control={control}
+                        z={z}
+                        globalDisabled={globalDisabled}
+                        originalData={originalData}
+                        getValues={getValues}
+                        setValue={setValue}
+                        trigger={trigger}
+                        setError={setError}
+                        clearErrors={clearErrors}
+                        conditionalKeys={conditionalKeys}
+                        activeRowIndexMap={activeRowIndexMap}
+                        setActiveRowIndexMap={setActiveRowIndexMap}
+                        tableDataMap={tableDataMap}
+                        setTableDataMap={setTableDataMap}
+                        rowSnapshots={rowSnapshots}
+                        lastProcessedRef={lastProcessedRef}
+                        ancestorRowSelected={ancestorRowSelected}
+                        tableVersionMap={tableVersionMap}
+                        setTableVersionMap={setTableVersionMap}
+                      />
+                    ),
+                  };
+                })}
+              />
+            </SectionWrapper>
+          </Panel>
         </React.Fragment>
       );
       return;
@@ -865,34 +866,35 @@ const RenderSection = React.memo(function RenderSection(props: RenderSectionProp
       const group = item as FieldGroup;
       nodes.push(
         <React.Fragment key={`hdr-${idx}`}>
-          {group.header && (group.isSubHeader ? <SubHeader className='header sub-header'>{group.header}</SubHeader> : <PageHeader className='header main-header'>{group.header}</PageHeader>)}
-          {group.description && <Description>{group.description}</Description>}
-          <FieldsWrapper className='fields-wrapper' $hasHeader={!!group.header}>
-            <RenderSection
-              items={group.fields!}
-              errors={errors}
-              onChange={onChange}
-              control={control}
-              z={z}
-              globalDisabled={globalDisabled}
-              originalData={originalData}
-              getValues={getValues}
-              setValue={setValue}
-              trigger={trigger}
-              setError={setError}
-              clearErrors={clearErrors}
-              conditionalKeys={conditionalKeys}
-              activeRowIndexMap={activeRowIndexMap}
-              setActiveRowIndexMap={setActiveRowIndexMap}
-              tableDataMap={tableDataMap}
-              setTableDataMap={setTableDataMap}
-              rowSnapshots={rowSnapshots}
-              lastProcessedRef={lastProcessedRef}
-              ancestorRowSelected={ancestorRowSelected}
-              tableVersionMap={tableVersionMap}
-              setTableVersionMap={setTableVersionMap}
-            />
-          </FieldsWrapper>
+          <Panel title={group.header} isSubHeader={group.isSubHeader} hasShadow={false}>
+            {group.description && <Description>{group.description}</Description>}
+            <SectionWrapper className='fields-wrapper' $hasHeader={!!group.header}>
+              <RenderSection
+                items={group.fields!}
+                errors={errors}
+                onChange={onChange}
+                control={control}
+                z={z}
+                globalDisabled={globalDisabled}
+                originalData={originalData}
+                getValues={getValues}
+                setValue={setValue}
+                trigger={trigger}
+                setError={setError}
+                clearErrors={clearErrors}
+                conditionalKeys={conditionalKeys}
+                activeRowIndexMap={activeRowIndexMap}
+                setActiveRowIndexMap={setActiveRowIndexMap}
+                tableDataMap={tableDataMap}
+                setTableDataMap={setTableDataMap}
+                rowSnapshots={rowSnapshots}
+                lastProcessedRef={lastProcessedRef}
+                ancestorRowSelected={ancestorRowSelected}
+                tableVersionMap={tableVersionMap}
+                setTableVersionMap={setTableVersionMap}
+              />
+            </SectionWrapper>
+          </Panel>
         </React.Fragment>
       );
       return;
@@ -1164,7 +1166,7 @@ export const FormRenderer = forwardRef(<T extends Record<string, any>>(
   const handleChange = () => onChange?.(getValues() as T);
 
   return (
-    <FormWrapper onSubmit={e => e.preventDefault()}>
+    <FormWrapper className='form-wrapper' onSubmit={e => e.preventDefault()}>
       {loading
         ? renderSkeletonSection(fieldSettings, getValues())
         : (

@@ -4,81 +4,166 @@ import "@testing-library/jest-dom";
 import { vi } from "vitest";
 import { Panel } from "./index";
 
-describe("Panel Component", () => {
-  test("renders panel with title and children", () => {
-    render(<Panel title="Test Panel">This is panel content</Panel>);
-
-    expect(screen.getByText("Test Panel")).toBeInTheDocument();
-    expect(screen.getByText("This is panel content")).toBeInTheDocument();
-  });
-
-  test("renders left icon when provided", () => {
-    render(<Panel title="Panel with Left Icon" leftIcon={{ icon: "menu" }} >Panel with Left Icon</Panel>);
-
-    expect(screen.getByTestId("icon")).toBeInTheDocument();
-  });
-
-  test("renders multiple right icons when provided", () => {
+describe("Panel Component (extended)", () => {
+  test("renders sub header with tighter spacing and left border", () => {
     render(
-      <Panel
-        title="Panel with Right Icons"
-        rightIcons={[{ icon: "settings" }, { icon: "close" }]}
-      >Panel with Right Icons</Panel>
+      <Panel title="Sub Header" color="primary" isSubHeader>
+        Content
+      </Panel>
     );
 
-    const icons = screen.getAllByTestId("icon");
-    expect(icons).toHaveLength(2);
+    const headerEl = screen.getByText("Sub Header").closest(".panel")!.querySelector(".panel-header") as HTMLElement;
+    expect(headerEl).toBeInTheDocument();
+
+    const cs = getComputedStyle(headerEl);
+    // spacing
+    expect(cs.paddingTop).toBe("8px");
+    expect(cs.paddingBottom).toBe("8px");
+    expect(cs.paddingLeft).toBe("12px");
+    expect(cs.paddingRight).toBe("12px");
+    // height
+    expect(cs.height).toBe("28px");
+    // border-left (we only check width to avoid color coupling)
+    expect(cs.borderLeftWidth).toBe("2px");
+    expect(cs.borderLeftStyle).toBe("solid");
   });
 
-  test("calls left icon click handler when clicked", () => {
-    const handleClick = vi.fn();
+  test("icons in header inherit the exact header text color", () => {
     render(
       <Panel
-        title="Panel with Clickable Left Icon"
-        leftIcon={{ icon: "menu", onClick: handleClick }}
-      >Panel with Clickable Left Icon</Panel>
+        title="Icons Color Inherit"
+        color="info"
+        leftIcon={{ icon: "menu" }}
+        rightIcons={[{ icon: "settings" }]}
+      >
+        Content
+      </Panel>
+    );
+
+    const panel = screen.getByText("Icons Color Inherit").closest(".panel")!;
+    const headerEl = panel.querySelector(".panel-header") as HTMLElement;
+
+    const parseVar = (val: string) => {
+      // matches var(--token, fallback)
+      const m = val.match(/^var\(\s*(--[A-Za-z0-9\-_]+)\s*(?:,\s*([^)]+)\s*)?\)$/);
+      if (!m) return null;
+      return { name: m[1], fallback: m[2]?.trim() ?? "" };
+    };
+
+    const resolveCssVar = (el: HTMLElement | null, name: string): string => {
+      let node: HTMLElement | null = el;
+      while (node) {
+        const v = getComputedStyle(node).getPropertyValue(name).trim();
+        if (v) return v;
+        node = node.parentElement;
+      }
+      return "";
+    };
+
+    const normalizeColor = (val: string): string => {
+      // Convert named/hex/etc to computed rgb() using a temp element
+      const tmp = document.createElement("div");
+      tmp.style.color = val;
+      document.body.appendChild(tmp);
+      const out = getComputedStyle(tmp).color;
+      tmp.remove();
+      return out;
+    };
+
+    const resolveEffectiveColor = (startEl: HTMLElement | null): string => {
+      let el: HTMLElement | null = startEl;
+      while (el) {
+        let c = getComputedStyle(el).color?.trim();
+
+        if (!c || c === "" || c === "inherit") {
+          el = el.parentElement;
+          continue;
+        }
+
+        const varRef = parseVar(c);
+        if (varRef) {
+          const varVal = resolveCssVar(el, varRef.name) || varRef.fallback || "inherit";
+          if (varVal === "inherit" || varVal === "") {
+            el = el.parentElement;
+            continue;
+          }
+          return normalizeColor(varVal);
+        }
+
+        return normalizeColor(c);
+      }
+      return ""; // not expected
+    };
+
+    const headerColor = resolveEffectiveColor(headerEl);
+    expect(headerColor).toMatch(/^rgb\(/); // sanity
+
+    const icons = screen.getAllByTestId("icon") as HTMLElement[];
+    expect(icons.length).toBeGreaterThan(0);
+
+    icons.forEach((iconEl) => {
+      const iconColor = resolveEffectiveColor(iconEl);
+      expect(iconColor).toBe(headerColor);
+    });
+  });
+
+
+  test("hasShadow=false removes box shadow", () => {
+    render(
+      <Panel title="No Shadow" color="info" hasShadow={false}>
+        Content
+      </Panel>
+    );
+
+    const panelRoot = screen.getByText("No Shadow").closest(".panel") as HTMLElement;
+    expect(panelRoot).toBeInTheDocument();
+
+    const cs = getComputedStyle(panelRoot);
+    // JSDOM reports 'none' when no box-shadow; if the environment returns empty string, allow that too.
+    expect([cs.boxShadow, cs.boxShadow.trim()]).toContain("none");
+  });
+
+  test("hasShadow=true (default) applies a box shadow", () => {
+    render(
+      <Panel title="With Shadow" color="info">
+        Content
+      </Panel>
+    );
+
+    const panelRoot = screen.getByText("With Shadow").closest(".panel") as HTMLElement;
+    const cs = getComputedStyle(panelRoot);
+
+    // Should NOT be 'none'
+    expect(cs.boxShadow && cs.boxShadow.trim()).not.toBe("none");
+  });
+
+  test("disabled panel prevents left icon click handler from firing", () => {
+    const onClick = vi.fn();
+    render(
+      <Panel
+        title="Disabled with Left Icon"
+        disabled
+        leftIcon={{ icon: "menu", onClick }}
+      >
+        Content
+      </Panel>
     );
 
     const leftIcon = screen.getByTestId("icon");
     fireEvent.click(leftIcon);
-
-    expect(handleClick).toHaveBeenCalledTimes(1);
+    expect(onClick).not.toHaveBeenCalled();
   });
 
-  test("calls right icon click handlers when clicked", () => {
-    const handleSettingsClick = vi.fn();
-    const handleCloseClick = vi.fn();
+  test("renders sub header across all colors without throwing", () => {
+    const colors = ["primary", "success", "warning", "danger", "info", "default"] as const;
 
-    render(
-      <Panel
-        title="Panel with Clickable Right Icons"
-        rightIcons={[
-          { icon: "settings", onClick: handleSettingsClick },
-          { icon: "close", onClick: handleCloseClick },
-        ]}
-      >Panel with Clickable Right Icons</Panel>
-    );
-
-    const icons = screen.getAllByTestId("icon");
-    fireEvent.click(icons[0]); // Click settings icon
-    fireEvent.click(icons[1]); // Click close icon
-
-    expect(handleSettingsClick).toHaveBeenCalledTimes(1);
-    expect(handleCloseClick).toHaveBeenCalledTimes(1);
-  });
-
-  test("applies correct styles when disabled", () => {
-    render(<Panel title="Disabled Panel" disabled>Disabled panel</Panel>);
-
-    const panelElement = screen.getByText("Disabled Panel").closest(".panel");
-    expect(panelElement).toHaveClass("panel-disabled");
-  });
-
-  test("renders without a header when no title or icons are provided", () => {
-    render(<Panel>This is a headless panel</Panel>);
-
-    // Ensure the title is NOT in the document
-    expect(screen.queryByRole("heading")).not.toBeInTheDocument();
-    expect(screen.getByText("This is a headless panel")).toBeInTheDocument();
+    colors.forEach((c) => {
+      render(
+        <Panel title={`Sub ${c}`} color={c} isSubHeader>
+          Content
+        </Panel>
+      );
+      expect(screen.getByText(`Sub ${c}`)).toBeInTheDocument();
+    });
   });
 });

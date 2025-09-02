@@ -106,7 +106,7 @@ export const CheckboxGroup: React.FC<FormControlProps> = ({
             checked={selectedValues.includes(option.value)}
             onChange={() => onChange(option.value)}
             text={option.text}
-            testId={`${testId}-${option.value}`}
+            testId={testId ? `${testId}-${option.value}` : undefined}
           />
         </TextContainer>
       ))
@@ -142,7 +142,7 @@ export const RadioGroup: React.FC<FormControlProps> = ({
           checked={selectedValue === option.value}
           onChange={() => onChange(option.value)}
           text={option.text}
-          testId={`${testId}-${option.value}`}
+          testId={testId ? `${testId}-${option.value}` : undefined}
         />
       ))
     ) : (
@@ -175,7 +175,7 @@ export const SwitchGroup: React.FC<FormControlProps> = ({
             checked={selectedValues.includes(option.value)}
             onChange={() => onChange(option.value)}
             text={option.text}
-            testId={`${testId}-${option.value}`}
+            testId={testId ? `${testId}-${option.value}` : undefined}
           />
         </TextContainer>
       ))
@@ -214,7 +214,7 @@ export const RadioButtonGroup: React.FC<FormControlProps> = ({
             value={option.value}
             checked={selectedValue === option.value}
             onChange={() => onChange(option.value)}
-            data-testid={`${testId}-${option.value}`}
+            data-testid={testId ? `${testId}-${option.value}` : undefined}
           />
           <Button
             size={size}

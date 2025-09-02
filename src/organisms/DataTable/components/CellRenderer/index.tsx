@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { EditableCell } from "./EditableCell";
 
-// helpers (keep these as you had previously or from my last message)
+// helpers
 const ESCAPE_RE = /[.*+?^${}()|[\]\\]/g;
 const escapeRegExp = (s: string) => s.replace(ESCAPE_RE, "\\$&");
 const tokenize = (s?: string) =>
@@ -13,7 +13,7 @@ const tokenize = (s?: string) =>
 export interface CellRendererProps {
   row: any;
   getValue: () => any;
-  column?: any; // mark as optional just in case
+  column?: any;
   editingCell: { rowId: string; columnId: string } | null;
   setEditingCell: React.Dispatch<
     React.SetStateAction<{ rowId: string; columnId: string } | null>
@@ -37,21 +37,23 @@ const CellRendererComponent: React.FC<CellRendererProps> = ({
   columnFilters,
   uniqueValueMaps,
 }) => {
-  const colMeta = column.columnDef.meta ?? {};
+  const colMeta = column?.columnDef?.meta ?? {};
   const { validation, editor, columnId } = colMeta;
   const { type: editorType, options = [], disabled } = editor ?? {};
   const isDisabled =
     typeof disabled === "function" ? disabled(row.original) : disabled;
 
-  // If the cell is in editing mode and an editor is allowed.
-  if (
-    editingCell &&
+  // Editing mode
+  const isEditing =
+    !!editingCell &&
     editingCell.rowId === row.original.__internalId &&
     editingCell.columnId === columnId &&
-    editorType !== false
-  ) {
+    editorType !== false;
+
+  if (isEditing) {
     const rawValue = getValue();
     let cellValue: any;
+
     if (editorType === "date-range") {
       cellValue = Array.isArray(rawValue) ? rawValue.join(",") : rawValue;
     } else if (
@@ -84,7 +86,7 @@ const CellRendererComponent: React.FC<CellRendererProps> = ({
         onCancel={() => setEditingCell(null)}
         name={`${row.original.__internalId}-${columnId}`}
         testId={`form-control-${row.id}-${column.id}`}
-        uniqueValueMaps={uniqueValueMaps}
+        uniqueValueMaps={uniqueValueMaps as any}
         columnId={column.id}
         rowData={row.original}
         disabled={isDisabled}
@@ -92,15 +94,15 @@ const CellRendererComponent: React.FC<CellRendererProps> = ({
     );
   }
 
-  // If a custom cell renderer is provided, use it.
+  // Custom renderer
   if (cell && typeof cell === "function") {
     return cell({ rowValue: row.original, index: row.index });
   }
 
-  // Default cell rendering logic.
+  // Default render
   const rawValue = getValue();
-
   let cellValue: any = "";
+
   if (editorType === "date-range" || editorType === "number-range") {
     if (Array.isArray(rawValue) && rawValue[0] === "" && rawValue[1] === "") {
       cellValue = "";
@@ -123,7 +125,7 @@ const CellRendererComponent: React.FC<CellRendererProps> = ({
 
   const text = cellValue?.toString() || "";
 
-  // 1) Build normalized, deduped, length-sorted tokens
+  // Build normalized, deduped, length-sorted tokens
   const filterTerms = useMemo(() => {
     const globalTokens = tokenize(globalFilter);
     const colTokens = (() => {
@@ -147,31 +149,28 @@ const CellRendererComponent: React.FC<CellRendererProps> = ({
     return all.slice(0, 10);
   }, [globalFilter, columnFilters, column?.id]);
 
-  // 2) Combined, escaped regex with capturing group
+  // Combined, escaped regex
   const combinedRegex = useMemo(() => {
     if (filterTerms.length === 0) return null;
     const pattern = filterTerms.map(escapeRegExp).join("|");
-    // NOTE: capturing group is required so split() keeps matches
     return new RegExp(`(${pattern})`, "gi");
   }, [filterTerms]);
 
-  // 3) Highlighted text — no .test() with /g/, use index parity instead
+  // Highlighted text
   const highlightedText = useMemo(() => {
     if (!combinedRegex || !text) return text;
-
     const parts = text.split(combinedRegex);
-    // parts: [nonMatch, match, nonMatch, match, ...]
     return parts.map((part, idx) =>
       idx % 2 === 1 ? (
         <span
-          key={idx}
+          key={`hl-${idx}`}
           data-highlight="true"
           style={{ backgroundColor: "yellow" }}
         >
           {part}
         </span>
       ) : (
-        part
+        <React.Fragment key={`t-${idx}`}>{part}</React.Fragment>
       ),
     );
   }, [text, combinedRegex]);

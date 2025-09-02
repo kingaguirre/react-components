@@ -3,9 +3,6 @@ import React from 'react';
 import styled, { keyframes } from 'styled-components';
 import { Grid, GridItem } from '../../../../atoms/Grid';
 import {
-  FieldsWrapper,
-  SubHeader,
-  PageHeader,
   Description,
   SectionWrapper,
 } from '../../styled';
@@ -19,6 +16,7 @@ import type {
 import VirtualizedItem from '../VirtualizedItem';
 import { Tabs } from '../../../../organisms/Tabs';
 import { Accordion } from '../../../../molecules/Accordion';
+import { Panel } from '../../../../molecules/Panel';
 
 // shimmer animation
 const shimmer = keyframes`
@@ -139,7 +137,7 @@ export function renderSkeletonSection(
 
   // render a plain fields grid
   const renderFields = (fields: FieldSetting[]) => (
-    <FieldsWrapper>
+    <SectionWrapper className='fields-wrapper'>
       <Grid>
         {fields.map((fs, i) => {
           const key = fs.name ?? fs.label ?? `skeleton-${i}`;
@@ -159,7 +157,7 @@ export function renderSkeletonSection(
           );
         })}
       </Grid>
-    </FieldsWrapper>
+    </SectionWrapper>
   );
 
   // render a DataTable placeholder area with dynamic height
@@ -179,23 +177,20 @@ export function renderSkeletonSection(
 
     return (
       <React.Fragment key={`skel-dt-${idx}`}>
-        {table.header && (
-          table.isSubHeader
-            ? <SubHeader className="header sub-header">{table.header}</SubHeader>
-            : <PageHeader className="header main-header">{table.header}</PageHeader>
-        )}
-        {table.description && <Description>{table.description}</Description>}
-        <SectionWrapper className="data-table-wrapper" $hasHeader={!!table.header}>
-          <SkeletonTable height={skeletonHeight} />
-          <SkeletonActions>
-            <SkeletonButton />
-            <SkeletonButton />
-            <SkeletonButton />
-            <SkeletonButton />
-          </SkeletonActions>
-          {/* placeholder fields below the table skeleton */}
-          {renderSkeletonSection(table.fields, values)}
-        </SectionWrapper>
+        <Panel title={table.header} isSubHeader={table.isSubHeader} hasShadow={false}>
+          {table.description && <Description>{table.description}</Description>}
+          <SectionWrapper className="data-table-wrapper" $hasHeader={!!table.header}>
+            <SkeletonTable height={skeletonHeight} />
+            <SkeletonActions>
+              <SkeletonButton />
+              <SkeletonButton />
+              <SkeletonButton />
+              <SkeletonButton />
+            </SkeletonActions>
+            {/* placeholder fields below the table skeleton */}
+            {renderSkeletonSection(table.fields, values)}
+          </SectionWrapper>
+        </Panel>
       </React.Fragment>
     );
   };
@@ -238,23 +233,20 @@ export function renderSkeletonSection(
 
       nodes.push(
         <React.Fragment key={`skel-acc-${idx}`}>
-          {group.header && (
-            group.isSubHeader
-              ? <SubHeader className="header sub-header">{group.header}</SubHeader>
-              : <PageHeader className="header main-header">{group.header}</PageHeader>
-          )}
-          {group.description && <Description>{group.description}</Description>}
-          <SectionWrapper className="accordion-wrapper" $hasHeader={!!group.header}>
-            <Accordion
-              allowMultiple={group.allowMultiple}
-              items={panels.map((sec, i) => ({
-                id: sec.id ?? `skel-acc-${idx}-${i}`,
-                title: sec.title,
-                open: sec.open,
-                children: renderSkeletonSection(sec.fields, values),
-              }))}
-            />
-          </SectionWrapper>
+          <Panel title={group.header} isSubHeader={group.isSubHeader} hasShadow={false}>
+            {group.description && <Description>{group.description}</Description>}
+            <SectionWrapper className="accordion-wrapper" $hasHeader={!!group.header}>
+              <Accordion
+                allowMultiple={group.allowMultiple}
+                items={panels.map((sec, i) => ({
+                  id: sec.id ?? `skel-acc-${idx}-${i}`,
+                  title: sec.title,
+                  open: sec.open,
+                  children: renderSkeletonSection(sec.fields, values),
+                }))}
+              />
+            </SectionWrapper>
+          </Panel>
         </React.Fragment>
       );
       return;
@@ -272,19 +264,18 @@ export function renderSkeletonSection(
 
       nodes.push(
         <React.Fragment key={`skel-tabs-${idx}`}>
-          {group.header && (
-            group.isSubHeader
-              ? <SubHeader className="header sub-header">{group.header}</SubHeader>
-              : <PageHeader className="header main-header">{group.header}</PageHeader>
-          )}
-          {group.description && <Description>{group.description}</Description>}
-          <Tabs
-            key={`skel-tabs-${idx}`}
-            tabs={tabs.map((tab, i) => ({
-              title: tab.title,
-              content: renderSkeletonSection(tab.fields, values),
-            }))}
-          />
+          <Panel title={group.header} isSubHeader={group.isSubHeader} hasShadow={false}>
+            {group.description && <Description>{group.description}</Description>}
+            <SectionWrapper className='tabs-wrapper'>
+              <Tabs
+                key={`skel-tabs-${idx}`}
+                tabs={tabs.map((tab, i) => ({
+                  title: tab.title,
+                  content: renderSkeletonSection(tab.fields, values),
+                }))}
+              />
+            </SectionWrapper>
+          </Panel>
         </React.Fragment>
       );
       return;
@@ -296,15 +287,12 @@ export function renderSkeletonSection(
       const group = item as FieldGroup;
       nodes.push(
         <React.Fragment key={`skel-hdr-${idx}`}>
-          {group.header && (
-            group.isSubHeader
-              ? <SubHeader className="header sub-header">{group.header}</SubHeader>
-              : <PageHeader className="header main-header">{group.header}</PageHeader>
-          )}
-          {group.description && <Description>{group.description}</Description>}
-          <FieldsWrapper $hasHeader={!!group.header}>
-            {renderSkeletonSection(group.fields!, values)}
-          </FieldsWrapper>
+          <Panel title={group.header} isSubHeader={group.isSubHeader} hasShadow={false}>
+            {group.description && <Description>{group.description}</Description>}
+            <SectionWrapper $hasHeader={!!group.header}>
+              {renderSkeletonSection(group.fields!, values)}
+            </SectionWrapper>
+          </Panel>
         </React.Fragment>
       );
       return;

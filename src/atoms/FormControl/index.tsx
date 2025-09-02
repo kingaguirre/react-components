@@ -233,25 +233,25 @@ export const FormControl = forwardRef<
       const disabledLock =
         disabled && showDisabledIcon
           ? [
-            {
-              icon: "lock_outline",
-              className: "disabled lock-icon",
-              disabled: true,
-            } as IconRight,
-          ]
+              {
+                icon: "lock_outline",
+                className: "disabled lock-icon",
+                disabled: true,
+              } as IconRight,
+            ]
           : [];
 
       const maybeClear =
         clearable && hasInputValue && !isEffectivelyReadOnly
           ? [
-            {
-              icon: "clear",
-              onClick: handleClearClick,
-              color: "default",
-              hoverColor: "danger",
-              className: "clear-icon",
-            } as IconRight,
-          ]
+              {
+                icon: "clear",
+                onClick: handleClearClick,
+                color: "default",
+                hoverColor: "danger",
+                className: "clear-icon",
+              } as IconRight,
+            ]
           : [];
 
       return [...disabledLock, ...(iconRight ?? []), ...maybeClear];
