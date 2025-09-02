@@ -1249,6 +1249,20 @@ export const DataTable = <T extends object>({
       }));
   }, [table]);
 
+  const getAllNonBuiltInColumns = React.useCallback(() => {
+    return table
+      .getAllLeafColumns() // <-- includes hidden columns too
+      .filter((c) => !UTILS.BUILTIN_COLUMN_IDS.has(String(c.id)))
+      .map((c) => ({
+        id: String(c.id),
+        headerText:
+          typeof c.columnDef?.header === 'string'
+            ? (c.columnDef.header as string)
+            : String(c.id),
+      }));
+  }, [table]);
+
+
   /* ---------------------------------------------
    Export helpers (AOA + ROWS) — includeHidden aware
   ---------------------------------------------- */
@@ -1454,6 +1468,7 @@ export const DataTable = <T extends object>({
         bulkRestoreMode={allSelectedSoftDeleted}
         enableRowSelection={enableRowSelection}
         getVisibleNonBuiltInColumns={getVisibleNonBuiltInColumns}
+        getAllNonBuiltInColumns={getAllNonBuiltInColumns}
         /* AOA builders (built-in menu items use these) */
         downloadSelectedCount={downloadSelectedCount}
         downloadAllCount={downloadAllCount}

@@ -69,6 +69,7 @@ export interface MainHeaderProps {
   downloadControls?: DownloadControls;
   uploadControls?: UploadControls;
   getVisibleNonBuiltInColumns?: () => Array<{ id: string; headerText: string }>;
+  getAllNonBuiltInColumns?: () => Array<{ id: string; headerText: string }>;
   downloadSelectedCount?: number;
   downloadAllCount?: number;
   getAOAForSelected?: (opts?: { includeHidden?: boolean }) => any[][];
@@ -97,6 +98,7 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
   bulkRestoreMode = false,
   enableRowSelection,
   getVisibleNonBuiltInColumns,
+  getAllNonBuiltInColumns,
   downloadSelectedCount = 0,
   downloadAllCount = 0,
   getAOAForSelected,
@@ -178,6 +180,7 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
             <UploadIconButton
               controls={uploadControls}
               getVisibleNonBuiltInColumns={getVisibleNonBuiltInColumns}
+              getAllNonBuiltInColumns={getAllNonBuiltInColumns}
               disabled={isAddBtnDisabled || isSettingsPanelOpen}
             />
           )}

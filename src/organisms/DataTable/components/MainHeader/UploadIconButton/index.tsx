@@ -7,6 +7,41 @@ import { Modal } from "src/organisms/Modal";
 import { Alert } from "src/molecules/Alert";
 import { Button } from "src/atoms/Button";
 
+// inside UploadIconButton (top-level helpers)
+async function readFileAsArrayBuffer(file: Blob): Promise<ArrayBuffer> {
+  const anyFile = file as any;
+  if (typeof anyFile.arrayBuffer === 'function') {
+    return await anyFile.arrayBuffer();
+  }
+  if (typeof Response !== 'undefined') {
+    // Works in jsdom too
+    return await new Response(file).arrayBuffer();
+  }
+  // Last resort: FileReader
+  return await new Promise<ArrayBuffer>((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(fr.result as ArrayBuffer);
+    fr.onerror = reject;
+    fr.readAsArrayBuffer(file);
+  });
+}
+
+async function readFileAsText(file: Blob): Promise<string> {
+  const anyFile = file as any;
+  if (typeof anyFile.text === 'function') {
+    return await anyFile.text();
+  }
+  if (typeof Response !== 'undefined') {
+    return await new Response(file).text();
+  }
+  return await new Promise<string>((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(fr.result as string);
+    fr.onerror = reject;
+    fr.readAsText(file);
+  });
+}
+
 export type UploadControls = {
   title?: string;
   onOpen?: () => void;
@@ -21,6 +56,7 @@ export interface UploadIconButtonProps {
   controls?: UploadControls;
   disabled?: boolean;
   getVisibleNonBuiltInColumns: () => Array<{ id: string; headerText: string }>;
+  getAllNonBuiltInColumns?: () => Array<{ id: string; headerText: string }>;
 }
 
 /* animated swap */
@@ -138,6 +174,7 @@ export const UploadIconButton: React.FC<UploadIconButtonProps> = ({
   controls,
   disabled,
   getVisibleNonBuiltInColumns,
+  getAllNonBuiltInColumns
 }) => {
   const cfg = React.useMemo<Required<UploadControls>>(
     () => ({
@@ -197,13 +234,35 @@ export const UploadIconButton: React.FC<UploadIconButtonProps> = ({
   const alignChunk = (raw: Record<string, any>[]) => {
     const cols = getVisibleNonBuiltInColumns();
     return raw.map((r) => {
+      // build a case-insensitive view of the incoming row
+      const lowerMap = new Map<string, any>();
+      for (const [k, v] of Object.entries(r ?? {})) {
+        lowerMap.set(String(k).trim().toLowerCase(), v);
+      }
+
       const out: Record<string, any> = {};
       cols.forEach(({ id, headerText }) => {
-        const val = Object.prototype.hasOwnProperty.call(r, headerText)
-          ? r[headerText]
-          : Object.prototype.hasOwnProperty.call(r, id)
-            ? r[id]
-            : "";
+        const cands = [headerText, id].filter(Boolean).map((x) => String(x));
+        let val: any = "";
+
+        // 1) try exact keys first (fast path)
+        for (const c of cands) {
+          if (Object.prototype.hasOwnProperty.call(r, c)) {
+            val = (r as any)[c];
+            break;
+          }
+        }
+        // 2) fall back to case-insensitive match
+        if (val === "" || val == null) {
+          for (const c of cands) {
+            const hit = lowerMap.get(c.trim().toLowerCase());
+            if (hit !== undefined) {
+              val = hit;
+              break;
+            }
+          }
+        }
+
         out[id] = Array.isArray(val)
           ? val.map((x) => (x == null ? "" : String(x))).join(",")
           : (val ?? "");
@@ -214,16 +273,25 @@ export const UploadIconButton: React.FC<UploadIconButtonProps> = ({
 
   const getUnmatchedHeaders = React.useCallback(
     (sampleKeys: string[]) => {
-      const cols = getVisibleNonBuiltInColumns();
-      const accepted = new Set<string>();
+      // Use ALL non-built-in columns if provided; fall back to visible-only.
+      const cols =
+        (typeof getAllNonBuiltInColumns === 'function'
+          ? getAllNonBuiltInColumns
+          : getVisibleNonBuiltInColumns)();
+
+      const acceptedLower = new Set<string>();
       cols.forEach(({ id, headerText }) => {
-        accepted.add(id);
-        accepted.add(headerText);
+        if (id) acceptedLower.add(String(id).trim().toLowerCase());
+        if (headerText) acceptedLower.add(String(headerText).trim().toLowerCase());
       });
-      return sampleKeys.filter((k) => !accepted.has(k));
+
+      return sampleKeys.filter(
+        (k) => !acceptedLower.has(String(k).trim().toLowerCase()),
+      );
     },
-    [getVisibleNonBuiltInColumns],
+    [getAllNonBuiltInColumns, getVisibleNonBuiltInColumns],
   );
+
 
   const handleFile = async (file: File) => {
     if (!file) return;
@@ -244,10 +312,10 @@ export const UploadIconButton: React.FC<UploadIconButtonProps> = ({
         | { kind: "xlsx"; buffer: ArrayBuffer; chunkSize: number };
 
       if (isCSV) {
-        const text = await file.text();
+        const text = await readFileAsText(file);
         payload = { kind: "csv", text, chunkSize: 500 } as const;
       } else {
-        const buffer = await file.arrayBuffer();
+        const buffer = await readFileAsArrayBuffer(file);
         payload = { kind: "xlsx", buffer, chunkSize: 500 } as const;
       }
 

@@ -464,6 +464,37 @@ if (!('PointerEvent' in window)) {
   (window as any).PointerEvent = FakePointerEvent as any;
 }
 
+// Safe Blob/File polyfills for jsdom – avoid undici Response
+if (!('arrayBuffer' in Blob.prototype)) {
+  Object.defineProperty(Blob.prototype, 'arrayBuffer', {
+    configurable: true,
+    writable: true,
+    value: function () {
+      return new Promise<ArrayBuffer>((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(fr.result as ArrayBuffer);
+        fr.onerror = reject;
+        fr.readAsArrayBuffer(this as Blob);
+      });
+    },
+  });
+}
+
+if (!('text' in Blob.prototype)) {
+  Object.defineProperty(Blob.prototype, 'text', {
+    configurable: true,
+    writable: true,
+    value: function () {
+      return new Promise<string>((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(fr.result as string);
+        fr.onerror = reject;
+        fr.readAsText(this as Blob);
+      });
+    },
+  });
+}
+
 // requestAnimationFrame → setTimeout shim (some libs schedule on RAF)
 if (!window.requestAnimationFrame) {
   (window as any).requestAnimationFrame = (cb: FrameRequestCallback) =>
