@@ -3,16 +3,16 @@ import React from "react";
 import styled from "styled-components";
 import { StyledGrid, StyledGridItem } from "./styled";
 import { GridProps, GridItemProps } from "./interface";
-import { Icon } from "src/atoms/Icon"; // ⬅️ adjust path if your Icon lives elsewhere
+import { Icon } from "src/atoms/Icon";
 
-// ── Yellow warning box (modern, subtle, radius: 2px) ─────────────────────────
+// ── Yellow warning box ──────────────────────────────
 const WarningBox = styled.div`
-  border: 1px solid rgba(245, 158, 11, 0.35); /* amber-ish */
+  border: 1px solid rgba(245, 158, 11, 0.35);
   background: rgba(245, 158, 11, 0.1);
-  color: #a16207; /* readable amber */
+  color: #a16207;
   padding: 8px 12px;
   margin: 8px;
-  border-radius: 2px; /* requested radius */
+  border-radius: 2px;
   font-size: 12px;
   line-height: 1.4;
   display: flex;
@@ -20,7 +20,7 @@ const WarningBox = styled.div`
   gap: 8px;
 `;
 
-// ── <GridItem /> ──────────────────────────────────────────────────────────────
+// ── <GridItem /> ────────────────────────────────────
 export const GridItem: React.FC<GridItemProps> = ({
   children,
   xs,
@@ -52,21 +52,18 @@ export const GridItem: React.FC<GridItemProps> = ({
       className={["grid-item-component", className].filter(Boolean).join(" ")}
       {...rest}
     >
-      {children /* allowed to be empty */}
+      {children}
     </StyledGridItem>
   );
 };
 GridItem.displayName = "GridItem";
 
-// ── Utils: flatten & validate children (ignore whitespace-only text) ─────────
+// ── helpers ─────────────────────────────────────────
 function flatten(children: React.ReactNode): React.ReactNode[] {
   const out: React.ReactNode[] = [];
   React.Children.forEach(children, (child) => {
     if (child === null || child === undefined || child === false) return;
-
-    // ignore purely whitespace text nodes to prevent false warnings
     if (typeof child === "string" && child.trim() === "") return;
-
     if (React.isValidElement(child) && child.type === React.Fragment) {
       out.push(...flatten(child.props.children));
     } else {
@@ -76,12 +73,10 @@ function flatten(children: React.ReactNode): React.ReactNode[] {
   return out;
 }
 
-function isGridItemElement(node: React.ReactNode): node is React.ReactElement {
-  return (
-    React.isValidElement(node) &&
-    (node.type === GridItem ||
-      (node as any).type?.displayName === GridItem.displayName)
-  );
+function isGridItemElement(node: React.ReactNode): boolean {
+  if (!React.isValidElement(node)) return false;
+  const t: any = node.type;
+  return t === GridItem || t?.displayName === GridItem.displayName;
 }
 
 function getNodeName(node: React.ReactNode): string {
@@ -94,14 +89,30 @@ function getNodeName(node: React.ReactNode): string {
     : Object.prototype.toString.call(node);
 }
 
-// ── <Grid /> (filters invalid children, shows yellow warning, never throws) ──
+// ── <Grid /> ───────────────────────────────────────
 export const Grid: React.FC<GridProps> = ({
   children,
   spacing = 16,
   style,
   className,
+  debugWarnings = false,
   ...rest
 }) => {
+  if (!debugWarnings) {
+    // relaxed mode: allow any children, no warnings, no filtering
+    return (
+      <StyledGrid
+        spacing={spacing}
+        style={style}
+        className={["grid-component", className].filter(Boolean).join(" ")}
+        {...rest}
+      >
+        {children}
+      </StyledGrid>
+    );
+  }
+
+  // strict mode: filter children, show warnings
   const flat = flatten(children);
   const valid: React.ReactElement[] = [];
   const invalidNames: string[] = [];
@@ -139,7 +150,7 @@ export const Grid: React.FC<GridProps> = ({
         </WarningBox>
       )}
 
-      {/* Render only valid GridItem children */}
+      {/* render only valid children in strict mode */}
       {valid.length > 0 ? valid : null}
     </StyledGrid>
   );

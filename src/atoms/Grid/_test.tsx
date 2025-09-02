@@ -247,7 +247,7 @@ describe('GridItem', () => {
 describe('Grid child validation', () => {
   it('shows a non-crashing warning when there are zero GridItem children (and ignores invalid ones)', () => {
     render(
-      <Grid data-testid="grid-root">
+      <Grid data-testid="grid-root" debugWarnings>
         {/* invalid child only */}
         <div data-testid="bad-child">nope</div>
       </Grid>
@@ -267,7 +267,7 @@ describe('Grid child validation', () => {
 
   it('shows a warning when a non-GridItem sibling exists alongside a valid GridItem (and ignores the invalid)', () => {
     render(
-      <Grid data-testid="grid-root">
+      <Grid data-testid="grid-root" debugWarnings>
         <GridItem data-testid="valid">ok</GridItem>
         <div data-testid="bad-child">nope</div>
       </Grid>
@@ -287,7 +287,7 @@ describe('Grid child validation', () => {
 
   it('does not show the warning box when all children are GridItem', () => {
     render(
-      <Grid data-testid="grid-root">
+      <Grid data-testid="grid-root" debugWarnings>
         <GridItem xs={6}>a</GridItem>
         <GridItem xs={6}>b</GridItem>
       </Grid>
@@ -295,5 +295,135 @@ describe('Grid child validation', () => {
     expect(screen.queryByRole('alert')).toBeNull();
     expect(screen.queryByTestId('grid-error')).toBeNull();
   });
+  
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// New tests for debugWarnings feature (relaxed vs. strict mode)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('Grid debugWarnings (new feature)', () => {
+  it('RELAXED (default): renders any children and shows NO warning', () => {
+    render(
+      <Grid data-testid="grid-root">
+        <div data-testid="bad-child">loose div</div>
+        {'inline text'}
+        <GridItem data-testid="good-child">ok</GridItem>
+      </Grid>
+    );
+
+    // All children render (no filtering)
+    expect(screen.getByTestId('bad-child')).toBeInTheDocument();
+    expect(screen.getByTestId('good-child')).toBeInTheDocument();
+
+    // No warning box by default
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.queryByTestId('grid-error')).toBeNull();
+  });
+
+  it('STRICT (debugWarnings=true): filters invalids and warns (original strict behavior)', () => {
+    render(
+      <Grid data-testid="grid-root" debugWarnings>
+        <GridItem data-testid="good-child">ok</GridItem>
+        <div data-testid="bad-child">nope</div>
+      </Grid>
+    );
+
+    // Invalid child should be filtered out
+    expect(screen.queryByTestId('bad-child')).toBeNull();
+
+    // Valid child remains
+    expect(screen.getByTestId('good-child')).toBeInTheDocument();
+
+    // Warning visible (mixed children branch)
+    const alert = screen.getByRole('alert');
+    expect(alert).toBeInTheDocument();
+    expect(alert).toHaveAttribute('data-testid', 'grid-error');
+    expect((alert.textContent || '').toLowerCase()).toContain('only accepts');
+    expect((alert.textContent || '').toLowerCase()).toContain('ignored:');
+  });
+
+  it('STRICT: with NO children at all → shows "requires at least one <GridItem />."', () => {
+    render(<Grid data-testid="grid-root" debugWarnings />);
+
+    const alert = screen.getByRole('alert');
+    expect(alert).toBeInTheDocument();
+    expect((alert.textContent || '').toLowerCase()).toContain('requires at least one');
+    // No invalid list if there were literally no children
+    expect((alert.textContent || '').toLowerCase()).not.toContain('ignored:');
+  });
+
+  it('STRICT: whitespace-only text nodes are ignored (still treated as zero-valid)', () => {
+    render(
+      <Grid data-testid="grid-root" debugWarnings>
+        {'   '}
+        {'\n\t '}
+      </Grid>
+    );
+
+    const alert = screen.getByRole('alert');
+    expect(alert).toBeInTheDocument();
+    const text = (alert.textContent || '').toLowerCase();
+    expect(text).toContain('requires at least one'); // zero-valid branch
+    // Pure whitespace shouldn’t be listed as "ignored"
+    expect(text).not.toContain('ignored:');
+  });
+
+  it('STRICT: fragments are flattened (invalids inside fragments are filtered + warned)', () => {
+    render(
+      <Grid data-testid="grid-root" debugWarnings>
+        <>
+          <GridItem data-testid="good-child">ok</GridItem>
+          <div data-testid="bad-child">nope</div>
+        </>
+      </Grid>
+    );
+
+    // Invalid inside fragment should be filtered
+    expect(screen.queryByTestId('bad-child')).toBeNull();
+    // Valid remains
+    expect(screen.getByTestId('good-child')).toBeInTheDocument();
+
+    // Warning shows (mixed branch)
+    const alert = screen.getByRole('alert');
+    expect(alert).toBeInTheDocument();
+    expect((alert.textContent || '').toLowerCase()).toContain('only accepts');
+    expect((alert.textContent || '').toLowerCase()).toContain('ignored:');
+  });
+
+  it('STRICT: lists invalid names using component displayName/name', () => {
+    const BadFC: React.FC<{ 'data-testid'?: string }> = (p) => <div {...p} />;
+    (BadFC as any).displayName = 'BadThing';
+
+    render(
+      <Grid debugWarnings>
+        <GridItem>ok</GridItem>
+        <BadFC data-testid="bad-child" />
+      </Grid>
+    );
+
+    const alert = screen.getByRole('alert');
+    expect(alert).toBeInTheDocument();
+    const text = alert.textContent || '';
+    // Should include our component name in the ignored list
+    expect(text).toMatch(/Ignored:\s.*BadThing/);
+    // And the invalid element should be filtered out
+    expect(screen.queryByTestId('bad-child')).toBeNull();
+  });
+
+  it('RELAXED: even zero-valid (only invalids) should NOT warn and should render them', () => {
+    render(
+      <Grid data-testid="grid-root">
+        <div data-testid="bad-child-1">a</div>
+        <span data-testid="bad-child-2">b</span>
+      </Grid>
+    );
+
+    // Both render
+    expect(screen.getByTestId('bad-child-1')).toBeInTheDocument();
+    expect(screen.getByTestId('bad-child-2')).toBeInTheDocument();
+
+    // No warning in relaxed mode
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+});
