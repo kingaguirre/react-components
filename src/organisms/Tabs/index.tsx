@@ -184,12 +184,13 @@ export const Tabs: React.FC<TabsProps> = ({
                 {tab.icon && <Icon icon={tab.icon} color={tab.iconColor} />}
                 <span className="title">{tab.title}</span>
                 {tab.badgeValue !== undefined && (
-                  <Badge color={tab.badgeColor ?? "danger"}>{tab.badgeValue}</Badge>
+                  <Badge color={tab.badgeColor ?? "danger"}>
+                    {tab.badgeValue}
+                  </Badge>
                 )}
               </TabItem>
             );
           })}
-
         </TabsContainer>
         {isScrollable && (
           <ScrollButton

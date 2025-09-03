@@ -23,7 +23,9 @@ const meta: Meta<typeof Panel> = {
       control: 'select',
       options: ['primary', 'success', 'warning', 'danger', 'info', 'default']
     },
-    disabled: { control: 'boolean' }
+    disabled: { control: 'boolean' },
+    isSubHeader: { control: 'boolean' },   // NEW showcase control
+    hasShadow: { control: 'boolean' },     // NEW showcase control
   }
 }
 
@@ -53,6 +55,23 @@ const generateColorStories = () => (
   </Grid>
 )
 
+/** NEW: Show all colors when isSubHeader=true */
+const generateSubHeaderStories = () => (
+  <Grid>
+    {COLORS.map(color => (
+      <GridItem xs={12} sm={6} md={4} key={`sub-${color}`}>
+        <Panel
+          title={`${color.charAt(0).toUpperCase() + color.slice(1)} SubHeader`}
+          color={color}
+          isSubHeader
+        >
+          <p>SubHeader variant using color <strong>{color}</strong>.</p>
+        </Panel>
+      </GridItem>
+    ))}
+  </Grid>
+)
+
 const generateIconStories = () => (
   <Grid>
     <GridItem xs={12} sm={6} md={6}>
@@ -64,7 +83,7 @@ const generateIconStories = () => (
           icon: 'home',
           onClick: () => alert('Left icon clicked'),
           tooltip: 'Im a tooltip with **title** type',
-          tooltipType: "title"
+          tooltipType: 'title'
         }}
       >
         <p>This panel has a left icon.</p>
@@ -97,19 +116,11 @@ const generateFormPropsStories = () => (
         <p>This is a headless panel without a header.</p>
       </Panel>
     </GridItem>
-    <GridItem xs={12} sm={12}>
-      <Panel title='Panel with Buttons' color='warning'>
-        <div>
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-        </div>
-        <div style={{ display: 'flex', gap: '8px', marginTop: 20 }}>
-          <Button color='primary' onClick={() => alert('Primary button clicked')}>
-            Primary
-          </Button>
-          <Button color='danger' onClick={() => alert('Danger button clicked')}>
-            Danger
-          </Button>
-        </div>
+
+    {/* NEW: No Shadow example */}
+    <GridItem xs={12}>
+      <Panel title='No Shadow Panel' color='info' hasShadow={false}>
+        <p>Shadow is disabled via <code>hasShadow=&#123;false&#125;</code>.</p>
       </Panel>
     </GridItem>
   </Grid>
@@ -121,8 +132,14 @@ export const Examples = {
     <StoryWrapper title='Panel Examples' subTitle={descriptionText}>
       <Title>Colors</Title>
       {generateColorStories()}
+
+      {/* NEW Section */}
+      <Title>SubHeader (All Colors)</Title>
+      {generateSubHeaderStories()}
+
       <Title>Icons</Title>
       {generateIconStories()}
+
       <Title>Form Props</Title>
       {generateFormPropsStories()}
     </StoryWrapper>

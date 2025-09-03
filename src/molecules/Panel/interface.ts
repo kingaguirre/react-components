@@ -27,4 +27,8 @@ export interface PanelProps {
   color?: ColorType;
   /** Disable panel interaction */
   disabled?: boolean;
+  /** renders a sub-header style */
+  isSubHeader?: boolean; // default: false
+  /** toggle drop shadow on the panel container */
+  hasShadow?: boolean; // default: true
 }

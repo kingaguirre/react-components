@@ -1,4 +1,3 @@
-import React from "react";
 import { NotificationItem } from "./interface";
 import { Button } from "src/atoms/Button";
 

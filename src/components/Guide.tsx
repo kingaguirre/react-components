@@ -8,7 +8,11 @@ const GuideWrap = styled.div`
   padding: 16px;
   border: 1px solid var(--color-border, #e5e7eb);
   border-radius: 4px;
-  background: linear-gradient(180deg, var(--panel-bg, #f7f7f9), var(--sb-doc-bg, #ffffff));
+  background: linear-gradient(
+    180deg,
+    var(--panel-bg, #f7f7f9),
+    var(--sb-doc-bg, #ffffff)
+  );
   color: var(--color-text, #0b0c0f);
   font-size: 13px;
   line-height: 1.55;

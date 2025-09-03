@@ -3,7 +3,7 @@
 // ExcelJS-based import worker: parses XLSX with ExcelJS, CSV via a light parser.
 // Keeps the same MsgIn / MsgOut protocol as your previous SheetJS worker.
 
-import { Workbook } from 'exceljs';
+import { Workbook } from "exceljs";
 
 type MsgIn =
   | { kind: "xlsx"; buffer: ArrayBuffer; chunkSize?: number }
@@ -20,7 +20,7 @@ type MsgOut =
 function parseCSV(text: string): string[][] {
   const rows: string[][] = [];
   let row: string[] = [];
-  let cell = '';
+  let cell = "";
   let i = 0;
   const n = text.length;
   let inQuotes = false;
@@ -30,7 +30,8 @@ function parseCSV(text: string): string[][] {
 
     if (inQuotes) {
       if (ch === '"') {
-        if (i + 1 < n && text[i + 1] === '"') { // escaped "
+        if (i + 1 < n && text[i + 1] === '"') {
+          // escaped "
           cell += '"';
           i += 2;
           continue;
@@ -44,10 +45,29 @@ function parseCSV(text: string): string[][] {
       continue;
     }
 
-    if (ch === '"') { inQuotes = true; i++; continue; }
-    if (ch === ',') { row.push(cell); cell = ''; i++; continue; }
-    if (ch === '\r') { i++; continue; }
-    if (ch === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; i++; continue; }
+    if (ch === '"') {
+      inQuotes = true;
+      i++;
+      continue;
+    }
+    if (ch === ",") {
+      row.push(cell);
+      cell = "";
+      i++;
+      continue;
+    }
+    if (ch === "\r") {
+      i++;
+      continue;
+    }
+    if (ch === "\n") {
+      row.push(cell);
+      rows.push(row);
+      row = [];
+      cell = "";
+      i++;
+      continue;
+    }
 
     cell += ch;
     i++;
@@ -102,7 +122,10 @@ async function handleCSV(text: string, chunkSize: number) {
   }
   const size = Math.max(1, chunkSize | 0 || 500);
   for (let i = 0; i < objects.length; i += size) {
-    (self as any).postMessage({ type: "chunk", chunk: objects.slice(i, i + size) } as MsgOut);
+    (self as any).postMessage({
+      type: "chunk",
+      chunk: objects.slice(i, i + size),
+    } as MsgOut);
   }
   (self as any).postMessage({ type: "done" } as MsgOut);
 }
@@ -144,7 +167,10 @@ async function handleXLSX(buffer: ArrayBuffer, chunkSize: number) {
 
   const size = Math.max(1, chunkSize | 0 || 500);
   for (let i = 0; i < objects.length; i += size) {
-    (self as any).postMessage({ type: "chunk", chunk: objects.slice(i, i + size) } as MsgOut);
+    (self as any).postMessage({
+      type: "chunk",
+      chunk: objects.slice(i, i + size),
+    } as MsgOut);
   }
   (self as any).postMessage({ type: "done" } as MsgOut);
 }
@@ -163,7 +189,10 @@ self.onmessage = async (evt: MessageEvent<MsgIn>) => {
       return;
     }
 
-    (self as any).postMessage({ type: "error", message: `Unknown kind: ${(data as any).kind}` } as MsgOut);
+    (self as any).postMessage({
+      type: "error",
+      message: `Unknown kind: ${(data as any).kind}`,
+    } as MsgOut);
   } catch (err: any) {
     (self as any).postMessage({
       type: "error",

@@ -60,12 +60,10 @@ describe('DataTable Column Interactions (Client Mode)', () => {
   });
 
   test('allows sorting when header is clicked', async () => {
-    const onColumnSettingsChange = vi.fn();
     render(
       <DataTable
         dataSource={sampleData}
         columnSettings={columnsSorting}
-        onColumnSettingsChange={onColumnSettingsChange}
       />
     );
 
@@ -87,7 +85,6 @@ describe('DataTable Column Interactions (Client Mode)', () => {
     await userEvent.click(sortIconId);
     await waitFor(() => {
       expect(sortIconId).toHaveClass('sort-desc');
-      // expect(onColumnSettingsChange).toHaveBeenCalled()
     });
   });
 

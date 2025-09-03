@@ -1,4 +1,3 @@
-// src/components/Panel/styled.tsx
 import styled from "styled-components";
 import { theme } from "../../styles/theme";
 import { ColorType } from "../../common/interface";
@@ -6,13 +5,14 @@ import { ColorType } from "../../common/interface";
 export const PanelContainer = styled.div<{
   $color: ColorType;
   $disabled: boolean;
+  $hasShadow?: boolean; // NEW
 }>`
   background-color: white;
   border-radius: 2px;
-  box-shadow:
-    0px 8px 16px rgba(0, 0, 0, 0.16),
-    0 0 6px rgba(0, 0, 0, 0.08);
-  /* opacity: ${({ $disabled }) => ($disabled ? 0.6 : 1)}; */
+  box-shadow: ${({ $hasShadow = true }) =>
+    $hasShadow
+      ? `0px 8px 16px rgba(0, 0, 0, 0.16), 0 0 6px rgba(0, 0, 0, 0.08)`
+      : "none"};
   pointer-events: ${({ $disabled }) => ($disabled ? "none" : "auto")};
   overflow: hidden;
   font-family: ${theme.fontFamily};
@@ -23,16 +23,40 @@ export const PanelHeader = styled.div<{
   $disabled: boolean;
   $hasLeftIcon: boolean;
   $hasRightIcons: boolean;
+  $isSubHeader?: boolean;
 }>`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
-  height: 32px;
+  padding: ${({ $isSubHeader }) => ($isSubHeader ? "8px 12px" : "9px 12px")};
+  height: ${({ $isSubHeader }) => ($isSubHeader ? "28px" : "30px")};
   box-sizing: border-box;
+  letter-spacing: 0.5px;
 
-  background: ${({ $disabled, $color }) =>
-    $disabled ? theme.colors[$color].pale : theme.colors[$color].dark};
+  ${({ $color, $disabled, $isSubHeader }) => {
+    const normalBg = $disabled
+      ? theme.colors[$color].pale
+      : theme.colors[$color].dark;
+
+    const subHeaderBg = theme.colors.lightA;
+    const bg = $isSubHeader ? subHeaderBg : normalBg;
+
+    const fg = $isSubHeader
+      ? normalBg
+      : $disabled
+        ? theme.colors.default.base
+        : "white";
+
+    const borderLeft = $isSubHeader ? `2px solid ${normalBg}` : "none";
+
+    return `
+      background: ${bg};
+      color: ${fg};
+      border-left: ${borderLeft};
+      --panel-header-fg: ${fg};
+    `;
+  }}
+
   * {
     box-sizing: border-box;
   }
@@ -40,8 +64,7 @@ export const PanelHeader = styled.div<{
   .title {
     flex: 1;
     text-align: left;
-    color: ${({ $disabled }) =>
-      $disabled ? theme.colors.default.base : "white"};
+    color: inherit;
     cursor: ${({ $disabled }) => ($disabled ? "not-allowed" : "default")};
     padding-left: ${({ $hasLeftIcon }) => ($hasLeftIcon ? "8px" : "0")};
     padding-right: ${({ $hasRightIcons }) => ($hasRightIcons ? "8px" : "0")};
@@ -60,6 +83,18 @@ export const PanelHeader = styled.div<{
     display: block;
     line-height: 1;
   }
+
+  .panel &,
+  & {
+    svg,
+    i,
+    path,
+    span {
+      color: inherit;
+      fill: currentColor;
+      stroke: currentColor;
+    }
+  }
 `;
 
 export const PanelContent = styled.div`
@@ -71,33 +106,36 @@ export const PanelContent = styled.div`
   }
 `;
 
-export const IconWrapper = styled.div<{
-  $clickable: boolean;
-}>`
+export const IconWrapper = styled.div<{ $clickable: boolean }>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: white;
+
+  /* Critical: bind to header color pipeline */
+  color: var(--panel-header-fg, inherit);
+
   transition: all 0.3s ease;
   font-size: 16px;
   gap: 4px;
 
+  /* make sure inner glyphs follow the wrapper color */
+  svg,
+  i,
+  path,
+  span {
+    color: inherit;
+    fill: currentColor;
+    stroke: currentColor;
+  }
+
   ${({ $clickable }) =>
     $clickable
       ? `
-    cursor: pointer;
-
-    &:hover {
-      color: ${theme.colors.default.pale}
-    }
-
-    &:active {
-      color: ${theme.colors.default.light}
-    }
-  `
-      : `
-    cursor: default;
-  `};
+        cursor: pointer;
+        &:hover { opacity: 0.9; }
+        &:active { opacity: 0.8; }
+      `
+      : `cursor: default;`};
 `;
 
 export const Text = styled.div`
