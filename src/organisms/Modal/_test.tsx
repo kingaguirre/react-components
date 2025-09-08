@@ -263,4 +263,42 @@ describe("Modal Component", () => {
     flushOpenCloseAnimations();
     expect(onClosed).toHaveBeenCalledTimes(1);
   });
+
+  it("enables vertical scrolling on the overlay when content is long", () => {
+    render(
+      <Modal show={true} onClose={vi.fn()} title="Long Content">
+        {/* Force very tall content inside the ModalContainer */}
+        <div style={{ height: "2000px" }} data-testid="tall-content">
+          Tall Content
+        </div>
+      </Modal>
+    );
+
+    const overlay = screen.getByTestId("modal-overlay") as HTMLDivElement;
+
+    // Assert CSS from styled-components is applied:
+    const styles = window.getComputedStyle(overlay);
+    // Base overflow is hidden; vertical is explicitly scroll
+    expect(styles.overflowY).toBe("scroll");
+
+    // Light sanity check that the node can track scrollTop (JSDOM behavior)
+    // and that the property mutates — indicative of scrollability.
+    // (JSDOM doesn't do real layout; we stub dimensions to mimic overflow)
+    try {
+      Object.defineProperty(overlay, "clientHeight", {
+        configurable: true,
+        value: 500,
+      });
+      Object.defineProperty(overlay, "scrollHeight", {
+        configurable: true,
+        value: 2000,
+      });
+    } catch {
+      // If the environment doesn't allow redefining, it's fine;
+      // the CSS assertions above are the critical check.
+    }
+    overlay.scrollTop = 123;
+    expect(overlay.scrollTop).toBe(123);
+  });
+
 });

@@ -70,6 +70,11 @@ export const RightDetails = styled(LeftDetails)<{ $totalCount: number }>`
   > .dropdown-container {
     width: 52px;
   }
+
+  > .loader {
+    display: flex;
+    align-items: center;
+  }
 `;
 
 export const Button = styled.button<{ $outlined?: boolean }>`

@@ -65,6 +65,10 @@ export interface DataTableProps<T = any> {
   selectedRows?: any[];
   /** Array of row keys that should be disabled. Disabled rows receive a "disabled" CSS class and do not trigger click events. */
   disabledRows?: string[];
+  /** When true, hides the entire Footer */
+  hideFooter?: boolean;
+  /** When true, hides the entire RightDetails (rows/pagination) area */
+  hideFooterRightDetails?: boolean;
   /**
    * Key used to determine if row deletion is permanent.
    * If set, deletion is treated as partial, and the row will include this key with a true value.
