@@ -4,6 +4,7 @@ import { Dropdown } from './index'
 import { StoryWrapper, Title } from '../../components/StoryWrapper'
 import { Grid, GridItem } from '../../atoms/Grid'
 import { Button } from '../../atoms/Button'
+import { LocalServerNotice, API_BASE } from "../../components/LocalServerNotice";
 
 const descriptionText =
   'The Dropdown component is used to select one or multiple options from a list. It supports various colors, sizes, filtering, and dynamic options, making it highly customizable.'
@@ -46,39 +47,50 @@ export const Default: StoryObj<typeof meta> = {
 }
 
 const AsyncFilterDropdown = () => {
-  const [options, setOptions] = useState<{ value: string; text: string }[]>([])
-  const [loading, setLoading] = useState(false)
+  const [options, setOptions] = useState<{ value: string; text: string }[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const handleFilterChange = useCallback(async (filterText: string) => {
-    setLoading(true)
-    // Example: fetch users from JSONPlaceholder and filter by name
-    const res = await fetch('https://jsonplaceholder.typicode.com/users')
-    const users = await res.json()
-    const filtered = users
-      .filter((u: any) =>
-        u.name.toLowerCase().includes(filterText.toLowerCase())
-      )
-      .map((u: any) => ({
-        value: u.id.toString(),
-        text: u.name,
-      }))
-    setOptions(filtered)
-    setLoading(false)
-  }, [])
+    setLoading(true);
+    try {
+      const qs = new URLSearchParams({
+        q: filterText ?? '',
+        limit: '20',
+        skip: '0',
+        select: 'id,title',
+      });
+      const res = await fetch(`${API_BASE}/products/search?${qs.toString()}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+
+      const next =
+        Array.isArray(json?.products)
+          ? json.products.map((p: any) => ({
+              value: String(p.id),
+              text: String(p.title),
+            }))
+          : [];
+
+      setOptions(next);
+    } catch (err) {
+      console.error('Local API error:', err);
+      setOptions([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   return (
-    <div style={{ width: 300 }}>
-      <Dropdown
-        label='Async Filter Dropdown'
-        options={options}
-        filter
-        loading={loading}
-        placeholder={loading ? 'Loading...' : 'Type to search users'}
-        onFilterChange={handleFilterChange}
-      />
-    </div>
-  )
-}
+    <Dropdown
+      label="Async Filter Dropdown"
+      options={options}
+      filter
+      loading={loading}
+      placeholder={loading ? 'Loading…' : 'Type to search products'}
+      onFilterChange={handleFilterChange}
+    />
+  );
+};
 
 const ExamplesComponent: React.FC = () => {
   // Examples that use constant options.
@@ -240,7 +252,8 @@ const ExamplesComponent: React.FC = () => {
 
       <Title>Aync Filter Dropdown</Title>
       <Grid>
-        <GridItem xs={12} sm={6} md={4}>
+        <GridItem xs={12} sm={6}>
+          <LocalServerNotice title="Local API not detected" description={<>Run <code>node server.js</code> at project root.</>} />
           <AsyncFilterDropdown/>
         </GridItem>
       </Grid>

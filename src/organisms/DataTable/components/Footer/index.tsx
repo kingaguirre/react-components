@@ -16,11 +16,14 @@ import { Icon } from "../../../../atoms/Icon";
 import { FormControl } from "../../../../atoms/FormControl";
 import { Tooltip } from "../../../../atoms/Tooltip";
 import { BUILTIN_COLUMN_IDS } from "../../utils";
+import { Loader } from "../../../../atoms/Loader"; // ← NEW
 
 interface FooterProps<TData> {
   table: Table<TData>;
   disabledRows: string[];
   enableRowSelection?: boolean;
+  /** When true, hides the entire RightDetails (rows/pagination) area */
+  hideRightDetails?: boolean;
 }
 
 interface ExtraRowProps {
@@ -34,6 +37,7 @@ export const Footer = <TData,>({
   table,
   disabledRows,
   enableRowSelection,
+  hideRightDetails, // ← NEW
 }: FooterProps<TData>) => {
   const hasColumns = useMemo(
     () =>
@@ -102,6 +106,9 @@ export const Footer = <TData,>({
     }
   };
 
+  // === NEW: serverLoading from TanStack Table meta ===
+  const serverLoading = Boolean((table.options as any)?.meta?.serverLoading);
+
   return hasColumns ? (
     <FooterContainer className="footer-container">
       {hasTotalRecords && enableRowSelection && (
@@ -137,85 +144,93 @@ export const Footer = <TData,>({
           )}
         </LeftDetails>
 
-        <RightDetails $totalCount={countDigits(table.getPageCount())}>
-          <span>Rows</span>
-          <Dropdown
-            size="sm"
-            value={String(pageSize)}
-            onChange={(value) => table.setPageSize(Number(value))}
-            clearable={false}
-            disabled={!hasTotalRecords}
-            options={[
-              { text: "5", value: "5" },
-              { text: "10", value: "10" },
-              { text: "20", value: "20" },
-              { text: "30", value: "30" },
-              { text: "40", value: "40" },
-              { text: "50", value: "50" },
-            ]}
-            testId="page-size-input"
-          />
+        {!hideRightDetails && (
+          <RightDetails $totalCount={countDigits(table.getPageCount())}>
+            {serverLoading && (
+              <span className="loader" data-testid="footer-loader">
+                <Loader size="xs" />
+              </span>
+            )}
 
-          <Button
-            data-testid="first-page-button"
-            disabled={isPrevDisabled}
-            {...(!isPrevDisabled
-              ? { onClick: () => table.setPageIndex(0) }
-              : {})}
-          >
-            <Icon icon="first_page" />
-          </Button>
-
-          <Button
-            data-testid="previous-page-button"
-            disabled={isPrevDisabled}
-            {...(!isPrevDisabled
-              ? { onClick: () => table.previousPage() }
-              : {})}
-          >
-            <Icon icon="keyboard_arrow_left" />
-          </Button>
-
-          <Tooltip
-            content={`Jump page (${pageIndex + 1} of ${formatNumber(
-              table.getPageCount(),
-            )})`}
-          >
-            <FormControl
-              type="number"
-              min="1"
+            <span>Rows</span>
+            <Dropdown
               size="sm"
-              disabled={!hasTotalRecords}
-              max={table.getPageCount()}
-              value={pageIndex + 1}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                const page = e.target?.value ? Number(e.target.value) - 1 : 0;
-                table.setPageIndex(page);
-              }}
-              className="footer-page"
-              testId="page-index-input"
+              value={String(pageSize)}
+              onChange={(value) => table.setPageSize(Number(value))}
               clearable={false}
+              disabled={!hasTotalRecords}
+              options={[
+                { text: "5", value: "5" },
+                { text: "10", value: "10" },
+                { text: "20", value: "20" },
+                { text: "30", value: "30" },
+                { text: "40", value: "40" },
+                { text: "50", value: "50" },
+              ]}
+              testId="page-size-input"
             />
-          </Tooltip>
 
-          <Button
-            data-testid="next-page-button"
-            disabled={isNextDisabled}
-            {...(!isNextDisabled ? { onClick: () => table.nextPage() } : {})}
-          >
-            <Icon icon="keyboard_arrow_right" />
-          </Button>
+            <Button
+              data-testid="first-page-button"
+              disabled={isPrevDisabled}
+              {...(!isPrevDisabled
+                ? { onClick: () => table.setPageIndex(0) }
+                : {})}
+            >
+              <Icon icon="first_page" />
+            </Button>
 
-          <Button
-            data-testid="last-page-button"
-            disabled={isNextDisabled}
-            {...(!isNextDisabled
-              ? { onClick: () => table.setPageIndex(table.getPageCount() - 1) }
-              : {})}
-          >
-            <Icon icon="last_page" />
-          </Button>
-        </RightDetails>
+            <Button
+              data-testid="previous-page-button"
+              disabled={isPrevDisabled}
+              {...(!isPrevDisabled
+                ? { onClick: () => table.previousPage() }
+                : {})}
+            >
+              <Icon icon="keyboard_arrow_left" />
+            </Button>
+
+            <Tooltip
+              content={`Jump page (${pageIndex + 1} of ${formatNumber(
+                table.getPageCount(),
+              )})`}
+            >
+              <FormControl
+                type="number"
+                min="1"
+                size="sm"
+                disabled={!hasTotalRecords}
+                max={table.getPageCount()}
+                value={pageIndex + 1}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                  const page = e.target?.value ? Number(e.target.value) - 1 : 0;
+                  table.setPageIndex(page);
+                }}
+                className="footer-page"
+                testId="page-index-input"
+                clearable={false}
+              />
+            </Tooltip>
+
+            <Button
+              data-testid="next-page-button"
+              disabled={isNextDisabled}
+              {...(!isNextDisabled ? { onClick: () => table.nextPage() } : {})}
+            >
+              <Icon icon="keyboard_arrow_right" />
+            </Button>
+
+            <Button
+              data-testid="last-page-button"
+              disabled={isNextDisabled}
+              {...(!isNextDisabled
+                ? { onClick: () => table.setPageIndex(table.getPageCount() - 1) }
+                : {})}
+            >
+              <Icon icon="last_page" />
+            </Button>
+          </RightDetails>
+        )}
       </FooterDetailsContainer>
     </FooterContainer>
   ) : null;

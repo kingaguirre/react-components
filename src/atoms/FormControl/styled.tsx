@@ -340,14 +340,12 @@ export const CustomCheckboxRadio = styled.input<{
   border-radius: ${({ type }) => (type === "radio" ? "50%" : "0")};
   cursor: pointer;
   position: relative;
-  transition: all 0.2s ease;
   margin: 0;
 
   &:before {
     box-sizing: border-box;
     content: "";
     display: block;
-    transition: all 0.3s ease;
     pointer-events: none;
     position: relative;
     transform: scale(0);

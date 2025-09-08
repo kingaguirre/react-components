@@ -27,6 +27,8 @@ export const ModalOverlay = styled.div<{
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+  overflow-y: scroll;
 
   background: rgba(0, 0, 0, 0.6);
   z-index: ${({ $zIndex }) => $zIndex};

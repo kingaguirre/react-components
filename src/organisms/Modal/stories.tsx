@@ -8,6 +8,11 @@ import React, { useState } from 'react'
 import { Button } from '../../atoms/Button'
 import { FormControl } from '../../atoms/FormControl'
 import { Icon } from '../../atoms/Icon'
+import { LocalServerNotice, API_BASE } from "../../components/LocalServerNotice"
+
+// NEW: DataTable inside modal
+import { DataTable } from '../DataTable'
+import type { ColumnSetting } from '../DataTable/interface'
 
 const descriptionText =
   'The Modal component is used to display content in an overlay dialog. It supports various configurations including different sizes, header colors, footer button alignment, close behaviors, and async content.'
@@ -66,7 +71,68 @@ export const Default: StoryObj<typeof meta> = {
   render: (args) => <DefaultModal {...args} />
 }
 
-// ✅ Modal Examples Component (with async + controlled demos)
+/* -----------------------------------------------------------------------------
+   Columns + fetchers for the in-modal DataTable
+----------------------------------------------------------------------------- */
+
+const MODAL_COLUMNS: ColumnSetting[] = [
+  { title: 'ID', column: 'id', width: 80, draggable: false, filter: false },
+  { title: 'Title', column: 'title', width: 280 },
+  { title: 'Brand', column: 'brand', width: 160 },
+  { title: 'Category', column: 'category', width: 160 },
+  { title: 'Price', column: 'price', width: 120, align: 'right' },
+  { title: 'Rating', column: 'rating', width: 120, align: 'right' },
+];
+
+// server-mode fetcher (async/await) — includes artificial delay
+const fetchProductsForModalAwait = async (params: any) => {
+  const { pageIndex, pageSize, sorting = [], globalFilter = '' } = params;
+  const s = sorting?.[0];
+
+  const qs = new URLSearchParams({
+    q: globalFilter ?? '',
+    limit: String(pageSize),
+    skip: String(pageIndex * pageSize),
+    __delay: '700', // ← simulate latency
+  });
+  if (s?.id) {
+    qs.set('sortBy', s.id);
+    qs.set('order', s.desc ? 'desc' : 'asc');
+  }
+
+  const res = await fetch(`${API_BASE}/products/search?${qs.toString()}`);
+  if (!res.ok) throw new Error('Fetch failed');
+  const json = await res.json();
+  return { rows: json.products ?? [], total: json.total ?? 0 };
+};
+
+// server-mode fetcher (.then() style) — includes artificial delay
+const fetchProductsForModalThen = (params: any) => {
+  const { pageIndex, pageSize, sorting = [], globalFilter = '' } = params;
+  const s = sorting?.[0];
+
+  const qs = new URLSearchParams({
+    q: globalFilter ?? '',
+    limit: String(pageSize),
+    skip: String(pageIndex * pageSize),
+    __delay: '700', // ← simulate latency
+  });
+  if (s?.id) {
+    qs.set('sortBy', s.id);
+    qs.set('order', s.desc ? 'desc' : 'asc');
+  }
+
+  return fetch(`${API_BASE}/products/search?${qs.toString()}`)
+    .then((res) => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    })
+    .then((json) => ({ rows: json.products ?? [], total: json.total ?? 0 }));
+};
+
+/* =============================================================================
+   Modal Examples (async + controlled + sync)
+============================================================================= */
 const ModalExamples = () => {
   const [openLong, setOpenLong] = useState(false)
   const [openFooter, setOpenFooter] = useState(false)
@@ -78,33 +144,111 @@ const ModalExamples = () => {
   const [openNoClose, setOpenNoClose] = useState(false)
   const [openNoIcon, setOpenNoIcon] = useState(false)
 
-  // Async demo state
-  const [openAsync, setOpenAsync] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [data, setData] = useState<any>(null)
-  const [name, setName] = useState("")
+  // Async demo state (local server)
+  const [openAsync, setOpenAsync] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<any>(null);
+  const [productTitle, setProductTitle] = useState("");
+  const [asyncMode, setAsyncMode] = useState<'await' | 'then'>('await');
 
   const handleAsyncOpen = async () => {
-    setOpenAsync(true)
-    setLoading(true)
-    setData(null)
+    setAsyncMode('await');
+    setOpenAsync(true);
+    setLoading(true);
+    setData(null);
 
     try {
-      const response = await fetch("https://dummyjson.com/users/1")
-      const json = await response.json()
-      setData(json)
-      setName(json.firstName)
+      const qs = new URLSearchParams({
+        q: "",
+        limit: "1",
+        skip: "0",
+        select: "id,title,brand,category,price,rating",
+        __delay: "700", // ← simulate latency so loader is visible
+      });
+      const res = await fetch(`${API_BASE}/products/search?${qs.toString()}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      const first = Array.isArray(json?.products) ? json.products[0] : null;
+      setData(first ?? json);
+      setProductTitle(first?.title ?? "");
     } catch (err) {
-      console.error("API error:", err)
+      console.error("Local API error:", err);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
+
+  const handleAsyncOpenThen = () => {
+    setAsyncMode('then');
+    setOpenAsync(true);
+    setLoading(true);
+    setData(null);
+
+    const qs = new URLSearchParams({
+      q: "",
+      limit: "1",
+      skip: "0",
+      select: "id,title,brand,category,price,rating",
+      __delay: "700", // ← simulate latency so loader is visible
+    });
+
+    fetch(`${API_BASE}/products/search?${qs.toString()}`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((json) => {
+        const first = Array.isArray(json?.products) ? json.products[0] : null;
+        setData(first ?? json);
+        setProductTitle(first?.title ?? "");
+      })
+      .catch((err) => {
+        console.error("Local API error (.then):", err);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  };
 
   const colorOptions = ['primary', 'success', 'warning', 'danger', 'info', 'default'] as const
 
   // 🔒 Controlled demo state
   const [openControlled, setOpenControlled] = useState(false)
+
+  // SYNC modal (non server-mode table) — show table immediately, update rows/columns via .then()
+  const [openSync, setOpenSync] = useState(false);
+  const [syncRows, setSyncRows] = useState<any[]>([]);
+  const [syncError, setSyncError] = useState<string>("");
+  const [syncColumns, setSyncColumns] = useState<ColumnSetting[]>(MODAL_COLUMNS);
+
+  const openSyncModalThen = () => {
+    setOpenSync(true);
+    setSyncError("");
+
+    const qs = new URLSearchParams({
+      q: "",
+      limit: "25",
+      skip: "0",
+      select: "id,title,brand,category,price,rating",
+      __delay: "700", // ← simulate latency; table renders immediately with whatever is in state
+    });
+
+    fetch(`${API_BASE}/products/search?${qs.toString()}`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((json) => {
+        const rows = Array.isArray(json?.products) ? json.products : [];
+        setSyncRows(rows);
+        // After fetch completes, update column widths to demonstrate dynamic columnSettings
+        setSyncColumns(MODAL_COLUMNS.map(c => ({ ...c, width: 250 })));
+      })
+      .catch((e: any) => {
+        setSyncError(String(e?.message ?? e));
+        setSyncRows([]);
+      });
+  };
 
   return (
     <StoryWrapper title='Modal Examples' subTitle={descriptionText}>
@@ -226,11 +370,18 @@ const ModalExamples = () => {
         <p>This modal <strong>has no close button (X)</strong>.</p>
       </Modal>
 
-      {/* ✅ Async API Demo */}
+      {/* ✅ Async API Demo (Local Server) */}
       <Title>Async API Demo</Title>
-      <Button color='primary' onClick={handleAsyncOpen}>
-        Open Async Modal
-      </Button>
+      <LocalServerNotice compact title="Local API offline" description={<>Start with <code>node server.js</code> at project root.</>} />
+      <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+        <Button color='primary' onClick={handleAsyncOpen}>
+          Open Async Modal
+        </Button>
+        <Button color='default' onClick={handleAsyncOpenThen}>
+          Open Async Modal (.then)
+        </Button>
+      </div>
+
       <Modal
         show={openAsync}
         onClose={() => setOpenAsync(false)}
@@ -239,14 +390,20 @@ const ModalExamples = () => {
         onOpening={() => console.log("Modal opening")}
         onOpened={() => console.log("Modal opened")}
         onClosing={() => console.log("Modal closing")}
-        onClosed={() => console.log("Modal closed")}
+        onClosed={() => {
+          console.log("Modal closed")
+          // Clear input + preview on close
+          setProductTitle('')
+          setData(null)
+        }}
       >
+        <LocalServerNotice compact title="Local API offline" description="Start the local server to load data." />
         <FormControl
-          label="First Name"
+          label="Product Title"
           type="text"
-          value={name}
+          value={productTitle}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-            setName(e.target.value)
+            setProductTitle(e.target.value)
           }
         />
 
@@ -257,6 +414,56 @@ const ModalExamples = () => {
             {JSON.stringify(data, null, 2)}
           </pre>
         )}
+
+        {/* --- Server-side DataTable inside the async modal --- */}
+        <Title>Products (local)</Title>
+          <DataTable
+            key={productTitle + ':' + asyncMode} // apply defaultGlobalFilter immediately per input/mode
+            serverMode
+            server={{
+              fetcher: asyncMode === 'then' ? fetchProductsForModalThen : fetchProductsForModalAwait,
+              debounceMs: 350,
+            }}
+            dataSource={[]}
+            enableGlobalFiltering
+            enableColumnFiltering={false}
+            enableColumnSorting
+            enableColumnResizing
+            enableColumnPinning
+            columnSettings={MODAL_COLUMNS}
+            maxHeight={'200px'}
+          />
+      </Modal>
+
+      {/* ✅ Sync Modal (Non Server-Mode Table) */}
+      <Title>Sync Modal (Non Server-Mode Table)</Title>
+      <LocalServerNotice compact title="Local API offline" description="Start the local server to load data." />
+      <Button color='primary' onClick={openSyncModalThen}>
+        Open Sync Modal (fetch then render) — .then()
+      </Button>
+
+      <Modal
+        show={openSync}
+        onClose={() => setOpenSync(false)}
+        title="Sync Modal"
+        color="default"
+      >
+        {syncError && <p style={{ color: '#b91c1c' }}>Error: {syncError}</p>}
+        {/* Always show the table immediately; once fetch resolves, rows + columns update */}
+        <p style={{ margin: '8px 0' }}>
+          This table is <strong>not</strong> in server mode. It renders immediately with whatever rows are present,
+          then updates when the fetch completes. After fetching, all columns are set to <code>width: 200</code>.
+        </p>
+          <DataTable
+            dataSource={syncRows}
+            columnSettings={syncColumns}
+            enableGlobalFiltering
+            enableColumnFiltering
+            enableColumnSorting
+            enableColumnResizing
+            enableColumnPinning
+            maxHeight={'200px'}
+          />
       </Modal>
 
       {/* ✅ Controlled (Parent-State) Demo */}

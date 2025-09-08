@@ -128,6 +128,8 @@ export const DataTable = <T extends object>({
   enableDownload = false,
   downloadControls,
   testId,
+  hideFooterRightDetails = false,
+  hideFooter = false
 }: DataTableProps) => {
   const tableWrapperRef = useRef<HTMLDivElement>(null);
   const instanceIdRef = useRef<number>(Date.now() + Math.random());
@@ -353,10 +355,7 @@ export const DataTable = <T extends object>({
     setRowSelection({});
     setActiveRowId(undefined);
     setSelectedCell(null);
-
-    // if you expose selectedRows via props, notify consumer of reset:
-    onSelectedRowsChange?.([]);
-  }, [memoizedData, isPageResetSuppressed, noPageReset, onSelectedRowsChange]);
+  }, [memoizedData, isPageResetSuppressed, noPageReset]);
 
   // Sync when the prop changes
   useEffect(() => {
@@ -1515,11 +1514,14 @@ export const DataTable = <T extends object>({
           </DataTableContentContainer>
         </DataTableContainer>
       </DndContext>
-      <Footer
-        table={table}
-        disabledRows={disabledRows}
-        enableRowSelection={enableRowSelection}
-      />
+      {!hideFooter && (
+        <Footer
+          table={table}
+          disabledRows={disabledRows}
+          enableRowSelection={enableRowSelection}
+          hideRightDetails={hideFooterRightDetails}
+        />
+      )}
       {showDeleteIcon && (
         <Alert
           color={bulkMode === "restore" ? "info" : "danger"}

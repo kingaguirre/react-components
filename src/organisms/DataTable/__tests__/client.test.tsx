@@ -1366,4 +1366,84 @@ describe('DataTable Row Features and Events (Client Mode)', () => {
     });
   });
 
+  test('hides RightDetails when hideFooterRightDetails is true', () => {
+    render(
+      <DataTable
+        dataSource={sampleData}
+        columnSettings={columnsSorting}
+        hideFooterRightDetails
+      />
+    );
+
+    // RightDetails content gone
+    expect(screen.queryByText('Rows')).toBeNull();
+    expect(screen.queryByTestId('page-size-input')).toBeNull();
+    expect(screen.queryByTestId('first-page-button')).toBeNull();
+    expect(screen.queryByTestId('previous-page-button')).toBeNull();
+    expect(screen.queryByTestId('next-page-button')).toBeNull();
+    expect(screen.queryByTestId('last-page-button')).toBeNull();
+  });
+
+  test('shows footer loader while server fetch is in-flight (serverMode)', async () => {
+    // Create a deferred promise to hold the fetcher open
+    let resolveFetch: ((payload: { rows: any[]; total: number }) => void) | null = null;
+    const pending = new Promise<{ rows: any[]; total: number }>((res) => {
+      resolveFetch = res;
+    });
+
+    const fetcher = vi.fn().mockReturnValueOnce(pending);
+
+    render(
+      <DataTable
+        dataSource={sampleData}
+        columnSettings={columnsSorting}
+        serverMode
+        server={{ fetcher, debounceMs: 0 }}
+        pageIndex={0}
+        pageSize={5}
+      />
+    );
+
+    // While the fetch is pending, serverLoading should be true → loader visible
+    const loader = await screen.findByTestId('footer-loader', {}, { timeout: 1500 });
+    expect(loader).toBeInTheDocument();
+
+    // Sanity: "Rows" label still renders in RightDetails
+    const rowsLabel = screen.getByText('Rows');
+    expect(rowsLabel).toBeInTheDocument();
+
+    // Loader should appear before the "Rows" text (left side)
+    expect(
+      loader.compareDocumentPosition(rowsLabel) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+
+    // Now resolve the fetch — loader should disappear
+    await act(async () => {
+      resolveFetch!({ rows: sampleData, total: sampleData.length });
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('footer-loader')).toBeNull();
+    });
+  });
+
+  test('hides the entire footer when hideFooter is true', () => {
+    render(
+      <DataTable
+        dataSource={sampleData}
+        columnSettings={columnsSorting}
+        hideFooter
+      />
+    );
+
+    // Nothing from the footer should be present
+    expect(screen.queryByText('Rows')).toBeNull();                // RightDetails
+    expect(screen.queryByText(/Displaying/i)).toBeNull();         // LeftDetails
+    expect(screen.queryByTestId('page-size-input')).toBeNull();   // control inside footer
+    expect(screen.queryByTestId('first-page-button')).toBeNull();
+    expect(screen.queryByTestId('previous-page-button')).toBeNull();
+    expect(screen.queryByTestId('next-page-button')).toBeNull();
+    expect(screen.queryByTestId('last-page-button')).toBeNull();
+  });
+
 });

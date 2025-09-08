@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect, useState } from "react";
 import type { Meta } from "@storybook/react";
 import axios from "axios";
 import { StoryWrapper, Title } from "../../../components/StoryWrapper";
@@ -6,6 +6,66 @@ import { CodeBlock } from "../../../components/CodeBlock";
 import { DataTable } from "../index";
 import { ServerSideGuide } from "../docs/ServerSideGuide";
 import { ColumnSetting } from "../interface";
+
+/* -----------------------------------------------------------------------------
+   Config: Local API base (run `node server.js`)
+----------------------------------------------------------------------------- */
+const API_BASE = "http://localhost:4000";
+
+/* -----------------------------------------------------------------------------
+   Red notice if local server isn't up
+----------------------------------------------------------------------------- */
+function ServerStatusNotice() {
+  const [alive, setAlive] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const abort = new AbortController();
+    const timer = setTimeout(() => abort.abort(), 1200);
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/health`, { signal: abort.signal });
+        setAlive(res.ok);
+      } catch {
+        setAlive(false);
+      } finally {
+        clearTimeout(timer);
+      }
+    })();
+    return () => {
+      abort.abort();
+      clearTimeout(timer);
+    };
+  }, []);
+
+  if (alive !== false) return null;
+
+  return (
+    <Card
+      tone="danger"
+      title="Local API not detected"
+      subtitle={`Start it at project root:  node server.js   (listens on ${API_BASE})`}
+    >
+      <ul style={{ margin: 0, paddingLeft: 18 }}>
+        <li>
+          <strong>Open a terminal at your project root</strong> and run{" "}
+          <code>node server.js</code>. Keep this process running while you use the stories.
+        </li>
+      </ul>
+
+      <p style={{ marginTop: 10, marginBottom: 0, lineHeight: 1.5 }}>
+        These stories talk to a small local API (1,000 generated products) so you can demo
+        server-side pagination, search, filters, and sorting without external calls.
+      </p>
+
+      <p style={{ marginTop: 10, marginBottom: 0, lineHeight: 1.5 }}>
+        <strong>Simulated latency:</strong> endpoints respond with a small delay to surface loading states.
+        Configure via env vars <code>DELAY_MS</code> (base) and <code>DELAY_JITTER</code> (±), e.g.{" "}
+        <code>DELAY_MS=400 DELAY_JITTER=200 node server.js</code>. You can also override per request
+        with <code>?__delay=800</code>. The <code>/health</code> check is always instant.
+      </p>
+    </Card>
+  );
+}
 
 /* -----------------------------------------------------------------------------
    Shared columns (used by all demos)
@@ -102,7 +162,7 @@ function Card({
 }: {
   title: string;
   subtitle?: string;
-  tone?: "info" | "success";
+  tone?: "info" | "success" | "danger";
   children: React.ReactNode;
 }) {
   const theme =
@@ -114,12 +174,20 @@ function Card({
           shadow: "0 8px 24px rgba(29,78,216,0.06)",
           icon: "🧭",
         }
-      : {
+      : tone === "success"
+      ? {
           bg: "linear-gradient(180deg,#F3FFF8 0%, #EBFEF3 100%)",
           border: "#C7F9E0",
           title: "#047857",
           shadow: "0 8px 24px rgba(4,120,87,0.06)",
           icon: "✅",
+        }
+      : {
+          bg: "linear-gradient(180deg,#FFF5F5 0%, #FFEFEF 100%)",
+          border: "#F9C2C2",
+          title: "#b91c1c",
+          shadow: "0 8px 24px rgba(185,28,28,0.06)",
+          icon: "⛔",
         };
 
   return (
@@ -175,9 +243,7 @@ const fetchProductsSimple = async (params: any) => {
     limit: String(pageSize),
     skip: String(pageIndex * pageSize),
   });
-  const res = await fetch(
-    `https://dummyjson.com/products/search?${qs.toString()}`,
-  );
+  const res = await fetch(`${API_BASE}/products/search?${qs.toString()}`);
   if (!res.ok) throw new Error("Fetch failed");
   const json = await res.json();
   return { rows: json.products ?? [], total: json.total ?? 0 };
@@ -187,7 +253,7 @@ export const Simple = {
   name: "Simple",
   render: () => {
     const topSnippet = useMemo(
-      () => `// 🔎 Pagination against DummyJSON (query string style)
+      () => `// 🔎 Pagination against Local API (query string style)
 const fetchProductsSimple = async (params) => {
   const { pageIndex, pageSize, globalFilter = '' } = params
   const qs = new URLSearchParams({
@@ -195,7 +261,7 @@ const fetchProductsSimple = async (params) => {
     limit: String(pageSize),
     skip: String(pageIndex * pageSize),
   })
-  const res = await fetch(\`https://dummyjson.com/products/search?\${qs.toString()}\`)
+  const res = await fetch(\`${API_BASE}/products/search?\${qs.toString()}\`)
   if (!res.ok) throw new Error('Fetch failed')
   const json = await res.json()
   return { rows: json.products ?? [], total: json.total ?? 0 }
@@ -220,11 +286,13 @@ const fetchProductsSimple = async (params) => {
     return (
       <StoryWrapper
         title="Server-side Rendering / Simple"
-        subTitle="Manual pagination against a remote endpoint. The table runs in serverMode and calls your fetcher when the page (or global search) changes. No column filters or sorting here."
+        subTitle="Manual pagination against a local endpoint. The table runs in serverMode and calls your fetcher when the page (or global search) changes. No column filters or sorting here."
       >
+        <ServerStatusNotice />
+
         <Card
           title="Fetcher Function: fetchProductsSimple"
-          subtitle="Pagination-only via DummyJSON’s query string API"
+          subtitle="Pagination-only via Local API"
           tone="info"
         >
           <CodeBlock code={topSnippet} highlighted="fetchProductsSimple" />
@@ -265,7 +333,7 @@ const fetchProductsFiltering = async (params: any) => {
     limit: "0",
     select: "id,title,brand,category,price,rating",
   });
-  const res = await fetch(`https://dummyjson.com/products?${qs.toString()}`);
+  const res = await fetch(`${API_BASE}/products?${qs.toString()}`);
   if (!res.ok) throw new Error("Fetch failed");
   const json = await res.json();
   let rows = Array.isArray(json?.products) ? json.products : [];
@@ -291,7 +359,7 @@ const fetchProductsFiltering = async (params) => {
   // ]
 
   const qs = new URLSearchParams({ limit: '0', select: 'id,title,brand,category,price,rating' })
-  const res = await fetch(\`https://dummyjson.com/products?\${qs.toString()}\`)
+  const res = await fetch(\`${API_BASE}/products?\${qs.toString()}\`)
   if (!res.ok) throw new Error('Fetch failed')
   const json = await res.json()
 
@@ -325,6 +393,8 @@ const fetchProductsFiltering = async (params) => {
         title="Server-side Rendering / Filtering"
         subTitle="Combines global search and per-column filters in serverMode. We fetch a minimal set, apply filters locally for correctness, then paginate the filtered results."
       >
+        <ServerStatusNotice />
+
         <Card
           title="Fetcher Function: fetchProductsFiltering"
           subtitle="Global + column filters with post-filter pagination"
@@ -376,9 +446,7 @@ const fetchProductsSorting = async (params: any) => {
     qs.set("sortBy", s.id);
     qs.set("order", s.desc ? "desc" : "asc");
   }
-  const res = await fetch(
-    `https://dummyjson.com/products/search?${qs.toString()}`,
-  );
+  const res = await fetch(`${API_BASE}/products/search?${qs.toString()}`);
   if (!res.ok) throw new Error("Fetch failed");
   const json = await res.json();
   return { rows: json.products ?? [], total: json.total ?? 0 };
@@ -403,7 +471,7 @@ const fetchProductsSorting = async (params) => {
     qs.set('order', s.desc ? 'desc' : 'asc')
   }
 
-  const res = await fetch(\`https://dummyjson.com/products/search?\${qs.toString()}\`)
+  const res = await fetch(\`${API_BASE}/products/search?\${qs.toString()}\`)
   if (!res.ok) throw new Error('Fetch failed')
   const json = await res.json()
   return { rows: json.products ?? [], total: json.total ?? 0 }
@@ -430,9 +498,11 @@ const fetchProductsSorting = async (params) => {
         title="Server-side Rendering / Sorting"
         subTitle="Server-controlled sorting with manual pagination. Column filters are disabled in this demo—only page changes and header clicks trigger your fetcher."
       >
+        <ServerStatusNotice />
+
         <Card
           title="Fetcher Function: fetchProductsSorting"
-          subtitle="Sorting + pagination via DummyJSON search"
+          subtitle="Sorting + pagination via Local API"
           tone="info"
         >
           <CodeBlock code={topSnippet} highlighted="fetchProductsSorting" />
@@ -468,7 +538,7 @@ const fetchProductsSorting = async (params) => {
 ============================================================================= */
 const fetchProductsAxios = async (params: any) => {
   const { pageIndex, pageSize, globalFilter = "" } = params;
-  const { data } = await axios.get("https://dummyjson.com/products/search", {
+  const { data } = await axios.get(`${API_BASE}/products/search`, {
     params: {
       q: globalFilter,
       limit: pageSize,
@@ -487,7 +557,7 @@ export const Axios = {
 // 📦 Same as Simple (pagination-only), using axios
 const fetchProductsAxios = async (params) => {
   const { pageIndex, pageSize, globalFilter = '' } = params
-  const { data } = await axios.get('https://dummyjson.com/products/search', {
+  const { data } = await axios.get('${API_BASE}/products/search', {
     params: {
       q: globalFilter,
       limit: pageSize,
@@ -518,6 +588,8 @@ const fetchProductsAxios = async (params) => {
         title="Server-side Rendering / Axios"
         subTitle="Same as Simple (pagination-only) but implemented with axios—ideal if you use interceptors or a shared HTTP client."
       >
+        <ServerStatusNotice />
+
         <Card
           title="Fetcher Function: fetchProductsAxios"
           subtitle="Pagination-only via axios transport"
@@ -567,7 +639,7 @@ const fetchProductsAdvanced = async (params: any) => {
 
   if (needAggregate) {
     // Aggregate fallback: fetch minimal → filter/sort locally → slice
-    const { data } = await axios.get("https://dummyjson.com/products", {
+    const { data } = await axios.get(`${API_BASE}/products`, {
       params: { limit: 0, select: "id,title,brand,category,price,rating" },
     });
     let rows = Array.isArray(data?.products) ? data.products : [];
@@ -589,7 +661,7 @@ const fetchProductsAdvanced = async (params: any) => {
     (qs as any).sortBy = s.id;
     (qs as any).order = s.desc ? "desc" : "asc";
   }
-  const { data } = await axios.get("https://dummyjson.com/products/search", {
+  const { data } = await axios.get(`${API_BASE}/products/search`, {
     params: qs,
   });
   return { rows: data.products ?? [], total: data.total ?? 0 };
@@ -609,7 +681,7 @@ const fetchProductsAdvanced = async (params) => {
 
   if (needAggregate) {
     // Aggregate fallback: fetch minimal → filter/sort locally → slice
-    const { data } = await axios.get('https://dummyjson.com/products', {
+    const { data } = await axios.get('${API_BASE}/products', {
       params: { limit: 0, select: 'id,title,brand,category,price,rating' },
     })
     let rows = Array.isArray(data?.products) ? data.products : []
@@ -628,7 +700,7 @@ const fetchProductsAdvanced = async (params) => {
     skip: pageIndex * pageSize,
     ...(s?.id ? { sortBy: s.id, order: s.desc ? 'desc' : 'asc' } : {})
   }
-  const { data } = await axios.get('https://dummyjson.com/products/search', { params: qs })
+  const { data } = await axios.get('${API_BASE}/products/search', { params: qs })
   return { rows: data.products ?? [], total: data.total ?? 0 }
 }`,
       [],
@@ -653,6 +725,8 @@ const fetchProductsAdvanced = async (params) => {
         title="Server-side Rendering / Advanced"
         subTitle="Full serverMode: pagination + sorting + global & column filtering using axios. If the API can’t combine constraints, we switch to an aggregate fallback (fetch minimal, filter/sort locally, paginate)."
       >
+        <ServerStatusNotice />
+
         <Card
           title="Fetcher Function: fetchProductsAdvanced"
           subtitle="Axios transport + smart fallback when API can’t combine constraints"
@@ -753,6 +827,8 @@ export const UploadAndDownload = {
         title="Server-side Rendering / Upload & Download"
         subTitle="End-to-end demo of the import/export controls in server mode. Sorting, filtering and pagination are server-driven; exports include hidden columns by default."
       >
+        <ServerStatusNotice />
+
         <Card
           title="What this shows"
           subtitle="Upload with review modal • custom export labels/icons • hidden column included in export • selected/all downloads"
@@ -781,9 +857,9 @@ export const UploadAndDownload = {
           enableColumnSorting
           enableColumnResizing
           enableColumnPinning
-          enableRowSelection   // <- ensures “Download selected” is visible
-          enableUpload         // <- turn on the Upload button (defaults work)
-          enableDownload       // <- turn on the Download button (defaults work)
+          enableRowSelection
+          enableUpload
+          enableDownload
           uploadControls={uploadControls}
           downloadControls={downloadControls}
           columnSettings={COLS_WITH_HIDDEN}
