@@ -345,6 +345,8 @@ export const DataTable = <T extends object>({
 
   // Only update local data state when memoizedData changes.
   useEffect(() => {
+    if (serverMode) return;
+
     if (isPageResetSuppressed()) {
       noPageReset(() => setData(memoizedData));
     } else {

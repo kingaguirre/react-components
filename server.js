@@ -65,7 +65,7 @@ const pick = (arr) => arr[Math.floor(rand() * arr.length)];
 const price = () => Math.floor(5 + rand() * 995);          // 5..999
 const rating = () => Math.round((1 + rand() * 4) * 10) / 10; // 1.0..5.0
 
-const PRODUCTS = Array.from({ length: 1000 }, (_, i) => {
+const PRODUCTS = Array.from({ length: 100000 }, (_, i) => {
   const id = i + 1;
   const brand = pick(BRANDS);
   const category = pick(CATEGORIES);
@@ -128,7 +128,7 @@ app.get("/products", (req, res) => {
   res.json({ products: rows, total: PRODUCTS.length });
 });
 
-// GET /products/search?q=&limit=&skip=&sortBy=&order=&select=
+// GET /products/search?q=&limit=&skip=&sortBy=&order=&select=&brand=&minRating=
 app.get("/products/search", (req, res) => {
   const {
     q = "",
@@ -137,9 +137,21 @@ app.get("/products/search", (req, res) => {
     sortBy,
     order = "asc",
     select,
+    brand,
+    minRating,
   } = req.query;
 
   let filtered = PRODUCTS.filter((p) => matchesQuery(p, q));
+
+  if (brand && String(brand).trim()) {
+    const target = String(brand).trim().toLowerCase();
+    filtered = filtered.filter((p) => String(p.brand).toLowerCase() === target);
+  }
+  if (minRating !== undefined && minRating !== null && minRating !== "") {
+    const mr = Number(minRating);
+    if (Number.isFinite(mr)) filtered = filtered.filter((p) => Number(p.rating) >= mr);
+  }
+
   if (sortBy) filtered = filtered.slice().sort((a, b) => cmp(a[sortBy], b[sortBy], order));
 
   const off = Number(skip);
