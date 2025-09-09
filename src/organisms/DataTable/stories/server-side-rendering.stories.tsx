@@ -6,6 +6,8 @@ import { CodeBlock } from "../../../components/CodeBlock";
 import { DataTable } from "../index";
 import { ServerSideGuide } from "../docs/ServerSideGuide";
 import { ColumnSetting } from "../interface";
+import { FormControl } from "../../../atoms/FormControl";
+import { Dropdown } from "../../../molecules/Dropdown";
 
 /* -----------------------------------------------------------------------------
    Config: Local API base (run `node server.js`)
@@ -884,6 +886,139 @@ export const UploadAndDownload = {
             </li>
           </ul>
         </Card>
+      </StoryWrapper>
+    );
+  },
+};
+
+// -----------------------------------------------------------------------------
+// External filter options
+// -----------------------------------------------------------------------------
+const EXT_BRANDS = [
+  "Acme","Nova","Atlas","Zenith","Lumina","Nimbus","Vertex","Solace","Polaris","Aether",
+];
+const RATING_OPTS = [
+  { value: "", text: "All ratings" },
+  { value: "1", text: "≥ 1.0" },
+  { value: "2", text: "≥ 2.0" },
+  { value: "3", text: "≥ 3.0" },
+  { value: "4", text: "≥ 4.0" },
+  { value: "4.5", text: "≥ 4.5" },
+];
+
+/* =============================================================================
+   ADVANCED + EXTERNAL FILTERS (SIMPLE)
+   - Uses FormControl + Dropdown (brand, minRating)
+   - Fetcher is intentionally minimal (no local fallback)
+============================================================================= */
+const fetchProductsAdvancedExternalSimple = async (
+  params: any,
+  brand?: string,
+  minRating?: number
+) => {
+  const { pageIndex, pageSize, sorting = [], globalFilter = "" } = params;
+  const s = sorting?.[0];
+
+  const qs: Record<string, any> = {
+    q: globalFilter ?? '',
+    limit: pageSize,
+    skip: pageIndex * pageSize,
+    ...(s?.id ? { sortBy: s.id, order: s.desc ? 'desc' : 'asc' } : {}),
+    ...(brand ? { brand } : {}),
+    ...(Number.isFinite(minRating) ? { minRating } : {})
+  };
+
+  const { data } = await axios.get(`${API_BASE}/products/search`, { params: qs });
+  return { rows: data.products ?? [], total: data.total ?? 0 };
+};
+
+export const ExternalFiltersSimple = {
+  name: "Advanced + External Filters (Simple)",
+  render: () => {
+    // --- external UI state
+    const [brand, setBrand] = useState<string>("");
+    const [minRating, setMinRating] = useState<string>("");
+
+    // --- curry external state into fetcher; keep DataTable API unchanged
+    const fetcher = useMemo(() => (params: any) =>
+      fetchProductsAdvancedExternalSimple(
+        params,
+        brand || undefined,
+        minRating ? Number(minRating) : undefined
+      ), [brand, minRating]);
+
+    // --- code block for the fetcher (like other stories)
+    const topSnippet = useMemo(
+      () => `// Minimal external-filters fetcher (server does the work)
+const fetchProductsAdvancedExternalSimple = async (params, brand, minRating) => {
+  const { pageIndex, pageSize, sorting = [], globalFilter = '' } = params
+  const s = sorting?.[0]
+
+  const qs = {
+    q: globalFilter ?? '',
+    limit: pageSize,
+    skip: pageIndex * pageSize,
+    ...(s?.id ? { sortBy: s.id, order: s.desc ? 'desc' : 'asc' } : {}),
+    ...(brand ? { brand } : {}),
+    ...(Number.isFinite(minRating) ? { minRating } : {})
+  }
+
+  const { data } = await axios.get('${API_BASE}/products/search', { params: qs })
+  return { rows: data.products ?? [], total: data.total ?? 0 }
+}`,
+      []
+    );
+
+    return (
+      <StoryWrapper
+        title="Server-side Rendering / Advanced + External Filters (Simple)"
+        subTitle="External Brand and Min Rating live above the grid. We curry them into the fetcher; DataTable stays the same."
+      >
+        <ServerStatusNotice />
+
+        <Card title="Fetcher Function" subtitle="Highlighted for quick copy/paste" tone="info">
+          <CodeBlock code={topSnippet} highlighted="fetchProductsAdvancedExternalSimple" />
+        </Card>
+
+        <Title>Products (remote)</Title>
+        {/* External filters: directly above the table */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(220px, 1fr) minmax(220px, 1fr)",
+            gap: 12,
+            alignItems: "end",
+            margin: "8px 0 16px",
+            maxWidth: 400
+          }}
+        >
+          <Dropdown
+            label="Brand"
+            options={[{ value: "", text: "All brands" }, ...EXT_BRANDS.map((b) => ({ value: b, text: b }))]}
+            value={brand}
+            onChange={(v: any) => setBrand(typeof v === "string" ? v : v?.value ?? "")}
+          />
+
+          <Dropdown
+            label="Min rating"
+            options={RATING_OPTS}
+            value={minRating}
+            onChange={(v: any) => setMinRating(typeof v === "string" ? v : v?.value ?? "")}
+            clearable
+          />
+        </div>
+
+        <DataTable
+          serverMode
+          server={{ fetcher, debounceMs: 350 }}
+          dataSource={[]} // ignored in serverMode
+          enableGlobalFiltering
+          enableColumnFiltering={false} // keep simple; column filters off
+          enableColumnSorting
+          enableColumnResizing
+          enableColumnPinning
+          columnSettings={DEMO_COLUMNS}
+        />
       </StoryWrapper>
     );
   },

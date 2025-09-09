@@ -2,7 +2,9 @@ import { theme } from "../../../../styles/theme";
 import styled, { css } from "styled-components";
 import { ifElse } from "../../../../utils";
 
-export const BodyContainer = styled.div``;
+export const BodyContainer = styled.div`
+  position: relative;
+`;
 
 export const CellContainer = styled.div<{
   $hasError?: boolean;

@@ -12,7 +12,7 @@ import { DownloadControls } from "./components/MainHeader/DownloadIconDropdown";
 
 export interface DataTableProps<T = any> {
   /** Data to display in the table */
-  dataSource: any[];
+  dataSource?: any[];
   /** Column definitions for the table */
   columnSettings: ColumnSetting[];
   /** Returns updated data */

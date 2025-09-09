@@ -20,24 +20,28 @@ export const DataTableWrapper = styled.div<{ $disabled?: boolean }>`
   }
 
   ${({ $disabled }) =>
-    $disabled
-      ? `
-    * {
-      pointer-events: none;
-    }
-    &:after {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 1000;
-      background-color: rgba(255, 255, 255, 0.2);
-      cursor: not-allowed;
-      ${fadeInOnMount}
-    }
-  `
+    $disabled ? `
+      * {
+        pointer-events: none;
+      }
+      .data-table-body-container:after,
+      &:after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1000;
+        background-color: rgba(255, 255, 255, 0.2);
+        cursor: not-allowed;
+        ${fadeInOnMount}
+      }
+
+      .data-table-body-container:after {
+        background-color: rgba(0, 0, 0, 0.15);
+      }
+    `
       : ""}
 
   &.is-not-focused {
@@ -50,6 +54,7 @@ export const DataTableWrapper = styled.div<{ $disabled?: boolean }>`
 export const DataTableContainer = styled.div`
   overflow: auto;
   outline: none;
+  position: relative;
 `;
 
 export const DataTableContentContainer = styled.div``;

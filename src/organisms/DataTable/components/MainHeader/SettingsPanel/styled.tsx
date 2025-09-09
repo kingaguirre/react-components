@@ -3,7 +3,7 @@ import styled from "styled-components";
 
 export const SettingsPanelContainer = styled.div<{ $hasTitle?: boolean }>`
   position: absolute;
-  right: -1px;
+  right: 0;
   width: 250px;
   z-index: 20;
   top: ${({ $hasTitle }) => ($hasTitle ? 65 : 38)}px;
