@@ -83,7 +83,18 @@ export const Playground = {
         ]}
         columnSettings={[
           { title: 'ID', column: 'id' },
-          { title: 'Date', column: 'd', filter: { type: 'date' } },
+          { title: 'Date', column: 'd', cell: () => (
+          <div>
+            <div>test</div>
+            <div>test</div>
+            <div>test</div>
+            <div>test</div>
+            <div>test</div>
+            <div>test</div>
+            <div>test</div>
+            <div>test</div>
+          </div>
+        ), filter: { type: 'date' } },
         ]}
         enableColumnFiltering
         hideFooter

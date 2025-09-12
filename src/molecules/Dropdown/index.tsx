@@ -1,5 +1,11 @@
 // src/molecules/Dropdown/index.tsx
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import ReactDOM from "react-dom";
 import {
   DropdownContainer,
@@ -8,11 +14,52 @@ import {
   HighlightedText,
   DropdownFilterContainer,
   NoOptionsContainer,
+  CustomRow,
+  CustomInputWrap,
+  OverlapAction,
+  RowAffordance,
+  EditRow,
 } from "./styled";
 import { DropdownProps, DropdownOption } from "./interface";
 import { FormControl } from "../../atoms/FormControl";
-import { ifElse } from "../../utils/index";
+import { Button } from "../../atoms/Button";
+import { Icon } from "../../atoms/Icon";
+import { ifElse } from "../../utils";
 import { getScrollParent } from "../../utils";
+
+const CUSTOM_SENTINEL = "__dropdown_custom__";
+const isCustomValue = (v: string) => v.startsWith("custom-");
+
+/** slugify -> lower, trim, non-alnum => '-', collapse, trim '-' */
+const slugify = (s: string) =>
+  s
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+const isInteractiveElement = (node: Element | null) => {
+  if (!node) return false;
+  const el = node as HTMLElement;
+  if (el.isContentEditable) return true;
+  const tag = el.tagName;
+  return (
+    tag === "INPUT" ||
+    tag === "TEXTAREA" ||
+    tag === "SELECT" ||
+    tag === "BUTTON"
+  );
+};
+
+const sameOptions = (a: DropdownOption[], b: DropdownOption[]) =>
+  a === b ||
+  (a?.length === b?.length &&
+    a.every(
+      (o, i) =>
+        o.value === b[i].value &&
+        o.text === b[i].text &&
+        !!o.disabled === !!b[i].disabled,
+    ));
 
 export const Dropdown: React.FC<DropdownProps> = ({
   options,
@@ -32,14 +79,83 @@ export const Dropdown: React.FC<DropdownProps> = ({
   onFilterChange,
   loading,
   showDisabledIcon = false,
+
+  enableCustomOption,
+  customOption,
+
   ...rest
 }) => {
   const isMulti = !!multiselect;
-
-  // stable no-op to keep FormControl controlled when readOnly
   const noop = useCallback(() => {}, []);
 
-  // For single select, state is a string for multiselect, an array.
+  // Custom-option config
+  const customEnabled = !!enableCustomOption;
+  const mergedCustomCfg = useMemo(
+    () => ({
+      label: customOption?.label ?? "Others",
+      prefix: customOption?.prefix ?? "Others - ",
+      addText: customOption?.addText ?? "Add",
+      onAdd: customOption?.onAdd,
+      onEdit: customOption?.onEdit,
+      options: customOption?.options ?? [],
+    }),
+    [customOption]
+  );
+
+  // Local custom options created during this session (prepended)
+  const [newOptions, setNewOptions] = useState<DropdownOption[]>([]);
+  // Local label overrides for edits to persisted options (value is preserved)
+  const [editedLabels, setEditedLabels] = useState<Record<string, string>>({});
+
+  // Validation state for add/edit
+  const [addError, setAddError] = useState(false);
+  const [editError, setEditError] = useState(false);
+  const REQUIRED_MSG = "This field is Required";
+
+  /**
+   * If caller clears persisted custom options, also clear session-added ones
+   * so “Clear persisted” truly resets everything. Also reset validation state.
+   */
+  const prevPersistedLenRef = useRef<number>(mergedCustomCfg.options.length);
+  useEffect(() => {
+    const len = mergedCustomCfg.options.length;
+    if (prevPersistedLenRef.current !== len && len === 0) {
+      if (newOptions.length) setNewOptions([]);
+      if (Object.keys(editedLabels).length) setEditedLabels({});
+      if (addError) setAddError(false);
+      if (editError) setEditError(false);
+    }
+    prevPersistedLenRef.current = len;
+  }, [mergedCustomCfg.options, newOptions.length, editedLabels, addError, editError]);
+
+  // ORDER: session-created (top) -> injected persisted -> base options
+  const combinedOptions = useMemo(() => {
+    const map = new Map<string, DropdownOption>();
+    const push = (arr?: DropdownOption[]) => {
+      for (const o of arr || []) {
+        if (!map.has(o.value)) map.set(o.value, o);
+      }
+    };
+    push(newOptions); // top-most (this session)
+    push(mergedCustomCfg.options); // persisted from props
+    push(options); // base
+    // apply edited label overrides
+    const out = Array.from(map.values()).map((o) =>
+      editedLabels[o.value] ? { ...o, text: editedLabels[o.value] } : o
+    );
+    return out;
+  }, [options, mergedCustomCfg.options, newOptions, editedLabels]);
+
+  // Which values are editable? (all custom ones: session or persisted)
+  const editableSet = useMemo(() => {
+    const s = new Set<string>();
+    for (const o of newOptions) s.add(o.value);
+    for (const o of mergedCustomCfg.options) s.add(o.value);
+    for (const o of combinedOptions) if (isCustomValue(o.value)) s.add(o.value);
+    return s;
+  }, [newOptions, mergedCustomCfg.options, combinedOptions]);
+
+  // Value state
   const [selectedValue, setSelectedValue] = useState<string | undefined | null>(
     !isMulti ? (value as string) : undefined,
   );
@@ -47,309 +163,448 @@ export const Dropdown: React.FC<DropdownProps> = ({
     isMulti && Array.isArray(value) ? value : [],
   );
 
-  // displayValue: text shown when dropdown is closed.
+  // Display/filter
   const [displayValue, setDisplayValue] = useState("");
-  // Store previous display value in single select so that it’s not cleared if options change.
   const previousDisplayRef = useRef<string>("");
-  // filterText: text used for filtering when dropdown is open.
   const [filterText, setFilterText] = useState("");
-  // hasTyped: tracks whether the user has started typing in filter.
   const [hasTyped, setHasTyped] = useState(false);
   const [filteredOptions, setFilteredOptions] =
-    useState<DropdownOption[]>(options);
+    useState<DropdownOption[]>(combinedOptions);
+
+  // Positioning
   const [dropdownPosition, setDropdownPosition] = useState({
     top: 0,
     left: 0,
     width: 0,
-    position: "bottom",
+    position: "bottom" as "bottom" | "top",
   });
   const [isOpen, setIsOpen] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState<number>(-1);
+
+  // Refs
   const dropdownRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
-
-  // NEW: Ref for the filter input (multiselect filtering)
   const filterInputRef = useRef<HTMLInputElement>(null);
-  // NEW: Ref for the FormControl input (single-select)
   const formControlRef = useRef<HTMLInputElement>(null);
-  // NEW: Ref to store the last toggled value in multiselect mode.
+
+  // Custom creation mode
+  const [isCreatingCustom, setIsCreatingCustom] = useState(false);
+  const customInputRef = useRef<HTMLInputElement>(null);
+  const [customText, setCustomText] = useState<string>("");
+
+  // Inline edit mode for a specific custom value
+  const [editingValue, setEditingValue] = useState<string | null>(null);
+  const editInputRef = useRef<HTMLInputElement>(null);
+  const [editText, setEditText] = useState<string>("");
+
+  // Navigation helpers
   const lastMultiToggledRef = useRef<string | null>(null);
-  // Existing ref to store last valid focused value.
   const lastFocusedValueRef = useRef<string | null>(null);
+
+  // Pointer-inside guard to avoid blur-closing when clicking inside the list
+  const mouseDownInsideRef = useRef(false);
+  useEffect(() => {
+    const onMouseUp = () => {
+      setTimeout(() => (mouseDownInsideRef.current = false), 0);
+    };
+    document.addEventListener("mouseup", onMouseUp);
+    return () => document.removeEventListener("mouseup", onMouseUp);
+  }, []);
+
+  // Flash-highlight value (for newly added or duplicates)
+  const [flashValue, setFlashValue] = useState<string | null>(null);
+  useEffect(() => {
+    if (!flashValue) return;
+    const t = setTimeout(() => setFlashValue(null), 700);
+    return () => clearTimeout(t);
+  }, [flashValue]);
+
+  // When we need to move focus to a specific value after list changes
+  const focusRequestRef = useRef<string | null>(null);
 
   // --- SYNC EXTERNAL VALUE CHANGES ---
   useEffect(() => {
     if (isMulti) {
       if (!Array.isArray(value)) return;
-
-      setSelectedValues(value);
-
-      const text =
-        value.length > 0
-          ? `${value.length} selected ${ifElse(value.length === 1, "item", "items")}`
-          : "";
-      setDisplayValue(text);
+      setSelectedValues((prev) => (prev === value ? prev : value));
+      const text = value.length
+        ? `${value.length} selected ${ifElse(value.length === 1, "item", "items")}`
+        : "";
+      setDisplayValue((prev) => (prev === text ? prev : text));
       return;
     }
 
     const currentVal = value != null ? (value as string) : "";
-    const selectedOption = options.find((opt) => opt.value === currentVal);
+    const selectedOption = combinedOptions.find((o) => o.value === currentVal);
 
     if (!currentVal) {
-      setDisplayValue("");
-      setSelectedValue(undefined);
+      if (displayValue !== "") setDisplayValue("");
+      if (selectedValue !== undefined) setSelectedValue(undefined);
       previousDisplayRef.current = "";
     } else if (selectedOption) {
-      setDisplayValue(selectedOption.text);
+      if (displayValue !== selectedOption.text)
+        setDisplayValue(selectedOption.text);
+      if (selectedValue !== currentVal) setSelectedValue(currentVal);
       previousDisplayRef.current = selectedOption.text;
     } else {
-      setDisplayValue(previousDisplayRef.current);
+      if (displayValue !== previousDisplayRef.current)
+        setDisplayValue(previousDisplayRef.current);
+      if (selectedValue !== currentVal) setSelectedValue(currentVal);
     }
+  }, [value, combinedOptions, isMulti]);
 
-    setSelectedValue(currentVal);
-  }, [value, options, isMulti, onChange]);
-  // --- END SYNC EFFECT ---
-
-  // Filtering effect.
+  // Filtering
   useEffect(() => {
-    // Filter methods:
-    const startsWithFilter = (text: string, filterText: string) =>
-      text.toLowerCase().startsWith(filterText.toLowerCase());
+    const startsWith = (t: string, ft: string) =>
+      t.toLowerCase().startsWith(ft.toLowerCase());
+    const includes = (t: string, ft: string) =>
+      t.toLowerCase().includes(ft.toLowerCase());
 
-    const includesFilter = (text: string, filterText: string) =>
-      text.toLowerCase().includes(filterText.toLowerCase());
+    const next =
+      !filter || !hasTyped
+        ? combinedOptions
+        : combinedOptions.filter(({ text }) =>
+            filterAtBeginning ? startsWith(text, filterText) : includes(text, filterText),
+          );
 
-    // Returns the filtered options based on whether the user has typed:
-    const getFilteredOptions = () => {
-      if (!hasTyped) {
-        return options;
-      }
-      return options.filter(({ text }) =>
-        filterAtBeginning
-          ? startsWithFilter(text, filterText)
-          : includesFilter(text, filterText),
-      );
-    };
+    setFilteredOptions((prev) => (sameOptions(prev, next) ? prev : next));
+  }, [filterText, hasTyped, filterAtBeginning, filter, combinedOptions]);
 
-    // Set filtered options depending on the filter flag:
-    if (filter) {
-      setFilteredOptions(getFilteredOptions());
-    } else {
-      setFilteredOptions(options);
-    }
-  }, [filterText, hasTyped, filterAtBeginning, filter, options]);
+  // Build navigable items (index 0 = custom row when enabled)
+  const visibleItems = useMemo(() => {
+    if (!customEnabled) return filteredOptions;
+    return [
+      { value: CUSTOM_SENTINEL, text: mergedCustomCfg.label, disabled: false },
+      ...filteredOptions,
+    ];
+  }, [customEnabled, filteredOptions, mergedCustomCfg.label]);
 
-  // Recalculate dropdown position.
+  // Recompute position
   useEffect(() => {
-    if (isOpen && !hideOnScroll) {
-      updateDropdownPosition();
-    }
-  }, [filteredOptions, filterText, isOpen, hideOnScroll]);
+    if (isOpen && !hideOnScroll) updateDropdownPosition();
+  }, [visibleItems, filterText, isOpen, hideOnScroll]);
 
-  // NEW: Focus/Blur Handlers to open/close the dropdown based on focus.
-  const handleFocus = () => {
-    setIsOpen(true);
-  };
+  const handleFocus = () => setIsOpen(true);
 
   const handleBlur = (e: React.FocusEvent) => {
-    // Delay to allow clicks within the dropdown to register.
     setTimeout(() => {
       const activeEl = document.activeElement;
-      if (
-        activeEl !== formControlRef.current &&
-        !(listRef.current && listRef.current.contains(activeEl))
-      ) {
-        setIsOpen(false);
+      const clickingInside = mouseDownInsideRef.current;
+      const insideList =
+        !!listRef.current && !!activeEl && listRef.current.contains(activeEl);
+      const onTrigger = activeEl === formControlRef.current;
+
+      if (clickingInside) return;
+
+      if (insideList) {
+        if (isInteractiveElement(activeEl)) return;
+        formControlRef.current?.focus();
+        return;
       }
+
+      if (onTrigger) return;
+
+      setIsOpen(false);
+      setIsCreatingCustom(false);
+      setEditingValue(null);
+      setAddError(false);
+      setEditError(false);
     }, 0);
 
     onBlur?.(e);
   };
 
-  // When opening the dropdown, preset filter text (for single-select) and set focus.
+  // Open lifecycle: listeners + initial focus index
   useEffect(() => {
-    // Choose the appropriate scroll handler based on hideOnScroll prop.
     const scrollParent = getScrollParent(formControlRef.current);
-    const handleScroll = () => {
-      if (hideOnScroll) {
-        setIsOpen(false);
-      } else {
-        updateDropdownPosition();
-      }
-    };
+    const onScroll = () =>
+      hideOnScroll ? setIsOpen(false) : updateDropdownPosition();
 
-    const attachEventListeners = () => {
-      scrollParent.addEventListener("scroll", handleScroll);
+    const attach = () => {
+      scrollParent.addEventListener("scroll", onScroll);
       window.addEventListener("resize", updateDropdownPosition);
       document.addEventListener("mousedown", handleClickOutside);
     };
-
-    const detachEventListeners = () => {
-      scrollParent.removeEventListener("scroll", handleScroll);
+    const detach = () => {
+      scrollParent.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", updateDropdownPosition);
       document.removeEventListener("mousedown", handleClickOutside);
     };
 
-    const updateFilterText = () => {
+    const findNextFocusableIndex = (
+      currentIndex: number,
+      direction: "up" | "down",
+      arr: DropdownOption[] = visibleItems,
+    ) => {
+      if (!arr.length) return -1;
+      const initial = currentIndex < 0;
+      const step = direction === "down" ? 1 : -1;
+      const start = initial
+        ? direction === "down"
+          ? 0
+          : arr.length - 1
+        : currentIndex + step;
+      const end = direction === "down" ? arr.length : -1;
+
+      for (let i = start; direction === "down" ? i < end : i > end; i += step) {
+        if (!arr[i]?.disabled) return i;
+      }
+      return initial ? -1 : currentIndex;
+    };
+
+    const computeIndex = () => {
+      if (isMulti && lastMultiToggledRef.current) {
+        const i = visibleItems.findIndex(
+          (o) => o.value === lastMultiToggledRef.current,
+        );
+        if (i !== -1) return i;
+      }
+      if (isMulti && selectedValues.length) {
+        const i = visibleItems.findIndex((o) => selectedValues.includes(o.value));
+        if (i !== -1) return i;
+      }
+      if (!isMulti && selectedValue) {
+        const i = visibleItems.findIndex((o) => o.value === selectedValue);
+        if (i !== -1) return i;
+      }
+      return findNextFocusableIndex(-1, "down", visibleItems);
+    };
+
+    if (isOpen) {
       if (filter && !isMulti && !hasTyped) {
         if (selectedValue) {
-          const selOpt = options.find((opt) => opt.value === selectedValue);
-          setFilterText(selOpt ? selOpt.text : "");
+          const sel = combinedOptions.find((o) => o.value === selectedValue);
+          setFilterText(sel ? sel.text : "");
         } else {
           setFilterText("");
         }
       }
-    };
-
-    const computeSelectedIndex = () => {
-      if (isMulti) {
-        if (lastMultiToggledRef.current) {
-          const idx = filteredOptions.findIndex(
-            (opt) => opt.value === lastMultiToggledRef.current,
-          );
-          if (idx !== -1) {
-            return idx;
-          }
-        }
-        if (selectedValues.length > 0) {
-          const idx = filteredOptions.findIndex((opt) =>
-            selectedValues.includes(opt.value),
-          );
-          if (idx !== -1) {
-            return idx;
-          }
-        }
-      } else if (selectedValue) {
-        const idx = filteredOptions.findIndex(
-          (opt) => opt.value === selectedValue,
-        );
-        if (idx !== -1) {
-          return idx;
-        }
-      }
-      return findNextFocusableIndex(-1, "down", filteredOptions);
-    };
-
-    if (isOpen) {
-      updateFilterText();
-      const selectedIndex = computeSelectedIndex();
-      setFocusedIndex(selectedIndex);
+      const idx = computeIndex();
+      setFocusedIndex((prev) => (prev === idx ? prev : idx));
       updateDropdownPosition();
-      attachEventListeners();
+      attach();
       setTimeout(scrollToFocusedItem, 30);
     } else {
-      detachEventListeners();
+      detach();
     }
-
-    return detachEventListeners;
+    return detach;
   }, [
     isOpen,
-    options,
     filter,
     selectedValue,
     selectedValues,
     isMulti,
-    filteredOptions,
+    visibleItems,
     hideOnScroll,
+    hasTyped,
+    combinedOptions,
   ]);
 
-  // Update lastFocusedValueRef whenever focusedIndex is valid.
+  // Track last focused value
   useEffect(() => {
-    if (isOpen && focusedIndex >= 0 && focusedIndex < filteredOptions?.length) {
-      lastFocusedValueRef.current = filteredOptions[focusedIndex].value;
+    if (isOpen && focusedIndex >= 0 && focusedIndex < visibleItems.length) {
+      lastFocusedValueRef.current = visibleItems[focusedIndex].value;
     }
-  }, [focusedIndex, filteredOptions, isOpen]);
+  }, [focusedIndex, visibleItems, isOpen]);
 
-  // NEW EFFECT: When dropdown is open and filteredOptions or focusedIndex changes,
-  // add a short delay then scroll the focused item into view.
+  // Smooth scroll to focused
   useEffect(() => {
-    if (isOpen && focusedIndex >= 0) {
-      setTimeout(() => {
-        scrollToFocusedItem();
-      }, 50);
-    }
-  }, [isOpen, filteredOptions, focusedIndex]);
+    if (isOpen && focusedIndex >= 0) setTimeout(scrollToFocusedItem, 50);
+  }, [isOpen, visibleItems, focusedIndex]);
 
-  // NEW EFFECT: When closing the dropdown, clear the current filter so that reopening shows only the selected value.
+  // Apply any queued focus (e.g. after add/duplicate)
+  useEffect(() => {
+    const want = focusRequestRef.current;
+    if (!want || !isOpen) return;
+    const idx = visibleItems.findIndex((o) => o.value === want);
+    if (idx !== -1) {
+      setFocusedIndex((prev) => (prev === idx ? prev : idx));
+      setTimeout(scrollToFocusedItem, 0);
+      focusRequestRef.current = null;
+    }
+  }, [isOpen, visibleItems]);
+
+  // Reset filter on close
   useEffect(() => {
     if (!isOpen) {
       setFilterText("");
       setHasTyped(false);
+      setIsCreatingCustom(false);
+      setEditingValue(null);
+      setCustomText("");
+      setEditText("");
+      setAddError(false);
+      setEditError(false);
     }
   }, [isOpen]);
 
   const findNextFocusableIndex = (
     currentIndex: number,
     direction: "up" | "down",
-    optionsArray: DropdownOption[] = filteredOptions,
-  ): number => {
-    if (!optionsArray?.length) return -1;
-
-    // Check if we're starting fresh (currentIndex < 0)
-    const isInitial = currentIndex < 0;
+    arr: DropdownOption[] = visibleItems,
+  ) => {
+    if (!arr.length) return -1;
+    const initial = currentIndex < 0;
     const step = direction === "down" ? 1 : -1;
-    const start = isInitial
-      ? ifElse(direction === "down", 0, optionsArray.length - 1)
+    const start = initial
+      ? direction === "down"
+        ? 0
+        : arr.length - 1
       : currentIndex + step;
-    // For 'down' we go until optionsArray.length, for 'up' until -1 (exclusive)
-    const end = direction === "down" ? optionsArray.length : -1;
+    const end = direction === "down" ? arr.length : -1;
 
     for (let i = start; direction === "down" ? i < end : i > end; i += step) {
-      if (!optionsArray[i]?.disabled) return i;
+      if (!arr[i]?.disabled) return i;
     }
-
-    // If no eligible option found, mimic original behavior:
-    // Return -1 if starting fresh, else return the original currentIndex.
-    return isInitial ? -1 : currentIndex;
+    return initial ? -1 : currentIndex;
   };
+
+  /** Leave custom add mode but keep menu open and restore keyboard nav. */
+  const exitCustomMode = useCallback(() => {
+    setIsCreatingCustom(false);
+    setCustomText("");
+    setAddError(false);
+    setTimeout(() => {
+      if (!isOpen) setIsOpen(true);
+      formControlRef.current?.focus();
+      const customIdx = visibleItems.findIndex((o) => o.value === CUSTOM_SENTINEL);
+      setFocusedIndex((prev) => {
+        const next =
+          customIdx !== -1
+            ? customIdx
+            : findNextFocusableIndex(-1, "down", visibleItems);
+        return prev === next ? prev : next;
+      });
+      scrollToFocusedItem();
+    }, 0);
+  }, [isOpen, visibleItems]);
+
+  /** Enter inline edit for a given custom value (internal). */
+  const enterEdit = useCallback((val: string) => {
+    const opt = combinedOptions.find((o) => o.value === val);
+    if (!opt) return;
+    const raw = opt.text.startsWith(mergedCustomCfg.prefix)
+      ? opt.text.slice(mergedCustomCfg.prefix.length)
+      : opt.text;
+    setEditingValue(val);
+    setEditText(raw);
+    setEditError(false);
+    setTimeout(() => editInputRef.current?.focus(), 0);
+  }, [combinedOptions, mergedCustomCfg.prefix]);
+
+  /** Public helper: start Edit; cancels Add if active. */
+  const startEdit = useCallback((val: string) => {
+    if (isCreatingCustom) {
+      setIsCreatingCustom(false);
+      setCustomText("");
+      setAddError(false);
+    }
+    enterEdit(val);
+  }, [isCreatingCustom, enterEdit]);
+
+  /** Cancel inline edit. */
+  const cancelEdit = useCallback(() => {
+    setEditingValue(null);
+    setEditText("");
+    setEditError(false);
+    setTimeout(() => formControlRef.current?.focus(), 0);
+  }, []);
+
+  /** Public helper: start Add; cancels Edit if active. */
+  const startAdd = useCallback(() => {
+    if (!isCreatingCustom) {
+      if (editingValue) {
+        setEditingValue(null);
+        setEditText("");
+        setEditError(false);
+      }
+      setIsCreatingCustom(true);
+      setTimeout(() => customInputRef.current?.focus(), 0);
+    }
+  }, [isCreatingCustom, editingValue]);
+
+  /** Commit inline edit (preserve value; update text). */
+  const commitEdit = useCallback(() => {
+    if (!editingValue) return;
+    const prev = combinedOptions.find((o) => o.value === editingValue);
+    if (!prev) return;
+    const raw = (editText ?? "").trim();
+    if (!raw) {
+      setEditError(true);
+      return;
+    }
+    setEditError(false);
+
+    const nextText = `${mergedCustomCfg.prefix}${raw}`;
+    const nextOpt: DropdownOption = { value: prev.value, text: nextText };
+
+    // Update session-created list if present
+    setNewOptions((prevArr) =>
+      prevArr.some((o) => o.value === editingValue)
+        ? prevArr.map((o) => (o.value === editingValue ? nextOpt : o))
+        : prevArr
+    );
+
+    // For persisted ones, store local override
+    setEditedLabels((prevMap) =>
+      prevMap[editingValue] === nextText ? prevMap : { ...prevMap, [editingValue]: nextText }
+    );
+
+    mergedCustomCfg.onEdit?.(prev, nextOpt, raw);
+
+    // Flash & refocus
+    setFlashValue(editingValue);
+    focusRequestRef.current = editingValue;
+    setEditingValue(null);
+    setEditText("");
+    setTimeout(() => formControlRef.current?.focus(), 0);
+  }, [editingValue, combinedOptions, editText, mergedCustomCfg.prefix, mergedCustomCfg.onEdit]);
 
   const handleSelect = (
     selectedVal: string,
     e: React.MouseEvent<HTMLLIElement, MouseEvent> | React.KeyboardEvent,
   ) => {
     e.stopPropagation();
+
+    // Click/Enter on custom row -> start Add (and cancel Edit if any)
+    if (selectedVal === CUSTOM_SENTINEL) {
+      startAdd();
+      return;
+    }
+
+    // ignore clicks when this row is in edit mode
+    if (editingValue === selectedVal) return;
+
     if (isMulti) {
       setSelectedValues((prev) => {
-        let newSelected: string[];
-        if (prev.includes(selectedVal)) {
-          newSelected = prev.filter((val) => val !== selectedVal);
-        } else {
-          newSelected = [...prev, selectedVal];
-        }
+        const next = prev.includes(selectedVal)
+          ? prev.filter((v) => v !== selectedVal)
+          : [...prev, selectedVal];
         setDisplayValue(
-          newSelected.length > 0
-            ? `${newSelected.length} selected ${ifElse(newSelected.length === 1, "item", "items")}`
+          next.length
+            ? `${next.length} selected ${ifElse(next.length === 1, "item", "items")}`
             : "",
         );
         if (filter) {
           setFilterText("");
           setHasTyped(false);
         }
-        // Save toggled value so arrow navigation starts from here.
         lastMultiToggledRef.current = selectedVal;
-        const newFocusIndex = filteredOptions.findIndex(
-          (opt) => opt.value === selectedVal,
-        );
-        if (newFocusIndex !== -1) {
-          setFocusedIndex(newFocusIndex);
-        }
-        onChange?.(newSelected);
-        return newSelected;
+        const i = visibleItems.findIndex((o) => o.value === selectedVal);
+        if (i !== -1)
+          setFocusedIndex((prev) => (prev === i ? prev : i));
+        onChange?.(next);
+        return next;
       });
-      // Re-focus the filter input so that arrow navigation and Enter still work
-      if (filter) {
-        setTimeout(() => {
-          filterInputRef.current?.focus();
-        }, 0);
-      }
+      if (filter) setTimeout(() => filterInputRef.current?.focus(), 0);
     } else {
-      const selectedOption = options.find((opt) => opt.value === selectedVal);
-      if (!selectedOption) return;
+      const opt = combinedOptions.find((o) => o.value === selectedVal);
+      if (!opt) return;
       setIsOpen(false);
-      setDisplayValue(selectedOption.text);
+      setDisplayValue(opt.text);
       setSelectedValue(selectedVal);
       if (filter) {
-        setFilterText(selectedOption.text);
+        setFilterText(opt.text);
         setHasTyped(false);
       }
       onChange?.(selectedVal);
@@ -361,8 +616,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
     e.stopPropagation();
     setDisplayValue("");
     setFilterText("");
-    // NEW: Reset focusedIndex to 0 so that scroll resets to the top.
-    setFocusedIndex(0);
+    setFocusedIndex((prev) => (prev === 0 ? prev : 0));
     if (isMulti) {
       setSelectedValues([]);
       onChange?.([]);
@@ -374,10 +628,8 @@ export const Dropdown: React.FC<DropdownProps> = ({
         }, 0);
       }
     } else {
-      // For single-select, reset the value to an empty string.
       setSelectedValue(null);
       onChange?.(null);
-      // For single-select, open the dropdown and focus the FormControl.
       setIsOpen(true);
       setTimeout(() => {
         formControlRef.current?.focus();
@@ -386,7 +638,6 @@ export const Dropdown: React.FC<DropdownProps> = ({
     }
   };
 
-  // Handle clicks outside the dropdown to close it.
   const handleClickOutside = (event: MouseEvent) => {
     if (
       dropdownRef.current &&
@@ -395,12 +646,42 @@ export const Dropdown: React.FC<DropdownProps> = ({
       !listRef.current.contains(event.target as Node)
     ) {
       setIsOpen(false);
+      setIsCreatingCustom(false);
+      setEditingValue(null);
+      setAddError(false);
+      setEditError(false);
     }
   };
 
-  // Handle keyboard navigation within the dropdown.
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (disabled) return;
+
+    // ⛔ While in add or edit text input, handle Enter/Escape locally and ignore Up/Down at the menu level.
+    const inCustomInput =
+      (isCreatingCustom && customInputRef.current && document.activeElement === customInputRef.current) ||
+      (editingValue && editInputRef.current && document.activeElement === editInputRef.current);
+
+    if (inCustomInput) {
+      if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+      if (event.key === "Enter") {
+        event.preventDefault();
+        event.stopPropagation();
+        if (isCreatingCustom) return addCustomOption();
+        if (editingValue) return commitEdit();
+      }
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        if (isCreatingCustom) return exitCustomMode();
+        if (editingValue) return cancelEdit();
+      }
+    }
+
+    // If menu is closed, Up/Down opens it
     if (!isOpen) {
       if (event.key === "ArrowDown" || event.key === "ArrowUp") {
         setIsOpen(true);
@@ -408,69 +689,72 @@ export const Dropdown: React.FC<DropdownProps> = ({
       }
       return;
     }
+
     if (event.key === "ArrowDown") {
       event.preventDefault();
-      setFocusedIndex((prev) =>
-        findNextFocusableIndex(prev, "down", filteredOptions),
-      );
-    } else if (event.key === "ArrowUp") {
+      setFocusedIndex((p) => findNextFocusableIndex(p, "down", visibleItems));
+      return;
+    }
+    if (event.key === "ArrowUp") {
       event.preventDefault();
-      setFocusedIndex((prev) =>
-        findNextFocusableIndex(prev, "up", filteredOptions),
-      );
-    } else if (event.key === "Enter") {
+      setFocusedIndex((p) => findNextFocusableIndex(p, "up", visibleItems));
+      return;
+    }
+    if (event.key === "Enter") {
       event.preventDefault();
-      if (focusedIndex >= 0 && !filteredOptions[focusedIndex]?.disabled) {
-        handleSelect(filteredOptions[focusedIndex]?.value, event);
+      if (focusedIndex >= 0 && !visibleItems[focusedIndex]?.disabled) {
+        handleSelect(visibleItems[focusedIndex].value, event);
       }
-    } else if (event.key === "Escape") {
+      return;
+    }
+    if (event.key === "Escape") {
       event.preventDefault();
+      if (isCreatingCustom) return exitCustomMode();
+      if (editingValue) return cancelEdit();
       setIsOpen(false);
     }
   };
 
   const scrollToFocusedItem = () => {
-    if (
-      listRef.current &&
-      focusedIndex >= 0 &&
-      listRef.current.children[focusedIndex]
-    ) {
-      const focusedItem = listRef.current.children[focusedIndex] as HTMLElement;
-      if (focusedItem) {
-        focusedItem.scrollIntoView({
-          block: "center",
-          inline: "nearest",
-          behavior: "smooth",
-        });
-      }
-    }
+    if (!listRef.current || focusedIndex < 0) return;
+    const navItems = listRef.current.querySelectorAll("li.nav-item");
+    const target = navItems[focusedIndex] as HTMLElement | undefined;
+    target?.scrollIntoView({
+      block: "center",
+      inline: "nearest",
+      behavior: "smooth",
+    });
   };
 
   const updateDropdownPosition = () => {
-    // Now using formControlRef for bounding client calculations.
     if (!formControlRef.current || !listRef.current) return;
     const rect = formControlRef.current.getBoundingClientRect();
-    const dropdownHeight = listRef.current.offsetHeight;
+    const ddHeight = listRef.current.offsetHeight;
     const spaceBelow = window.innerHeight - rect.bottom;
     const spaceAbove = rect.top;
-    let position =
-      spaceBelow < dropdownHeight && spaceAbove > dropdownHeight
-        ? "top"
-        : "bottom";
-    if (filteredOptions?.length <= 1) {
-      position = "bottom";
-    }
-    setDropdownPosition({
-      top: position === "top" ? rect.top - dropdownHeight : rect.bottom,
+    let position: "bottom" | "top" =
+      spaceBelow < ddHeight && spaceAbove > ddHeight ? "top" : "bottom";
+    if (visibleItems.length <= 1) position = "bottom";
+
+    const next = {
+      top: position === "top" ? rect.top - ddHeight : rect.bottom,
       left: rect.left,
       width: rect.width,
       position,
-    });
+    };
+
+    setDropdownPosition((prev) =>
+      prev.top === next.top &&
+      prev.left === next.left &&
+      prev.width === next.width &&
+      prev.position === next.position
+        ? prev
+        : next,
+    );
   };
 
   const highlightMatch = (text: string) => {
     if (!filter || !hasTyped || !filterText) return text;
-    // If filtering by beginning, highlight only the first characters.
     if (filterAtBeginning) {
       if (text.toLowerCase().startsWith(filterText.toLowerCase())) {
         const prefix = text.substring(0, filterText.length);
@@ -484,62 +768,39 @@ export const Dropdown: React.FC<DropdownProps> = ({
       }
       return text;
     }
-    // Otherwise highlight all occurrences.
     const regex = new RegExp(`(${filterText})`, "gi");
     return (
       <span>
-        {text
-          .split(regex)
-          .map((part, i: number) =>
-            part.toLowerCase() === filterText.toLowerCase() ? (
-              <HighlightedText key={`key-${part}-${i}`}>{part}</HighlightedText>
-            ) : (
-              part
-            ),
-          )}
+        {text.split(regex).map((part, i) =>
+          part.toLowerCase() === filterText.toLowerCase() ? (
+            <HighlightedText key={`m-${i}`}>{part}</HighlightedText>
+          ) : (
+            part
+          ),
+        )}
       </span>
     );
   };
 
-  const getSelectedClass = (index: number, value: string) => {
-    let focusClass = "";
-    let selectedClass = "";
-
-    if (index === focusedIndex) {
-      focusClass = "focused";
-    }
-
-    if (
-      (isMulti && selectedValues.includes(value)) ||
-      (!isMulti && value === selectedValue)
-    ) {
-      selectedClass = "selected";
-    }
-
-    return `${focusClass} ${selectedClass}`;
+  const getSelectedClass = (index: number, val: string, isFlash = false) => {
+    const focused = index === focusedIndex ? "focused" : "";
+    const selected =
+      (isMulti && selectedValues.includes(val)) ||
+      (!isMulti && val === selectedValue)
+        ? "selected"
+        : "";
+    const flash = isFlash ? "flash" : "";
+    return `${focused} ${selected} ${flash}`.trim();
   };
 
   const getValue = () => {
-    if (isMulti) {
-      return displayValue;
-    }
-
-    if (isOpen && filter) {
-      if (hasTyped) {
-        return filterText;
-      } else {
-        return displayValue;
-      }
-    } else {
-      return displayValue;
-    }
+    if (isMulti) return displayValue;
+    return isOpen && filter ? (hasTyped ? filterText : displayValue) : displayValue;
   };
 
   const getClearIcon = () => {
-    if (disabled) return []; // nothing clickable when disabled
-
+    if (disabled) return [] as any[];
     const shouldShowClear = isMulti ? selectedValues.length > 0 : selectedValue;
-
     return shouldShowClear
       ? [
           {
@@ -556,21 +817,71 @@ export const Dropdown: React.FC<DropdownProps> = ({
   const handleFilterChange = (text: string) => {
     setFilterText(text);
     setHasTyped(true);
-    if (onFilterChange) {
-      onFilterChange(text);
-    }
+    onFilterChange?.(text);
   };
 
-  // 4) Build right-side icons with disabled-aware caret (no onClick when disabled)
+  // Create custom option (slug, duplicate detection, prepend, flash, focus)
+  const addCustomOption = useCallback(() => {
+    const safe = customText ?? "";
+    const raw = safe.trim();
+    if (!raw) {
+      setAddError(true);
+      return;
+    }
+    setAddError(false);
+
+    const slug = slugify(raw);
+    if (!slug) {
+      setAddError(true);
+      return;
+    }
+
+    const value = `custom-${slug}`;
+    const label = `${mergedCustomCfg.prefix}${raw}`;
+
+    // Duplicate? (search across full combined list)
+    const dup = combinedOptions.find((o) => o.value === value);
+    if (dup) {
+      setIsCreatingCustom(false);
+      setHasTyped(false);
+      setFilterText("");
+      setFlashValue(value);
+      focusRequestRef.current = value;
+      setTimeout(() => {
+        if (!isOpen) setIsOpen(true);
+        formControlRef.current?.focus();
+      }, 0);
+      return;
+    }
+
+    const created: DropdownOption = { value, text: label };
+
+    setNewOptions((prev) => [created, ...prev]);
+    mergedCustomCfg.onAdd?.(created, raw);
+
+    setIsCreatingCustom(false);
+    setCustomText("");
+    setHasTyped(false);
+    setFilterText("");
+    setFlashValue(value);
+    focusRequestRef.current = value;
+
+    setTimeout(() => {
+      if (!isOpen) setIsOpen(true);
+      formControlRef.current?.focus();
+    }, 0);
+  }, [
+    customText,
+    combinedOptions,
+    mergedCustomCfg.prefix,
+    mergedCustomCfg.onAdd,
+    isOpen,
+  ]);
+
   const rightIcons = [
     ...(clearable || isMulti ? getClearIcon() : []),
     ...(disabled && showDisabledIcon
-      ? [
-          {
-            icon: "lock_outline",
-            className: "disabled-icon",
-          },
-        ]
+      ? [{ icon: "lock_outline", className: "disabled-icon" }]
       : []),
     {
       icon: "keyboard_arrow_down",
@@ -582,12 +893,17 @@ export const Dropdown: React.FC<DropdownProps> = ({
   const dropdownContent = (
     <DropdownList
       ref={listRef}
+      onMouseDown={(e) => {
+        if (listRef.current?.contains(e.target as Node)) {
+          mouseDownInsideRef.current = true;
+        }
+      }}
       style={{
         top: dropdownPosition.top,
         left: dropdownPosition.left,
         width: dropdownWidth || dropdownPosition.width,
       }}
-      $size={size}
+      $size={size as any}
       $dropdownHeight={dropdownHeight}
       $position={dropdownPosition.position}
       className="dropdown-list"
@@ -610,38 +926,37 @@ export const Dropdown: React.FC<DropdownProps> = ({
           />
         </DropdownFilterContainer>
       )}
-      {filteredOptions?.length > 0 ? (
+
+      {visibleItems.length > 0 ? (
         <>
           {isMulti && (
             <DropdownItem
-              $size={size}
+              $size={size as any}
               role="dropdown-menu-item"
               data-testid="select-all"
-              aria-disabled={undefined}
               key="select-all"
-              className={`select-all ${selectedValues.length === options.filter((o) => !o.disabled).length ? "selected" : ""}`}
+              className={`select-all ${
+                selectedValues.length ===
+                combinedOptions.filter((o) => !o.disabled).length
+                  ? "selected"
+                  : ""
+              }`}
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => {
-                const allSelected =
-                  selectedValues.length ===
-                  options.filter((o) => !o.disabled).length;
-
-                const newValues = allSelected
-                  ? []
-                  : options.filter((o) => !o.disabled).map((o) => o.value);
-
-                setSelectedValues(newValues);
+                const allEnabled = combinedOptions.filter((o) => !o.disabled);
+                const allSelected = selectedValues.length === allEnabled.length;
+                const next = allSelected ? [] : allEnabled.map((o) => o.value);
+                setSelectedValues(next);
                 setDisplayValue(
-                  newValues.length > 0
-                    ? `${newValues.length} selected ${ifElse(newValues.length === 1, "item", "items")}`
+                  next.length
+                    ? `${next.length} selected ${ifElse(next.length === 1, "item", "items")}`
                     : "",
                 );
-                onChange?.(newValues);
-                // Refocus the filter input if needed
+                onChange?.(next);
                 if (filter) {
                   setTimeout(() => {
                     filterInputRef.current?.focus();
-                    setFocusedIndex(0);
+                    setFocusedIndex((prev) => (prev === 0 ? prev : 0));
                     scrollToFocusedItem();
                   }, 0);
                 }
@@ -652,44 +967,232 @@ export const Dropdown: React.FC<DropdownProps> = ({
                 readOnly
                 checked={
                   selectedValues.length ===
-                  options.filter((o) => !o.disabled).length
+                  combinedOptions.filter((o) => !o.disabled).length
                 }
                 simple
               />
               Select All
             </DropdownItem>
           )}
-          {filteredOptions.map(({ value, text, disabled }, index) => (
-            <DropdownItem
-              $size={size}
-              key={`${value}-${index}`}
-              data-testid={text}
-              disabled={disabled}
-              onMouseDown={(e) => e.preventDefault()}
-              className={getSelectedClass(index, value)}
-              role="dropdown-menu-item"
-              aria-disabled={disabled || undefined}
-              aria-selected={
-                (isMulti && selectedValues.includes(value)) ||
-                (!isMulti && value === selectedValue) ||
-                undefined
-              }
-              onClick={(e: React.MouseEvent<HTMLLIElement, MouseEvent>) =>
-                !disabled && handleSelect(value, e)
-              }
-            >
-              {isMulti && (
-                <FormControl
-                  type="checkbox"
-                  readOnly
-                  checked={selectedValues.includes(value)}
-                  simple
-                  disabled={disabled}
-                />
-              )}
-              {highlightMatch(text)}
-            </DropdownItem>
-          ))}
+
+          {visibleItems.map(({ value: v, text, disabled }, index) => {
+            const isCustomRow = v === CUSTOM_SENTINEL;
+            const isFlashing = flashValue === v;
+
+            if (isCustomRow) {
+              // padding is removed only while editing; otherwise keep normal padding (no class)
+              const liClasses = [
+                "nav-item",
+                isCreatingCustom ? "custom-row-item" : "",
+                getSelectedClass(index, v, isFlashing),
+              ]
+                .filter(Boolean)
+                .join(" ");
+
+              return (
+                <DropdownItem
+                  $size={size as any}
+                  key="custom-row"
+                  role="dropdown-menu-item"
+                  className={liClasses}
+                  $noHover={isCreatingCustom}
+                  disabled={false}
+                  aria-disabled={undefined}
+                  onClick={(e: React.MouseEvent<HTMLLIElement>) => {
+                    e.stopPropagation();
+                    startAdd(); // <-- ensures Edit is canceled first
+                  }}
+                >
+                  {!isCreatingCustom ? (
+                    <div style={{ width: "100%", display: "flex", alignItems: "center" }}>
+                      {mergedCustomCfg.label}
+                    </div>
+                  ) : (
+                    <CustomRow onClick={(e) => e.stopPropagation()}>
+                      <CustomInputWrap>
+                        <FormControl
+                          ref={customInputRef}
+                          type="text"
+                          placeholder={`${mergedCustomCfg.label}...`}
+                          value={customText}
+                          clearable={false}
+                          color={addError ? "danger" : undefined}
+                          helpText={addError ? REQUIRED_MSG : undefined}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                            const v = e.target.value ?? "";
+                            setCustomText(v);
+                            if (addError && v.trim()) setAddError(false);
+                          }}
+                          onKeyDown={handleKeyDown}
+                        />
+                      </CustomInputWrap>
+
+                      <OverlapAction>
+                        <Button
+                          size="xs"
+                          variant="outlined"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            addCustomOption();
+                          }}
+                        >
+                          {mergedCustomCfg.addText}
+                        </Button>
+
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            exitCustomMode();
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              exitCustomMode();
+                            }
+                          }}
+                          style={{
+                            fontSize: 11,
+                            color: "#d32f2f",
+                            cursor: "pointer",
+                            userSelect: "none",
+                          }}
+                        >
+                          Cancel
+                        </span>
+                      </OverlapAction>
+                    </CustomRow>
+                  )}
+                </DropdownItem>
+              );
+            }
+
+            // Normal option rows (with optional inline edit for editable custom values)
+            const editable = editableSet.has(v);
+            const isEditingThis = editingValue === v;
+
+            if (isEditingThis) {
+              // NOTE: intentionally NO onMouseDown preventDefault here — we want the input to be focusable on click.
+              return (
+                <DropdownItem
+                  $size={size as any}
+                  key={`${v}-editing`}
+                  className={`nav-item editing-item ${getSelectedClass(index, v, isFlashing)}`}
+                  role="dropdown-menu-item"
+                  $noHover
+                >
+                  <EditRow onClick={(e) => e.stopPropagation()}>
+                    <FormControl
+                      ref={editInputRef}
+                      type="text"
+                      placeholder={`${mergedCustomCfg.label}...`}
+                      value={editText}
+                      clearable={false}
+                      color={editError ? "danger" : undefined}
+                      helpText={editError ? REQUIRED_MSG : undefined}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        const v = e.target.value ?? "";
+                        setEditText(v);
+                        if (editError && v.trim()) setEditError(false);
+                      }}
+                      onKeyDown={handleKeyDown}
+                    />
+                    <OverlapAction>
+                      <Button
+                        size="xs"
+                        variant="outlined"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          commitEdit();
+                        }}
+                      >
+                        Save
+                      </Button>
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          cancelEdit();
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            cancelEdit();
+                          }
+                        }}
+                        style={{
+                          fontSize: 11,
+                          color: "#d32f2f",
+                          cursor: "pointer",
+                          userSelect: "none",
+                        }}
+                      >
+                        Cancel
+                      </span>
+                    </OverlapAction>
+                  </EditRow>
+                </DropdownItem>
+              );
+            }
+
+            return (
+              <DropdownItem
+                $size={size as any}
+                key={`${v}-${index}`}
+                data-testid={text}
+                disabled={disabled}
+                onMouseDown={(e) => e.preventDefault()}
+                className={`nav-item option-item ${getSelectedClass(index, v, isFlashing)}`}
+                role="dropdown-menu-item"
+                aria-disabled={disabled || undefined}
+                aria-selected={
+                  (isMulti && selectedValues.includes(v)) ||
+                  (!isMulti && v === selectedValue) ||
+                  undefined
+                }
+                onClick={(e: React.MouseEvent<HTMLLIElement, MouseEvent>) =>
+                  !disabled && handleSelect(v, e)
+                }
+              >
+                {isMulti && (
+                  <FormControl
+                    type="checkbox"
+                    readOnly
+                    checked={selectedValues.includes(v)}
+                    simple
+                    disabled={disabled}
+                  />
+                )}
+                <div style={{ flex: 1, minWidth: 0 }}>{highlightMatch(text)}</div>
+
+                {editable && !disabled && (
+                  <RowAffordance
+                    className="row-affordance"
+                    role="button"
+                    aria-label="Edit custom option"
+                    title="Edit custom option"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      startEdit(v); // <-- ensures Add is canceled first
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        startEdit(v);
+                      }
+                    }}
+                  >
+                    <Icon icon="edit" />
+                  </RowAffordance>
+                )}
+              </DropdownItem>
+            );
+          })}
         </>
       ) : (
         <NoOptionsContainer>No options found</NoOptionsContainer>
@@ -707,7 +1210,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
         placeholder={placeholder}
         readOnly={isMulti || !filter || !isOpen}
         disabled={disabled}
-        size={size}
+        size={size as any}
         onFocus={handleFocus}
         onBlur={handleBlur}
         onClick={() => setIsOpen(true)}
@@ -717,7 +1220,9 @@ export const Dropdown: React.FC<DropdownProps> = ({
         onChange={
           filter && !isMulti
             ? (e: React.ChangeEvent<HTMLInputElement>) => {
-                handleFilterChange(e.target.value);
+                setFilterText(e.target.value);
+                setHasTyped(true);
+                onFilterChange?.(e.target.value);
               }
             : noop
         }

@@ -37,7 +37,7 @@ const meta: Meta<typeof Dropdown> = {
 
 export default meta
 
-// ✅ Default Dropdown story (hidden in production via !dev tag)
+// ✅ Default Dropdown story (hidden via !dev tag)
 export const Default: StoryObj<typeof meta> = {
   args: {
     label: 'This is a dropdown',
@@ -116,6 +116,21 @@ const ExamplesComponent: React.FC = () => {
     if (dynamicOptions.length > 1) setDynamicOptions(dynamicOptions.slice(0, -1))
   }
 
+  // ---------- Inline Custom Option Flow (Single & Multi) ----------
+  const [customEnabled, setCustomEnabled] = useState(true)
+  const [singleCustom, setSingleCustom] = useState<string | null>(null)
+  const [multiCustom, setMultiCustom] = useState<string[]>([])
+  // Simulate persisted custom options you might reload on refresh:
+  const [persistedCustom, setPersistedCustom] = useState<{ value: string; text: string }[]>([
+    { value: 'custom-decaf', text: 'Others - Decaf' }
+  ])
+
+  const handleCustomAdd = useCallback((opt: { value: string; text: string }, raw: string) => {
+    // Persist upstream; demo: store locally so it reappears via customOption.options
+    setPersistedCustom(prev => (prev.find(p => p.value === opt.value) ? prev : [ ...prev, opt ]))
+    console.log("Created (persist me):", opt, "raw:", raw)
+  }, [])
+
   return (
     <StoryWrapper title='Dropdown Component' subTitle={descriptionText}>
       <Title>Colors</Title>
@@ -192,12 +207,14 @@ const ExamplesComponent: React.FC = () => {
             }}
             helpText='Pre-selected value example.'
           />
-          <Button size='sm' onClick={() => setSelected('option2')}>
-            Set Value
-          </Button>
-          <Button size='sm' onClick={() => setSelected('')}>
-            Clear Value
-          </Button>
+          <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <Button size='sm' onClick={() => setSelected('option2')}>
+              Set Value
+            </Button>
+            <Button size='sm' onClick={() => setSelected('')}>
+              Clear Value
+            </Button>
+          </div>
         </GridItem>
         <GridItem xs={12} sm={6}>
           <Dropdown
@@ -227,12 +244,14 @@ const ExamplesComponent: React.FC = () => {
             filter
             helpText='Multi-select dropdown example.'
           />
-          <Button size='sm' onClick={() => setSelectedMulti(['option3', 'option4'])}>
-            Set Multi Value
-          </Button>
-          <Button size='sm' onClick={() => setSelectedMulti([])}>
-            Clear Multi Value
-          </Button>
+          <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <Button size='sm' onClick={() => setSelectedMulti(['option3', 'option4'])}>
+              Set Multi Value
+            </Button>
+            <Button size='sm' onClick={() => setSelectedMulti([])}>
+              Clear Multi Value
+            </Button>
+          </div>
         </GridItem>
 
         <GridItem xs={12} sm={6}>
@@ -241,22 +260,78 @@ const ExamplesComponent: React.FC = () => {
             options={dynamicOptions}
             helpText='Dropdown with dynamic options (add/remove).'
           />
-          <Button size='sm' onClick={addDynamicOption}>
-            Add Option
-          </Button>
-          <Button size='sm' onClick={removeDynamicOption} color='danger'>
-            Remove Option
-          </Button>
+          <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <Button size='sm' onClick={addDynamicOption}>
+              Add Option
+            </Button>
+            <Button size='sm' onClick={removeDynamicOption} color='danger'>
+              Remove Option
+            </Button>
+          </div>
         </GridItem>
       </Grid>
 
-      <Title>Aync Filter Dropdown</Title>
+      <Title>Async Filter Dropdown</Title>
       <Grid>
         <GridItem xs={12} sm={6}>
           <LocalServerNotice title="Local API not detected" description={<>Run <code>node server.js</code> at project root.</>} />
           <AsyncFilterDropdown/>
         </GridItem>
       </Grid>
+
+      {/* ---------- Inline Custom Option Flow Section ---------- */}
+      <Title>Custom Option Flow (Inline)</Title>
+      <Grid>
+        <GridItem xs={12} sm={12} md={6}>
+          <Dropdown
+            label="Single with Custom Creator"
+            options={DEFAULT_OPTIONS}
+            value={singleCustom ?? ''}
+            onChange={(v: any) => setSingleCustom(v)}
+            enableCustomOption={customEnabled}
+            customOption={{
+              // label: "Others",
+              // prefix: "Others - ",
+              // addText: "Add",
+              onAdd: handleCustomAdd,
+              /** ✅ moved here */
+              options: persistedCustom,
+            }}
+            helpText={`Click 'Others' to add. Feature is ${customEnabled ? 'enabled' : 'disabled'}.`}
+          />
+          <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <Button size="sm" onClick={() => setCustomEnabled(v => !v)}>
+              {customEnabled ? 'Disable' : 'Enable'} Custom Option
+            </Button>
+            <Button size="sm" onClick={() => setPersistedCustom([])}>
+              Clear persisted customOptions
+            </Button>
+            <Button size="sm" onClick={() => setSingleCustom('')}>
+              Clear Single Value
+            </Button>
+          </div>
+        </GridItem>
+
+        <GridItem xs={12} sm={12} md={6}>
+          <Dropdown
+            label="Multi with Custom Creator"
+            multiselect
+            options={DEFAULT_OPTIONS}
+            value={multiCustom}
+            onChange={(v: any) => setMultiCustom(Array.isArray(v) ? v : [v])}
+            enableCustomOption={customEnabled}
+            customOption={{ onAdd: handleCustomAdd, options: persistedCustom }}
+            helpText={`Works with multiselect. Feature is ${customEnabled ? 'enabled' : 'disabled'}.`}
+            filter
+          />
+          <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <Button size="sm" onClick={() => setMultiCustom([])}>
+              Clear Multi Value
+            </Button>
+          </div>
+        </GridItem>
+      </Grid>
+      {/* ---------- End Custom Option Flow Section ---------- */}
     </StoryWrapper>
   )
 }
