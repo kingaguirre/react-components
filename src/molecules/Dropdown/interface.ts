@@ -21,6 +21,16 @@ export interface CustomOptionConfig {
   onAdd?: (option: DropdownOption, rawText: string) => void;
 
   /**
+   * Callback when a custom option’s label is edited inline.
+   * - `prev` is the original option (immutable reference).
+   * - `next` is the updated option (same `value`, new `text` that already includes the prefix).
+   * - `rawText` is the user’s raw input, without the prefix.
+   *
+   * Use this to persist the edit. Do **not** change `value`; it remains the original custom id (e.g., `custom-...`).
+   */
+  onEdit?: (prev: DropdownOption, next: DropdownOption, rawText: string) => void;
+
+  /**
    * ✅ Persisted custom options (merged with session-created options).
    * These appear below session-created options and above base `options`.
    */
