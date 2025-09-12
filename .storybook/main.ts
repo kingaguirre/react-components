@@ -17,6 +17,7 @@ const config: StorybookConfig = {
     "@storybook/addon-interactions",
     "storybook-dark-mode"
   ],
+  staticDirs: ['../public'],
   framework: {
     name: "@storybook/react-vite",
     options: {},

@@ -1,6 +1,7 @@
-// src/molecules/Dropdown/styled.tsx
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 import { theme, scrollStyle } from "../../styles";
+
+const CUSTOM_INPUT_PADRIGHT = 95;
 
 export const DropdownContainer = styled.div`
   position: relative;
@@ -31,7 +32,10 @@ export const DropdownList = styled.ul<{
 export const DropdownItem = styled.li<{
   disabled?: boolean;
   $size: keyof typeof theme.sizes.boxSize;
+  /** Suppress :hover highlight for this row (used while editing custom input). */
+  $noHover?: boolean;
 }>`
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -46,17 +50,29 @@ export const DropdownItem = styled.li<{
   transition: all 0.3s ease;
   min-height: ${({ $size }) => theme.sizes.boxSize[$size]}px;
   box-sizing: border-box;
+  word-break: break-word;
 
   &:not(:last-child) {
     border-bottom: 1px solid ${theme.colors.default.pale};
   }
 
-  &.focused,
-  &:hover {
+  /* Focused (keyboard) state always highlights */
+  &.focused {
     background: ${({ disabled }) =>
       disabled ? theme.colors.default.pale : theme.colors.primary.pale};
     color: ${({ disabled }) =>
       disabled ? theme.colors.default.light : theme.colors.primary.base};
+  }
+
+  /* Hover highlight is conditional; skip when $noHover is true */
+  &:hover {
+    ${({ disabled, $noHover }) =>
+      !disabled &&
+      !$noHover &&
+      css`
+        background: ${theme.colors.lightA};
+        color: ${theme.colors.primary.base};
+      `}
   }
 
   &.selected {
@@ -69,10 +85,34 @@ export const DropdownItem = styled.li<{
     }
   }
 
-  .form-control-input-container {
+  /* IMPORTANT: scope checkbox shim to option rows */
+  &.option-item .form-control-input-container {
     height: 16px;
     margin-right: 8px;
     pointer-events: none;
+  }
+
+  /* Flash highlight for new/duplicate target */
+  &.flash {
+    background: #fff59d !important; /* soft yellow */
+    color: ${theme.colors.default.dark} !important;
+  }
+
+  /* Custom add row & edit row: zero padding for full-width input */
+  &.custom-row-item,
+  &.editing-item {
+    padding: 0;
+    transition: none;
+    .help-text {
+      padding: 4px;
+      font-weight: normal;
+      background: white;
+    }
+  }
+
+  /* Show row affordance on hover */
+  &:hover .row-affordance {
+    opacity: 1;
   }
 `;
 
@@ -97,4 +137,71 @@ export const NoOptionsContainer = styled.div`
   background-color: #f1f1f1;
   color: ${theme.colors.default.base};
   font-style: italic;
+`;
+
+/* ---------- Custom row (creator) bits ---------- */
+
+export const CustomRow = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+`;
+
+export const CustomInputWrap = styled.div`
+  flex: 1;
+  margin: 0;
+  .form-control-text {
+    padding-right: ${CUSTOM_INPUT_PADRIGHT}px;
+  }
+`;
+
+/** Absolute-positioned action on the right, overlapping the input */
+export const OverlapAction = styled.div`
+  position: absolute;
+  right: 8px;
+  top: 7px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 1;
+  > span {
+    font-weight: bold;
+  }
+`;
+
+/* ---------- Edit affordance ---------- */
+export const RowAffordance = styled.span`
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  cursor: pointer;
+  user-select: none;
+  font-size: 10px;
+  color: ${theme.colors.default.dark};
+  padding: 5px;
+  background-color: white!important;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  border: 1px solid ${theme.colors.default.pale};
+  &:hover {
+    background-color: ${theme.colors.primary.dark}!important;
+    color: white;
+    border-color: ${theme.colors.primary.dark};
+  }
+`;
+
+export const EditRow = styled.div`
+  position: relative;
+  width: 100%;
+  .form-control-text {
+    padding-right: ${CUSTOM_INPUT_PADRIGHT}px;
+  }
 `;
