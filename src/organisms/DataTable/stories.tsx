@@ -96,8 +96,8 @@ export const Playground = {
           </div>
         ), filter: { type: 'date' } },
         ]}
-        enableColumnFiltering
-        hideFooter
+        // enableColumnFiltering
+        // hideFooter
         // onRowClick={(row) => console.log('Row clicked:', row)}
         // onChange={(e => console.log('Data changed:', e))}
       />

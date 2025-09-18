@@ -69,6 +69,8 @@ export interface DataTableProps<T = any> {
   hideFooter?: boolean;
   /** When true, hides the entire RightDetails (rows/pagination) area */
   hideFooterRightDetails?: boolean;
+  /** When true, shows a loading overlay */
+  loading?: boolean;
   /**
    * Key used to determine if row deletion is permanent.
    * If set, deletion is treated as partial, and the row will include this key with a true value.
