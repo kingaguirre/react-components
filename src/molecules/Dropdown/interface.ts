@@ -28,7 +28,11 @@ export interface CustomOptionConfig {
    *
    * Use this to persist the edit. Do **not** change `value`; it remains the original custom id (e.g., `custom-...`).
    */
-  onEdit?: (prev: DropdownOption, next: DropdownOption, rawText: string) => void;
+  onEdit?: (
+    prev: DropdownOption,
+    next: DropdownOption,
+    rawText: string,
+  ) => void;
 
   /**
    * ✅ Persisted custom options (merged with session-created options).

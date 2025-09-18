@@ -60,6 +60,7 @@ import { useUniqueValueMaps } from "./hooks/useUniqueValueMaps";
 import { Alert } from "../../molecules/Alert";
 import { ExpanderColumn } from "./components/ExpanderColumn";
 import CellCommitWorker from "./workers/cellCommitWorker?worker";
+import { Loader } from "../../atoms/Loader";
 
 // needed for table body level scope DnD setup
 import {
@@ -129,7 +130,8 @@ export const DataTable = <T extends object>({
   downloadControls,
   testId,
   hideFooterRightDetails = false,
-  hideFooter = false
+  hideFooter = false,
+  loading = false,
 }: DataTableProps) => {
   const tableWrapperRef = useRef<HTMLDivElement>(null);
   const instanceIdRef = useRef<number>(Date.now() + Math.random());
@@ -991,6 +993,7 @@ export const DataTable = <T extends object>({
     meta: {
       disabled,
       serverLoading,
+      loading,
     },
   });
 
@@ -1417,9 +1420,9 @@ export const DataTable = <T extends object>({
       data-testid={testId}
       ref={tableWrapperRef}
       data-table-instanceid={instanceIdRef.current}
-      data-disabled={disabled || serverLoading}
+      data-disabled={disabled || serverLoading || loading}
       className={`data-table-wrapper ${isFocused ? "is-focused" : "is-not-focused"}`}
-      $disabled={disabled || serverLoading}
+      $disabled={disabled || serverLoading || loading}
       tabIndex={0}
       onClickCapture={() => {
         if (showAlert) return;
@@ -1523,6 +1526,11 @@ export const DataTable = <T extends object>({
           enableRowSelection={enableRowSelection}
           hideRightDetails={hideFooterRightDetails}
         />
+      )}
+      {(serverLoading || loading) && (
+        <span className="data-table-loader" data-testid="data-table-loader">
+          <Loader size={30} thickness={4} />
+        </span>
       )}
       {showDeleteIcon && (
         <Alert

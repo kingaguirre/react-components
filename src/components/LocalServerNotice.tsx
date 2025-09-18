@@ -50,10 +50,10 @@ function useServerAlive(apiBase: string) {
 
 const BORDER = "#F9C2C2";
 const BG = "linear-gradient(180deg,#FFF5F5 0%, #FFEFEF 100%)";
-const RED = "#b91c1c";         // main text
-const CODE_BG = "#FFF7D6";     // code chip background (amber)
+const RED = "#b91c1c"; // main text
+const CODE_BG = "#FFF7D6"; // code chip background (amber)
 const CODE_BORDER = "#F2D27A"; // code chip border
-const CODE_TEXT = "#4A3B00";   // code chip text
+const CODE_TEXT = "#4A3B00"; // code chip text
 
 const Box = styled.div<{ $compact?: boolean }>`
   border: 1px solid ${BORDER};
@@ -65,8 +65,14 @@ const Box = styled.div<{ $compact?: boolean }>`
   font-size: ${({ $compact }) => ($compact ? "12.5px" : "13px")};
   line-height: 1.45;
 
-  a { color: ${RED}; text-decoration: underline; }
-  strong { color: ${RED}; font-weight: 700; }
+  a {
+    color: ${RED};
+    text-decoration: underline;
+  }
+  strong {
+    color: ${RED};
+    font-weight: 700;
+  }
 
   code {
     background: ${CODE_BG};
@@ -74,8 +80,9 @@ const Box = styled.div<{ $compact?: boolean }>`
     border: 1px solid ${CODE_BORDER};
     border-radius: 4px;
     padding: 0 4px;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-      "Liberation Mono", "Courier New", monospace;
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+      "Courier New", monospace;
     font-size: 0.92em;
   }
 `;
@@ -107,8 +114,8 @@ export const LocalServerNotice: React.FC<LocalServerNoticeProps> = ({
       <div>
         {description ?? (
           <>
-            Run <code>node server.js</code> at your project root ({base}). Keep it running while
-            using these stories.
+            Run <code>node server.js</code> at your project root ({base}). Keep
+            it running while using these stories.
           </>
         )}
       </div>
@@ -116,7 +123,8 @@ export const LocalServerNotice: React.FC<LocalServerNoticeProps> = ({
       {showLatencyTip && (
         <div style={{ marginTop: 6 }}>
           <strong>Latency:</strong> endpoints use a small artificial delay.
-          Adjust with <code>DELAY_MS</code>/<code>DELAY_JITTER</code> or per request
+          Adjust with <code>DELAY_MS</code>/<code>DELAY_JITTER</code> or per
+          request
           <code>?__delay=800</code>. <code>/health</code> is instant.
         </div>
       )}

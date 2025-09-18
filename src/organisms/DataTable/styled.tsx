@@ -1,5 +1,5 @@
 import { fadeInOnMount, scrollStyle, theme } from "../../styles";
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 
 export const DataTableWrapper = styled.div<{ $disabled?: boolean }>`
   position: relative;
@@ -20,28 +20,42 @@ export const DataTableWrapper = styled.div<{ $disabled?: boolean }>`
   }
 
   ${({ $disabled }) =>
-    $disabled ? `
-      * {
-        pointer-events: none;
-      }
-      .data-table-body-container:after,
-      &:after {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: 1000;
-        background-color: rgba(255, 255, 255, 0.2);
-        cursor: not-allowed;
-        ${fadeInOnMount}
-      }
+    $disabled
+      ? css`
+          * {
+            pointer-events: none;
+          }
 
-      .data-table-body-container:after {
-        background-color: rgba(0, 0, 0, 0.15);
-      }
-    `
+          .data-table-loader {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .data-table-body-container:after,
+          &:after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 999;
+            background-color: rgba(255, 255, 255, 0.2);
+            cursor: not-allowed;
+            ${fadeInOnMount}
+          }
+
+          .data-table-body-container:after {
+            background-color: rgba(0, 0, 0, 0.15);
+          }
+        `
       : ""}
 
   &.is-not-focused {

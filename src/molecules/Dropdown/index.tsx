@@ -99,7 +99,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
       onEdit: customOption?.onEdit,
       options: customOption?.options ?? [],
     }),
-    [customOption]
+    [customOption],
   );
 
   // Local custom options created during this session (prepended)
@@ -126,7 +126,13 @@ export const Dropdown: React.FC<DropdownProps> = ({
       if (editError) setEditError(false);
     }
     prevPersistedLenRef.current = len;
-  }, [mergedCustomCfg.options, newOptions.length, editedLabels, addError, editError]);
+  }, [
+    mergedCustomCfg.options,
+    newOptions.length,
+    editedLabels,
+    addError,
+    editError,
+  ]);
 
   // ORDER: session-created (top) -> injected persisted -> base options
   const combinedOptions = useMemo(() => {
@@ -141,7 +147,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
     push(options); // base
     // apply edited label overrides
     const out = Array.from(map.values()).map((o) =>
-      editedLabels[o.value] ? { ...o, text: editedLabels[o.value] } : o
+      editedLabels[o.value] ? { ...o, text: editedLabels[o.value] } : o,
     );
     return out;
   }, [options, mergedCustomCfg.options, newOptions, editedLabels]);
@@ -264,7 +270,9 @@ export const Dropdown: React.FC<DropdownProps> = ({
       !filter || !hasTyped
         ? combinedOptions
         : combinedOptions.filter(({ text }) =>
-            filterAtBeginning ? startsWith(text, filterText) : includes(text, filterText),
+            filterAtBeginning
+              ? startsWith(text, filterText)
+              : includes(text, filterText),
           );
 
     setFilteredOptions((prev) => (sameOptions(prev, next) ? prev : next));
@@ -360,7 +368,9 @@ export const Dropdown: React.FC<DropdownProps> = ({
         if (i !== -1) return i;
       }
       if (isMulti && selectedValues.length) {
-        const i = visibleItems.findIndex((o) => selectedValues.includes(o.value));
+        const i = visibleItems.findIndex((o) =>
+          selectedValues.includes(o.value),
+        );
         if (i !== -1) return i;
       }
       if (!isMulti && selectedValue) {
@@ -467,7 +477,9 @@ export const Dropdown: React.FC<DropdownProps> = ({
     setTimeout(() => {
       if (!isOpen) setIsOpen(true);
       formControlRef.current?.focus();
-      const customIdx = visibleItems.findIndex((o) => o.value === CUSTOM_SENTINEL);
+      const customIdx = visibleItems.findIndex(
+        (o) => o.value === CUSTOM_SENTINEL,
+      );
       setFocusedIndex((prev) => {
         const next =
           customIdx !== -1
@@ -480,27 +492,33 @@ export const Dropdown: React.FC<DropdownProps> = ({
   }, [isOpen, visibleItems]);
 
   /** Enter inline edit for a given custom value (internal). */
-  const enterEdit = useCallback((val: string) => {
-    const opt = combinedOptions.find((o) => o.value === val);
-    if (!opt) return;
-    const raw = opt.text.startsWith(mergedCustomCfg.prefix)
-      ? opt.text.slice(mergedCustomCfg.prefix.length)
-      : opt.text;
-    setEditingValue(val);
-    setEditText(raw);
-    setEditError(false);
-    setTimeout(() => editInputRef.current?.focus(), 0);
-  }, [combinedOptions, mergedCustomCfg.prefix]);
+  const enterEdit = useCallback(
+    (val: string) => {
+      const opt = combinedOptions.find((o) => o.value === val);
+      if (!opt) return;
+      const raw = opt.text.startsWith(mergedCustomCfg.prefix)
+        ? opt.text.slice(mergedCustomCfg.prefix.length)
+        : opt.text;
+      setEditingValue(val);
+      setEditText(raw);
+      setEditError(false);
+      setTimeout(() => editInputRef.current?.focus(), 0);
+    },
+    [combinedOptions, mergedCustomCfg.prefix],
+  );
 
   /** Public helper: start Edit; cancels Add if active. */
-  const startEdit = useCallback((val: string) => {
-    if (isCreatingCustom) {
-      setIsCreatingCustom(false);
-      setCustomText("");
-      setAddError(false);
-    }
-    enterEdit(val);
-  }, [isCreatingCustom, enterEdit]);
+  const startEdit = useCallback(
+    (val: string) => {
+      if (isCreatingCustom) {
+        setIsCreatingCustom(false);
+        setCustomText("");
+        setAddError(false);
+      }
+      enterEdit(val);
+    },
+    [isCreatingCustom, enterEdit],
+  );
 
   /** Cancel inline edit. */
   const cancelEdit = useCallback(() => {
@@ -542,12 +560,14 @@ export const Dropdown: React.FC<DropdownProps> = ({
     setNewOptions((prevArr) =>
       prevArr.some((o) => o.value === editingValue)
         ? prevArr.map((o) => (o.value === editingValue ? nextOpt : o))
-        : prevArr
+        : prevArr,
     );
 
     // For persisted ones, store local override
     setEditedLabels((prevMap) =>
-      prevMap[editingValue] === nextText ? prevMap : { ...prevMap, [editingValue]: nextText }
+      prevMap[editingValue] === nextText
+        ? prevMap
+        : { ...prevMap, [editingValue]: nextText },
     );
 
     mergedCustomCfg.onEdit?.(prev, nextOpt, raw);
@@ -558,7 +578,13 @@ export const Dropdown: React.FC<DropdownProps> = ({
     setEditingValue(null);
     setEditText("");
     setTimeout(() => formControlRef.current?.focus(), 0);
-  }, [editingValue, combinedOptions, editText, mergedCustomCfg.prefix, mergedCustomCfg.onEdit]);
+  }, [
+    editingValue,
+    combinedOptions,
+    editText,
+    mergedCustomCfg.prefix,
+    mergedCustomCfg.onEdit,
+  ]);
 
   const handleSelect = (
     selectedVal: string,
@@ -591,8 +617,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
         }
         lastMultiToggledRef.current = selectedVal;
         const i = visibleItems.findIndex((o) => o.value === selectedVal);
-        if (i !== -1)
-          setFocusedIndex((prev) => (prev === i ? prev : i));
+        if (i !== -1) setFocusedIndex((prev) => (prev === i ? prev : i));
         onChange?.(next);
         return next;
       });
@@ -658,8 +683,12 @@ export const Dropdown: React.FC<DropdownProps> = ({
 
     // ⛔ While in add or edit text input, handle Enter/Escape locally and ignore Up/Down at the menu level.
     const inCustomInput =
-      (isCreatingCustom && customInputRef.current && document.activeElement === customInputRef.current) ||
-      (editingValue && editInputRef.current && document.activeElement === editInputRef.current);
+      (isCreatingCustom &&
+        customInputRef.current &&
+        document.activeElement === customInputRef.current) ||
+      (editingValue &&
+        editInputRef.current &&
+        document.activeElement === editInputRef.current);
 
     if (inCustomInput) {
       if (event.key === "ArrowUp" || event.key === "ArrowDown") {
@@ -771,13 +800,15 @@ export const Dropdown: React.FC<DropdownProps> = ({
     const regex = new RegExp(`(${filterText})`, "gi");
     return (
       <span>
-        {text.split(regex).map((part, i) =>
-          part.toLowerCase() === filterText.toLowerCase() ? (
-            <HighlightedText key={`m-${i}`}>{part}</HighlightedText>
-          ) : (
-            part
-          ),
-        )}
+        {text
+          .split(regex)
+          .map((part, i) =>
+            part.toLowerCase() === filterText.toLowerCase() ? (
+              <HighlightedText key={`m-${i}`}>{part}</HighlightedText>
+            ) : (
+              part
+            ),
+          )}
       </span>
     );
   };
@@ -795,7 +826,11 @@ export const Dropdown: React.FC<DropdownProps> = ({
 
   const getValue = () => {
     if (isMulti) return displayValue;
-    return isOpen && filter ? (hasTyped ? filterText : displayValue) : displayValue;
+    return isOpen && filter
+      ? hasTyped
+        ? filterText
+        : displayValue
+      : displayValue;
   };
 
   const getClearIcon = () => {
@@ -1004,7 +1039,13 @@ export const Dropdown: React.FC<DropdownProps> = ({
                   }}
                 >
                   {!isCreatingCustom ? (
-                    <div style={{ width: "100%", display: "flex", alignItems: "center" }}>
+                    <div
+                      style={{
+                        width: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                      }}
+                    >
                       {mergedCustomCfg.label}
                     </div>
                   ) : (
@@ -1018,7 +1059,9 @@ export const Dropdown: React.FC<DropdownProps> = ({
                           clearable={false}
                           color={addError ? "danger" : undefined}
                           helpText={addError ? REQUIRED_MSG : undefined}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          onChange={(
+                            e: React.ChangeEvent<HTMLInputElement>,
+                          ) => {
                             const v = e.target.value ?? "";
                             setCustomText(v);
                             if (addError && v.trim()) setAddError(false);
@@ -1167,7 +1210,9 @@ export const Dropdown: React.FC<DropdownProps> = ({
                     disabled={disabled}
                   />
                 )}
-                <div style={{ flex: 1, minWidth: 0 }}>{highlightMatch(text)}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  {highlightMatch(text)}
+                </div>
 
                 {editable && !disabled && (
                   <RowAffordance

@@ -16,7 +16,6 @@ import { Icon } from "../../../../atoms/Icon";
 import { FormControl } from "../../../../atoms/FormControl";
 import { Tooltip } from "../../../../atoms/Tooltip";
 import { BUILTIN_COLUMN_IDS } from "../../utils";
-import { Loader } from "../../../../atoms/Loader"; // ← NEW
 
 interface FooterProps<TData> {
   table: Table<TData>;
@@ -106,9 +105,6 @@ export const Footer = <TData,>({
     }
   };
 
-  // === NEW: serverLoading from TanStack Table meta ===
-  const serverLoading = Boolean((table.options as any)?.meta?.serverLoading);
-
   return hasColumns ? (
     <FooterContainer className="footer-container">
       {hasTotalRecords && enableRowSelection && (
@@ -146,12 +142,6 @@ export const Footer = <TData,>({
 
         {!hideRightDetails && (
           <RightDetails $totalCount={countDigits(table.getPageCount())}>
-            {serverLoading && (
-              <span className="loader" data-testid="footer-loader">
-                <Loader size="xs" />
-              </span>
-            )}
-
             <span>Rows</span>
             <Dropdown
               size="sm"
@@ -224,7 +214,9 @@ export const Footer = <TData,>({
               data-testid="last-page-button"
               disabled={isNextDisabled}
               {...(!isNextDisabled
-                ? { onClick: () => table.setPageIndex(table.getPageCount() - 1) }
+                ? {
+                    onClick: () => table.setPageIndex(table.getPageCount() - 1),
+                  }
                 : {})}
             >
               <Icon icon="last_page" />

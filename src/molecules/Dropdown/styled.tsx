@@ -187,7 +187,7 @@ export const RowAffordance = styled.span`
   font-size: 10px;
   color: ${theme.colors.default.dark};
   padding: 5px;
-  background-color: white!important;
+  background-color: white !important;
   border-radius: 50%;
   transition: all 0.3s ease;
   border: 1px solid ${theme.colors.default.pale};
