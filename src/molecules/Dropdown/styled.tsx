@@ -83,9 +83,14 @@ export const DropdownItem = styled.li<{
     > span {
       background-color: transparent;
     }
+    ${({ disabled }) => !disabled ? css`
+      &:hover { background: ${theme.colors.primary.dark}; }
+    ` : ''};
+    
   }
 
   /* IMPORTANT: scope checkbox shim to option rows */
+  &.select-all .form-control-input-container,
   &.option-item .form-control-input-container {
     height: 16px;
     margin-right: 8px;
@@ -151,7 +156,7 @@ export const CustomRow = styled.div`
 
 export const CustomInputWrap = styled.div`
   flex: 1;
-  margin: 0;
+  margin: -1px 0 0 0;
   .form-control-text {
     padding-right: ${CUSTOM_INPUT_PADRIGHT}px;
   }

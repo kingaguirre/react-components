@@ -61,6 +61,12 @@ const sameOptions = (a: DropdownOption[], b: DropdownOption[]) =>
         !!o.disabled === !!b[i].disabled,
     ));
 
+// Defer a callback to avoid "update parent while rendering child" warnings
+const defer = (fn: () => void) => {
+  if (typeof queueMicrotask === "function") queueMicrotask(fn);
+  else Promise.resolve().then(fn);
+};
+
 export const Dropdown: React.FC<DropdownProps> = ({
   options,
   value,
@@ -98,11 +104,13 @@ export const Dropdown: React.FC<DropdownProps> = ({
       onAdd: customOption?.onAdd,
       onEdit: customOption?.onEdit,
       options: customOption?.options ?? [],
+      allowMultiple: customOption?.allowMultiple ?? false,
+      optionAtTop: customOption?.optionAtTop ?? false,
     }),
     [customOption],
   );
 
-  // Local custom options created during this session (prepended)
+  // Local custom options created during this session
   const [newOptions, setNewOptions] = useState<DropdownOption[]>([]);
   // Local label overrides for edits to persisted options (value is preserved)
   const [editedLabels, setEditedLabels] = useState<Record<string, string>>({});
@@ -111,6 +119,10 @@ export const Dropdown: React.FC<DropdownProps> = ({
   const [addError, setAddError] = useState(false);
   const [editError, setEditError] = useState(false);
   const REQUIRED_MSG = "This field is Required";
+
+  // Hide "Others" once a custom is added when allowMultiple is false
+  const showCustomRow =
+    customEnabled && (mergedCustomCfg.allowMultiple || newOptions.length === 0);
 
   /**
    * If caller clears persisted custom options, also clear session-added ones
@@ -134,23 +146,54 @@ export const Dropdown: React.FC<DropdownProps> = ({
     editError,
   ]);
 
-  // ORDER: session-created (top) -> injected persisted -> base options
+  /**
+   * Build final list with explicit dedupe + render-order control.
+   * - Dedupe winners: persisted > base > session
+   * - Render order:
+   *    optionAtTop = true  => session → persisted → base
+   *    optionAtTop = false => base → persisted → session  (new customs at bottom)
+   */
   const combinedOptions = useMemo(() => {
-    const map = new Map<string, DropdownOption>();
-    const push = (arr?: DropdownOption[]) => {
-      for (const o of arr || []) {
-        if (!map.has(o.value)) map.set(o.value, o);
+    const persisted = mergedCustomCfg.options || [];
+    const base = options || [];
+    const session = newOptions || [];
+
+    // 1) Decide dedupe winners (first-wins with persisted before base)
+    const winnersOrder = [persisted, base, session];
+    const keep = new Map<string, DropdownOption>();
+    for (const group of winnersOrder) {
+      for (const o of group) {
+        if (!keep.has(o.value)) keep.set(o.value, o);
       }
-    };
-    push(newOptions); // top-most (this session)
-    push(mergedCustomCfg.options); // persisted from props
-    push(options); // base
-    // apply edited label overrides
-    const out = Array.from(map.values()).map((o) =>
-      editedLabels[o.value] ? { ...o, text: editedLabels[o.value] } : o,
-    );
+    }
+
+    // 2) Decide render order (top vs bottom for session customs)
+    const renderOrder = mergedCustomCfg.optionAtTop
+      ? [session, persisted, base]     // TOP: session first
+      : [base, persisted, session];    // BOTTOM: session last
+
+    // 3) Emit in render order, but only the dedupe winners; apply edited label overrides
+    const out: DropdownOption[] = [];
+    for (const group of renderOrder) {
+      for (const o of group) {
+        const win = keep.get(o.value);
+        if (!win) continue;
+        // push only once
+        if (out.find((x) => x.value === win.value)) continue;
+        const finalItem = editedLabels[win.value]
+          ? { ...win, text: editedLabels[win.value] }
+          : win;
+        out.push(finalItem);
+      }
+    }
     return out;
-  }, [options, mergedCustomCfg.options, newOptions, editedLabels]);
+  }, [
+    options,
+    mergedCustomCfg.options,
+    newOptions,
+    editedLabels,
+    mergedCustomCfg.optionAtTop,
+  ]);
 
   // Which values are editable? (all custom ones: session or persisted)
   const editableSet = useMemo(() => {
@@ -230,6 +273,8 @@ export const Dropdown: React.FC<DropdownProps> = ({
 
   // --- SYNC EXTERNAL VALUE CHANGES ---
   useEffect(() => {
+    if (typeof value === "undefined") return; // uncontrolled → do nothing here
+
     if (isMulti) {
       if (!Array.isArray(value)) return;
       setSelectedValues((prev) => (prev === value ? prev : value));
@@ -259,6 +304,16 @@ export const Dropdown: React.FC<DropdownProps> = ({
     }
   }, [value, combinedOptions, isMulti]);
 
+  useEffect(() => {
+    if (typeof value !== "undefined") return; // controlled handled above
+    if (isMulti) return;
+    if (!selectedValue) return;
+    const sel = combinedOptions.find((o) => o.value === selectedValue);
+    if (sel && displayValue !== sel.text) {
+      setDisplayValue(sel.text);
+    }
+  }, [combinedOptions, selectedValue, isMulti, value, displayValue]);
+
   // Filtering
   useEffect(() => {
     const startsWith = (t: string, ft: string) =>
@@ -278,14 +333,14 @@ export const Dropdown: React.FC<DropdownProps> = ({
     setFilteredOptions((prev) => (sameOptions(prev, next) ? prev : next));
   }, [filterText, hasTyped, filterAtBeginning, filter, combinedOptions]);
 
-  // Build navigable items (index 0 = custom row when enabled)
+  // Build list with position control
   const visibleItems = useMemo(() => {
-    if (!customEnabled) return filteredOptions;
-    return [
-      { value: CUSTOM_SENTINEL, text: mergedCustomCfg.label, disabled: false },
-      ...filteredOptions,
-    ];
-  }, [customEnabled, filteredOptions, mergedCustomCfg.label]);
+    if (!showCustomRow) return filteredOptions;
+    const others = { value: CUSTOM_SENTINEL, text: mergedCustomCfg.label, disabled: false };
+    return mergedCustomCfg.optionAtTop
+      ? [others, ...filteredOptions]
+      : [...filteredOptions, others];
+  }, [showCustomRow, filteredOptions, mergedCustomCfg.label, mergedCustomCfg.optionAtTop]);
 
   // Recompute position
   useEffect(() => {
@@ -570,7 +625,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
         : { ...prevMap, [editingValue]: nextText },
     );
 
-    mergedCustomCfg.onEdit?.(prev, nextOpt, raw);
+    if (mergedCustomCfg.onEdit) defer(() => mergedCustomCfg.onEdit!(prev, nextOpt, raw));
 
     // Flash & refocus
     setFlashValue(editingValue);
@@ -855,7 +910,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
     onFilterChange?.(text);
   };
 
-  // Create custom option (slug, duplicate detection, prepend, flash, focus)
+  // Create custom option (slug, duplicate detection, ordered insert, flash, focus)
   const addCustomOption = useCallback(() => {
     const safe = customText ?? "";
     const raw = safe.trim();
@@ -891,26 +946,65 @@ export const Dropdown: React.FC<DropdownProps> = ({
 
     const created: DropdownOption = { value, text: label };
 
-    setNewOptions((prev) => [created, ...prev]);
-    mergedCustomCfg.onAdd?.(created, raw);
+    // Insert by position rule
+    setNewOptions((prev) =>
+      mergedCustomCfg.optionAtTop ? [created, ...prev] : [...prev, created]
+    );
+    if (mergedCustomCfg.onAdd) defer(() => mergedCustomCfg.onAdd!(created, raw));
+
+    // ✅ Auto-select the newly added option when allowMultiple is false
+    if (!mergedCustomCfg.allowMultiple) {
+      if (isMulti) {
+        // Compute next outside the state updater and avoid calling onChange inside it.
+        const next =
+          selectedValues.includes(value) ? selectedValues : [...selectedValues, value];
+
+        setSelectedValues(next);
+        setDisplayValue(
+          next.length
+            ? `${next.length} selected ${ifElse(next.length === 1, "item", "items")}`
+            : ""
+        );
+
+        // Defer the external callback so we don't update parent during our render.
+        if (onChange) defer(() => onChange(next));
+      } else {
+        setSelectedValue(value);
+        setDisplayValue(label);
+
+        // Defer callback to avoid parent update during child render.
+        if (onChange) defer(() => onChange(value));
+
+        // Close like a normal single-select pick
+        setIsOpen(false);
+      }
+    }
 
     setIsCreatingCustom(false);
     setCustomText("");
     setHasTyped(false);
     setFilterText("");
-    setFlashValue(value);
-    focusRequestRef.current = value;
 
-    setTimeout(() => {
-      if (!isOpen) setIsOpen(true);
-      formControlRef.current?.focus();
-    }, 0);
+    // Only flash & refocus when we didn't just close for single-select auto-pick
+    const skipReopen = !isMulti && !mergedCustomCfg.allowMultiple;
+    if (!skipReopen) {
+      setFlashValue(value);
+      focusRequestRef.current = value;
+      setTimeout(() => {
+        if (!isOpen) setIsOpen(true);
+        formControlRef.current?.focus();
+      }, 0);
+    }
   }, [
     customText,
     combinedOptions,
     mergedCustomCfg.prefix,
     mergedCustomCfg.onAdd,
+    mergedCustomCfg.optionAtTop,
+    mergedCustomCfg.allowMultiple,
     isOpen,
+    isMulti,
+    onChange,
   ]);
 
   const rightIcons = [
@@ -1015,7 +1109,6 @@ export const Dropdown: React.FC<DropdownProps> = ({
             const isFlashing = flashValue === v;
 
             if (isCustomRow) {
-              // padding is removed only while editing; otherwise keep normal padding (no class)
               const liClasses = [
                 "nav-item",
                 isCreatingCustom ? "custom-row-item" : "",
@@ -1035,7 +1128,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
                   aria-disabled={undefined}
                   onClick={(e: React.MouseEvent<HTMLLIElement>) => {
                     e.stopPropagation();
-                    startAdd(); // <-- ensures Edit is canceled first
+                    startAdd();
                   }}
                 >
                   {!isCreatingCustom ? (
@@ -1117,7 +1210,6 @@ export const Dropdown: React.FC<DropdownProps> = ({
             const isEditingThis = editingValue === v;
 
             if (isEditingThis) {
-              // NOTE: intentionally NO onMouseDown preventDefault here — we want the input to be focusable on click.
               return (
                 <DropdownItem
                   $size={size as any}
@@ -1222,7 +1314,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
                     title="Edit custom option"
                     onClick={(e) => {
                       e.stopPropagation();
-                      startEdit(v); // <-- ensures Add is canceled first
+                      startEdit(v);
                     }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {

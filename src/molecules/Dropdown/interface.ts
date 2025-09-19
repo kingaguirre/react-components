@@ -19,7 +19,6 @@ export interface CustomOptionConfig {
    * `option.text` already includes the prefix; `rawText` is the user’s raw input.
    */
   onAdd?: (option: DropdownOption, rawText: string) => void;
-
   /**
    * Callback when a custom option’s label is edited inline.
    * - `prev` is the original option (immutable reference).
@@ -33,12 +32,15 @@ export interface CustomOptionConfig {
     next: DropdownOption,
     rawText: string,
   ) => void;
-
   /**
    * ✅ Persisted custom options (merged with session-created options).
    * These appear below session-created options and above base `options`.
    */
   options?: DropdownOption[];
+  /** Allow creating custom options more than once. Default: false (hide "Others" after first add) */
+  allowMultiple?: boolean;
+  /** Place the "Others" row at the top instead of bottom. Default: false (bottom) */
+  optionAtTop?: boolean;
 }
 
 export interface DropdownProps {
