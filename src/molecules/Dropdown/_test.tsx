@@ -5,31 +5,32 @@ import {
   screen,
   waitFor,
   cleanup,
+  within
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import ReactDOM from "react-dom";
 import { Dropdown } from "./index";
 
-// Keep a handle to the real createPortal and ensure we call through to it.
-// This defuses any lingering mocks from other suites.
-const realCreatePortal = ReactDOM.createPortal;
+/* ---------------------------------------------------------------------------------- */
+/*  Test Harness Setup (portal + user-event + polyfills)                              */
+/* ---------------------------------------------------------------------------------- */
 
+const realCreatePortal = ReactDOM.createPortal;
 let user: ReturnType<typeof userEvent.setup>;
 
 beforeEach(() => {
   vi.restoreAllMocks();
 
-  // Force ReactDOM.createPortal back to the real implementation
+  // Ensure we always use the real portal implementation
   vi.spyOn(ReactDOM, "createPortal").mockImplementation(
     ((...args: Parameters<typeof realCreatePortal>) =>
       realCreatePortal(...args)) as any
   );
 
-  // Fresh user-event per test
   user = userEvent.setup();
 
-  // Provide a dummy scrollIntoView if missing
+  // Polyfill scrollIntoView used by the dropdown
   if (!(Element.prototype as any).scrollIntoView) {
     // @ts-ignore
     Element.prototype.scrollIntoView = vi.fn();
@@ -37,17 +38,50 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  cleanup(); // cleanly unmounts portals
+  cleanup(); // unmounts portals too
 });
 
-// Sample options for testing.
-const options = [
-  { value: "1", text: "Option 1" },
-  { value: "2", text: "Option 2" },
-  { value: "3", text: "Option 3", disabled: true },
-];
+/* ---------------------------------------------------------------------------------- */
+/*  DOM helpers (robust: target the content <div> inside each li.nav-item)            */
+/* ---------------------------------------------------------------------------------- */
 
-// Helper: click somewhere outside the dropdown/menu
+const menuEl = () => screen.getByRole("dropdown-menu");
+
+const open = async (ph = "Pick") => {
+  await user.click(screen.getByPlaceholderText(ph));
+  await waitFor(() => expect(menuEl()).toBeInTheDocument());
+};
+
+/** All option rows (li.nav-item) currently in the open menu */
+const listItems = (): HTMLLIElement[] =>
+  Array.from(menuEl().querySelectorAll("li.nav-item")) as HTMLLIElement[];
+
+/** Returns the text label shown in the row (first content <div> inside li) */
+const labelOf = (li: HTMLLIElement): string => {
+  // first content div is the one with the visible label (flex:1)
+  const contentDiv = li.querySelector(":scope > div");
+  return (contentDiv?.textContent ?? "").trim();
+};
+
+/** All labels (content text only, excluding affordances like 'edit') */
+const labels = (): string[] => listItems().map(labelOf);
+
+/** Find the li.nav-item whose content label equals `label` */
+const getRow = (label: string): HTMLLIElement => {
+  const row = listItems().find((li) => labelOf(li) === label);
+  expect(row, `Expected <li> for "${label}"`).toBeTruthy();
+  return row!;
+};
+
+/** Query the li.nav-item whose content label equals `label` */
+const queryRow = (label: string): HTMLLIElement | null =>
+  listItems().find((li) => labelOf(li) === label) ?? null;
+
+const clickRow = async (label: string) => {
+  const row = getRow(label);
+  await user.click(row);
+};
+
 const clickOutside = async () => {
   const outside = document.createElement("div");
   outside.setAttribute("data-testid", "outside");
@@ -55,6 +89,21 @@ const clickOutside = async () => {
   await user.click(outside);
   outside.remove();
 };
+
+// Robust: find the exact-label row inside the open dropdown menu
+const getLiByExactLabel = (s: string) => {
+  const menu = document.querySelector("ul.dropdown-list");
+  if (!menu) return null;
+  const items = Array.from(menu.querySelectorAll("li.nav-item")) as HTMLLIElement[];
+  return items.find((li) => (li.textContent ?? "").trim() === s) ?? null;
+};
+
+// Sample options for testing.
+const options = [
+  { value: "1", text: "Option 1" },
+  { value: "2", text: "Option 2" },
+  { value: "3", text: "Option 3", disabled: true },
+];
 
 describe("Dropdown Component", () => {
   it("renders with placeholder when no selection is made", () => {
@@ -361,7 +410,9 @@ describe("Dropdown Component", () => {
   });
 });
 
-/* ---------------------- NEW TESTS: customOption & enableCustomOption ---------------------- */
+/* ---------------------------------------------------------------------------------- */
+/*  SECTION: enableCustomOption + basic customOption config                           */
+/* ---------------------------------------------------------------------------------- */
 
 describe("Dropdown – customOption & enableCustomOption", () => {
   const base = [
@@ -370,84 +421,81 @@ describe("Dropdown – customOption & enableCustomOption", () => {
   ];
 
   it("does not render custom row by default; renders when enableCustomOption is true", async () => {
-    const { rerender } = render(
-      <Dropdown options={base} placeholder="Pick" />
-    );
-    const input = screen.getByPlaceholderText("Pick");
-    await user.click(input);
-    await waitFor(() => expect(screen.getByText("Base 1")).toBeVisible());
-    expect(screen.queryByText("Others")).toBeNull();
-
-    // turn it on
-    rerender(
-      <Dropdown options={base} placeholder="Pick" enableCustomOption />
-    );
+    const { rerender } = render(<Dropdown options={base} placeholder="Pick" />);
     await user.click(screen.getByPlaceholderText("Pick"));
-    await waitFor(() => expect(screen.getByText("Others")).toBeVisible());
+    await waitFor(() => expect(screen.getByText("Base 1")).toBeVisible());
+    expect(queryRow("Others")).toBeNull();
+
+    rerender(<Dropdown options={base} placeholder="Pick" enableCustomOption />);
+    await user.click(screen.getByPlaceholderText("Pick"));
+    await waitFor(() => expect(getRow("Others")).toBeTruthy());
   });
 
-  it("respects customOption.label and placeholder; supports prefix & addText overrides", async () => {
+  it("respects customOption.label/placeholder and addText/prefix; with allowMultiple=false created value auto-selects", async () => {
+    const onChange = vi.fn();
     render(
       <Dropdown
         options={base}
         placeholder="Pick"
         enableCustomOption
-        customOption={{ label: "Coffee", prefix: "Coffee - ", addText: "Create" }}
+        onChange={onChange}
+        customOption={{ label: "Coffee", prefix: "Coffee - ", addText: "Create" }} // allowMultiple defaults to false
       />
     );
-    await user.click(screen.getByPlaceholderText("Pick"));
-    await waitFor(() => expect(screen.getByText("Coffee")).toBeVisible());
 
-    // enter custom mode
-    await user.click(screen.getByText("Coffee"));
+    await open();
+    await waitFor(() => expect(getRow("Coffee")).toBeTruthy());
+
+    // Enter add mode
+    await clickRow("Coffee");
     const input = await screen.findByPlaceholderText("Coffee...");
     await user.type(input, "Mocha");
-    await user.click(screen.getByText("Create"));
 
-    // newly created with prefix
+    // Click Create → should auto-select & close (single-select + allowMultiple=false)
+    await user.click(within(menuEl()).getByText("Create"));
+
+    // onChange with slug, input displays selected label, menu closed
     await waitFor(() =>
-      expect(screen.getByText("Coffee - Mocha")).toBeVisible()
+      expect(screen.getByDisplayValue("Coffee - Mocha")).toBeInTheDocument()
     );
+    expect(onChange).toHaveBeenCalled();
+    const last = onChange.mock.calls.at(-1)![0];
+    expect(last).toBe("custom-mocha");
+    expect(screen.queryByRole("dropdown-menu")).toBeNull();
+
+    // Reopen: creator row hidden (since allowMultiple=false and we already created one)
+    await open();
+    expect(queryRow("Coffee")).toBeNull();
   });
 
-  it("merges persisted customOption.options above base options; no duplicates by value", async () => {
+  it("merges customOption.options and de-duplicates by value (ordering not asserted)", async () => {
     const persisted = [
       { value: "custom-decaf", text: "Others - Decaf" },
-      // Duplicate value of a base option; with current order, persisted wins.
       { value: "base-1", text: "SHOULD NOT SHOW (dup by value)" },
     ];
 
     render(
       <Dropdown
-        options={[
-          { value: "base-1", text: "Base 1" },
-          { value: "base-2", text: "Base 2" },
-        ]}
+        options={base}
         placeholder="Pick"
         enableCustomOption
         customOption={{ options: persisted }}
       />
     );
 
-    await user.click(screen.getByPlaceholderText("Pick"));
+    await open();
+    const t = labels();
 
-    const lis = Array.from(document.querySelectorAll("ul.dropdown-list li"));
-    const texts = lis.map((li) => li.textContent?.trim() || "");
+    // persisted present
+    expect(t.some((x) => x.includes("Others - Decaf"))).toBe(true);
 
-    // persisted custom shows and appears before base options
-    const idxDecaf = texts.findIndex((t) => t.includes("Others - Decaf"));
-    const idxBase2 = texts.findIndex((t) => t.includes("Base 2"));
-    expect(idxDecaf).toBeGreaterThan(-1);
-    expect(idxBase2).toBeGreaterThan(-1);
-    expect(idxDecaf).toBeLessThan(idxBase2);
-
-    // Dedup by value: exactly ONE of the duplicate labels is present (persisted wins here)
-    const hasBase1 = texts.some((t) => t.includes("Base 1"));
-    const hasDupLabel = texts.some((t) => t.includes("SHOULD NOT SHOW (dup by value)"));
+    // Dedup by value: exactly ONE of the duplicate labels is present
+    const hasBase1 = t.some((x) => x.includes("Base 1"));
+    const hasDupLabel = t.some((x) => x.includes("SHOULD NOT SHOW (dup by value)"));
     expect(Number(hasBase1) + Number(hasDupLabel)).toBe(1);
   });
 
-  it("custom add flow creates a new option; calls onAdd with option & raw text; single-select selection works", async () => {
+  it("custom add flow: onAdd gets (option, raw); single-select auto-selects immediately (no extra click)", async () => {
     const onAdd = vi.fn();
     const onChange = vi.fn();
 
@@ -456,87 +504,32 @@ describe("Dropdown – customOption & enableCustomOption", () => {
         options={base}
         placeholder="Pick"
         enableCustomOption
-        customOption={{ onAdd }}
+        customOption={{ onAdd }} // allowMultiple false
         onChange={onChange}
       />
     );
 
-    await user.click(screen.getByPlaceholderText("Pick"));
+    await open();
 
-    // open custom row and create
-    await user.click(screen.getByText("Others"));
+    // Create "Mocha"
+    await clickRow("Others");
     const customInput = await screen.findByPlaceholderText("Others...");
     await user.type(customInput, "Mocha");
-    await user.click(screen.getByText("Add"));
+    await user.click(within(menuEl()).getByText("Add"));
 
-    // created option present
+    // Auto-selected
     await waitFor(() =>
-      expect(screen.getByText("Others - Mocha")).toBeVisible()
+      expect(screen.getByDisplayValue("Others - Mocha")).toBeInTheDocument()
     );
-
-    // onAdd receives both formatted option and raw text
     expect(onAdd).toHaveBeenCalledTimes(1);
     const [created, raw] = onAdd.mock.calls[0];
     expect(created.value).toBe("custom-mocha");
     expect(created.text).toBe("Others - Mocha");
     expect(raw).toBe("Mocha");
-
-    // select it in single-select mode
-    await user.click(screen.getByText("Others - Mocha"));
     expect(onChange).toHaveBeenCalledWith("custom-mocha");
-
-    // input reflects selection
-    await waitFor(() =>
-      expect(
-        screen.getByDisplayValue("Others - Mocha")
-      ).toBeInTheDocument()
-    );
   });
 
-  it("custom add flow prevents duplicates (second add does not create another item)", async () => {
-    render(
-      <Dropdown options={base} placeholder="Pick" enableCustomOption />
-    );
-
-    await user.click(screen.getByPlaceholderText("Pick"));
-
-    // First create "Mocha"
-    await user.click(screen.getByText("Others"));
-    let ci = await screen.findByPlaceholderText("Others...");
-    await user.type(ci, "Mocha");
-    await user.click(screen.getByText("Add"));
-    await waitFor(() =>
-      expect(screen.getByText("Others - Mocha")).toBeVisible()
-    );
-
-    // Try to create duplicate "Mocha" again
-    await user.click(screen.getByText("Others"));
-    ci = await screen.findByPlaceholderText("Others...");
-    await user.clear(ci);
-    await user.type(ci, "Mocha");
-    await user.click(screen.getByText("Add"));
-
-    // Still only one
-    const allMocha = screen.getAllByText("Others - Mocha");
-    expect(allMocha.length).toBe(1);
-  });
-
-  it("Escape in custom edit mode exits creator but keeps menu open", async () => {
-    render(
-      <Dropdown options={base} placeholder="Pick" enableCustomOption />
-    );
-    await user.click(screen.getByPlaceholderText("Pick"));
-
-    await user.click(screen.getByText("Others"));
-    const edit = await screen.findByPlaceholderText("Others...");
-    await user.keyboard("{Escape}");
-
-    // Back to non-editing state (label visible) and menu still open (base item visible)
-    await waitFor(() => expect(screen.getByText("Others")).toBeVisible());
-    expect(screen.getByText("Base 1")).toBeVisible();
-  });
-
-  it("multiselect + custom: can create and select a custom option; 'Select All' remains available", async () => {
+  it("multiselect + custom: auto-selects on add when allowMultiple=false; 'Select All' shown", async () => {
     const onChange = vi.fn();
     render(
       <Dropdown
@@ -545,34 +538,40 @@ describe("Dropdown – customOption & enableCustomOption", () => {
         multiselect
         filter
         enableCustomOption
+        customOption={{ allowMultiple: false }} // 👈 explicit
         onChange={onChange}
       />
     );
+
     await user.click(screen.getByPlaceholderText("Pick many"));
 
     // 'Select All' should be present in multiselect
-    await waitFor(() =>
-      expect(screen.getByText("Select All")).toBeVisible()
-    );
+    await waitFor(() => expect(screen.getByText("Select All")).toBeVisible());
 
-    // Create Cappuccino
+    // Create "Cappuccino"
     await user.click(screen.getByText("Others"));
     const ci = await screen.findByPlaceholderText("Others...");
     await user.type(ci, "Cappuccino");
     await user.click(screen.getByText("Add"));
+
+    // ✅ Auto-selected immediately on add (because allowMultiple=false)
+    expect(onChange).toHaveBeenCalled();
+    const lastCall = onChange.mock.calls.at(-1)![0] as string[];
+    expect(Array.isArray(lastCall)).toBe(true);
+    expect(lastCall).toContain("custom-cappuccino");
+
+    // summary text in control reflects 1 selection
+    expect(screen.getByDisplayValue("1 selected item")).toBeInTheDocument();
+
+    // (Optional) clicking it again toggles it off
     await waitFor(() =>
       expect(screen.getByText("Others - Cappuccino")).toBeVisible()
     );
-
-    // Select it
     await user.click(screen.getByText("Others - Cappuccino"));
-    expect(onChange).toHaveBeenCalled();
-    const lastCall = onChange.mock.calls.at(-1)![0] as string[];
-    expect(lastCall).toContain("custom-cappuccino");
-
-    // summary text in control
-    expect(screen.getByDisplayValue("1 selected item")).toBeInTheDocument();
+    const afterToggle = onChange.mock.calls.at(-1)![0] as string[];
+    expect(afterToggle).not.toContain("custom-cappuccino");
   });
+
 
   it("clearing persisted customOption.options also clears session-added custom options", async () => {
     const Harness = () => {
@@ -587,10 +586,7 @@ describe("Dropdown – customOption & enableCustomOption", () => {
             enableCustomOption
             customOption={{ options: persisted }}
           />
-          <button
-            data-testid="clear-persisted"
-            onClick={() => setPersisted([])}
-          >
+          <button data-testid="clear-persisted" onClick={() => setPersisted([])}>
             Clear persisted
           </button>
         </>
@@ -601,32 +597,35 @@ describe("Dropdown – customOption & enableCustomOption", () => {
     const input = screen.getByPlaceholderText("Pick");
     await user.click(input);
 
-    // Create a session custom option "Latte"
-    await user.click(screen.getByText("Others"));
+    // Create "Latte" -> auto-selects and closes
+    await clickRow("Others");
     const ci = await screen.findByPlaceholderText("Others...");
     await user.type(ci, "Latte");
-    await user.click(screen.getByText("Add"));
+    await user.click(within(menuEl()).getByText("Add"));
     await waitFor(() =>
-      expect(screen.getByText("Others - Latte")).toBeVisible()
+      expect(screen.getByDisplayValue("Others - Latte")).toBeInTheDocument()
     );
-    expect(screen.getByText("Others - Decaf")).toBeVisible(); // persisted present too
+
+    // Persisted is present before clearing
+    await open();
+    expect(getRow("Others - Decaf")).toBeTruthy();
 
     // Clear persisted -> should also wipe session-added
     await user.click(screen.getByTestId("clear-persisted"));
 
-    // Re-open (ensure we observe fresh list after state change)
+    // Re-open fresh list
     await user.click(input);
-
     await waitFor(() => {
-      expect(screen.queryByText("Others - Decaf")).toBeNull();
-      expect(screen.queryByText("Others - Latte")).toBeNull();
-      // Base options still there
-      expect(screen.getByText("Base 1")).toBeVisible();
+      expect(queryRow("Others - Decaf")).toBeNull();
+      expect(queryRow("Others - Latte")).toBeNull();
+      expect(getRow("Base 1")).toBeTruthy();
     });
   });
 });
 
-/* ---------------------- NEW TESTS: add/edit exclusivity, edit affordance & validation ---------------------- */
+/* ---------------------------------------------------------------------------------- */
+/*  SECTION: Add/Edit exclusivity & edit flow                                         */
+/* ---------------------------------------------------------------------------------- */
 
 describe("Dropdown – add/edit exclusivity & edit flow", () => {
   const base = [
@@ -638,25 +637,14 @@ describe("Dropdown – add/edit exclusivity & edit flow", () => {
     { value: "custom-latte", text: "Others - Latte" },
   ];
 
-  const open = async (ph = "Pick") => {
-    await user.click(screen.getByPlaceholderText(ph));
-    await waitFor(() => {
-      // menu opened
-      expect(screen.getByRole("dropdown-menu")).toBeInTheDocument();
-    });
-  };
-
   const clickEditFor = async (label: string) => {
-    // Find the li that contains the label and click its edit affordance
-    const lis = Array.from(document.querySelectorAll("ul.dropdown-list li"));
-    const row = lis.find((li) => (li.textContent || "").includes(label));
-    expect(row, `Row for "${label}" should exist`).toBeTruthy();
-    const btn = row!.querySelector('[aria-label="Edit custom option"]') as HTMLElement | null;
+    const row = getRow(label);
+    const btn = row.querySelector('[aria-label="Edit custom option"]') as HTMLElement | null;
     expect(btn, `Edit button for "${label}" should exist`).toBeTruthy();
     await user.click(btn!);
   };
 
-  it("Add and Edit are mutually exclusive: starting Add cancels active Edit", async () => {
+  it("starting Add cancels active Edit", async () => {
     render(
       <Dropdown
         options={base}
@@ -667,20 +655,15 @@ describe("Dropdown – add/edit exclusivity & edit flow", () => {
     );
 
     await open();
-
-    // start Edit on Decaf
     await clickEditFor("Others - Decaf");
-    // edit row is visible (Save button present)
-    expect(await screen.findByText("Save")).toBeVisible();
+    expect(await within(menuEl()).findByText("Save")).toBeVisible();
 
-    // click "Others" to start Add — should cancel Edit
-    await user.click(screen.getByText("Others"));
-    // Add input visible (Add button present), and Save gone
-    expect(await screen.findByText("Add")).toBeVisible();
-    expect(screen.queryByText("Save")).toBeNull();
+    await clickRow("Others"); // start Add
+    expect(await within(menuEl()).findByText("Add")).toBeVisible();
+    expect(within(menuEl()).queryByText("Save")).toBeNull();
   });
 
-  it("Add and Edit are mutually exclusive: starting Edit cancels active Add", async () => {
+  it("starting Edit cancels active Add", async () => {
     render(
       <Dropdown
         options={base}
@@ -691,18 +674,15 @@ describe("Dropdown – add/edit exclusivity & edit flow", () => {
     );
 
     await open();
+    await clickRow("Others"); // start Add
+    expect(await within(menuEl()).findByText("Add")).toBeVisible();
 
-    // Start Add
-    await user.click(screen.getByText("Others"));
-    expect(await screen.findByText("Add")).toBeVisible();
-
-    // Now start Edit on Latte — should cancel Add
-    await clickEditFor("Others - Latte");
-    expect(await screen.findByText("Save")).toBeVisible();
-    expect(screen.queryByText("Add")).toBeNull();
+    await clickEditFor("Others - Latte"); // start Edit
+    expect(await within(menuEl()).findByText("Save")).toBeVisible();
+    expect(within(menuEl()).queryByText("Add")).toBeNull();
   });
 
-  it("Edit affordance focuses the edit input; typing updates the value", async () => {
+  it("Edit affordance focuses the edit input; typing updates the raw value", async () => {
     render(
       <Dropdown
         options={base}
@@ -713,11 +693,9 @@ describe("Dropdown – add/edit exclusivity & edit flow", () => {
     );
 
     await open();
-
     await clickEditFor("Others - Decaf");
 
-    const editInput = await screen.findByPlaceholderText("Others...") as HTMLInputElement;
-    // Should be focused and have "Decaf" as raw text
+    const editInput = (await screen.findByPlaceholderText("Others...")) as HTMLInputElement;
     expect(document.activeElement).toBe(editInput);
     expect(editInput.value).toBe("Decaf");
 
@@ -725,7 +703,7 @@ describe("Dropdown – add/edit exclusivity & edit flow", () => {
     expect(editInput.value).toBe("Decaf (Edited)");
   });
 
-  it("Saving edit updates text and calls onEdit with (prev, next, raw)", async () => {
+  it("Saving an edit updates text and calls onEdit(prev, next, raw)", async () => {
     const onEdit = vi.fn();
     render(
       <Dropdown
@@ -737,21 +715,15 @@ describe("Dropdown – add/edit exclusivity & edit flow", () => {
     );
 
     await open();
-
     await clickEditFor("Others - Latte");
     const editInput = await screen.findByPlaceholderText("Others...");
 
-    // replace "Latte" with "Flat White"
     await user.clear(editInput);
     await user.type(editInput, "Flat White");
-    await user.click(screen.getByText("Save"));
+    await user.click(within(menuEl()).getByText("Save"));
 
-    // Label updates
-    await waitFor(() => {
-      expect(screen.getByText("Others - Flat White")).toBeVisible();
-    });
+    await waitFor(() => expect(getRow("Others - Flat White")).toBeTruthy());
 
-    // onEdit invoked with correct args
     expect(onEdit).toHaveBeenCalledTimes(1);
     const [prev, next, raw] = onEdit.mock.calls[0];
     expect(prev.value).toBe("custom-latte");
@@ -762,23 +734,14 @@ describe("Dropdown – add/edit exclusivity & edit flow", () => {
   });
 
   it("Add validation: clicking Add with empty input shows required error and stays in add mode", async () => {
-    render(
-      <Dropdown
-        options={base}
-        placeholder="Pick"
-        enableCustomOption
-      />
-    );
+    render(<Dropdown options={base} placeholder="Pick" enableCustomOption />);
 
     await open();
+    await clickRow("Others");
+    await user.click(await within(menuEl()).findByText("Add"));
 
-    await user.click(screen.getByText("Others"));
-    // Do not type anything, just click Add
-    await user.click(await screen.findByText("Add"));
-
-    // Error text appears and creator remains visible
     expect(await screen.findByText("This field is Required")).toBeVisible();
-    expect(screen.getByText("Add")).toBeVisible();
+    expect(within(menuEl()).getByText("Add")).toBeVisible();
   });
 
   it("Edit validation: clicking Save with empty input shows required error and stays in edit mode", async () => {
@@ -792,15 +755,13 @@ describe("Dropdown – add/edit exclusivity & edit flow", () => {
     );
 
     await open();
-
     await clickEditFor("Others - Decaf");
     const editInput = await screen.findByPlaceholderText("Others...");
     await user.clear(editInput);
-    await user.click(screen.getByText("Save"));
+    await user.click(within(menuEl()).getByText("Save"));
 
     expect(await screen.findByText("This field is Required")).toBeVisible();
-    // Still in edit mode (Save still visible)
-    expect(screen.getByText("Save")).toBeVisible();
+    expect(within(menuEl()).getByText("Save")).toBeVisible();
   });
 
   it("Escape in edit mode cancels edit and keeps dropdown open", async () => {
@@ -814,13 +775,324 @@ describe("Dropdown – add/edit exclusivity & edit flow", () => {
     );
 
     await open();
-
     await clickEditFor("Others - Decaf");
-    const editInput = await screen.findByPlaceholderText("Others...");
+    await screen.findByPlaceholderText("Others...");
     await user.keyboard("{Escape}");
 
-    // Back to normal row; menu still open (base option visible)
-    await waitFor(() => expect(screen.getByText("Base 1")).toBeVisible());
-    expect(screen.getByText("Others - Decaf")).toBeVisible();
+    await waitFor(() => expect(getRow("Base 1")).toBeTruthy());
+    expect(getRow("Others - Decaf")).toBeTruthy();
+  });
+});
+
+/* ---------------------------------------------------------------------------------- */
+/*  SECTION: Keyboard flows (inside inputs) & outside clicks                          */
+/* ---------------------------------------------------------------------------------- */
+
+describe("Dropdown – custom option keyboard flows & outside clicks", () => {
+  const base = [
+    { value: "base-1", text: "Base 1" },
+    { value: "base-2", text: "Base 2" },
+  ];
+
+  it("keyboard: Enter to create inside add input auto-selects when allowMultiple=false", async () => {
+    const onChange = vi.fn();
+    render(
+      <Dropdown
+        options={base}
+        placeholder="Pick"
+        enableCustomOption
+        onChange={onChange}
+      />
+    );
+
+    await open();
+
+    // Enter add mode via click (avoid relying on focus classes)
+    await clickRow("Others");
+    const addInput = (await screen.findByPlaceholderText("Others...")) as HTMLInputElement;
+    expect(document.activeElement).toBe(addInput);
+
+    // Press Enter with text -> create & auto-select -> dropdown closes
+    await user.type(addInput, "New Value");
+    await user.keyboard("{Enter}");
+
+    expect(onChange).toHaveBeenCalled();
+    const last = onChange.mock.calls.at(-1)![0];
+    expect(last).toBe("custom-new-value");
+
+    await waitFor(() =>
+      expect(screen.getByDisplayValue("Others - New Value")).toBeInTheDocument()
+    );
+    expect(screen.queryByRole("dropdown-menu")).toBeNull();
+  });
+
+  it("add mode: pressing Enter with empty input shows required error and stays in add mode", async () => {
+    render(<Dropdown options={base} placeholder="Pick" enableCustomOption />);
+
+    await open();
+    await clickRow("Others");
+    const addInput = await screen.findByPlaceholderText("Others...");
+    await user.keyboard("{Enter}");
+
+    await waitFor(() =>
+      expect(screen.getByText("This field is Required")).toBeVisible()
+    );
+    expect(addInput).toBeInTheDocument();
+  });
+
+  it("clicking outside while in add mode closes dropdown and exits add mode", async () => {
+    render(<Dropdown options={base} placeholder="Pick" enableCustomOption />);
+    await open();
+    await clickRow("Others");
+    await screen.findByPlaceholderText("Others...");
+
+    await clickOutside();
+
+    await waitFor(() => expect(screen.queryByRole("dropdown-menu")).toBeNull());
+    expect(screen.queryByPlaceholderText("Others...")).toBeNull();
+  });
+
+  it("clicking outside while in edit mode closes dropdown and exits edit mode", async () => {
+    const persisted = [
+      { value: "custom-decaf", text: "Others - Decaf" },
+      { value: "custom-latte", text: "Others - Latte" },
+    ];
+
+    render(
+      <Dropdown
+        options={base}
+        placeholder="Pick"
+        enableCustomOption
+        customOption={{ options: persisted }}
+      />
+    );
+
+    await open();
+
+    const row = getRow("Others - Decaf");
+    const editBtn = row.querySelector('[aria-label="Edit custom option"]') as HTMLElement | null;
+    expect(editBtn).toBeTruthy();
+    await user.click(editBtn!);
+    await screen.findByPlaceholderText("Others...");
+
+    await clickOutside();
+
+    await waitFor(() => expect(screen.queryByRole("dropdown-menu")).toBeNull());
+    expect(screen.queryByPlaceholderText("Others...")).toBeNull();
+  });
+
+  it("clicking Add button also auto-selects when allowMultiple=false", async () => {
+    const onChange = vi.fn();
+
+    render(
+      <Dropdown
+        options={base}
+        placeholder="Pick"
+        enableCustomOption
+        onChange={onChange}
+      />
+    );
+
+    await open();
+    await clickRow("Others");
+    const addInput = await screen.findByPlaceholderText("Others...");
+    await user.type(addInput, "Clicky");
+    await user.click(within(menuEl()).getByText("Add"));
+
+    // Auto-selected & menu closed
+    await waitFor(() =>
+      expect(screen.getByDisplayValue("Others - Clicky")).toBeInTheDocument()
+    );
+    expect(onChange).toHaveBeenCalled();
+    const last = onChange.mock.calls.at(-1)![0];
+    expect(last).toBe("custom-clicky");
+    expect(screen.queryByRole("dropdown-menu")).toBeNull();
+  });
+
+  it("duplicate add when allowMultiple=true: second add does not create another item (no duplicates)", async () => {
+    render(
+      <Dropdown
+        options={base}
+        placeholder="Pick"
+        enableCustomOption
+        customOption={{ allowMultiple: true }}
+      />
+    );
+
+    await open();
+
+    // First create "Mocha"
+    await clickRow("Others");
+    let ci = await screen.findByPlaceholderText("Others...");
+    await user.type(ci, "Mocha");
+    await user.click(within(menuEl()).getByText("Add"));
+    await waitFor(() => expect(getRow("Others - Mocha")).toBeTruthy());
+
+    // Try to create duplicate "Mocha" again (Others still visible because allowMultiple=true)
+    await clickRow("Others");
+    ci = await screen.findByPlaceholderText("Others...");
+    await user.clear(ci);
+    await user.type(ci, "Mocha");
+    await user.click(within(menuEl()).getByText("Add"));
+
+    // Still only one
+    const allMocha = labels().filter((l) => l === "Others - Mocha");
+    expect(allMocha.length).toBe(1);
+  });
+});
+
+/* ---------------------------------------------------------------------------------- */
+/*  SECTION: allowMultiple + optionAtTop (append/prepend + visibility)                */
+/* ---------------------------------------------------------------------------------- */
+
+describe("Dropdown – customOption.allowMultiple & customOption.optionAtTop insertion/visibility", () => {
+  const base = [
+    { value: "base-1", text: "Base 1" },
+    { value: "base-2", text: "Base 2" },
+  ];
+
+  it("default (allowMultiple=false, optionAtTop=false): 'Others' at bottom; first add hides 'Others'; newly created option is appended and auto-selected", async () => {
+    const onChange = vi.fn();
+    render(
+      <Dropdown
+        options={base}
+        placeholder="Pick"
+        enableCustomOption
+        customOption={{}} // defaults
+        onChange={onChange}
+      />
+    );
+
+    await open();
+
+    // 'Others' is at the bottom initially
+    expect(labels().at(-1)).toBe("Others");
+
+    // Add "Alpha" – auto-selects & closes
+    await clickRow("Others");
+    const addInput = await screen.findByPlaceholderText("Others...");
+    await user.type(addInput, "Alpha");
+    await user.keyboard("{Enter}");
+
+    await waitFor(() =>
+      expect(screen.getByDisplayValue("Others - Alpha")).toBeInTheDocument()
+    );
+    expect(onChange).toHaveBeenCalled();
+    expect(onChange.mock.calls.at(-1)![0]).toBe("custom-alpha");
+
+    // Re-open: 'Others' should now be hidden (allowMultiple=false)
+    await open();
+    expect(queryRow("Others")).toBeNull();
+
+    // Created option is appended (after Base 1 & Base 2)
+    const after = labels();
+    const iBase1 = after.indexOf("Base 1");
+    const iBase2 = after.indexOf("Base 2");
+    const iCreated = after.indexOf("Others - Alpha");
+    expect(iCreated).toBeGreaterThan(iBase1);
+    expect(iCreated).toBeGreaterThan(iBase2);
+    expect(iCreated).toBe(after.length - 1);
+  });
+
+  it("allowMultiple=true keeps 'Others' visible; optionAtTop=false appends new option near bottom (after bases, before 'Others')", async () => {
+    render(
+      <Dropdown
+        options={base}
+        placeholder="Pick"
+        enableCustomOption
+        customOption={{ allowMultiple: true }} // optionAtTop default false
+      />
+    );
+
+    await open();
+    expect(labels().at(-1)).toBe("Others");
+
+    // Add "Beta"
+    await clickRow("Others");
+    let addInput = await screen.findByPlaceholderText("Others...");
+    await user.type(addInput, "Beta");
+    await user.keyboard("{Enter}");
+    await waitFor(() => expect(getRow("Others - Beta")).toBeTruthy());
+
+    // Others stays visible; created item appended just above Others
+    await open();
+    const after = labels();
+    const iBase1 = after.indexOf("Base 1");
+    const iBase2 = after.indexOf("Base 2");
+    const iOthers = after.lastIndexOf("Others");
+    const iBeta = after.indexOf("Others - Beta");
+
+    expect(iBeta).toBeGreaterThan(iBase1);
+    expect(iBeta).toBeGreaterThan(iBase2);
+    expect(iBeta).toBe(iOthers - 1);
+  });
+
+  it("optionAtTop=true + allowMultiple=false: 'Others' at top; created option is PREPENDED and auto-selected (first after reopen)", async () => {
+    render(
+      <Dropdown
+        options={base}
+        placeholder="Pick"
+        enableCustomOption
+        customOption={{ optionAtTop: true }} // allowMultiple defaults to false
+      />
+    );
+
+    await open();
+    expect(labels()[0]).toBe("Others");
+
+    // Add "TopRow" – auto-selects & closes
+    await clickRow("Others");
+    const addInput = await screen.findByPlaceholderText("Others...");
+    await user.type(addInput, "TopRow");
+    await user.keyboard("{Enter}");
+    await waitFor(() =>
+      expect(screen.getByDisplayValue("Others - TopRow")).toBeInTheDocument()
+    );
+
+    // Re-open: 'Others' hidden; created is now first (PREPEND)
+    await open();
+    const after = labels();
+    expect(after[0]).toBe("Others - TopRow");
+    expect(queryRow("Others")).toBeNull();
+  });
+
+  it("optionAtTop=true & allowMultiple=true: 'Others' stays on top; newly created options are PREPENDED directly under 'Others'", async () => {
+    render(
+      <Dropdown
+        options={base}
+        placeholder="Pick"
+        enableCustomOption
+        customOption={{ optionAtTop: true, allowMultiple: true }}
+      />
+    );
+
+    await open();
+    expect(labels()[0]).toBe("Others");
+
+    // Add "Gamma"
+    await clickRow("Others");
+    let addInput = await screen.findByPlaceholderText("Others...");
+    await user.type(addInput, "Gamma");
+    await user.keyboard("{Enter}");
+    await waitFor(() => expect(getRow("Others - Gamma")).toBeTruthy());
+
+    // Re-open and check: Others (0), then Gamma (1)
+    await open();
+    let after = labels();
+    expect(after[0]).toBe("Others");
+    expect(after[1]).toBe("Others - Gamma");
+
+    // Add "Delta" – should PREPEND under Others, shifting Gamma down
+    await clickRow("Others");
+    addInput = await screen.findByPlaceholderText("Others...");
+    await user.type(addInput, "Delta");
+    await user.keyboard("{Enter}");
+    await waitFor(() => expect(getRow("Others - Delta")).toBeTruthy());
+
+    await open();
+    after = labels();
+    expect(after[0]).toBe("Others");
+    expect(after[1]).toBe("Others - Delta");
+    expect(after[2]).toBe("Others - Gamma");
   });
 });

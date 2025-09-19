@@ -116,21 +116,6 @@ const ExamplesComponent: React.FC = () => {
     if (dynamicOptions.length > 1) setDynamicOptions(dynamicOptions.slice(0, -1))
   }
 
-  // ---------- Inline Custom Option Flow (Single & Multi) ----------
-  const [customEnabled, setCustomEnabled] = useState(true)
-  const [singleCustom, setSingleCustom] = useState<string | null>(null)
-  const [multiCustom, setMultiCustom] = useState<string[]>([])
-  // Simulate persisted custom options you might reload on refresh:
-  const [persistedCustom, setPersistedCustom] = useState<{ value: string; text: string }[]>([
-    { value: 'custom-decaf', text: 'Others - Decaf' }
-  ])
-
-  const handleCustomAdd = useCallback((opt: { value: string; text: string }, raw: string) => {
-    // Persist upstream; demo: store locally so it reappears via customOption.options
-    setPersistedCustom(prev => (prev.find(p => p.value === opt.value) ? prev : [ ...prev, opt ]))
-    console.log("Created (persist me):", opt, "raw:", raw)
-  }, [])
-
   return (
     <StoryWrapper title='Dropdown Component' subTitle={descriptionText}>
       <Title>Colors</Title>
@@ -279,62 +264,99 @@ const ExamplesComponent: React.FC = () => {
         </GridItem>
       </Grid>
 
-      {/* ---------- Inline Custom Option Flow Section ---------- */}
-      <Title>Custom Option Flow (Inline)</Title>
+      {/* ---------- Custom Option Flow – Advanced (NEW demo) ---------- */}
+      <Title>Custom Option Flow – Advanced</Title>
       <Grid>
-        <GridItem xs={12} sm={12} md={6}>
-          <Dropdown
-            label="Single with Custom Creator"
-            options={DEFAULT_OPTIONS}
-            value={singleCustom ?? ''}
-            onChange={(v: any) => setSingleCustom(v)}
-            enableCustomOption={customEnabled}
-            customOption={{
-              // label: "Others",
-              // prefix: "Others - ",
-              // addText: "Add",
-              onAdd: handleCustomAdd,
-              /** ✅ moved here */
-              options: persistedCustom,
-            }}
-            helpText={`Click 'Others' to add. Feature is ${customEnabled ? 'enabled' : 'disabled'}.`}
-          />
-          <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <Button size="sm" onClick={() => setCustomEnabled(v => !v)}>
-              {customEnabled ? 'Disable' : 'Enable'} Custom Option
-            </Button>
-            <Button size="sm" onClick={() => setPersistedCustom([])}>
-              Clear persisted customOptions
-            </Button>
-            <Button size="sm" onClick={() => setSingleCustom('')}>
-              Clear Single Value
-            </Button>
-          </div>
-        </GridItem>
-
-        <GridItem xs={12} sm={12} md={6}>
-          <Dropdown
-            label="Multi with Custom Creator"
-            multiselect
-            options={DEFAULT_OPTIONS}
-            value={multiCustom}
-            onChange={(v: any) => setMultiCustom(Array.isArray(v) ? v : [v])}
-            enableCustomOption={customEnabled}
-            customOption={{ onAdd: handleCustomAdd, options: persistedCustom }}
-            helpText={`Works with multiselect. Feature is ${customEnabled ? 'enabled' : 'disabled'}.`}
-            filter
-          />
-          <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <Button size="sm" onClick={() => setMultiCustom([])}>
-              Clear Multi Value
-            </Button>
-          </div>
-        </GridItem>
+        <AdvancedCustomOptionDemo />
       </Grid>
-      {/* ---------- End Custom Option Flow Section ---------- */}
+      {/* ---------- End Advanced Section ---------- */}
     </StoryWrapper>
   )
 }
+
+const AdvancedCustomOptionDemo: React.FC = () => {
+  // Independent demo state
+  const [enabled, setEnabled] = useState(true);
+  const [allowMultiple, setallowMultiple] = useState(false);  // false = once (hide 'Others' after first add)
+  const [optionAtTop, setOptionAtTop] = useState(false);  // false = bottom; true = top
+
+  const [single, setSingle] = useState<string | null>('');
+  const [multi, setMulti] = useState<string[]>([]);
+
+  // Persisted custom options for this advanced demo
+  const [persisted, setPersisted] = useState<{ value: string; text: string }[]>([]);
+
+  const handleAdd = useCallback((opt: { value: string; text: string }, raw: string) => {
+    // Respect insertion semantics: PREPEND if optionAtTop, else APPEND
+    setPersisted(prev => {
+      if (prev.some(p => p.value === opt.value)) return prev;
+      return optionAtTop ? [opt, ...prev] : [...prev, opt];
+    });
+    console.log("[Advanced] Created (persist me):", opt, "raw:", raw);
+  }, [optionAtTop]);
+
+  return (
+    <>
+      <GridItem xs={12} sm={12} md={6}>
+        <Dropdown
+          label="Single (Advanced)"
+          options={DEFAULT_OPTIONS}
+          value={single ?? ''}
+          onChange={(v: any) => setSingle(v)}
+          enableCustomOption={enabled}
+          customOption={{
+            onAdd: handleAdd,
+            options: persisted,
+            allowMultiple,   // allow multiple creations or once
+            optionAtTop,   // place 'Others' at TOP; new options PREPEND
+          }}
+          helpText={`allowMultiple=${String(allowMultiple)} · optionAtTop=${String(optionAtTop)} · ${optionAtTop ? 'New options PREPEND under Others' : 'New options APPEND before Others/bottom'}`}
+        />
+        <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <Button size="sm" onClick={() => setEnabled(v => !v)}>
+            {enabled ? 'Disable' : 'Enable'} Custom Option
+          </Button>
+          <Button size="sm" onClick={() => setallowMultiple(v => !v)}>
+            allowMultiple: {String(allowMultiple)}
+          </Button>
+          <Button size="sm" onClick={() => setOptionAtTop(v => !v)}>
+            optionAtTop: {String(optionAtTop)}
+          </Button>
+          <Button size="sm" onClick={() => setPersisted([])}>
+            Clear persisted customOptions
+          </Button>
+          <Button size="sm" onClick={() => setSingle('')}>
+            Clear Single Value
+          </Button>
+        </div>
+      </GridItem>
+
+      <GridItem xs={12} sm={12} md={6}>
+        <Dropdown
+          label="Multi (Advanced)"
+          multiselect
+          options={DEFAULT_OPTIONS}
+          value={multi}
+          onChange={(v: any) => setMulti(Array.isArray(v) ? v : [v])}
+          enableCustomOption={enabled}
+          customOption={{
+            onAdd: handleAdd,
+            options: persisted,
+            allowMultiple,
+            optionAtTop,
+          }}
+          helpText={`Multiselect shares the same rules. ${optionAtTop ? 'PREPEND under Others' : 'APPEND near bottom'}.`}
+          filter
+        />
+        <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <Button size="sm" onClick={() => setMulti([])}>
+            Clear Multi Value
+          </Button>
+        </div>
+      </GridItem>
+    </>
+  );
+};
 
 export const Examples: StoryObj<typeof Dropdown> = {
   tags: ['!autodocs'],
