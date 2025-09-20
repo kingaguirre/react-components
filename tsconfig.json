@@ -52,6 +52,7 @@
     "src/organisms/DataTable/_test-row-actions.e2e.ts",
     "**/stories/**",
     "**/__tests__/**",
-    "**/Playground/**"
+    "**/Playground/**",
+    "src/organisms/FormRenderer/data.tsx"
   ],
 }

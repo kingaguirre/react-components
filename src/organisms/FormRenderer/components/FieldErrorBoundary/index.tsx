@@ -1,4 +1,4 @@
-// src/poc/Form/components/FieldErrorBoundary/index.tsx
+// src/organisms/FormRenderer/components/FieldErrorBoundary/index.tsx
 import React from 'react';
 import styled from 'styled-components';
 import { Label } from '../../../../atoms/FormControl/styled';

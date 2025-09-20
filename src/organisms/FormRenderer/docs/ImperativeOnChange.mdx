@@ -1,7 +1,7 @@
 
 import { Meta } from '@storybook/blocks';
 
-<Meta title="poc/FormRenderer/Imperative & OnChange" />
+<Meta title="organisms/FormRenderer/Imperative & OnChange" />
 
 # Imperative API & onChange
 FormRenderer exposes an imperative API via `ref`: **submit** the form and **getValues** at any time. The `onChange` callback streams the latest values as the user types.
@@ -15,8 +15,8 @@ FormRenderer exposes an imperative API via `ref`: **submit** the form and **getV
 ```tsx
 import React from 'react';
 import { z } from 'zod';
-import { FormRenderer } from '@/poc/Form';
-import type { FormRendererRef, SettingsItem } from '@/poc/Form/interface';
+import { FormRenderer } from '@/organisms/FormRenderer';
+import type { FormRendererRef, SettingsItem } from '@/organisms/FormRenderer/interface';
 
 const fields: SettingsItem[] = [
   { name:'profile.name',  label:'Name',  type:'text',   placeholder:'Jane' },

@@ -1,7 +1,7 @@
 {
   "name": "react-components-lib.eaa",
   "private": false,
-  "version": "1.0.4",
+  "version": "1.0.6",
   "type": "module",
   "main": "./dist/react-components-lib.cjs",
   "module": "./dist/react-components-lib.es.js",
@@ -46,7 +46,7 @@
     "test:e2e": "playwright test",
     "test:coverage": "vitest run --coverage",
     "scan": "react-scan --config react-scan.config.js",
-    "ai-server": "node src/poc/Form/FieldSettingsAIAgent/server/chat.js"
+    "ai-server": "node src/organisms/FormRenderer/FieldSettingsAIAgent/server/chat.js"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

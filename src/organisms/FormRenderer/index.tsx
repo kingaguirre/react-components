@@ -1,4 +1,4 @@
-// src/poc/Form/index.tsx
+// src/organisms/FormRenderer/index.tsx
 import React, { forwardRef, useImperativeHandle, useMemo } from 'react';
 import { useForm, Controller, UseFormSetError, UseFormClearErrors, useWatch } from 'react-hook-form';
 import type { Resolver } from 'react-hook-form';
@@ -467,7 +467,7 @@ const RenderSection = React.memo(function RenderSection(props: RenderSectionProp
 
                     clearErrors(mapKey as any);
 
-                    const namedFields = flattenForSchema(dtFields)
+                    const namedFields = flattenForSchema(dtFields as any)
                       .filter((fs: any): fs is FieldSetting & { name: string } => typeof fs?.name === 'string' && fs.name.length > 0);
 
                     const toTrigger: string[] = [];
@@ -496,7 +496,7 @@ const RenderSection = React.memo(function RenderSection(props: RenderSectionProp
                 />
 
                 {(() => {
-                  const leafDraftFS = toLeafFieldSettings(dtFields);
+                  const leafDraftFS = toLeafFieldSettings(dtFields  as any);
                   const draftValues = leafDraftFS.map((fs: any) => getDeepValue(getValues(), `${mapKey}.${fs.name}`));
                   const hasDraft = draftValues.some(v => v != null && v !== '' && !(typeof v === 'boolean' && v === false));
                   const canAdd = activeIdx == null && hasDraft && !isBlockedByAncestor;
@@ -512,7 +512,7 @@ const RenderSection = React.memo(function RenderSection(props: RenderSectionProp
                         onClick={async () => {
                           if (isBlockedByAncestor) return;
 
-                          const absDraftItems = prefixItems(dtFields, mapKey);
+                          const absDraftItems = prefixItems(dtFields  as any, mapKey);
                           const absFlatAll = (flattenForSchema(absDraftItems) as any[])
                             .filter((fs: any) => typeof fs?.name === 'string') as Array<FieldSetting & { name: string }>;
                           const absFlatLeaves = absFlatAll.filter(fs =>
@@ -562,7 +562,7 @@ const RenderSection = React.memo(function RenderSection(props: RenderSectionProp
                             newRow = setDeepValue(newRow, relName, v);
                           });
 
-                          const childTableKeys = dtFields
+                          const childTableKeys = (dtFields as any)
                             .filter((it: any) => 'dataTable' in it)
                             .map((it: any) => it.dataTable.config.dataSource as string);
                           for (const key of childTableKeys) if (newRow[key] == null) newRow[key] = [];
@@ -600,7 +600,7 @@ const RenderSection = React.memo(function RenderSection(props: RenderSectionProp
                           if (isBlockedByAncestor || activeIdx == null) return;
                           (document.activeElement as HTMLElement | null)?.blur?.();
 
-                          const flatFS: Array<FieldSetting & { name: string }> = flattenForSchema(dtFields)
+                          const flatFS: Array<FieldSetting & { name: string }> = flattenForSchema(dtFields as any)
                             .filter((fs: any) => typeof fs?.name === 'string' && fs.name.length > 0) as any[];
                           const fieldNames = flatFS.map(fs => `${mapKey}.${activeIdx}.${fs.name}`);
                           const isValid = await trigger(fieldNames, { shouldFocus: true });
@@ -623,7 +623,7 @@ const RenderSection = React.memo(function RenderSection(props: RenderSectionProp
                           setTableDataMap(m => ({ ...m, [mapKey]: newTable }));
                           setValue(mapKey, newTable);
 
-                          const leafDraftFS2 = toLeafFieldSettings(dtFields);
+                          const leafDraftFS2 = toLeafFieldSettings(dtFields  as any);
                           clearErrors([mapKey, ...leafDraftFS2.map(fs => `${mapKey}.${activeIdx}.${fs.name}`)] as any);
                           setActiveRowIndexMap(prev => ({ ...prev, [mapKey]: null }));
                           rowSnapshots.current[mapKey] = null as any;
@@ -679,7 +679,7 @@ const RenderSection = React.memo(function RenderSection(props: RenderSectionProp
                         data-testid={`btn-cancel-${mapKey}`}
                         onClick={() => {
                           setActiveRowIndexMap(prev => ({ ...prev, [mapKey]: null }));
-                          const leafDraftFS2 = toLeafFieldSettings(dtFields);
+                          const leafDraftFS2 = toLeafFieldSettings(dtFields  as any);
                           clearErrors(leafDraftFS2.map((fs: any) => `${mapKey}.${fs.name}`));
                           leafDraftFS2.forEach((fs: any) => {
                             setValue(`${mapKey}.${fs.name}`, isBooleanControl(fs) ? false : '', { shouldDirty: false, shouldTouch: false, shouldValidate: false });
@@ -695,7 +695,7 @@ const RenderSection = React.memo(function RenderSection(props: RenderSectionProp
 
               {/* Recursive render for dtFields with id prefix */}
               <RenderSection
-                items={prefixItems(dtFields, childPath)}
+                items={prefixItems(dtFields as any, childPath)}
                 errors={errors}
                 onChange={onChange}
                 control={control}
@@ -1041,7 +1041,7 @@ export const FormRenderer = forwardRef(<T extends Record<string, any>>(
         for (const item of fieldSettings.filter(hasDataTable)) {
           const dt = (item as { dataTable: DataTableSection }).dataTable;
           const tableKey = dt.config.dataSource;
-          const leafFS = toLeafFieldSettings(dt.fields);
+          const leafFS = toLeafFieldSettings(dt.fields as any);
           const activeIdx = activeRowIndexMap?.[tableKey] ?? null;
 
           if (activeIdx != null) {

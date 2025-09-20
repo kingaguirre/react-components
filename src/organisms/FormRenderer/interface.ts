@@ -1,4 +1,4 @@
-// src/poc/Form/interface.ts
+// src/organisms/FormRenderer/interface.ts
 
 import { ZodTypeAny } from 'zod';
 import { ColorType } from '../../common/interface';

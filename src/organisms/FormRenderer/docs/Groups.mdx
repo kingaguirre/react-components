@@ -1,7 +1,7 @@
 
 import { Meta } from '@storybook/blocks';
 
-<Meta title="poc/FormRenderer/Groups" />
+<Meta title="organisms/FormRenderer/Groups" />
 
 # Groups
 Use **headers**, **tabs**, and **accordions** to organize fields visually and functionally. Groups accept the same `hidden` / `disabled` patterns (boolean or function of values). Fields rendered inside a header get horizontal padding to emphasize containment.
@@ -15,8 +15,8 @@ Use **headers**, **tabs**, and **accordions** to organize fields visually and fu
 
 ```tsx
 import React from 'react';
-import { FormRenderer } from '@/poc/Form';
-import type { SettingsItem } from '@/poc/Form/interface';
+import { FormRenderer } from '@/organisms/FormRenderer';
+import type { SettingsItem } from '@/organisms/FormRenderer/interface';
 
 const fieldSettings: SettingsItem[] = [
   {
@@ -68,8 +68,8 @@ export default function Demo() {
 
 ```tsx
 import React from 'react';
-import { FormRenderer } from '@/poc/Form';
-import type { SettingsItem } from '@/poc/Form/interface';
+import { FormRenderer } from '@/organisms/FormRenderer';
+import type { SettingsItem } from '@/organisms/FormRenderer/interface';
 
 const fieldSettings: SettingsItem[] = [
   {
@@ -117,8 +117,8 @@ export default function Demo() {
 
 ```tsx
 import React from 'react';
-import { FormRenderer } from '@/poc/Form';
-import type { SettingsItem } from '@/poc/Form/interface';
+import { FormRenderer } from '@/organisms/FormRenderer';
+import type { SettingsItem } from '@/organisms/FormRenderer/interface';
 
 const fieldSettings: SettingsItem[] = [
   {

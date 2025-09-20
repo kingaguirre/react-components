@@ -1,4 +1,4 @@
-// src/poc/Form/utils.ts
+// src/organisms/FormRenderer/utils.ts
 import { z, ZodRawShape, ZodType, ZodTypeAny, ZodOptional, ZodNullable, ZodEffects } from 'zod';
 import type { FieldSetting } from './interface';
 
@@ -66,7 +66,7 @@ export function buildSchema(
     const key = fs.name;
     if (!key) continue;
 
-    const schema = fs.validation ? fs.validation(z, rowData) : z.any();
+    const schema = fs.validation ? fs.validation(z as any, rowData) : z.any();
     const parts = key.split('.');
     let cur: TreeNode = tree;
 

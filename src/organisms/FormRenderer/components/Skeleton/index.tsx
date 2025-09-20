@@ -1,4 +1,4 @@
-// src/poc/Form/components/Skeleton.tsx
+// src/organisms/FormRenderer/components/Skeleton.tsx
 import React from 'react';
 import styled, { keyframes } from 'styled-components';
 import { Grid, GridItem } from '../../../../atoms/Grid';
@@ -188,7 +188,7 @@ export function renderSkeletonSection(
               <SkeletonButton />
             </SkeletonActions>
             {/* placeholder fields below the table skeleton */}
-            {renderSkeletonSection(table.fields, values)}
+            {renderSkeletonSection(table.fields as any, values)}
           </SectionWrapper>
         </Panel>
       </React.Fragment>
@@ -269,7 +269,7 @@ export function renderSkeletonSection(
             <SectionWrapper className='tabs-wrapper'>
               <Tabs
                 key={`skel-tabs-${idx}`}
-                tabs={tabs.map((tab, i) => ({
+                tabs={tabs.map((tab) => ({
                   title: tab.title,
                   content: renderSkeletonSection(tab.fields, values),
                 }))}
