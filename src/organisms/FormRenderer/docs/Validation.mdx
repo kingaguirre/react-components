@@ -1,7 +1,7 @@
 
 import { Meta } from '@storybook/blocks';
 
-<Meta title="poc/FormRenderer/Validation" />
+<Meta title="organisms/FormRenderer/Validation" />
 
 # Validation
 FormRenderer accepts **per-field Zod schemas** via a `validation` function: `(z, values?) => ZodType`. This enables both static and **value‑dependent** validation. On submit, the component aggregates results and returns `{ valid, values, invalidFields }`.
@@ -10,8 +10,8 @@ FormRenderer accepts **per-field Zod schemas** via a `validation` function: `(z,
 ```tsx
 import React from 'react';
 import { z } from 'zod';
-import { FormRenderer } from '@/poc/Form';
-import type { SettingsItem } from '@/poc/Form/interface';
+import { FormRenderer } from '@/organisms/FormRenderer';
+import type { SettingsItem } from '@/organisms/FormRenderer/interface';
 
 const fieldSettings: SettingsItem[] = [
   { name:'user.email', label:'Email', type:'email', validation: (z)=> z.string().email('Invalid email') },
@@ -34,8 +34,8 @@ export default function Demo() {
 ```tsx
 import React from 'react';
 import { z } from 'zod';
-import { FormRenderer } from '@/poc/Form';
-import type { SettingsItem } from '@/poc/Form/interface';
+import { FormRenderer } from '@/organisms/FormRenderer';
+import type { SettingsItem } from '@/organisms/FormRenderer/interface';
 
 const fieldSettings: SettingsItem[] = [
   {

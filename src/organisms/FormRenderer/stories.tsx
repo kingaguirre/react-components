@@ -11,7 +11,7 @@ const descriptionText =
   'A fully dynamic, schema-validated form built with React Hook Form + Zod + styled-components.'
 
 const meta: Meta<typeof FormRenderer> = {
-  title: 'POC/FormRenderer',
+  title: 'organisms/FormRenderer',
   component: FormRenderer,
   parameters: {
     docs: {

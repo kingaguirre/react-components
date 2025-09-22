@@ -1,7 +1,7 @@
 
 import { Meta } from '@storybook/blocks';
 
-<Meta title="poc/FormRenderer/Overview" />
+<Meta title="organisms/FormRenderer/Overview" />
 
 # FormRenderer — Overview
 A schema‑driven form component that renders inputs, groups (headers, tabs, accordion), and in‑form DataTables from a single `fieldSettings` array. It supports conditional `hidden`/`disabled`, Zod validations, and an imperative API via `ref`.
@@ -42,8 +42,8 @@ A schema‑driven form component that renders inputs, groups (headers, tabs, acc
 ```tsx
 import React from 'react';
 import { z } from 'zod';
-import { FormRenderer } from '@/poc/Form';
-import type { SettingsItem } from '@/poc/Form/interface';
+import { FormRenderer } from '@/organisms/FormRenderer';
+import type { SettingsItem } from '@/organisms/FormRenderer/interface';
 
 const fields: SettingsItem[] = [
   { name: 'user.firstName', label: 'First name', type: 'text', placeholder: 'Jane' },

@@ -1,7 +1,7 @@
 
 import { Meta } from '@storybook/blocks';
 
-<Meta title="poc/FormRenderer/Fields" />
+<Meta title="organisms/FormRenderer/Fields" />
 
 # Fields
 All core input types, with `hidden`/`disabled` supported as static booleans or value‑driven functions. You can also supply a **custom renderer** for complete control.
@@ -18,7 +18,7 @@ This shows every built‑in type with sensible placeholders. Add Zod validations
 
 ```tsx
 import { z } from 'zod';
-import type { SettingsItem } from '@/poc/Form/interface';
+import type { SettingsItem } from '@/organisms/FormRenderer/interface';
 
 const fieldSettings: SettingsItem[] = [
   { name: 'textName',     label: 'Text',          type: 'text',          placeholder: 'Type your name' },
@@ -79,7 +79,7 @@ const fieldSettings: SettingsItem[] = [
 You can set `hidden`/`disabled` to a boolean or a function that receives the **current form values**.
 
 ```tsx
-import type { SettingsItem } from '@/poc/Form/interface';
+import type { SettingsItem } from '@/organisms/FormRenderer/interface';
 
 const fieldSettings: SettingsItem[] = [
   { name:'alwaysHidden',    label:'Hidden (static)',     type:'text', hidden: true },
@@ -101,7 +101,7 @@ Use `render` to fully control the UI while still integrating with RHF + validati
 
 ```tsx
 import { z } from 'zod';
-import type { SettingsItem } from '@/poc/Form/interface';
+import type { SettingsItem } from '@/organisms/FormRenderer/interface';
 
 const fieldSettings: SettingsItem[] = [
   {

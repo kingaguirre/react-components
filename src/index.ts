@@ -20,6 +20,7 @@ export { Modal } from "./organisms/Modal";
 export { Tabs } from "./organisms/Tabs";
 export { DataTable } from "./organisms/DataTable";
 export { AppShell } from "./organisms/AppShell";
+export { FormRenderer } from './organisms/FormRenderer';
 
 // Theme
 export { theme, GlobalStyles } from "./styles";
@@ -49,3 +50,4 @@ export * from "./organisms/Modal/interface";
 export * from "./organisms/Tabs/interface";
 export * from "./organisms/DataTable/interface";
 export * from "./organisms/AppShell/interface";
+export * from "./organisms/FormRenderer/interface";

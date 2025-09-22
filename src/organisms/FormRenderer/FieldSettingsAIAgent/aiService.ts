@@ -1,4 +1,4 @@
-// src/poc/Form/FieldSettingsAIAgent/aiService.ts
+// src/organisms/FormRenderer/FieldSettingsAIAgent/aiService.ts
 
 export async function askAI(userPrompt: string) {
   const systemPrompt = `

@@ -1,4 +1,4 @@
-// src/poc/DataTable/utils/columnSettings.tsx
+// src/organisms/DataTable/utils/columnSettings.tsx
 import { Column } from "@tanstack/react-table";
 import { CSSProperties } from "react";
 import { ColumnSetting, ColumnPinningType } from "../interface";

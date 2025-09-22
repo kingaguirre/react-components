@@ -127,7 +127,7 @@ const RadioChip: React.FC<{
    Meta
 ----------------------------------------------------------------------------- */
 const meta: Meta<typeof FormRenderer> = {
-  title: "poc/FormRenderer/API",
+  title: "organisms/FormRenderer/API",
   component: FormRenderer,
   tags: ["!autodocs"],
 };

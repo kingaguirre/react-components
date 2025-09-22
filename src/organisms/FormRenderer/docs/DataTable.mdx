@@ -1,7 +1,7 @@
 
 import { Meta } from '@storybook/blocks';
 
-<Meta title="poc/FormRenderer/DataTable" />
+<Meta title="organisms/FormRenderer/DataTable" />
 
 # DataTable in FormRenderer
 Compose editable grids **inside the same schema** you use for fields. Tables can have draft inputs, row editors, and even **nested child tables**—all driven by `fieldSettings`. Visibility and disabled state can be static booleans or derived from the current form values.
@@ -23,8 +23,8 @@ Compose editable grids **inside the same schema** you use for fields. Tables can
 ## Example with nested table
 ```tsx
 import React from 'react';
-import { FormRenderer } from '@/poc/Form';
-import type { SettingsItem, DataTableSection } from '@/poc/Form/interface';
+import { FormRenderer } from '@/organisms/FormRenderer';
+import type { SettingsItem, DataTableSection } from '@/organisms/FormRenderer/interface';
 
 const parentColumns = [
   { title: 'Name', column: 'name' },
