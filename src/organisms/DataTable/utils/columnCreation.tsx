@@ -44,25 +44,51 @@ export function transformColumnSettings<T extends object>(
   settings: ColumnSetting[],
   cellTextAlignment?: string,
 ): ColumnDef<T, any>[] {
-  const groups: Record<string, ColumnSetting[]> = {};
-  const topLevel: ColumnSetting[] = [];
-  settings.forEach((col) => {
-    if (col.groupTitle) {
-      groups[col.groupTitle] = groups[col.groupTitle] || [];
-      groups[col.groupTitle].push(col);
-    } else {
-      topLevel.push(col);
+  const result: ColumnDef<T, any>[] = [];
+  let activeGroupTitle: string | null = null;
+  let activeGroupCols: ColumnDef<T, any>[] = [];
+  const groupCounts = new Map<string, number>(); // to ensure unique ids per repeated group title
+
+  const flushGroup = () => {
+    if (!activeGroupTitle || activeGroupCols.length === 0) return;
+    const nextIndex = (groupCounts.get(activeGroupTitle) ?? 0) + 1;
+    groupCounts.set(activeGroupTitle, nextIndex);
+
+    result.push({
+      id: `group-${activeGroupTitle}-${nextIndex}`,
+      header: activeGroupTitle,
+      columns: activeGroupCols,
+    } as ColumnDef<T, any>);
+
+    activeGroupTitle = null;
+    activeGroupCols = [];
+  };
+
+  for (const col of settings) {
+    const thisGroup = col.groupTitle ?? null;
+
+    // If current column is grouped
+    if (thisGroup) {
+      // Continue the same contiguous group
+      if (activeGroupTitle === thisGroup) {
+        activeGroupCols.push(createColumnDef<T>(col, cellTextAlignment));
+      } else {
+        // Close any previous group and start a new one at this position
+        if (activeGroupTitle) flushGroup();
+        activeGroupTitle = thisGroup;
+        activeGroupCols = [createColumnDef<T>(col, cellTextAlignment)];
+      }
+      continue;
     }
-  });
-  const groupColumns: ColumnDef<T, any>[] = Object.entries(groups).map(
-    ([groupTitle, cols]) => ({
-      id: `group-${groupTitle}`,
-      header: groupTitle,
-      columns: cols.map((c) => createColumnDef<T>(c, cellTextAlignment)),
-    }),
-  );
-  const topColumns = topLevel.map((col) =>
-    createColumnDef<T>(col, cellTextAlignment),
-  );
-  return [...groupColumns, ...topColumns];
+
+    // Current column is NOT grouped
+    if (activeGroupTitle) flushGroup();
+    result.push(createColumnDef<T>(col, cellTextAlignment));
+  }
+
+  // Close trailing group if any
+  if (activeGroupTitle) flushGroup();
+
+  return result;
 }
+

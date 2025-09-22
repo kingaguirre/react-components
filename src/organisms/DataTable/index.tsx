@@ -60,7 +60,6 @@ import { useUniqueValueMaps } from "./hooks/useUniqueValueMaps";
 import { Alert } from "../../molecules/Alert";
 import { ExpanderColumn } from "./components/ExpanderColumn";
 import CellCommitWorker from "./workers/cellCommitWorker?worker";
-import { Loader } from "../../atoms/Loader";
 
 // needed for table body level scope DnD setup
 import {
@@ -113,6 +112,7 @@ export const DataTable = <T extends object>({
   disabledRows = [],
   disabled = false,
   headerRightElements = [],
+  headerLeftElements = [],
   onRowClick,
   onRowDoubleClick,
   onColumnSettingsChange,
@@ -132,6 +132,9 @@ export const DataTable = <T extends object>({
   hideFooterRightDetails = false,
   hideFooter = false,
   loading = false,
+  className = '',
+  addNewButtonText = 'Add New',
+  hideClearAllFiltersButton = false
 }: DataTableProps) => {
   const tableWrapperRef = useRef<HTMLDivElement>(null);
   const instanceIdRef = useRef<number>(Date.now() + Math.random());
@@ -1421,7 +1424,7 @@ export const DataTable = <T extends object>({
       ref={tableWrapperRef}
       data-table-instanceid={instanceIdRef.current}
       data-disabled={disabled || serverLoading || loading}
-      className={`data-table-wrapper ${isFocused ? "is-focused" : "is-not-focused"}`}
+      className={`data-table-wrapper ${isFocused ? "is-focused" : "is-not-focused"} ${className}`}
       $disabled={disabled || serverLoading || loading}
       tabIndex={0}
       onClickCapture={() => {
@@ -1442,6 +1445,7 @@ export const DataTable = <T extends object>({
         }
       />
       <MainHeader
+        disabled={disabled}
         value={globalFilter ?? ""}
         enableGlobalFiltering={enableGlobalFiltering}
         onChange={(value) => setGlobalFilter(value as string)}
@@ -1454,13 +1458,16 @@ export const DataTable = <T extends object>({
           setColumnFilters([]);
         }}
         isSettingsPanelOpen={showSettingsPanel}
-        onSettingsIconClick={() => setShowSettingsPanel(true)}
+        onSettingsIconClick={() => setShowSettingsPanel(!showSettingsPanel)}
         onAddBtnClick={handleAddRow}
+        addNewButtonText={addNewButtonText}
         showDeleteIcon={showDeleteIcon}
         handleDeleteIconClick={openBulkConfirm}
         handleResetColumnSettings={handleResetColumnSettings}
         headerRightControls={headerRightControls}
         headerRightElements={headerRightElements}
+        hideClearAllFiltersButton={hideClearAllFiltersButton}
+        headerLeftElements={headerLeftElements}
         bulkRestoreMode={allSelectedSoftDeleted}
         enableRowSelection={enableRowSelection}
         getVisibleNonBuiltInColumns={getVisibleNonBuiltInColumns}
@@ -1526,11 +1533,6 @@ export const DataTable = <T extends object>({
           enableRowSelection={enableRowSelection}
           hideRightDetails={hideFooterRightDetails}
         />
-      )}
-      {(serverLoading || loading) && (
-        <span className="data-table-loader" data-testid="data-table-loader">
-          <Loader size={30} thickness={4} />
-        </span>
       )}
       {showDeleteIcon && (
         <Alert

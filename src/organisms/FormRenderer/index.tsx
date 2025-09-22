@@ -36,6 +36,10 @@ import {
 
 import './validation';
 
+const hash = (v: unknown) => {
+  try { return JSON.stringify(v); } catch { return String(v); }
+};
+
 /** ───────── small util: debounce ───────── */
 const debounce = <F extends (...args: any[]) => void>(fn: F, ms = 150) => {
   let t: ReturnType<typeof setTimeout> | null = null;
@@ -371,6 +375,7 @@ const RenderSection = React.memo(function RenderSection(props: RenderSectionProp
 
                         const common: any = {
                           ...field,
+                          showDisabledIcon: true,
                           name: key,
                           testId,
                           'data-testid': testId,
@@ -433,7 +438,7 @@ const RenderSection = React.memo(function RenderSection(props: RenderSectionProp
 
       nodes.push(
         <React.Fragment key={`tbl-${idx}`}>
-          <Panel title={header} isSubHeader={isSubHeader} hasShadow={false}>
+          <Panel title={header} isSubHeader={isSubHeader} hideShadow className={`${!!header ? 'has-header' : 'no-header'}`}>
             {description && <Description>{description}</Description>}
             <SectionWrapper className='data-table-wrapper-section' $hasHeader={!!header}>
               <VirtualizedItem fieldKey={`table:${mapKey}`}>
@@ -694,30 +699,32 @@ const RenderSection = React.memo(function RenderSection(props: RenderSectionProp
               </VirtualizedItem>
 
               {/* Recursive render for dtFields with id prefix */}
-              <RenderSection
-                items={prefixItems(dtFields as any, childPath)}
-                errors={errors}
-                onChange={onChange}
-                control={control}
-                z={z}
-                globalDisabled={globalDisabled || isBlockedByAncestor}
-                originalData={getValues()}
-                getValues={getValues}
-                setValue={setValue}
-                trigger={trigger}
-                setError={setError}
-                clearErrors={clearErrors}
-                conditionalKeys={conditionalKeys}
-                activeRowIndexMap={activeRowIndexMap}
-                setActiveRowIndexMap={setActiveRowIndexMap}
-                tableDataMap={tableDataMap}
-                setTableDataMap={setTableDataMap}
-                rowSnapshots={rowSnapshots}
-                lastProcessedRef={lastProcessedRef}
-                ancestorRowSelected={activeIdx != null}
-                tableVersionMap={tableVersionMap}
-                setTableVersionMap={setTableVersionMap}
-              />
+              {dtFields && dtFields.length > 0 && (
+                <RenderSection
+                  items={prefixItems(dtFields as any, childPath)}
+                  errors={errors}
+                  onChange={onChange}
+                  control={control}
+                  z={z}
+                  globalDisabled={globalDisabled || isBlockedByAncestor}
+                  originalData={getValues()}
+                  getValues={getValues}
+                  setValue={setValue}
+                  trigger={trigger}
+                  setError={setError}
+                  clearErrors={clearErrors}
+                  conditionalKeys={conditionalKeys}
+                  activeRowIndexMap={activeRowIndexMap}
+                  setActiveRowIndexMap={setActiveRowIndexMap}
+                  tableDataMap={tableDataMap}
+                  setTableDataMap={setTableDataMap}
+                  rowSnapshots={rowSnapshots}
+                  lastProcessedRef={lastProcessedRef}
+                  ancestorRowSelected={activeIdx != null}
+                  tableVersionMap={tableVersionMap}
+                  setTableVersionMap={setTableVersionMap}
+                />
+              )}
             </SectionWrapper>
           </Panel>
         </React.Fragment>
@@ -736,7 +743,7 @@ const RenderSection = React.memo(function RenderSection(props: RenderSectionProp
 
       nodes.push(
         <React.Fragment key={`hdr-acc-${idx}`}>
-          <Panel title={group.header} isSubHeader={group.isSubHeader} hasShadow={false}>
+          <Panel title={group.header} isSubHeader={group.isSubHeader} hideShadow className={`${!!group.header ? 'has-header' : 'no-header'}`}>
             {group.description && <Description>{group.description}</Description>}
 
             <SectionWrapper className='accordion-wrapper' $hasHeader={!!group.header}>
@@ -809,7 +816,7 @@ const RenderSection = React.memo(function RenderSection(props: RenderSectionProp
 
       nodes.push(
         <React.Fragment key={`hdr-tabs-${idx}`}>
-          <Panel title={group.header} isSubHeader={group.isSubHeader} hasShadow={false}>
+          <Panel title={group.header} isSubHeader={group.isSubHeader} hideShadow className={`${!!group.header ? 'has-header' : 'no-header'}`}>
             {group.description && <Description>{group.description}</Description>}
             
             <SectionWrapper className='tabs-wrapper' $hasHeader={!!group.header}>
@@ -866,7 +873,7 @@ const RenderSection = React.memo(function RenderSection(props: RenderSectionProp
       const group = item as FieldGroup;
       nodes.push(
         <React.Fragment key={`hdr-${idx}`}>
-          <Panel title={group.header} isSubHeader={group.isSubHeader} hasShadow={false}>
+          <Panel title={group.header} isSubHeader={group.isSubHeader} hideShadow className={`${!!group.header ? 'has-header' : 'no-header'}`}>
             {group.description && <Description>{group.description}</Description>}
             <SectionWrapper className='fields-wrapper' $hasHeader={!!group.header}>
               <RenderSection
@@ -919,9 +926,10 @@ export const FormRenderer = forwardRef(<T extends Record<string, any>>(
   props: FormRendererProps<T>,
   ref: React.Ref<FormRendererRef<T>>
 ) => {
-  const { fieldSettings, dataSource, onSubmit, onChange, disabled: globalDisabled = false, loading = false } = props;
+  const { fieldSettings, dataSource, onSubmit, onChange, disabled: globalDisabled = false, loading = false, stickyHeader = true, className = '' } = props;
   const rowSnapshots = React.useRef<Record<string, any>>({});
   const lastProcessedRef = React.useRef<Record<string, number | null>>({});
+  const prevDataHashRef = React.useRef<string>('');
 
   const initialTableMap: Record<string, any[]> = {};
   fieldSettings.forEach(item => {
@@ -1013,8 +1021,12 @@ export const FormRenderer = forwardRef(<T extends Record<string, any>>(
     return zodResolver(schema)(values, context, options);
   };
 
-  const { control, handleSubmit, getValues, setValue, trigger, setError, clearErrors, formState: { errors } } =
-    useForm<FormData>({ defaultValues: dataSource as any, resolver: dynamicResolver, mode: 'onChange', reValidateMode: 'onChange' });
+  const { control, handleSubmit, getValues, setValue, trigger, setError, clearErrors, formState: { errors }, reset } = useForm<FormData>({
+    defaultValues: dataSource as any,
+    resolver: dynamicResolver,
+    mode: 'onChange',
+    reValidateMode: 'onChange'
+  });
 
   const conditionalKeys = useMemo(
     () => flattenForSchema(fieldSettings).filter((fs: any) => fs.validation?.length === 2).map((fs: any) => fs.name!),
@@ -1122,7 +1134,7 @@ export const FormRenderer = forwardRef(<T extends Record<string, any>>(
 
         // Final submit
         handleSubmit(
-          () => onSubmit({ valid: true, values: buildFullPayload(), invalidFields: [] }),
+          () => onSubmit?.({ valid: true, values: buildFullPayload(), invalidFields: [] }),
           errs => {
             const invalid: SubmitResult<T>['invalidFields'] = [];
             const curr = getValues() as any;
@@ -1154,7 +1166,7 @@ export const FormRenderer = forwardRef(<T extends Record<string, any>>(
                 obs.observe(wrapper);
               }
             }
-            onSubmit({ valid: false, values: buildFullPayload(), invalidFields: invalid });
+            onSubmit?.({ valid: false, values: buildFullPayload(), invalidFields: invalid });
           }
         )();
       },
@@ -1163,10 +1175,44 @@ export const FormRenderer = forwardRef(<T extends Record<string, any>>(
     [handleSubmit, onSubmit, getValues, activeRowIndexMap, tableDataMap, trigger, setError]
   );
 
+  React.useEffect(() => {
+    const nextHash = hash(dataSource ?? {});
+    if (nextHash === prevDataHashRef.current) return;
+    prevDataHashRef.current = nextHash;
+
+    // a) reset RHF values
+    reset(dataSource as any, {
+      keepErrors: true,
+      keepDirty: true,
+      keepTouched: true,
+      keepSubmitCount: false,
+    });
+
+    // b) rebuild table data map from fresh data
+    const nextTableMap: Record<string, any[]> = {};
+    fieldSettings.forEach(item => {
+      if ((item as any).dataTable) {
+        const key = (item as any).dataTable.config.dataSource;
+        nextTableMap[key] = getDeepValue(dataSource, key) || [];
+      }
+    });
+    setTableDataMap(nextTableMap);
+
+    // c) clear selections/snapshots and force DataTable re-render
+    setActiveRowIndexMap({});
+    rowSnapshots.current = {};
+    lastProcessedRef.current = {};
+    setTableVersionMap(m => {
+      const bumped: Record<string, number> = {};
+      Object.keys(nextTableMap).forEach(k => (bumped[k] = (m[k] ?? 0) + 1));
+      return { ...m, ...bumped };
+    });
+  }, [dataSource, fieldSettings, reset]);
+
   const handleChange = () => onChange?.(getValues() as T);
 
   return (
-    <FormWrapper className='form-wrapper' onSubmit={e => e.preventDefault()}>
+    <FormWrapper className={`form-wrapper ${className}`} onSubmit={e => e.preventDefault()} $stickyHeader={stickyHeader}>
       {loading
         ? renderSkeletonSection(fieldSettings, getValues())
         : (

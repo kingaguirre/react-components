@@ -6,6 +6,9 @@ const CUSTOM_INPUT_PADRIGHT = 95;
 export const DropdownContainer = styled.div`
   position: relative;
   width: 100%;
+  * {
+    outline: none;
+  }
 `;
 
 export const DropdownList = styled.ul<{

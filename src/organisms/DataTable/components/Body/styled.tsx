@@ -256,12 +256,25 @@ export const CellContent = styled.div<{
 
   ${({ $isEditable }) =>
     $isEditable
-      ? `
+      ? css`
     &:not(.custom-column) {
       cursor: pointer;
     }
   `
       : ""}
+
+  .cell-content-inner {
+    width: 100%;
+    text-align: ${({ $align }) => $align};
+  }
+
+  &.custom-column {
+    .form-control-input-container.checkbox {
+      .form-control-wrapper {
+        justify-content: center;
+      }
+    }
+  }
 `;
 
 export const NoDataContainer = styled.div<{ $hasError?: boolean }>`

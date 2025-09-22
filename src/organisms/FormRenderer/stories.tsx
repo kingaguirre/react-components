@@ -51,7 +51,7 @@ export const Playground: StoryObj<typeof FormRenderer> = {
           </Button>
         </div>
 
-        {/* <div style={{height: 200, overflow: 'auto'}}> */}
+        <div style={{height: 400, overflow: 'auto', marginBottom: '20px'}}>
           <FormRenderer
             ref={formRef}
             dataSource={demoData}
@@ -61,7 +61,7 @@ export const Playground: StoryObj<typeof FormRenderer> = {
             loading={loading}
             disabled={disabled}
           />
-        {/* </div> */}
+        </div>
         <Button onClick={() => formRef.current?.submit()}>
           Submit Form
         </Button>

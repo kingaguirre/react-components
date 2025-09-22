@@ -50,7 +50,7 @@ const InnerCellContent = memo(
         $align={colMeta?.align}
         $isEditable={isEditable}
       >
-        {isEditMode ? cellContext : <span ref={ref}>{maybeEllipsized}</span>}
+        {isEditMode ? cellContext : <span className="cell-content-inner" ref={ref}>{maybeEllipsized}</span>}
       </CellContent>
     );
   },

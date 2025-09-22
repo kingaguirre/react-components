@@ -30,5 +30,9 @@ export interface PanelProps {
   /** renders a sub-header style */
   isSubHeader?: boolean; // default: false
   /** toggle drop shadow on the panel container */
-  hasShadow?: boolean; // default: true
+  hideShadow?: boolean; // default: false
+  /** toggle panel content padding */
+  noPadding?: boolean; // default: false
+  /** Additional class names */
+  className?: string;
 }

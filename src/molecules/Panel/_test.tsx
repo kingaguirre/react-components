@@ -108,9 +108,9 @@ describe("Panel Component (extended)", () => {
   });
 
 
-  test("hasShadow=false removes box shadow", () => {
+  test("hideShadow=true removes box shadow", () => {
     render(
-      <Panel title="No Shadow" color="info" hasShadow={false}>
+      <Panel title="No Shadow" color="info" hideShadow>
         Content
       </Panel>
     );
@@ -123,7 +123,7 @@ describe("Panel Component (extended)", () => {
     expect([cs.boxShadow, cs.boxShadow.trim()]).toContain("none");
   });
 
-  test("hasShadow=true (default) applies a box shadow", () => {
+  test("hideShadow=false (default) applies a box shadow", () => {
     render(
       <Panel title="With Shadow" color="info">
         Content

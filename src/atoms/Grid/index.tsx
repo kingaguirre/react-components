@@ -1,7 +1,7 @@
 // src/atoms/Grid/index.tsx
 import React from "react";
 import styled from "styled-components";
-import { StyledGrid, StyledGridItem } from "./styled";
+import { GridWrapper, StyledGrid, StyledGridItem } from "./styled";
 import { GridProps, GridItemProps } from "./interface";
 import { Icon } from "src/atoms/Icon";
 
@@ -30,7 +30,6 @@ export const GridItem: React.FC<GridItemProps> = ({
   xl,
   offset,
   order,
-  className,
   ...rest
 }) => {
   return (
@@ -49,7 +48,7 @@ export const GridItem: React.FC<GridItemProps> = ({
       $xl={xl}
       $offset={offset}
       $order={order}
-      className={["grid-item-component", className].filter(Boolean).join(" ")}
+      className="grid-item-component"
       {...rest}
     >
       {children}
@@ -101,14 +100,18 @@ export const Grid: React.FC<GridProps> = ({
   if (!debugWarnings) {
     // relaxed mode: allow any children, no warnings, no filtering
     return (
-      <StyledGrid
-        spacing={spacing}
-        style={style}
-        className={["grid-component", className].filter(Boolean).join(" ")}
+      <GridWrapper
         {...rest}
+        className={["grid-wrapper", className].filter(Boolean).join(" ")}
       >
-        {children}
-      </StyledGrid>
+        <StyledGrid
+          spacing={spacing}
+          style={style}
+          className="grid-component"
+        >
+          {children}
+        </StyledGrid>
+      </GridWrapper>
     );
   }
 
@@ -129,30 +132,35 @@ export const Grid: React.FC<GridProps> = ({
   const showInvalidWarning = invalidNames.length > 0;
 
   return (
-    <StyledGrid
-      spacing={spacing}
-      style={style}
-      className={["grid-component", className].filter(Boolean).join(" ")}
+    <GridWrapper
       {...rest}
+      className={["grid-wrapper", className].filter(Boolean).join(" ")}
     >
-      {(showEmptyWarning || showInvalidWarning) && (
-        <WarningBox role="alert" data-testid="grid-error">
-          <Icon icon="info" />
-          <div>
-            <strong>Grid warning:</strong>{" "}
-            {showEmptyWarning
-              ? "Requires at least one <GridItem />."
-              : "Only accepts <GridItem /> children."}
-            {showInvalidWarning && invalidNames.length > 0 && (
-              <> Ignored: {invalidNames.join(", ")}.</>
-            )}
-          </div>
-        </WarningBox>
-      )}
+      <StyledGrid
+        spacing={spacing}
+        style={style}
+        className="grid-component"
+      >
+        {(showEmptyWarning || showInvalidWarning) && (
+          <WarningBox role="alert" data-testid="grid-error">
+            <Icon icon="info" />
+            <div>
+              <strong>Grid warning:</strong>{" "}
+              {showEmptyWarning
+                ? "Requires at least one <GridItem />."
+                : "Only accepts <GridItem /> children."}
+              {showInvalidWarning && invalidNames.length > 0 && (
+                <> Ignored: {invalidNames.join(", ")}.</>
+              )}
+            </div>
+          </WarningBox>
+        )}
 
-      {/* render only valid children in strict mode */}
-      {valid.length > 0 ? valid : null}
-    </StyledGrid>
+        {/* render only valid children in strict mode */}
+        {valid.length > 0 ? valid : null}
+      </StyledGrid>
+    </GridWrapper>
   );
 };
+
 Grid.displayName = "Grid";

@@ -5,16 +5,15 @@ import { ColorType } from "../../common/interface";
 export const PanelContainer = styled.div<{
   $color: ColorType;
   $disabled: boolean;
-  $hasShadow?: boolean; // NEW
+  $hideShadow?: boolean;
 }>`
   background-color: white;
   border-radius: 2px;
-  box-shadow: ${({ $hasShadow = true }) =>
-    $hasShadow
+  box-shadow: ${({ $hideShadow = false }) =>
+    !$hideShadow
       ? `0px 8px 16px rgba(0, 0, 0, 0.16), 0 0 6px rgba(0, 0, 0, 0.08)`
       : "none"};
   pointer-events: ${({ $disabled }) => ($disabled ? "none" : "auto")};
-  overflow: hidden;
   font-family: ${theme.fontFamily};
 `;
 
@@ -32,6 +31,7 @@ export const PanelHeader = styled.div<{
   height: ${({ $isSubHeader }) => ($isSubHeader ? "28px" : "30px")};
   box-sizing: border-box;
   letter-spacing: 0.5px;
+  border-radius: 2px;
 
   ${({ $color, $disabled, $isSubHeader }) => {
     const normalBg = $disabled
@@ -97,8 +97,8 @@ export const PanelHeader = styled.div<{
   }
 `;
 
-export const PanelContent = styled.div`
-  padding: 12px;
+export const PanelContent = styled.div<{ $noPadding?: boolean }>`
+  padding: ${({ $noPadding }) => !!$noPadding ? 0 : 12}px;
   font-size: 14px;
   color: ${theme.colors.default.dark};
   p {

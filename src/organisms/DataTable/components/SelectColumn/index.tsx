@@ -59,6 +59,11 @@ export const SelectColumn = <T extends object>(
       }
     };
 
+    const meta = ((table.options as any)?.meta ?? {}) as {
+      disabled?: boolean;
+    };
+    const disabled = Boolean(meta.disabled);
+
     return enableMultiRowSelection && allRows.length > 0 ? (
       <CellContainer className="custom-column data-table-select-header">
         <CheckboxCell
@@ -66,17 +71,24 @@ export const SelectColumn = <T extends object>(
           indeterminate={isIndeterminate}
           onChange={handleChange}
           rowId="header"
+          disabled={disabled}
         />
       </CellContainer>
     ) : null;
   },
-  cell: ({ row }) => {
+  cell: ({ row, table }) => {
     const isNewRow = !!(row.original as any).__isNew;
     const isRowDisabled = disabledRows.includes(
       (row.original as any).__internalId,
     );
     // Use 'checkbox' for multi-selection use 'radio' for single-selection.
     const inputType = enableMultiRowSelection ? "checkbox" : "radio";
+
+    const meta = ((table.options as any)?.meta ?? {}) as {
+      disabled?: boolean;
+    };
+    const disabled = Boolean(meta.disabled)
+
     return (
       <CellContainer className="custom-column data-table-select-item">
         <CheckboxCell
@@ -84,7 +96,7 @@ export const SelectColumn = <T extends object>(
           checked={row.getIsSelected()}
           indeterminate={row.getIsSomeSelected()}
           onChange={row.getToggleSelectedHandler()}
-          disabled={isNewRow || isRowDisabled}
+          disabled={isNewRow || isRowDisabled || disabled}
           rowId={row.id}
         />
       </CellContainer>

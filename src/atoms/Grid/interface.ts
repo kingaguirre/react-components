@@ -6,6 +6,8 @@ export interface GridProps extends React.HTMLAttributes<HTMLDivElement> {
   style?: React.CSSProperties;
   /** Opt-in: show non-blocking warnings about non-GridItem children */
   debugWarnings?: boolean;
+  /** Additional class names */
+  className?: string;
 }
 
 export interface GridItemProps extends React.HTMLAttributes<HTMLDivElement> {

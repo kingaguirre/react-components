@@ -1,3 +1,4 @@
+// styled.tsx
 import styled, { css } from "styled-components";
 
 const pct = (span?: number) =>
@@ -5,15 +6,30 @@ const pct = (span?: number) =>
     ? `${((span / 12) * 100).toFixed(6)}%`
     : undefined;
 
+/**
+ * Each item width accounts for internal gutters so that:
+ * sum(item widths) + sum(gaps between items) = 100%
+ * when spans in a row add up to 12.
+ *
+ * width = col * span + gap * (span - 1)
+ * where col = (100% - 11*gap) / 12
+ */
 const widthRule = (span?: number) => {
-  const p = pct(span);
-  if (!p) return "";
+  if (!(typeof span === "number" && span > 0)) return "";
+  const s = span; // stable reference in template string
   return css`
-    width: ${p};
-    flex-basis: ${p};
-    max-width: ${p};
+    width: calc(var(--col) * ${s} + var(--gap) * ${s - 1});
+    flex-basis: calc(var(--col) * ${s} + var(--gap) * ${s - 1});
+    max-width: calc(var(--col) * ${s} + var(--gap) * ${s - 1});
   `;
 };
+
+export const GridWrapper = styled.div`
+  box-sizing: border-box;
+  && {
+    display: block;
+  }
+`;
 
 export const StyledGrid = styled.div<{ spacing: number }>`
   /* ↑↑ Double ampersand = higher specificity (beats Tailwind .grid) */
@@ -21,17 +37,19 @@ export const StyledGrid = styled.div<{ spacing: number }>`
     display: flex;
     flex-wrap: wrap;
 
+    /* modern spacing */
+    --gap: ${(p) => p.spacing}px;
+    /* 12 columns, 11 gutters across the full row */
+    --col: calc((100% - (11 * var(--gap))) / 12);
+    gap: var(--gap);
+
     /* Defuse any stray grid props if someone slaps class="grid" on it */
     grid-template-columns: initial;
     grid-auto-rows: initial;
   }
 
-  margin: -${(p) => p.spacing / 2}px;
   box-sizing: border-box;
-
-  & > * {
-    padding: ${(p) => p.spacing / 2}px;
-  }
+  /* Removed negative margins and child padding — gap handles it now */
 `;
 
 export const StyledGridItem = styled.div<{
@@ -47,6 +65,7 @@ export const StyledGridItem = styled.div<{
   box-sizing: border-box;
   min-width: 0;
 
+  /* Keep offset semantics the same as before (pure column width) */
   ${({ $offset }) =>
     typeof $offset === "number" &&
     $offset > 0 &&
@@ -54,6 +73,7 @@ export const StyledGridItem = styled.div<{
       margin-left: ${pct($offset)};
     `}
 
+  /* Flex order still supported */
   ${({ $order }) =>
     typeof $order === "number" &&
     css`

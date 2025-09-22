@@ -59,6 +59,8 @@ export interface DataTableProps<T = any> {
   headerRightControls?: boolean;
   /** Adds elements in the right part of header before the add button */
   headerRightElements?: HeaderRightElement[];
+  /** Adds elements between the Search and the right controls */
+  headerLeftElements?: HeaderRightElement[];
   /** Key of the currently active row */
   activeRow?: string;
   /** Array of keys identifying selected rows */
@@ -115,7 +117,10 @@ export interface DataTableProps<T = any> {
   enableUpload?: boolean;
   /** Upload configs */
   uploadControls?: UploadControls;
-
+  /** Additional class names */
+  className?: string;
+  hideClearAllFiltersButton?: boolean;
+  addNewButtonText?: string;
   testId?: string;
 }
 
@@ -155,10 +160,11 @@ export type DataTableFormControlType =
   | "switch-group"
   | "radio-button-group";
 
+export type HeaderLeftElement = HeaderRightElement;
 export type HeaderRightElement =
   | ({
       type: "button";
-      text: string;
+      text?: string;
       width?: string | number;
     } & Omit<
       ButtonProps,

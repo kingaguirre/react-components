@@ -36,7 +36,7 @@ export const TabItem = styled.button<{
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 10px 16px;
+  padding: 6px 16px;
   font-size: 14px;
   font-weight: bold;
   border-top-left-radius: 4px;

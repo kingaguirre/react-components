@@ -69,7 +69,8 @@ export interface FormControlProps {
   onClearIcon?: () => void;
   /** Show disabled icon when input is disabled */
   showDisabledIcon?: boolean;
-
+  /** Whether the FormControl has rounded edges */
+  rounded?: boolean;
   /** Any additional attributes */
   [key: string]: any;
 }

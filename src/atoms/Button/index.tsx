@@ -13,6 +13,7 @@ export const Button: React.FC<ButtonProps> = ({
   className = "",
   active = undefined,
   testId,
+  width = undefined,
   ...rest
 }) => (
   <ButtonContainer
@@ -27,6 +28,7 @@ export const Button: React.FC<ButtonProps> = ({
     $size={size}
     $rounded={rounded}
     $fullWidth={fullWidth}
+    $width={width as any}
     disabled={disabled}
     role="button"
     className={`button ${className} ${disabled ? "disabled" : ""} ${active ? "active" : ""}`.trim()}

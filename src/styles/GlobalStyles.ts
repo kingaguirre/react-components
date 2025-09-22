@@ -6,6 +6,7 @@ import { theme } from "./theme";
 export const GlobalStyles = createGlobalStyle`
   :root {
     /* Primary Colors */
+    --color-primary: ${theme.colors.primary.base};
     --color-primary-base: ${theme.colors.primary.base};
     --color-primary-light: ${theme.colors.primary.light};
     --color-primary-lighter: ${theme.colors.primary.lighter};
@@ -14,6 +15,7 @@ export const GlobalStyles = createGlobalStyle`
     --color-primary-darker: ${theme.colors.primary.darker};
 
     /* Info Colors */
+    --color-info: ${theme.colors.info.base};
     --color-info-base: ${theme.colors.info.base};
     --color-info-light: ${theme.colors.info.light};
     --color-info-lighter: ${theme.colors.info.lighter};
@@ -22,6 +24,7 @@ export const GlobalStyles = createGlobalStyle`
     --color-info-darker: ${theme.colors.info.darker};
 
     /* Success Colors */
+    --color-success: ${theme.colors.success.base};
     --color-success-base: ${theme.colors.success.base};
     --color-success-light: ${theme.colors.success.light};
     --color-success-lighter: ${theme.colors.success.lighter};
@@ -30,6 +33,7 @@ export const GlobalStyles = createGlobalStyle`
     --color-success-darker: ${theme.colors.success.darker};
 
     /* Warning Colors */
+    --color-warning: ${theme.colors.warning.base};
     --color-warning-base: ${theme.colors.warning.base};
     --color-warning-light: ${theme.colors.warning.light};
     --color-warning-lighter: ${theme.colors.warning.lighter};
@@ -38,6 +42,7 @@ export const GlobalStyles = createGlobalStyle`
     --color-warning-darker: ${theme.colors.warning.darker};
 
     /* Danger Colors */
+    --color-danger: ${theme.colors.danger.base};
     --color-danger-base: ${theme.colors.danger.base};
     --color-danger-light: ${theme.colors.danger.light};
     --color-danger-lighter: ${theme.colors.danger.lighter};
@@ -46,6 +51,7 @@ export const GlobalStyles = createGlobalStyle`
     --color-danger-darker: ${theme.colors.danger.darker};
 
     /* Default Colors */
+    --color-default: ${theme.colors.default.base};
     --color-default-base: ${theme.colors.default.base};
     --color-default-light: ${theme.colors.default.light};
     --color-default-lighter: ${theme.colors.default.lighter};
@@ -193,5 +199,5 @@ export const fadeInOnMount = `
       opacity: 1;
     }
   }
-  animation: fadeIn 0.3s ease;
+  animation: fadeIn 0.15s ease;
 `;

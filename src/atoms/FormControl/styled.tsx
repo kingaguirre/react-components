@@ -4,7 +4,7 @@ import { FormControlProps, IconRight } from "./interface";
 import { theme } from "../../styles/theme";
 import { ColorType, SizeType } from "../../common/interface";
 
-export const FormControInputContainer = styled.div`
+export const FormControInputContainer = styled.div<{ $rounded?: boolean}>`
   box-sizing: border-box;
   position: relative;
   display: block;
@@ -19,6 +19,15 @@ export const FormControInputContainer = styled.div`
   * {
     box-sizing: border-box;
   }
+
+  ${({ $rounded }) => !!$rounded ? `
+    .form-control-text,
+    .form-control-number,
+    .form-control-email,
+    .form-control-password {
+      border-radius: 999px;
+    }
+  ` : ''}
 `;
 
 export const FormControlWrapper = styled.div<{

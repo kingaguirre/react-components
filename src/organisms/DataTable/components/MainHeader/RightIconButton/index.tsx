@@ -11,7 +11,7 @@ export const RightIconButton = ({
   disabled,
   testId,
 }: {
-  onClick?: () => void;
+  onClick?: (e: any) => void;
   title?: string;
   icon: string;
   className?: string;
