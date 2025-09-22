@@ -8,6 +8,8 @@ import {
 } from "../../interface";
 import { Row } from "./Row";
 import { BUILTIN_COLUMN_IDS } from "../../utils";
+import { SkeletonBody } from "./SkeletonBody";
+import { useHeaderColSizes } from "../../hooks/useHeaderColSizes";
 
 interface BodyProps<TData> {
   table: Table<TData>;
@@ -25,10 +27,7 @@ interface BodyProps<TData> {
   onRowClick?: DataTableProps["onRowClick"];
   onRowDoubleClick?: DataTableProps["onRowDoubleClick"];
   expandedRowContent?: (RowData: any) => React.ReactNode;
-  uniqueValueMaps?: Record<
-    string,
-    string[] | Record<string, number> | undefined
-  >;
+  uniqueValueMaps?: Record<string, string[] | Record<string, number> | undefined>;
 }
 
 export const Body = <TData,>({
@@ -48,33 +47,34 @@ export const Body = <TData,>({
   uniqueValueMaps,
   expandedRowRightOffset,
 }: BodyProps<TData>) => {
-  // 🔎 Detect server/manual mode
   const isServer = Boolean((table.options as any).manualPagination);
 
-  // ⚙️ Pick the correct row model:
-  // - server: getRowModel() already represents the fetched page
-  // - client: use getPaginationRowModel() to render the current page slice
+  // Correct row model for render
   const rows = isServer
     ? table.getRowModel().rows
     : table.getPaginationRowModel().rows;
 
-  // 📊 Total records:
-  // - server: derive from options.rowCount (set in useReactTable)
-  // - client: filtered row count is the true total displayed
+  // Correct total records
   const totalRecords = isServer
     ? ((table.options as any).rowCount ?? rows.length)
     : table.getFilteredRowModel().rows.length;
 
-  // Exclude built-in columns from all/visible leaf columns
-  const allLeafColumns = table.getAllLeafColumns();
-  const leafColumns = allLeafColumns.filter(
-    (c) => !BUILTIN_COLUMN_IDS.has(c.id),
-  );
-  const visibleLeafColumns = table
-    .getVisibleLeafColumns()
-    .filter((c) => !BUILTIN_COLUMN_IDS.has(c.id));
+  // Non-built-in user columns (for guards/messages only)
+  const leafColumns = table.getAllLeafColumns().filter((c) => !BUILTIN_COLUMN_IDS.has(c.id));
+  const visibleLeafColumns = table.getVisibleLeafColumns().filter((c) => !BUILTIN_COLUMN_IDS.has(c.id));
 
-  // Memoized row renderer (Row is memoized too)
+  // Loading flags from meta
+  const meta = ((table.options as any)?.meta ?? {}) as {
+    disabled?: boolean;
+    serverLoading?: boolean;
+    loading?: boolean;
+  };
+  const isLoading = Boolean(meta.loading || meta.serverLoading);
+  
+  // Memoized column sizes for the skeleton (includes built-ins via header groups)
+  const colSizes = useHeaderColSizes(table, isLoading);
+
+  // Memoized row renderer
   const rowContent = useCallback(
     (row: any) => (
       <React.Fragment key={row.id}>
@@ -93,9 +93,7 @@ export const Body = <TData,>({
           uniqueValueMaps={uniqueValueMaps}
         />
         {row.getIsExpanded() && expandedRowContent && (
-          <ExpandedRowContainer
-            $expandedRowRightOffset={expandedRowRightOffset}
-          >
+          <ExpandedRowContainer $expandedRowRightOffset={expandedRowRightOffset}>
             {expandedRowContent(row.original)}
           </ExpandedRowContainer>
         )}
@@ -117,13 +115,11 @@ export const Body = <TData,>({
     ],
   );
 
-  // Guards
+  // Guards not related to loading
   if (leafColumns.length === 0) {
     return (
       <BodyContainer className="data-table-body-container">
-        <NoDataContainer $hasError>
-          No column settings configured.
-        </NoDataContainer>
+        <NoDataContainer $hasError>No column settings configured.</NoDataContainer>
       </BodyContainer>
     );
   }
@@ -136,7 +132,31 @@ export const Body = <TData,>({
     );
   }
 
-  // No data (respect server total)
+ if (isLoading) {
+    const pageSize =
+      table.getState()?.pagination?.pageSize ??
+      rows.length ??
+      10;
+
+    return (
+      <BodyContainer className="data-table-body-container">
+        <SkeletonBody rows={pageSize} colSizes={colSizes.length ? colSizes : [120]} />
+      </BodyContainer>
+    );
+  }
+
+  // Client-side big dataset notice
+  if (!isServer && totalRecords > 100000) {
+    return (
+      <BodyContainer className="data-table-body-container">
+        <NoDataContainer>
+          <b>Notice</b>: Maximum rows set to 100,000. For improved performance on large datasets, consider server-side pagination.
+        </NoDataContainer>
+      </BodyContainer>
+    );
+  }
+
+  // No data (only when not loading)
   if (totalRecords === 0) {
     return (
       <BodyContainer className="data-table-body-container">
@@ -149,18 +169,6 @@ export const Body = <TData,>({
     return (
       <BodyContainer className="data-table-body-container">
         <NoDataContainer>All columns are hidden</NoDataContainer>
-      </BodyContainer>
-    );
-  }
-
-  // Big dataset notice applies only to client-side mode
-  if (!isServer && totalRecords > 100000) {
-    return (
-      <BodyContainer className="data-table-body-container">
-        <NoDataContainer>
-          <b>Notice</b>: Maximum rows set to 100,000. For improved performance
-          on large datasets, consider implementing server-side pagination.
-        </NoDataContainer>
       </BodyContainer>
     );
   }

@@ -6,7 +6,7 @@ export const SettingsPanelContainer = styled.div<{ $hasTitle?: boolean }>`
   right: 0;
   width: 250px;
   z-index: 20;
-  top: ${({ $hasTitle }) => ($hasTitle ? 65 : 38)}px;
+  top: ${({ $hasTitle }) => ($hasTitle ? 70 : 40)}px;
   max-height: calc(100% - ${({ $hasTitle }) => ($hasTitle ? 132 : 80)}px);
   height: 100%;
   min-height: 115px;

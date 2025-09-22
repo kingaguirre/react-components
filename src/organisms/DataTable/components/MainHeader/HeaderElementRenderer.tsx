@@ -5,22 +5,20 @@ import { Button } from "../../../../atoms/Button";
 import { FormControl } from "../../../../atoms/FormControl";
 import { Dropdown } from "../../../../molecules/Dropdown";
 import { DatePicker } from "../../../../molecules/DatePicker";
-import type {
-  HeaderRightElement,
-  DataTableFormControlType,
-} from "../../interface";
+import type { HeaderRightElement, DataTableFormControlType } from "../../interface";
 
 interface Props {
   elements?: HeaderRightElement[];
+  isRight?: boolean
 }
 
-const WrapperContainer = styled.div`
+const WrapperContainer = styled.div<{ $isRight?: boolean}>`
   display: flex;
-  justify-content: flex-end;
+  justify-content: ${({ $isRight }) => $isRight ? 'flex-start' : 'flex-end'};
   align-items: center;
   flex-wrap: wrap;
   gap: 6px;
-  padding: 2px 6px;
+  padding: 2px 0;
 `;
 
 const Wrapper = styled.div<{ width?: string | number }>`
@@ -29,15 +27,15 @@ const Wrapper = styled.div<{ width?: string | number }>`
   max-width: ${({ width }) => {
     if (typeof width === "number") return `${width}px`;
     if (typeof width === "string") return width;
-    return "auto"; // default
+    return "auto";
   }};
 `;
 
-export const HeaderRightElementRenderer: React.FC<Props> = ({ elements }) => {
+export const HeaderElementRenderer: React.FC<Props> = ({ elements, isRight = true }) => {
   if (!elements || elements.length === 0) return null;
 
   return (
-    <WrapperContainer>
+    <WrapperContainer $isRight={isRight}>
       {elements.map((el, i) => {
         if (!el.type) {
           console.warn(`Text type is missing for element at index ${i}`);
@@ -130,3 +128,5 @@ export const HeaderRightElementRenderer: React.FC<Props> = ({ elements }) => {
     </WrapperContainer>
   );
 };
+
+export default HeaderElementRenderer;

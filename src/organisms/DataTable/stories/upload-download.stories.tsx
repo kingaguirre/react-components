@@ -5,6 +5,7 @@ import { DataTable } from "../index";
 import { ColumnSetting } from "../interface";
 import { StoryWrapper, Title } from "../../../components/StoryWrapper";
 import { Guide } from "../../../components/Guide";
+import { exportRows } from '../utils'
 
 /* -----------------------------------------------------------------------------
    Lazy ExcelJS (avoids type issues if types aren't installed)
@@ -492,9 +493,7 @@ export const DownloadCustomRowsPayload = {
             icon: "grid_on",
             label: "Export XLSX (convert rows → AOA)",
             onClick: async ({ fileName, format, all }: any) => {
-              // assumes `all.rows` is an array of objects
-              const aoa = rowsToAOA(all.rows, COLS);
-              await downloadAOA(aoa, { fileName, format });
+              await exportRows(all.rows, COLS, { fileName, format })
             },
           },
         ],
@@ -644,8 +643,8 @@ export const ServerSideDownload = {
                 params: { limit: 0, select: "id,title,brand,category,price,rating" },
               });
               const rows = Array.isArray(data?.products) ? data.products : [];
-              const aoa = toAOAFromRows(rows, COLS);
-              await downloadAOA(aoa, { fileName, format });
+              // utils
+              await exportRows(rows, COLS, { fileName, format });
             },
           },
         ],

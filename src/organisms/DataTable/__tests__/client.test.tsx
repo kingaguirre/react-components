@@ -1405,12 +1405,17 @@ describe('DataTable Row Features and Events (Client Mode)', () => {
     );
 
     // While the fetch is pending, serverLoading should be true → loader visible
-    const loader = await screen.findByTestId('data-table-loader', {}, { timeout: 1500 });
+    const loader = await screen.findByTestId('footer-loader', {}, { timeout: 1500 });
     expect(loader).toBeInTheDocument();
 
     // Sanity: "Rows" label still renders in RightDetails
     const rowsLabel = screen.getByText('Rows');
     expect(rowsLabel).toBeInTheDocument();
+
+    // Loader should appear before the "Rows" text (left side)
+    expect(
+      loader.compareDocumentPosition(rowsLabel) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
 
     // Now resolve the fetch — loader should disappear
     await act(async () => {
@@ -1418,7 +1423,7 @@ describe('DataTable Row Features and Events (Client Mode)', () => {
     });
 
     await waitFor(() => {
-      expect(screen.queryByTestId('data-table-loader')).toBeNull();
+      expect(screen.queryByTestId('footer-loader')).toBeNull();
     });
   });
 
@@ -1432,7 +1437,7 @@ describe('DataTable Row Features and Events (Client Mode)', () => {
     );
 
     // Loader should be visible while `loading` is true
-    const loader = await screen.findByTestId('data-table-loader', {}, { timeout: 1500 });
+    const loader = await screen.findByTestId('footer-loader', {}, { timeout: 1500 });
     expect(loader).toBeInTheDocument();
 
     // Optional: sanity check that other footer content still renders
@@ -1447,7 +1452,7 @@ describe('DataTable Row Features and Events (Client Mode)', () => {
       />
     );
 
-    expect(screen.queryByTestId('data-table-loader')).toBeNull();
+    expect(screen.queryByTestId('footer-loader')).toBeNull();
   });
 
   test('hides the entire footer when hideFooter is true', () => {

@@ -16,6 +16,7 @@ import { Icon } from "../../../../atoms/Icon";
 import { FormControl } from "../../../../atoms/FormControl";
 import { Tooltip } from "../../../../atoms/Tooltip";
 import { BUILTIN_COLUMN_IDS } from "../../utils";
+import { Loader } from "../../../../atoms/Loader";
 
 interface FooterProps<TData> {
   table: Table<TData>;
@@ -36,7 +37,7 @@ export const Footer = <TData,>({
   table,
   disabledRows,
   enableRowSelection,
-  hideRightDetails, // ← NEW
+  hideRightDetails,
 }: FooterProps<TData>) => {
   const hasColumns = useMemo(
     () =>
@@ -105,6 +106,14 @@ export const Footer = <TData,>({
     }
   };
 
+  const meta = ((table.options as any)?.meta ?? {}) as {
+    disabled?: boolean;
+    serverLoading?: boolean;
+    loading?: boolean;
+  };
+  const isLoading = Boolean(meta.loading || meta.serverLoading);
+  const disabled = Boolean(meta.disabled)
+
   return hasColumns ? (
     <FooterContainer className="footer-container">
       {hasTotalRecords && enableRowSelection && (
@@ -142,13 +151,18 @@ export const Footer = <TData,>({
 
         {!hideRightDetails && (
           <RightDetails $totalCount={countDigits(table.getPageCount())}>
+            {isLoading && (
+              <span className="loader" data-testid="footer-loader">
+                <Loader size="xs" />
+              </span>
+            )}
             <span>Rows</span>
             <Dropdown
               size="sm"
               value={String(pageSize)}
               onChange={(value) => table.setPageSize(Number(value))}
               clearable={false}
-              disabled={!hasTotalRecords}
+              disabled={!hasTotalRecords || disabled}
               options={[
                 { text: "5", value: "5" },
                 { text: "10", value: "10" },
@@ -162,7 +176,7 @@ export const Footer = <TData,>({
 
             <Button
               data-testid="first-page-button"
-              disabled={isPrevDisabled}
+              disabled={isPrevDisabled || disabled}
               {...(!isPrevDisabled
                 ? { onClick: () => table.setPageIndex(0) }
                 : {})}
@@ -172,7 +186,7 @@ export const Footer = <TData,>({
 
             <Button
               data-testid="previous-page-button"
-              disabled={isPrevDisabled}
+              disabled={isPrevDisabled || disabled}
               {...(!isPrevDisabled
                 ? { onClick: () => table.previousPage() }
                 : {})}
@@ -189,7 +203,7 @@ export const Footer = <TData,>({
                 type="number"
                 min="1"
                 size="sm"
-                disabled={!hasTotalRecords}
+                disabled={!hasTotalRecords || disabled}
                 max={table.getPageCount()}
                 value={pageIndex + 1}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => {
@@ -204,7 +218,7 @@ export const Footer = <TData,>({
 
             <Button
               data-testid="next-page-button"
-              disabled={isNextDisabled}
+              disabled={isNextDisabled || disabled}
               {...(!isNextDisabled ? { onClick: () => table.nextPage() } : {})}
             >
               <Icon icon="keyboard_arrow_right" />
@@ -212,7 +226,7 @@ export const Footer = <TData,>({
 
             <Button
               data-testid="last-page-button"
-              disabled={isNextDisabled}
+              disabled={isNextDisabled || disabled}
               {...(!isNextDisabled
                 ? {
                     onClick: () => table.setPageIndex(table.getPageCount() - 1),

@@ -27,6 +27,7 @@ export { theme, GlobalStyles } from "./styles";
 
 // Utls
 export { getScrollParent } from "./utils";
+export { exportRows } from "./organisms/DataTable/utils"
 
 // Interfaces -------------------------------------
 // Atoms

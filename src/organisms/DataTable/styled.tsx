@@ -53,7 +53,7 @@ export const DataTableWrapper = styled.div<{ $disabled?: boolean }>`
           }
 
           .data-table-body-container:after {
-            background-color: rgba(0, 0, 0, 0.15);
+            background-color: rgba(0, 0, 0, 0.05);
           }
         `
       : ""}

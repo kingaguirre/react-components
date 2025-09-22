@@ -4,6 +4,7 @@ import {
   SearhContainer,
   RightDetailsContainer,
   IconContainer,
+  LeftDetailsContainer
 } from "./styled";
 import { DebouncedInput } from "../ColumnHeader/Filter";
 import { Button as FooterButton } from "../Footer/styled";
@@ -11,9 +12,8 @@ import { Icon } from "../../../../atoms/Icon";
 import { Tooltip } from "../../../../atoms/Tooltip";
 import { Button } from "../../../../atoms/Button";
 import { DataTableProps } from "../../interface";
-import { HeaderRightElementRenderer } from "./HeaderRightElementRenderer";
+import { HeaderElementRenderer } from "./HeaderElementRenderer";
 import { RightIconButton } from "./RightIconButton";
-import type { Table } from "@tanstack/react-table";
 
 import { DownloadIconDropdown } from "./DownloadIconDropdown";
 import { UploadIconButton } from "./UploadIconButton";
@@ -33,18 +33,20 @@ export interface MainHeaderProps {
   enableRowAdding?: boolean;
   onClearAllIconClick?: () => void;
   onAddBtnClick?: () => void;
-  onSettingsIconClick?: () => void;
+  onSettingsIconClick?: (e: any) => void;
   isSettingsPanelOpen?: boolean;
   handleDeleteIconClick?: () => void;
   showDeleteIcon?: boolean;
   handleResetColumnSettings?: () => void;
   headerRightControls?: boolean;
   headerRightElements?: DataTableProps["headerRightElements"];
+  headerLeftElements?: DataTableProps["headerRightElements"];
   bulkRestoreMode?: boolean;
   enableRowSelection?: boolean;
+  hideClearAllFiltersButton?: boolean;
+  addNewButtonText?: string;
 
-  /** —— NEW: for Upload/Download controls —— */
-  table?: Table<any>;
+  disabled?: boolean;
   builtInColumnIds?: BuiltInIds;
   /** filename base without extension */
   exportFileBaseName?: string;
@@ -79,6 +81,7 @@ export interface MainHeaderProps {
 }
 
 export const MainHeader: React.FC<MainHeaderProps> = ({
+  disabled,
   value,
   enableGlobalFiltering,
   onChange,
@@ -95,8 +98,10 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
   handleResetColumnSettings,
   headerRightControls,
   headerRightElements,
+  headerLeftElements,
   bulkRestoreMode = false,
   enableRowSelection,
+  hideClearAllFiltersButton,
   getVisibleNonBuiltInColumns,
   getAllNonBuiltInColumns,
   downloadSelectedCount = 0,
@@ -109,6 +114,7 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
   enableUpload = false,
   getRowsForSelected,
   getRowsForAll,
+  addNewButtonText,
 }) => {
   const inputRef = React.useRef<HTMLInputElement | null>(null);
 
@@ -145,33 +151,43 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
               },
             ]}
             clearable={false}
+            disabled={disabled}
           />
-          <Tooltip
-            content={!isClearDisabled ? "Clear All Filters" : undefined}
-            placement="right"
-          >
-            <FooterButton
-              $outlined
-              onClick={onClearAllIconClick}
-              disabled={isClearDisabled}
+          {!hideClearAllFiltersButton && (
+            <Tooltip
+              content={!isClearDisabled ? "Clear All Filters" : undefined}
+              placement="right"
             >
-              <Icon icon="clear" />
-            </FooterButton>
-          </Tooltip>
+              <FooterButton
+                $outlined
+                onClick={onClearAllIconClick}
+                disabled={isClearDisabled}
+              >
+                <Icon icon="clear" />
+              </FooterButton>
+            </Tooltip>
+          )}
         </SearhContainer>
       )}
 
+      {/* ——— Left elements right after the Search container ——— */}
+      {headerLeftElements && headerLeftElements.length > 0 && (
+        <LeftDetailsContainer className="left-details-container">
+          <HeaderElementRenderer elements={headerLeftElements} />
+        </LeftDetailsContainer>
+      )}
+
       <RightDetailsContainer className="right-details-container">
-        <HeaderRightElementRenderer elements={headerRightElements} />
+        <HeaderElementRenderer elements={headerRightElements} />
 
         {enableRowAdding && (
           <Button
             data-testid="add-row-button"
             size="sm"
-            disabled={isAddBtnDisabled || isSettingsPanelOpen}
+            disabled={isAddBtnDisabled || isSettingsPanelOpen || disabled}
             {...(!isAddBtnDisabled ? { onClick: onAddBtnClick } : {})}
           >
-            Add New <Icon icon="add_circle_outline" />
+            {addNewButtonText} <Icon icon="add_circle_outline" />
           </Button>
         )}
 
@@ -181,7 +197,7 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
               controls={uploadControls}
               getVisibleNonBuiltInColumns={getVisibleNonBuiltInColumns}
               getAllNonBuiltInColumns={getAllNonBuiltInColumns}
-              disabled={isAddBtnDisabled || isSettingsPanelOpen}
+              disabled={isAddBtnDisabled || isSettingsPanelOpen || disabled}
             />
           )}
 
@@ -192,7 +208,7 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
               allCount={downloadAllCount ?? 0}
               getAOAForSelected={getAOAForSelected}
               getAOAForAll={getAOAForAll}
-              disabled={isAddBtnDisabled || isSettingsPanelOpen}
+              disabled={isAddBtnDisabled || isSettingsPanelOpen || disabled}
               enableRowSelection={enableRowSelection}
               getRowsForSelected={getRowsForSelected}
               getRowsForAll={getRowsForAll}
@@ -210,7 +226,7 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
               }
               onClick={handleDeleteIconClick}
               className={bulkRestoreMode ? "restore-icon" : "delete-icon"}
-              disabled={isAddBtnDisabled || isSettingsPanelOpen}
+              disabled={isAddBtnDisabled || isSettingsPanelOpen || disabled}
             />
           )}
 
@@ -221,13 +237,13 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
                 title="Settings"
                 onClick={onSettingsIconClick}
                 isAction={isSettingsPanelOpen}
-                disabled={isAddBtnDisabled}
+                disabled={isAddBtnDisabled || disabled}
               />
               <RightIconButton
                 icon="replay"
                 title="Reset to default"
                 onClick={handleResetColumnSettings}
-                disabled={isAddBtnDisabled}
+                disabled={isAddBtnDisabled || disabled}
               />
             </>
           )}

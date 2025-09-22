@@ -222,11 +222,27 @@ export const TabsAndAccordion = {
   render: () => {
     const fieldSettings: SettingsItem[] = [
       {
-        header: "Tabbed",
+        // header: "Tabbed",
         tabs: [
           {
             title: "General",
-            fields: [{ name: "tabA", label: "Tab A", type: "text", placeholder: "General text", validation: (z) => z.string().min(1, "Required") }],
+            fields: [
+              { 
+                dataTable: {
+                  config: {
+                    dataSource: "lines",
+                    columnSettings: [
+                      { title: "Line", column: "line" },
+                      { title: "Note", column: "note" },
+                    ],
+                  },
+                  fields: [
+                    { name: "line", label: "Line", type: "text", placeholder: "Enter line text", validation: (z) => z.string().min(1) },
+                    { name: "note", label: "Note", type: "text", placeholder: "Optional note", validation: (z) => z.string().optional() },
+                  ],
+                }
+              }
+            ],
           },
           {
             title: "Advanced",

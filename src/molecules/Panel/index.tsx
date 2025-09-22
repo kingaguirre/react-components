@@ -18,7 +18,9 @@ export const Panel: React.FC<PanelProps> = ({
   color = "primary",
   disabled = false,
   isSubHeader = false,
-  hasShadow = true,
+  hideShadow = false,
+  noPadding = false,
+  className = ''
 }) => {
   const isHeadless = !title && !leftIcon && rightIcons.length === 0;
 
@@ -26,8 +28,8 @@ export const Panel: React.FC<PanelProps> = ({
     <PanelContainer
       $color={color}
       $disabled={disabled}
-      $hasShadow={hasShadow}
-      className={`panel ${disabled ? "panel-disabled" : ""}`.trim()}
+      $hideShadow={hideShadow}
+      className={`panel ${className} ${disabled ? "panel-disabled" : ""} ${isSubHeader ? 'is-sub-header' : ''}`.trim()}
     >
       {!isHeadless && (
         <PanelHeader
@@ -53,7 +55,7 @@ export const Panel: React.FC<PanelProps> = ({
           )}
         </PanelHeader>
       )}
-      <PanelContent className="panel-content">{children}</PanelContent>
+      <PanelContent className="panel-content" $noPadding={noPadding}>{children}</PanelContent>
     </PanelContainer>
   );
 };

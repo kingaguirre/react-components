@@ -25,7 +25,7 @@ const meta: Meta<typeof Panel> = {
     },
     disabled: { control: 'boolean' },
     isSubHeader: { control: 'boolean' },   // NEW showcase control
-    hasShadow: { control: 'boolean' },     // NEW showcase control
+    hideShadow: { control: 'boolean' },     // NEW showcase control
   }
 }
 
@@ -119,8 +119,8 @@ const generateFormPropsStories = () => (
 
     {/* NEW: No Shadow example */}
     <GridItem xs={12}>
-      <Panel title='No Shadow Panel' color='info' hasShadow={false}>
-        <p>Shadow is disabled via <code>hasShadow=&#123;false&#125;</code>.</p>
+      <Panel title='No Shadow Panel' color='info' hideShadow>
+        <p>Shadow is disabled via <code>hideShadow=&#123;true&#125;</code>.</p>
       </Panel>
     </GridItem>
   </Grid>

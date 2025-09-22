@@ -1,7 +1,7 @@
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 import { theme } from '../../styles/theme';
 
-export const FormWrapper = styled.form`
+export const FormWrapper = styled.form<{ $stickyHeader?: boolean }>`
   position: relative;
   margin-bottom: 24px;
 
@@ -10,13 +10,20 @@ export const FormWrapper = styled.form`
     margin-top: 24px;
   }
 
-  .panel .panel-content {
-    padding-top: 0;
-    padding-bottom: 0;
-  }
-
-  .panel .panel-header {
-    margin-bottom: 12px;
+  .panel {
+    .panel-content {
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+    .panel-header {
+      margin-bottom: 12px;
+    }
+    &.no-header {
+      .panel-content {
+        padding-left: 0;
+        padding-right: 0;
+      }
+    }
   }
 
   .panel:not(:last-child),
@@ -28,6 +35,23 @@ export const FormWrapper = styled.form`
   .accordion-body .header {
     top: initial;
   }
+
+  ${({ $stickyHeader }) => !!$stickyHeader ? css`
+    .panel {
+      &.is-sub-header .panel-header,
+      .panel-header {
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        border-radius: 2px;
+      }
+
+      &.is-sub-header .panel-header {
+        z-index: 999;
+      }
+    }
+  ` : ''}
+
 `;
 
 export const Description = styled.p`

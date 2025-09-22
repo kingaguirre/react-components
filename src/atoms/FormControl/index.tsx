@@ -64,6 +64,7 @@ export const FormControl = forwardRef<
       clearable = true,
       onClearIcon,
       showDisabledIcon = false,
+      rounded = false,
       ...rest
     },
     ref,
@@ -284,6 +285,7 @@ export const FormControl = forwardRef<
 
     return (
       <FormControInputContainer
+        $rounded={rounded}
         className={`form-control-input-container ${type ?? ""} ${className ?? ""} ${disabled ? "disabled" : ""} ${isInvalid ? "invalid" : ""}`}
       >
         {label && (

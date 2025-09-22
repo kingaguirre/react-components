@@ -139,6 +139,18 @@ const generateSizeStories = (type: string, md = 4) => (
           options={SAMPLE_OPTIONS}
           name={`name-${size}`}
         />
+        {type === 'text' && (
+          <FormControl
+            type={type}
+            label={`${size.charAt(0).toUpperCase() + size.slice(1)} Size`}
+            helpText={`This ${type} is ${size} sized and rounded`}
+            size={size}
+            placeholder='Enter text here...'
+            options={SAMPLE_OPTIONS}
+            name={`name-${size}`}
+            rounded
+          />
+        )}
       </GridItem>
     ))}
   </Grid>
@@ -333,7 +345,7 @@ const GroupStories: React.FC<{ type: string }> = ({ type }) => {
     <StoryWrapper title={`${type.charAt(0).toUpperCase() + type.slice(1)}`} subTitle={descriptionText}>
       <Title>Colors</Title>
       {generateColorStories(type)}
-      <Title>Sizes</Title>
+      <Title>Sizes (Rounded Text)</Title>
       {generateSizeStories(type)}
       <Title>Form Props</Title>
       <Grid>

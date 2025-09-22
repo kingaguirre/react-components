@@ -24,6 +24,7 @@ export const SearhContainer = styled.div`
   justify-content: flex-start;
   gap: 8px;
   padding: 6px;
+  padding-right: 0;
 
   .form-control-input-container {
     width: 100%;
@@ -71,4 +72,10 @@ export const IconContainer = styled.div`
   display: flex;
   align-items: stretch;
   justify-content: flex-end;
+`;
+
+export const LeftDetailsContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
 `;

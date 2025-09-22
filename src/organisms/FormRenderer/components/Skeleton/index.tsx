@@ -139,7 +139,7 @@ export function renderSkeletonSection(
   const renderFields = (fields: FieldSetting[]) => (
     <SectionWrapper className='fields-wrapper'>
       <Grid>
-        {fields.map((fs, i) => {
+        {fields?.map((fs, i) => {
           const key = fs.name ?? fs.label ?? `skeleton-${i}`;
           return (
             <GridItem
@@ -177,7 +177,7 @@ export function renderSkeletonSection(
 
     return (
       <React.Fragment key={`skel-dt-${idx}`}>
-        <Panel title={table.header} isSubHeader={table.isSubHeader} hasShadow={false}>
+        <Panel title={table.header} isSubHeader={table.isSubHeader} hideShadow>
           {table.description && <Description>{table.description}</Description>}
           <SectionWrapper className="data-table-wrapper" $hasHeader={!!table.header}>
             <SkeletonTable height={skeletonHeight} />
@@ -233,7 +233,7 @@ export function renderSkeletonSection(
 
       nodes.push(
         <React.Fragment key={`skel-acc-${idx}`}>
-          <Panel title={group.header} isSubHeader={group.isSubHeader} hasShadow={false}>
+          <Panel title={group.header} isSubHeader={group.isSubHeader} hideShadow>
             {group.description && <Description>{group.description}</Description>}
             <SectionWrapper className="accordion-wrapper" $hasHeader={!!group.header}>
               <Accordion
@@ -264,7 +264,7 @@ export function renderSkeletonSection(
 
       nodes.push(
         <React.Fragment key={`skel-tabs-${idx}`}>
-          <Panel title={group.header} isSubHeader={group.isSubHeader} hasShadow={false}>
+          <Panel title={group.header} isSubHeader={group.isSubHeader} hideShadow>
             {group.description && <Description>{group.description}</Description>}
             <SectionWrapper className='tabs-wrapper'>
               <Tabs
@@ -287,7 +287,7 @@ export function renderSkeletonSection(
       const group = item as FieldGroup;
       nodes.push(
         <React.Fragment key={`skel-hdr-${idx}`}>
-          <Panel title={group.header} isSubHeader={group.isSubHeader} hasShadow={false}>
+          <Panel title={group.header} isSubHeader={group.isSubHeader} hideShadow>
             {group.description && <Description>{group.description}</Description>}
             <SectionWrapper $hasHeader={!!group.header}>
               {renderSkeletonSection(group.fields!, values)}
