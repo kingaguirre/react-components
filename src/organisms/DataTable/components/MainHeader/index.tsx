@@ -4,7 +4,7 @@ import {
   SearhContainer,
   RightDetailsContainer,
   IconContainer,
-  LeftDetailsContainer
+  LeftDetailsContainer,
 } from "./styled";
 import { DebouncedInput } from "../ColumnHeader/Filter";
 import { Button as FooterButton } from "../Footer/styled";

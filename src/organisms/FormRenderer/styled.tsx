@@ -1,5 +1,5 @@
-import styled, { css } from 'styled-components';
-import { theme } from '../../styles/theme';
+import styled, { css } from "styled-components";
+import { theme } from "../../styles/theme";
 
 export const FormWrapper = styled.form<{ $stickyHeader?: boolean }>`
   position: relative;
@@ -27,8 +27,7 @@ export const FormWrapper = styled.form<{ $stickyHeader?: boolean }>`
   }
 
   .panel:not(:last-child),
-  > div
-  .data-table-wrapper-section > div:not(:last-child) {
+  > div .data-table-wrapper-section > div:not(:last-child) {
     margin-bottom: 24px;
   }
 
@@ -36,22 +35,24 @@ export const FormWrapper = styled.form<{ $stickyHeader?: boolean }>`
     top: initial;
   }
 
-  ${({ $stickyHeader }) => !!$stickyHeader ? css`
-    .panel {
-      &.is-sub-header .panel-header,
-      .panel-header {
-        position: sticky;
-        top: 0;
-        z-index: 1000;
-        border-radius: 2px;
-      }
+  ${({ $stickyHeader }) =>
+    !!$stickyHeader
+      ? css`
+          .panel {
+            &.is-sub-header .panel-header,
+            .panel-header {
+              position: sticky;
+              top: 0;
+              z-index: 100;
+              border-radius: 2px;
+            }
 
-      &.is-sub-header .panel-header {
-        z-index: 999;
-      }
-    }
-  ` : ''}
-
+            &.is-sub-header .panel-header {
+              z-index: 99;
+            }
+          }
+        `
+      : ""}
 `;
 
 export const Description = styled.p`
@@ -60,8 +61,7 @@ export const Description = styled.p`
   color: ${theme.colors.default.dark};
 `;
 
-export const SectionWrapper = styled.div<{ $hasHeader?: boolean }>`
-`;
+export const SectionWrapper = styled.div<{ $hasHeader?: boolean }>``;
 
 export const ButtonContainer = styled.div`
   display: flex;

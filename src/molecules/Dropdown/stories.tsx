@@ -280,11 +280,13 @@ const AdvancedCustomOptionDemo: React.FC = () => {
   const [allowMultiple, setallowMultiple] = useState(false);  // false = once (hide 'Others' after first add)
   const [optionAtTop, setOptionAtTop] = useState(false);  // false = bottom; true = top
 
-  const [single, setSingle] = useState<string | null>('');
+  const [single, setSingle] = useState<string | null>('custom-test');
   const [multi, setMulti] = useState<string[]>([]);
 
   // Persisted custom options for this advanced demo
-  const [persisted, setPersisted] = useState<{ value: string; text: string }[]>([]);
+  const [persisted, setPersisted] = useState<{ value: string; text: string }[]>([
+    { "value": "custom-test", "text": "Others - test"}
+  ]);
 
   const handleAdd = useCallback((opt: { value: string; text: string }, raw: string) => {
     // Respect insertion semantics: PREPEND if optionAtTop, else APPEND

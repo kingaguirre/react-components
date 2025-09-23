@@ -80,34 +80,49 @@ export const Playground = {
           { id: '1', d: '2025-03-10' },
           { id: '2', d: '2025-03-12' },
           { id: '3', d: '2025-04-01' },
+          { id: '3', d: '2025-04-01' },
+          { id: '3', d: '2025-04-01' },
+          { id: '3', d: '2025-04-01' },
+          { id: '3', d: '2025-04-01' },
+          { id: '3', d: '2025-04-01' },
+          { id: '3', d: '2025-04-01' },
+          { id: '3', d: '2025-04-01' },
+          { id: '3', d: '2025-04-01' },
+          { id: '3', d: '2025-04-01' },
         ]}
-        enableColumnFiltering
+        maxHeight='185px'
+        // enableColumnFiltering
+        headerRightControls={false}
+        enableColumnDragging={false}
+        enableColumnPinning={false}
+        enableColumnResizing={false}
+        enableColumnSorting={false}
         columnSettings={[
           { title: 'ID', column: 'id'},
-          { title: 'Date', column: 'd', groupTitle: 'Test', filter: { type: 'date' } },
+          { title: 'Date', column: 'd', filter: { type: 'date' } },
           { title: 'Date1', column: '_d', filter: { type: 'date' } },
-          { title: 'Date2', column: '__d', groupTitle: 'Test New' },
-          { title: 'Date3', column: '___d', groupTitle: 'Test New' },
+          { title: 'Date2', column: '__d'},
+          { title: 'Date3', column: '___d'},
         ]}
-        enableGlobalFiltering
-        headerLeftElements={[
-          { type: "button", icon: "filter-sc", color: 'default', variant: 'outlined' },
-          { type: "button", text: "Clear", color: 'default' },
-        ]}
-        headerRightElements={[
-          { 
-            type: "dropdown",
-            name: "status",
-            options: [
-              { value: "test", text: "Test" },
-              { value: "test1", text: "Test1" },
-            ]
-          },
-          { type: "button", text: "New", icon: "add" },
-        ]}
-        hideClearAllFiltersButton
-        enableRowAdding
-        addNewButtonText='Register'
+        // enableGlobalFiltering
+        // headerLeftElements={[
+        //   { type: "button", icon: "filter-sc", color: 'default', variant: 'outlined' },
+        //   { type: "button", text: "Clear", color: 'default' },
+        // ]}
+        // headerRightElements={[
+        //   { 
+        //     type: "dropdown",
+        //     name: "status",
+        //     options: [
+        //       { value: "test", text: "Test" },
+        //       { value: "test1", text: "Test1" },
+        //     ]
+        //   },
+        //   { type: "button", text: "New", icon: "add" },
+        // ]}
+        // hideClearAllFiltersButton
+        // enableRowAdding
+        // addNewButtonText='Register'
         // enableColumnFiltering
         // hideFooter
         // onRowClick={(row) => console.log('Row clicked:', row)}

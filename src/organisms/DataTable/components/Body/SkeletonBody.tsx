@@ -79,9 +79,9 @@ const Bar = styled.div<{ $radius: number }>`
   border-radius: 2px;
   background: linear-gradient(
     90deg,
-    rgba(0,0,0,0.06) 0%,
-    rgba(0,0,0,0.12) 50%,
-    rgba(0,0,0,0.06) 100%
+    rgba(0, 0, 0, 0.06) 0%,
+    rgba(0, 0, 0, 0.12) 50%,
+    rgba(0, 0, 0, 0.06) 100%
   );
   position: relative;
   overflow: hidden;
@@ -94,7 +94,7 @@ const Bar = styled.div<{ $radius: number }>`
     background: linear-gradient(
       90deg,
       transparent 0%,
-      rgba(255,255,255,0.35) 50%,
+      rgba(255, 255, 255, 0.35) 50%,
       transparent 100%
     );
     animation: ${shimmer} 1.1s infinite;
@@ -115,4 +115,3 @@ const SkelCell = styled.div`
   border-right: 1px solid #e1e1e1;
   height: 31px;
 `;
-

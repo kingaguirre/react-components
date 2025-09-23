@@ -166,4 +166,106 @@ describe("Panel Component (extended)", () => {
       expect(screen.getByText(`Sub ${c}`)).toBeInTheDocument();
     });
   });
+
+    test("renders leftDetails and rightDetails, and detail onClick fires", () => {
+    const onLeftDetailClick = vi.fn();
+    const onRightDetailClick = vi.fn();
+
+    render(
+      <Panel
+        title="Details Panel"
+        color="warning"
+        leftDetails={[
+          { text: "Left Text", color: "info" },
+          { text: "Left Clickable", color: "success", onClick: onLeftDetailClick },
+        ]}
+        rightDetails={[
+          { value: "12", valueColor: "danger" }, // badge-like value
+          { text: "Right Clickable", color: "primary", onClick: onRightDetailClick },
+        ]}
+      >
+        Content
+      </Panel>
+    );
+
+    // Renders both left & right detail content
+    expect(screen.getByText("Left Text")).toBeInTheDocument();
+    expect(screen.getByText("12")).toBeInTheDocument();
+    expect(screen.getByText("Right Clickable")).toBeInTheDocument();
+    expect(screen.getByText("Left Clickable")).toBeInTheDocument();
+
+    // Clicking details should invoke their onClick (container handles it)
+    fireEvent.click(screen.getByText("Left Clickable"));
+    fireEvent.click(screen.getByText("Right Clickable"));
+
+    expect(onLeftDetailClick).toHaveBeenCalledTimes(1);
+    expect(onRightDetailClick).toHaveBeenCalledTimes(1);
+  });
+
+  test("leftContent and rightContent custom nodes render in header", () => {
+    render(
+      <Panel
+        title="Custom Header Content"
+        color="primary"
+        leftContent={<span data-testid="left-custom">Filters active</span>}
+        rightContent={<button data-testid="right-custom">Run</button>}
+      >
+        Content
+      </Panel>
+    );
+
+    const header = screen.getByText("Custom Header Content").closest(".panel")!.querySelector(".panel-header")!;
+    expect(header).toBeInTheDocument();
+
+    // custom content present
+    expect(screen.getByTestId("left-custom")).toHaveTextContent("Filters active");
+    expect(screen.getByTestId("right-custom")).toHaveTextContent("Run");
+  });
+
+  test("disabled panel prevents rightDetails click handlers", () => {
+    const onClick = vi.fn();
+    render(
+      <Panel
+        title="Disabled with Details"
+        disabled
+        rightDetails={[{ text: "Should Not Fire", onClick }]}
+      >
+        Content
+      </Panel>
+    );
+
+    fireEvent.click(screen.getByText("Should Not Fire"));
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
+  test("supports badge-like numeric values in details", () => {
+    render(
+      <Panel
+        title="Badge Details"
+        rightDetails={[{ value: "5", valueColor: "danger" }]}
+      >
+        Content
+      </Panel>
+    );
+
+    // The numeric value should be visible (Badge text)
+    expect(screen.getByText("5")).toBeInTheDocument();
+  });
+
+  test("details can show icons (inherit header color via Icon component)", () => {
+    render(
+      <Panel
+        title="Icon Details"
+        leftDetails={[{ icon: "warning", color: "warning" }]}
+        rightDetails={[{ icon: "info", color: "info" }]}
+      >
+        Content
+      </Panel>
+    );
+
+    // There should be at least two icons rendered (one left, one right)
+    const icons = screen.getAllByTestId("icon");
+    expect(icons.length).toBeGreaterThanOrEqual(2);
+  });
+
 });

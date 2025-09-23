@@ -129,6 +129,30 @@ export const FormControl = forwardRef<
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [required, isCustomControl, isControlled ? value : uiValue]);
 
+    // Keep uncontrolled semantics, but resync UI when parent updates `value`
+    useEffect(() => {
+      if (treatAsUncontrolledInitial && isTextLike) {
+        const next =
+          type === "number"
+            ? coerceNumberForInput(value as any)
+            : value == null
+              ? ""
+              : String(value);
+
+        // update our mirror for logic like clear icon visibility
+        setUiValue(next);
+
+        // imperatively update the actual input element so the user sees the change
+        const el = inputRef.current as
+          | HTMLInputElement
+          | HTMLTextAreaElement
+          | null;
+        if (el && el.value !== next) {
+          (el as any).value = next;
+        }
+      }
+    }, [value, treatAsUncontrolledInitial, isTextLike, type]);
+
     useEffect(() => {
       if (isGroupCustomControl) {
         if (type === "radio-group" || type === "radio-button-group") {
@@ -289,7 +313,7 @@ export const FormControl = forwardRef<
         className={`form-control-input-container ${type ?? ""} ${className ?? ""} ${disabled ? "disabled" : ""} ${isInvalid ? "invalid" : ""}`}
       >
         {label && (
-          <Label className="form-control-label" color={color} size={size}>
+          <Label className="form-control-label" color={color} size={size} title={label}>
             {required && <span>*</span>}
             {label}
           </Label>

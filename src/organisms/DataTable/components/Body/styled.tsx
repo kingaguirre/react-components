@@ -143,13 +143,14 @@ export const DataTableRow = styled.div<{
     }
   }
 
-  /* &.bottom .help-text {
-    top: -2px!important;
-    transform: translateY(-100%);
-    box-shadow: 0 -2px 4px 2px rgba(0,0,0,0.3)!important;
-    border-top-left-radius: 2px!important;
-    border-top-right-radius: 2px!important;
-  } */
+  &:not(.column-header-group-container) {
+    &:hover {
+      > * {
+        background: #f6faff !important;
+        transition: all 0.3s ease;
+      }
+    }
+  }
 `;
 
 const getTextAlignment = (align?: string) => {
@@ -257,10 +258,10 @@ export const CellContent = styled.div<{
   ${({ $isEditable }) =>
     $isEditable
       ? css`
-    &:not(.custom-column) {
-      cursor: pointer;
-    }
-  `
+          &:not(.custom-column) {
+            cursor: pointer;
+          }
+        `
       : ""}
 
   .cell-content-inner {

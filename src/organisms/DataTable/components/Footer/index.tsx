@@ -112,7 +112,7 @@ export const Footer = <TData,>({
     loading?: boolean;
   };
   const isLoading = Boolean(meta.loading || meta.serverLoading);
-  const disabled = Boolean(meta.disabled)
+  const disabled = Boolean(meta.disabled);
 
   return hasColumns ? (
     <FooterContainer className="footer-container">

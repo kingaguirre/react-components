@@ -11,10 +11,12 @@ export interface TabItemProps {
   color?: ColorType;
 }
 
+export type TabVariant = "default" | "pill";
 export interface TabsProps {
   tabs: TabItemProps[];
   onTabChange?: (index: number) => void;
   activeTab?: number;
   firstLastNavControl?: boolean;
   fullHeader?: boolean;
+  variant?: TabVariant;
 }

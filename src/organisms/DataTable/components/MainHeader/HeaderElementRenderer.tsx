@@ -5,16 +5,19 @@ import { Button } from "../../../../atoms/Button";
 import { FormControl } from "../../../../atoms/FormControl";
 import { Dropdown } from "../../../../molecules/Dropdown";
 import { DatePicker } from "../../../../molecules/DatePicker";
-import type { HeaderRightElement, DataTableFormControlType } from "../../interface";
+import type {
+  HeaderRightElement,
+  DataTableFormControlType,
+} from "../../interface";
 
 interface Props {
   elements?: HeaderRightElement[];
-  isRight?: boolean
+  isRight?: boolean;
 }
 
-const WrapperContainer = styled.div<{ $isRight?: boolean}>`
+const WrapperContainer = styled.div<{ $isRight?: boolean }>`
   display: flex;
-  justify-content: ${({ $isRight }) => $isRight ? 'flex-start' : 'flex-end'};
+  justify-content: ${({ $isRight }) => ($isRight ? "flex-start" : "flex-end")};
   align-items: center;
   flex-wrap: wrap;
   gap: 6px;
@@ -31,7 +34,10 @@ const Wrapper = styled.div<{ width?: string | number }>`
   }};
 `;
 
-export const HeaderElementRenderer: React.FC<Props> = ({ elements, isRight = true }) => {
+export const HeaderElementRenderer: React.FC<Props> = ({
+  elements,
+  isRight = true,
+}) => {
   if (!elements || elements.length === 0) return null;
 
   return (

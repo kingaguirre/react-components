@@ -1,7 +1,21 @@
 // src/organisms/FormRenderer/utils.ts
-import { z, ZodRawShape, ZodType, ZodTypeAny, ZodOptional, ZodNullable, ZodEffects } from 'zod';
-import type { FieldSetting } from './interface';
-
+import {
+  z,
+  ZodRawShape,
+  ZodType,
+  ZodTypeAny,
+  ZodOptional,
+  ZodNullable,
+  ZodEffects,
+} from "zod";
+import type {
+  SettingsItem,
+  FieldGroup,
+  FieldSetting,
+  AccordionSection,
+  DataTableSection,
+} from "./interface";
+import type { ErrorSummaryItem } from "./components/ErrorSummary";
 // ------------------------------------------------------------------
 // helpers & schema builder (including proper flattening through tabs)
 // ------------------------------------------------------------------
@@ -12,31 +26,31 @@ import type { FieldSetting } from './interface';
  * every FieldSetting in the tree, regardless of groups/tabs).
  */
 export function flattenForSchema(
-  items: import('./interface').SettingsItem[]
+  items: import("./interface").SettingsItem[],
 ): FieldSetting[] {
   const out: FieldSetting[] = [];
 
-  function visit(arr: import('./interface').SettingsItem[]) {
+  function visit(arr: import("./interface").SettingsItem[]) {
     for (const it of arr) {
       // 1) Skip DataTable wrapper; callers decide when to handle its fields
-      if ('dataTable' in it && (it as any).dataTable) {
+      if ("dataTable" in it && (it as any).dataTable) {
         continue;
       }
 
       // 2) Standard groups
-      if ('fields' in it && Array.isArray((it as any).fields)) {
+      if ("fields" in it && Array.isArray((it as any).fields)) {
         visit((it as any).fields);
         continue;
       }
 
       // 3) Tabs
-      if ('tabs' in it && Array.isArray((it as any).tabs)) {
+      if ("tabs" in it && Array.isArray((it as any).tabs)) {
         (it as any).tabs.forEach((tab: any) => visit(tab.fields));
         continue;
       }
 
       // 4) Accordion
-      if ('accordion' in it && Array.isArray((it as any).accordion)) {
+      if ("accordion" in it && Array.isArray((it as any).accordion)) {
         (it as any).accordion.forEach((sec: any) => visit(sec.fields));
         continue;
       }
@@ -56,7 +70,7 @@ export function flattenForSchema(
  */
 export function buildSchema(
   fields: FieldSetting[],
-  rowData: Record<string, any>
+  rowData: Record<string, any>,
 ): ZodTypeAny {
   type TreeNode = Record<string, any> & { __self?: ZodTypeAny };
   const tree: TreeNode = {};
@@ -67,7 +81,7 @@ export function buildSchema(
     if (!key) continue;
 
     const schema = fs.validation ? fs.validation(z as any, rowData) : z.any();
-    const parts = key.split('.');
+    const parts = key.split(".");
     let cur: TreeNode = tree;
 
     for (let i = 0; i < parts.length; i++) {
@@ -77,7 +91,11 @@ export function buildSchema(
       if (isLeaf) {
         const existing = cur[p];
 
-        if (existing && typeof existing === 'object' && !(existing instanceof ZodType)) {
+        if (
+          existing &&
+          typeof existing === "object" &&
+          !(existing instanceof ZodType)
+        ) {
           // Already a container → store parent schema as __self for later merge
           (existing as TreeNode).__self = schema;
         } else {
@@ -103,17 +121,17 @@ export function buildSchema(
   const toZod = (node: any): ZodTypeAny => {
     if (node instanceof ZodType) return node; // plain schema leaf
 
-    const entries = Object.entries(node).filter(([k]) => k !== '__self');
+    const entries = Object.entries(node).filter(([k]) => k !== "__self");
     const keys = entries.map(([k]) => k);
 
     // Handle arrays when all keys are numeric
-    if (keys.length && keys.every(k => /^\d+$/.test(k))) {
+    if (keys.length && keys.every((k) => /^\d+$/.test(k))) {
       const firstChild = (node as any)[keys[0]];
       return z.array(toZod(firstChild));
     }
 
     const shape: ZodRawShape = Object.fromEntries(
-      entries.map(([k, v]) => [k, toZod(v)])
+      entries.map(([k, v]) => [k, toZod(v)]),
     ) as ZodRawShape;
 
     let base = z.object(shape);
@@ -121,9 +139,10 @@ export function buildSchema(
     // Merge or intersect any parent-level schema stored in __self
     const self: ZodTypeAny | undefined = (node as any).__self;
     if (self) {
-      const isSelfObj = (self as any)?._def?.typeName === 'ZodObject';
-      const isBaseObj = (base as any)?._def?.typeName === 'ZodObject';
-      base = (isSelfObj && isBaseObj) ? (base as any).merge(self) : base.and(self);
+      const isSelfObj = (self as any)?._def?.typeName === "ZodObject";
+      const isBaseObj = (base as any)?._def?.typeName === "ZodObject";
+      base =
+        isSelfObj && isBaseObj ? (base as any).merge(self) : base.and(self);
     }
 
     return base;
@@ -166,7 +185,7 @@ export function isZodRequired(schema: ZodTypeAny): boolean {
   // 2) Otherwise, look for built-in checks (min, nonempty):
   const checks = (core as any)?._def?.checks;
   if (Array.isArray(checks)) {
-    if (checks.some((c: any) => ['min', 'nonempty'].includes(c.code))) {
+    if (checks.some((c: any) => ["min", "nonempty"].includes(c.code))) {
       return true;
     }
   }
@@ -178,10 +197,10 @@ export function isZodRequired(schema: ZodTypeAny): boolean {
 export function resolveDisabled(
   disabledProp: boolean | ((data?: Record<string, any>) => boolean) = false,
   data: Record<string, any>,
-  globalDisabled: boolean
+  globalDisabled: boolean,
 ): boolean {
   if (globalDisabled) return true;
-  if (typeof disabledProp === 'function') {
+  if (typeof disabledProp === "function") {
     return disabledProp(data);
   }
   return disabledProp;
@@ -189,23 +208,23 @@ export function resolveDisabled(
 
 // Utility to get a deep value. If the path doesn't have dots, it directly returns the value.
 export const getDeepValue = (obj: any, path: string): any => {
-  if (!path.includes('.')) {
-    return obj ? obj[path] : undefined
+  if (!path.includes(".")) {
+    return obj ? obj[path] : undefined;
   }
-  return path.split('.').reduce((acc, key) => {
-    if (acc == null) return undefined
-    const arrayMatch = key.match(/^\[(\d+)\]$/)
+  return path.split(".").reduce((acc, key) => {
+    if (acc == null) return undefined;
+    const arrayMatch = key.match(/^\[(\d+)\]$/);
     if (arrayMatch) {
-      const index = parseInt(arrayMatch[1], 10)
-      return Array.isArray(acc) ? acc[index] : undefined
+      const index = parseInt(arrayMatch[1], 10);
+      return Array.isArray(acc) ? acc[index] : undefined;
     }
-    return acc[key]
-  }, obj)
-}
+    return acc[key];
+  }, obj);
+};
 
 export const setDeepValue = (obj: any, path: string, value: unknown): any => {
-  const keys = path.split('.');
-  const [ first, ...rest ] = keys;
+  const keys = path.split(".");
+  const [first, ...rest] = keys;
 
   // 1) check for "prop[index]" form
   const propIndex = first.match(/^(.+)\[(\d+)\]$/);
@@ -214,7 +233,7 @@ export const setDeepValue = (obj: any, path: string, value: unknown): any => {
     const idx = parseInt(idxStr, 10);
     const arr = Array.isArray(obj[prop]) ? [...obj[prop]] : [];
     arr[idx] = rest.length
-      ? setDeepValue(arr[idx] || {}, rest.join('.'), value)
+      ? setDeepValue(arr[idx] || {}, rest.join("."), value)
       : value;
     return { ...obj, [prop]: arr };
   }
@@ -224,7 +243,7 @@ export const setDeepValue = (obj: any, path: string, value: unknown): any => {
     const idx = Number(first);
     const arr = Array.isArray(obj) ? [...obj] : [];
     arr[idx] = rest.length
-      ? setDeepValue(arr[idx] || {}, rest.join('.'), value)
+      ? setDeepValue(arr[idx] || {}, rest.join("."), value)
       : value;
     return arr;
   }
@@ -236,7 +255,516 @@ export const setDeepValue = (obj: any, path: string, value: unknown): any => {
 
   return {
     ...obj,
-    [first]: setDeepValue(obj?.[first] || {}, rest.join('.'), value),
+    [first]: setDeepValue(obj?.[first] || {}, rest.join("."), value),
   };
 };
 
+export const hash = (v: unknown) => {
+  try {
+    return JSON.stringify(v);
+  } catch {
+    return String(v);
+  }
+};
+
+/** ───────── small util: debounce ───────── */
+export const debounce = <F extends (...args: any[]) => void>(
+  fn: F,
+  ms = 150,
+) => {
+  let t: ReturnType<typeof setTimeout> | null = null;
+  return (...args: Parameters<F>) => {
+    if (t) clearTimeout(t);
+    t = setTimeout(() => fn(...args), ms);
+  };
+};
+
+// Safe CSS selector escaper (fallback if window.CSS?.escape is unavailable)
+export const cssEscape = (s: string) => {
+  try {
+    // @ts-ignore
+    return (window as any)?.CSS?.escape
+      ? (window as any).CSS.escape(s)
+      : s.replace(/["\\#.:>+~*^$[\]()'=]/g, "\\$&");
+  } catch {
+    return s.replace(/["\\#.:>+~*^$[\]()'=]/g, "\\$&");
+  }
+};
+
+// Centering helpers — place right below `cssEscape`
+// ───────── scrolling helpers ─────────
+export const getScrollableAncestor = (el: HTMLElement): HTMLElement => {
+  let p: HTMLElement | null = el.parentElement;
+  while (p) {
+    const { overflowY } = window.getComputedStyle(p);
+    const isScrollable =
+      (overflowY === "auto" || overflowY === "scroll") &&
+      p.scrollHeight > p.clientHeight;
+    if (isScrollable) return p;
+    p = p.parentElement;
+  }
+  const se = document.scrollingElement;
+  return se && se instanceof HTMLElement
+    ? se
+    : (document.documentElement as HTMLElement);
+};
+
+export const scrollToCenter = (el: HTMLElement, container?: HTMLElement) => {
+  const c = container ?? getScrollableAncestor(el);
+  const cRect = c.getBoundingClientRect();
+  const eRect = el.getBoundingClientRect();
+
+  const current = c.scrollTop;
+  const delta = eRect.top - cRect.top - (c.clientHeight - eRect.height) / 2;
+
+  // keep in bounds
+  const targetTop = Math.max(
+    0,
+    Math.min(current + delta, c.scrollHeight - c.clientHeight),
+  );
+  c.scrollTo({ top: targetTop, behavior: "smooth" });
+};
+
+export const waitForStableLayout = (
+  container: HTMLElement,
+  stableFrames = 3,
+  maxFrames = 90,
+) =>
+  new Promise<void>((resolve) => {
+    let last = -1;
+    let stable = 0;
+    let frames = 0;
+    const tick = () => {
+      frames++;
+      const h = container.scrollHeight;
+      if (Math.abs(h - last) < 2) {
+        stable++;
+      } else {
+        stable = 0;
+        last = h;
+      }
+      if (stable >= stableFrames || frames >= maxFrames) {
+        resolve();
+      } else {
+        requestAnimationFrame(tick);
+      }
+    };
+    requestAnimationFrame(tick);
+  });
+
+export const FOCUSABLE_SEL =
+  'input, textarea, select, button, [contenteditable="true"], [tabindex]:not([tabindex="-1"])';
+
+type Hidden = boolean | ((v: any) => boolean);
+type Tab = { title: string; fields: SettingsItem[]; hidden?: Hidden };
+
+// ───────── Type guards ─────────
+export const isFieldGroup = (item: SettingsItem): item is FieldGroup =>
+  ("fields" in item && Array.isArray(item.fields)) ||
+  ("tabs" in item && Array.isArray(item.tabs)) ||
+  ("accordion" in item && Array.isArray(item.accordion));
+export const hasAccordion = (
+  item: SettingsItem,
+): item is FieldGroup & { accordion: AccordionSection[] } =>
+  isFieldGroup(item) &&
+  Array.isArray(item.accordion) &&
+  item.accordion.length > 0;
+export const hasTabs = (
+  item: SettingsItem,
+): item is FieldGroup & { tabs: Tab[] } =>
+  Array.isArray((item as any).tabs) && (item as any).tabs.length > 0;
+export const hasFields = (item: SettingsItem): item is FieldGroup =>
+  isFieldGroup(item) && Array.isArray(item.fields) && item.fields.length > 0;
+export const hasDataTable = (
+  item: SettingsItem,
+): item is { dataTable: DataTableSection } => Boolean((item as any).dataTable);
+
+export const toLeafFieldSettings = (items: SettingsItem[]) => {
+  const flat = (flattenForSchema(items) as any[]).filter(
+    (fs: any) => typeof fs?.name === "string",
+  ) as Array<FieldSetting & { name: string }>;
+  return flat.filter(
+    (fs) =>
+      !flat.some(
+        (other) => other !== fs && other.name.startsWith(fs.name + "."),
+      ),
+  );
+};
+
+export const isItemHidden = (item: SettingsItem, values: any): boolean => {
+  const anyIt: any = item;
+  // DataTable `hidden` lives under dataTable
+  if (anyIt?.dataTable) {
+    const h = anyIt.dataTable.hidden;
+    return typeof h === "function" ? !!h(values) : !!h;
+  }
+  // Groups/fields can have `hidden` directly
+  const h = anyIt.hidden;
+  return typeof h === "function" ? !!h(values) : !!h;
+};
+
+export function filterVisibleSettings(
+  items: SettingsItem[],
+  values: any,
+): SettingsItem[] {
+  const out: SettingsItem[] = [];
+  for (const it of items) {
+    if (isItemHidden(it, values)) continue;
+
+    if (hasDataTable(it)) {
+      const dt = (it as any).dataTable as DataTableSection;
+      out.push({
+        ...(it as any),
+        dataTable: {
+          ...dt,
+          fields: filterVisibleSettings(dt.fields as any, values),
+        },
+      } as any);
+      continue;
+    }
+    if (hasFields(it)) {
+      const grp = it as FieldGroup;
+      out.push({ ...grp, fields: filterVisibleSettings(grp.fields!, values) });
+      continue;
+    }
+    if (hasAccordion(it)) {
+      const grp = it as FieldGroup & { accordion: AccordionSection[] };
+      const visSecs = grp.accordion
+        .filter((sec) => {
+          const h: any = (sec as any).hidden;
+          return typeof h === "function" ? !h(values) : !h;
+        })
+        .map((sec) => ({
+          ...sec,
+          fields: filterVisibleSettings(sec.fields, values),
+        }));
+      if (visSecs.length) out.push({ ...grp, accordion: visSecs } as any);
+      continue;
+    }
+    if (hasTabs(it)) {
+      const grp = it as FieldGroup & { tabs?: Tab[] };
+      const visTabs = grp
+        .tabs!.filter((tab) => {
+          const h: any = (tab as any).hidden;
+          return typeof h === "function" ? !h(values) : !h;
+        })
+        .map((tab) => ({
+          ...tab,
+          fields: filterVisibleSettings(tab.fields, values),
+        }));
+      if (visTabs.length) out.push({ ...grp, tabs: visTabs } as any);
+      continue;
+    }
+
+    // Simple field
+    out.push(it);
+  }
+  return out;
+}
+
+export function containsFieldPath(
+  items: SettingsItem[],
+  fullPath: string,
+): boolean {
+  const flat = (flattenForSchema(items) as any[])
+    .filter((fs: any) => typeof fs?.name === "string")
+    .map((fs: any) => fs.name as string);
+
+  // match exact or “endsWith” to cover table prefixes like table.0.foo.bar
+  return flat.some((n) => fullPath === n || fullPath.endsWith(`.${n}`));
+}
+
+export function firstTabIndexContainingPath(
+  tabs: { title: string; fields: SettingsItem[] }[],
+  fullPath: string,
+): number {
+  for (let i = 0; i < tabs.length; i++) {
+    if (containsFieldPath(tabs[i].fields, fullPath)) return i;
+  }
+  return -1;
+}
+
+export function collectAbsoluteLeafFields(
+  items: SettingsItem[],
+  basePath = "",
+): Array<{ name: string; fs: FieldSetting & { name: string } }> {
+  const out: Array<{ name: string; fs: FieldSetting & { name: string } }> = [];
+  const prefix = (p: string) => (basePath ? `${basePath}.${p}` : p);
+
+  for (const it of items) {
+    if (hasDataTable(it)) {
+      const dt = (it as any).dataTable as DataTableSection;
+      const tableKey = dt.config.dataSource;
+      const leafs = toLeafFieldSettings(dt.fields as any);
+      for (const lf of leafs)
+        out.push({ name: `${prefix(tableKey)}.${lf.name}`, fs: lf }); // DRAFTs
+      out.push(
+        ...collectAbsoluteLeafFields(dt.fields as any, prefix(tableKey)),
+      ); // nested
+      continue;
+    }
+    if (hasFields(it)) {
+      out.push(
+        ...collectAbsoluteLeafFields((it as FieldGroup).fields!, basePath),
+      );
+      continue;
+    }
+    if (hasAccordion(it)) {
+      for (const sec of (it as any).accordion)
+        out.push(...collectAbsoluteLeafFields(sec.fields, basePath));
+      continue;
+    }
+    if (hasTabs(it)) {
+      for (const tab of (it as any).tabs)
+        out.push(...collectAbsoluteLeafFields(tab.fields, basePath));
+      continue;
+    }
+
+    const fs = it as FieldSetting & { name: string };
+    out.push({ name: prefix(fs.name), fs });
+  }
+  return out;
+}
+
+// ───────── Helpers ─────────
+export function prefixItems(
+  items: SettingsItem[],
+  path: string,
+): SettingsItem[] {
+  const cleanPath = path.replace(/\.(?:null|undefined)$/, "");
+  return items.map((item) => {
+    if ("dataTable" in item && item.dataTable) {
+      const dt = item.dataTable;
+      return {
+        ...item,
+        dataTable: {
+          ...dt,
+          config: {
+            ...dt.config,
+            dataSource: `${cleanPath}.${dt.config.dataSource}`,
+          },
+          fields: dt.fields,
+        },
+      };
+    }
+    if ("fields" in item && Array.isArray(item.fields)) {
+      return {
+        ...(item as FieldGroup),
+        fields: prefixItems(item.fields, cleanPath),
+      };
+    }
+    if ("accordion" in item && Array.isArray((item as any).accordion)) {
+      const grp = item as FieldGroup & { accordion: AccordionSection[] };
+      return {
+        ...grp,
+        accordion: grp.accordion.map((sec) => ({
+          ...sec,
+          fields: prefixItems(sec.fields, cleanPath),
+        })),
+      };
+    }
+    if ("tabs" in item && Array.isArray((item as any).tabs)) {
+      const grp = item as FieldGroup & {
+        tabs: { title: string; fields: SettingsItem[] }[];
+      };
+      return {
+        ...grp,
+        tabs: grp.tabs.map((tab) => ({
+          ...tab,
+          fields: prefixItems(tab.fields, cleanPath),
+        })),
+      };
+    }
+    const fs = item as FieldSetting;
+    return { ...fs, name: `${cleanPath}.${fs.name}` };
+  });
+}
+
+export const escapeRegExp = (s: string) =>
+  s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+export function shiftNestedTableKeys(
+  map: Record<string, any[]>,
+  baseKey: string,
+  startIndex: number,
+  delta: number,
+) {
+  const next: Record<string, any[]> = { ...map };
+  const re = new RegExp(`^${escapeRegExp(baseKey)}\\.(\\d+)\\.`);
+  const keys = Object.keys(next).sort((a, b) =>
+    delta > 0 ? b.localeCompare(a) : a.localeCompare(b),
+  );
+  for (const k of keys) {
+    const m = k.match(re);
+    if (!m) continue;
+    if (Number(m[1]) < startIndex) continue;
+    const idx = Number(m[1]);
+    const newKey = k.replace(re, `${baseKey}.${idx + delta}.`);
+    next[newKey] = next[k];
+    delete next[k];
+  }
+  return next;
+}
+
+export function dropNestedKeysForIndex(
+  map: Record<string, any[]>,
+  baseKey: string,
+  index: number,
+) {
+  const next: Record<string, any[]> = { ...map };
+  const re = new RegExp(`^${escapeRegExp(baseKey)}\\.${index}\\.`);
+  Object.keys(next).forEach((k) => {
+    if (re.test(k)) delete next[k];
+  });
+  return next;
+}
+
+export const isBooleanControl = (fs: any) =>
+  fs.type === "switch" || fs.type === "checkbox" || fs.type === "radio";
+
+export function normalizeByType(fs: FieldSetting & { name: string }, v: any) {
+  if (fs.type === "date" && v instanceof Date) return v.toISOString();
+  if (fs.type === "number") {
+    if (v === "" || v == null) return undefined;
+    if (typeof v === "string") return v.trim() === "" ? undefined : Number(v);
+  }
+  return v;
+}
+
+export function coerceChangeValue(fs: FieldSetting & { name: string }, v: any) {
+  if (v && typeof v === "object" && "target" in v) {
+    const t: any = (v as any).target;
+    if (isBooleanControl(fs)) return !!t?.checked;
+    if (t?.value !== undefined) return t.value; // preserve '' for clear
+    return undefined;
+  }
+  if (fs.type === "dropdown") {
+    if (Array.isArray(v))
+      return v.map((opt) =>
+        opt && typeof opt === "object" && "value" in opt
+          ? (opt as any).value
+          : opt,
+      );
+    if (v && typeof v === "object" && "value" in v) return (v as any).value;
+    return v ?? "";
+  }
+  if (fs.type === "date" && v instanceof Date) return v;
+  return v;
+}
+
+// For reseed when value is missing in row
+export function emptyFor(fs: FieldSetting & { name: string }) {
+  if (isBooleanControl(fs)) return false;
+  if (fs.type === "number") return "";
+  return "";
+}
+
+// Discover every DataTable instance in the current form values, including nested ones.
+export function collectDataTableContexts(
+  values: Record<string, any>,
+  items: SettingsItem[],
+  basePath = "",
+): Array<{ tableKey: string; fields: SettingsItem[] }> {
+  const contexts: Array<{ tableKey: string; fields: SettingsItem[] }> = [];
+  const prefix = (p: string) => (basePath ? `${basePath}.${p}` : p);
+
+  for (const it of items) {
+    const anyIt = it as any;
+
+    if (anyIt?.dataTable?.config?.dataSource) {
+      const absKey = prefix(anyIt.dataTable.config.dataSource);
+
+      // This table instance (draft context)
+      contexts.push({ tableKey: absKey, fields: anyIt.dataTable.fields });
+
+      // Descend into each existing row to discover nested table instances
+      const rows = getDeepValue(values, absKey);
+      if (Array.isArray(rows)) {
+        for (let i = 0; i < rows.length; i++) {
+          contexts.push(
+            ...collectDataTableContexts(
+              values,
+              anyIt.dataTable.fields,
+              `${absKey}.${i}`,
+            ),
+          );
+        }
+      }
+      continue;
+    }
+
+    if (Array.isArray(anyIt.fields)) {
+      contexts.push(
+        ...collectDataTableContexts(values, anyIt.fields, basePath),
+      );
+    }
+    if (Array.isArray(anyIt.accordion)) {
+      for (const sec of anyIt.accordion) {
+        contexts.push(
+          ...collectDataTableContexts(values, sec.fields, basePath),
+        );
+      }
+    }
+    if (Array.isArray(anyIt.tabs)) {
+      for (const tab of anyIt.tabs) {
+        contexts.push(
+          ...collectDataTableContexts(values, tab.fields, basePath),
+        );
+      }
+    }
+  }
+
+  return contexts;
+}
+
+// Replace the old toSummaryItems with this one
+export const toSummaryItems = (
+  errs: any,
+  getValuesFn: () => any,
+): ErrorSummaryItem[] => {
+  const vals = getValuesFn();
+  const pretty = (path: string) => {
+    const leaf = (path.split(".").pop() || path)
+      .replace(/[_-]/g, " ")
+      .replace(/([a-z])([A-Z])/g, "$1 $2");
+    return leaf.charAt(0).toUpperCase() + leaf.slice(1);
+  };
+  const showVal = (v: any): string => {
+    if (v === undefined) return "—";
+    if (v === null) return "null";
+    if (typeof v === "string") return v === "" ? "“”" : v;
+    if (typeof v === "number" || typeof v === "boolean") return String(v);
+    try {
+      const s = JSON.stringify(v);
+      return s.length > 120 ? s.slice(0, 117) + "…" : s;
+    } catch {
+      return String(v);
+    }
+  };
+
+  const out: ErrorSummaryItem[] = [];
+  const walk = (prefix: string, node: any) => {
+    if (!node) return;
+    if (node.message) {
+      const value = prefix
+        ? showVal(
+            prefix.split(".").reduce((a, k) => (a ? a[k] : undefined), vals),
+          )
+        : "—";
+      out.push({
+        field: prefix,
+        label: pretty(prefix),
+        valueText: value,
+        message: String(node.message),
+      });
+      return;
+    }
+    if (typeof node === "object") {
+      Object.entries(node).forEach(([k, v]) =>
+        walk(prefix ? `${prefix}.${k}` : k, v),
+      );
+    }
+  };
+  walk("", errs);
+  return out;
+};

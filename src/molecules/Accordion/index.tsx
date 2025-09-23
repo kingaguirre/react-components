@@ -1,4 +1,10 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
 import {
   AccordionProps,
   AccordionItemProps,
@@ -20,104 +26,144 @@ import { Badge } from "../../atoms/Badge";
 export const Accordion: React.FC<AccordionProps> = ({
   items,
   allowMultiple = false,
+  // controlled API
+  activeKeys,
+  onActiveKeysChange,
+  defaultOpenKeys,
+  forcedOpenKeys,
 }) => {
-  // stable key per item (id if provided, else index string)
+  // Make a stable key for each item
   const getKey = useCallback(
     (idx: number) => String(items[idx]?.id ?? idx),
     [items],
   );
 
-  // --- STATE MAPS ------------------------------------------------------------
-  // open state we actually render
-  const [openItems, setOpenItems] = useState<Record<string, boolean>>(() => {
-    const init: Record<string, boolean> = {};
-    items.forEach((it, idx) => {
-      init[getKey(idx)] = !!it.open; // treat as initial
-    });
-    return init;
-  });
+  // Uncontrolled internal map (when `activeKeys` is not provided AND item isn't auto-controlled)
+  const [openItems, setOpenItems] = useState<Record<string, boolean>>({});
 
-  // which items are "controlled" (we discovered parent changes open over time)
-  const [controlledKeys, setControlledKeys] = useState<Record<string, boolean>>(
-    () => ({}),
+  // Track previous `open` per item to detect parent-driven flips -> “auto-controlled” keys
+  const prevPropOpenRef = useRef<Record<string, boolean | undefined>>({});
+  const autoControlledKeysRef = useRef<Set<string>>(new Set());
+
+  // Build quick lookup sets for controlled helpers
+  const defaultOpenSet = useMemo(
+    () => new Set(defaultOpenKeys ?? []),
+    [defaultOpenKeys],
   );
+  const forcedOpenSet = useMemo(
+    () => new Set(forcedOpenKeys ?? []),
+    [forcedOpenKeys],
+  );
+  const fullyControlled = Array.isArray(activeKeys);
+  const activeKeysSet = useMemo(() => new Set(activeKeys ?? []), [activeKeys]);
 
-  // track previous prop "open" to detect parent-driven changes
-  const prevPropOpen = useRef<Record<string, boolean | undefined>>({});
-
-  // SYNC: detect if parent is controlling an item by changing its `open` prop.
-  // - If we detect a change from previous `open`, mark as controlled and mirror it.
-  // - If new items appear, initialize from their `open` as initial state (uncontrolled).
+  // Detect items whose `open` prop changed across renders (become auto-controlled)
   useEffect(() => {
-    setOpenItems((prev) => {
-      const next = { ...prev };
-      const nextControlled = { ...controlledKeys };
-      const nextPrevPropOpen = { ...prevPropOpen.current };
+    const nextPrev = { ...prevPropOpenRef.current };
+    const nextAuto = new Set(autoControlledKeysRef.current);
 
-      items.forEach((it, idx) => {
-        const k = getKey(idx);
-        const propOpen =
-          typeof it.open === "boolean" ? (it.open as boolean) : undefined;
+    items.forEach((it, idx) => {
+      const key = getKey(idx);
+      const propOpen =
+        typeof it.open === "boolean" ? (it.open as boolean) : undefined;
 
-        if (!(k in next)) {
-          // new item: initialize from prop once
-          next[k] = !!propOpen;
-        }
+      // record latest prop for compare next time
+      const prev = nextPrev[key];
+      nextPrev[key] = propOpen;
 
-        // if parent provides an explicit boolean, check if it changed
-        if (typeof propOpen === "boolean") {
-          const prevVal = nextPrevPropOpen[k];
-          // record the latest prop value for future diffs
-          nextPrevPropOpen[k] = propOpen;
-
-          // If parent changes it across renders, it's controlled; mirror it.
-          if (prevVal !== undefined && prevVal !== propOpen) {
-            nextControlled[k] = true;
-            next[k] = propOpen;
-          } else if (nextControlled[k]) {
-            // already controlled — always mirror props
-            next[k] = propOpen;
-          }
-        }
-      });
-
-      prevPropOpen.current = nextPrevPropOpen;
-      setControlledKeys(nextControlled);
-      return next;
+      if (propOpen !== undefined && prev !== undefined && prev !== propOpen) {
+        // flip detected -> this item becomes auto-controlled
+        nextAuto.add(key);
+      }
     });
+
+    prevPropOpenRef.current = nextPrev;
+    autoControlledKeysRef.current = nextAuto;
+    // NOTE: we do not mutate openItems here; visual state is derived on read.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, getKey]);
 
-  // toggle with event (works for both controlled/uncontrolled)
+  // Helper: compute the *visual* open state for a key right now
+  const isOpenNow = (index: number): boolean => {
+    const item = items[index];
+    const key = getKey(index);
+
+    // 1) forced (always open)
+    if (forcedOpenSet.has(key)) return true;
+
+    // 2) fully controlled via `activeKeys`
+    if (fullyControlled) return activeKeysSet.has(key);
+
+    // 3) auto-controlled (parent flips `open` prop)
+    const propOpen =
+      typeof item.open === "boolean" ? (item.open as boolean) : undefined;
+    if (autoControlledKeysRef.current.has(key)) {
+      return !!propOpen;
+    }
+
+    // 4) uncontrolled:
+    //    prefer internal state if we have it; otherwise fall back to:
+    //    defaultOpenKeys -> item.open -> false
+    if (key in openItems) return !!openItems[key];
+    if (defaultOpenSet.has(key)) return true;
+    return !!propOpen;
+  };
+
+  // Toggle intent handler for header clicks
   const toggleItem = (index: number, e?: React.MouseEvent) => {
     const item = items[index];
     const key = getKey(index);
     const idForCallback = item.id ?? key;
 
-    const isControlled = !!controlledKeys[key];
+    const currentlyOpen = isOpenNow(index);
+    const willOpen = !currentlyOpen;
 
-    if (isControlled) {
-      // Controlled: do not mutate; just fire callbacks. Parent must flip `open`.
+    // Early exit for "forced open" items when trying to close
+    if (!willOpen && forcedOpenSet.has(key)) {
       item.onClick?.(e, idForCallback);
-      if (!openItems[key]) item.onOpen?.(e, idForCallback);
-      else item.onClose?.(e, idForCallback);
+      // don't fire onClose for a forced-open panel
       return;
     }
 
-    // Uncontrolled: manage internal state + callbacks
+    // Fire item-level click + open/close callbacks
+    item.onClick?.(e, idForCallback);
+    if (willOpen) item.onOpen?.(e, idForCallback);
+    else item.onClose?.(e, idForCallback);
+
+    // 1) Fully controlled via activeKeys -> emit change only
+    if (fullyControlled) {
+      if (!onActiveKeysChange) return;
+
+      let next = new Set(activeKeysSet);
+      if (allowMultiple) {
+        if (willOpen) next.add(key);
+        else next.delete(key);
+      } else {
+        if (willOpen) next = new Set([key]);
+        else next = new Set(); // closing the only open item
+      }
+
+      // ensure forced keys are present
+      forcedOpenSet.forEach((fk) => next.add(fk));
+      onActiveKeysChange(Array.from(next));
+      return;
+    }
+
+    // 2) Auto-controlled (parent manipulates `open` prop): don't mutate state
+    if (autoControlledKeysRef.current.has(key)) {
+      // parent must update `open` prop; we already fired callbacks
+      return;
+    }
+
+    // 3) Uncontrolled: update internal map
     setOpenItems((prev) => {
-      const willOpen = !prev[key];
-      const next = allowMultiple
-        ? { ...prev }
-        : Object.fromEntries(Object.keys(prev).map((k) => [k, false]));
+      const prevMap = prev ?? {};
+      const next: Record<string, boolean> = allowMultiple
+        ? { ...prevMap }
+        : Object.fromEntries(Object.keys(prevMap).map((k) => [k, false]));
+
       next[key] = willOpen;
-
-      // Fire callbacks based on previous state
-      item.onClick?.(e, idForCallback);
-      if (willOpen) item.onOpen?.(e, idForCallback);
-      else item.onClose?.(e, idForCallback);
-
-      return next as Record<string, boolean>;
+      return next;
     });
   };
 
@@ -125,12 +171,12 @@ export const Accordion: React.FC<AccordionProps> = ({
     <AccordionContainer>
       {items.map((item, idx) => {
         const key = getKey(idx);
-        const isOpen = !!openItems[key];
+        const open = isOpenNow(idx);
         return (
           <AccordionItem
             key={key}
             {...item}
-            open={isOpen}
+            open={open}
             toggle={(e) => toggleItem(idx, e)}
           />
         );
@@ -173,9 +219,6 @@ const AccordionItem: React.FC<AccordionItemInternalProps> = ({
     updateHeight();
   }, [open, updateHeight]);
 
-  // callbacks order preserved:
-  // 1) toggle (which decides controlled/uncontrolled path)
-  // 2) onClick/onOpen/onClose are invoked inside toggle with correct previous state
   const handleHeaderClick = (e: React.MouseEvent) => {
     if (disabled) return;
     e.stopPropagation();

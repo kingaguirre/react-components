@@ -127,4 +127,89 @@ describe("Tabs Component", () => {
     fireEvent.click(lastNav);
     expect(onTabChange).toHaveBeenCalledWith(enabledTabsData.length - 1);
   });
+
+  // ───────────────────── NEW TESTS (extra coverage) ─────────────────────
+
+  it("keyboard navigation skips disabled tabs", () => {
+    const onTabChange = vi.fn();
+    const { container } = render(<Tabs tabs={tabsData} onTabChange={onTabChange} />);
+    const wrapper = container.firstChild as HTMLElement;
+    wrapper.focus();
+
+    // Move focus from Tab 1 -> Tab 2
+    fireEvent.keyDown(wrapper, { key: "ArrowRight" });
+    // Next right would attempt Tab 3 but it's disabled, so focus should NOT move.
+    fireEvent.keyDown(wrapper, { key: "ArrowRight" });
+
+    // Enter should still select Tab 2 (index 1)
+    fireEvent.keyDown(wrapper, { key: "Enter" });
+    expect(onTabChange).toHaveBeenCalledWith(1);
+    expect(screen.getByText("Content 2")).toBeInTheDocument();
+  });
+
+  it("respects activeTab prop changes from parent (controlled sync)", () => {
+    const { rerender } = render(<Tabs tabs={tabsData} activeTab={0} />);
+    // Starts on Tab 1
+    expect(screen.getByText("Content 1")).toBeInTheDocument();
+
+    // Parent flips to activeTab=1
+    rerender(<Tabs tabs={tabsData} activeTab={1} />);
+    expect(screen.getByText("Content 2")).toBeInTheDocument();
+
+    // Parent flips to disabled tab (index 2) — still rendered, but header is disabled.
+    rerender(<Tabs tabs={tabsData} activeTab={2} />);
+    expect(screen.getByText("Content 3")).toBeInTheDocument();
+  });
+
+  it("clicking headers still switches tabs even when activeTab prop is provided (local state updates until parent overrides)", () => {
+    const onTabChange = vi.fn();
+    render(<Tabs tabs={tabsData} onTabChange={onTabChange} activeTab={1} />);
+
+    // Currently on Tab 2; click Tab 1
+    fireEvent.click(screen.getByText("Tab 1"));
+
+    // Callback fires and content should show Tab 1 now
+    expect(onTabChange).toHaveBeenCalledWith(0);
+    expect(screen.getByText("Content 1")).toBeInTheDocument();
+  });
+
+  it("sets correct ARIA attributes for tabs and the active panel", () => {
+    const { container } = render(<Tabs tabs={tabsData} />);
+    const tabs = container.querySelectorAll('[role="tab"]');
+    const tabpanel = container.querySelector('[role="tabpanel"]') as HTMLElement;
+
+    // There should be 3 tab elements
+    expect(tabs.length).toBe(3);
+
+    // First tab is selected by default
+    expect(tabs[0]).toHaveAttribute("aria-selected", "true");
+    expect(tabs[1]).toHaveAttribute("aria-selected", "false");
+    expect(tabs[2]).toHaveAttribute("aria-selected", "false");
+
+    // Panel should be labelled by the selected tab
+    const labelledBy = tabpanel.getAttribute("aria-labelledby");
+    expect(labelledBy).toBeTruthy();
+    const selectedTab = Array.from(tabs).find(t => t.getAttribute("aria-selected") === "true")!;
+    expect(selectedTab.id).toBe(labelledBy);
+  });
+
+  it("keyboard: left/right + Enter still works when activeTab is provided", () => {
+    const onTabChange = vi.fn();
+    const { container } = render(<Tabs tabs={tabsData} onTabChange={onTabChange} activeTab={0} />);
+    const wrapper = container.firstChild as HTMLElement;
+    wrapper.focus();
+
+    // Move focus right -> Tab 2, Enter to select
+    fireEvent.keyDown(wrapper, { key: "ArrowRight" });
+    fireEvent.keyDown(wrapper, { key: "Enter" });
+    expect(onTabChange).toHaveBeenCalledWith(1);
+    expect(screen.getByText("Content 2")).toBeInTheDocument();
+
+    // Move focus right -> attempt Tab 3 (disabled) → focus does not advance; Enter keeps Tab 2
+    fireEvent.keyDown(wrapper, { key: "ArrowRight" });
+    fireEvent.keyDown(wrapper, { key: "Enter" });
+    // Still last called with 1, and content 2 visible
+    expect(onTabChange).toHaveBeenLastCalledWith(1);
+    expect(screen.getByText("Content 2")).toBeInTheDocument();
+  });
 });

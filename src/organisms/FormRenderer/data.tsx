@@ -436,6 +436,7 @@ export const demoSettings: SettingsItem[] = [
 
   {
     header: 'BCA Terms',
+    tabVariant: 'pill',
     tabs: [
       {
         title: 'Main',
@@ -1385,7 +1386,7 @@ export const demoData = {
   },
   demoTable: {
     mode: 'enabled',
-    rows: Array.from({ length: 10000 }, (_, i) => {
+    rows: Array.from({ length: 100 }, (_, i) => {
       const idx = i % makers.length;
       return {
         maker: makers[idx],

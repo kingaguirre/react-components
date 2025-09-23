@@ -24,24 +24,23 @@ No other keys. No comments. No markdown fences. No code wrappers.
 Now: ${userPrompt}
 `;
 
-  const res = await fetch('/api/chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+  const res = await fetch("/api/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ prompt: systemPrompt }),
   });
 
   if (!res.ok) {
     const text = await res.text();
-    throw Object.assign(new Error(`API error (${res.status}): ${text}`), { raw: text });
+    throw Object.assign(new Error(`API error (${res.status}): ${text}`), {
+      raw: text,
+    });
   }
   const { fieldSettings } = await res.json();
   return fieldSettings;
 }
 
-export async function askAIWithImage(
-  userPrompt: string,
-  imageData: string
-) {
+export async function askAIWithImage(userPrompt: string, imageData: string) {
   // Send prompt AND image in the same JSON payload
   const systemPrompt = `
 You are a form-config generator. Respond with VALID JSON ONLY: an array of SettingsItem objects matching this interface exactly:
@@ -66,9 +65,9 @@ No other keys. No comments. No markdown fences. No code wrappers.
 Now: ${userPrompt}
 `;
 
-  const res = await fetch('/api/chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+  const res = await fetch("/api/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       prompt: systemPrompt,
       image: imageData,
@@ -77,7 +76,9 @@ Now: ${userPrompt}
 
   if (!res.ok) {
     const text = await res.text();
-    throw Object.assign(new Error(`API error (${res.status}): ${text}`), { raw: text });
+    throw Object.assign(new Error(`API error (${res.status}): ${text}`), {
+      raw: text,
+    });
   }
   const { fieldSettings } = await res.json();
   return fieldSettings;

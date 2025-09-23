@@ -1,5 +1,5 @@
 // components/VirtualizedItem.tsx
-import React, { useRef, useState, useLayoutEffect, useEffect } from 'react';
+import React, { useRef, useState, useLayoutEffect, useEffect } from "react";
 
 interface VirtualizedItemProps {
   children: React.ReactNode;
@@ -38,7 +38,8 @@ const VirtualizedItem: React.FC<VirtualizedItemProps> = ({
       let p = n?.parentElement;
       while (p && p !== document.body) {
         const { overflowY } = getComputedStyle(p);
-        if (/(auto|scroll)/.test(overflowY) && p.scrollHeight > p.clientHeight) return p;
+        if (/(auto|scroll)/.test(overflowY) && p.scrollHeight > p.clientHeight)
+          return p;
         p = p.parentElement;
       }
       return window;
@@ -62,7 +63,7 @@ const VirtualizedItem: React.FC<VirtualizedItemProps> = ({
         rect.bottom > topBoundary - offsetTop &&
         rect.top < bottomBoundary + offsetBottom;
 
-      setVisible(prev => (prev !== inView ? inView : prev));
+      setVisible((prev) => (prev !== inView ? inView : prev));
     };
 
     // Initial check
@@ -70,13 +71,15 @@ const VirtualizedItem: React.FC<VirtualizedItemProps> = ({
 
     const onScrollOrResize = () => requestAnimationFrame(checkVisibility);
 
-    scrollContainer.addEventListener('scroll', onScrollOrResize, { passive: true });
-    window.addEventListener('resize', onScrollOrResize);
-    window.addEventListener('orientationchange', onScrollOrResize);
+    scrollContainer.addEventListener("scroll", onScrollOrResize, {
+      passive: true,
+    });
+    window.addEventListener("resize", onScrollOrResize);
+    window.addEventListener("orientationchange", onScrollOrResize);
 
     // ResizeObserver ONLY on our node (avoid observing the scroll container)
     let ro: ResizeObserver | null = null;
-    if (typeof ResizeObserver !== 'undefined') {
+    if (typeof ResizeObserver !== "undefined") {
       ro = new ResizeObserver(() => {
         // If it's visible, keep our cached height up to date.
         if (!ref.current || !visible) return;
@@ -94,9 +97,9 @@ const VirtualizedItem: React.FC<VirtualizedItemProps> = ({
     // It was causing event storms and feedback loops.
 
     return () => {
-      scrollContainer.removeEventListener('scroll', onScrollOrResize);
-      window.removeEventListener('resize', onScrollOrResize);
-      window.removeEventListener('orientationchange', onScrollOrResize);
+      scrollContainer.removeEventListener("scroll", onScrollOrResize);
+      window.removeEventListener("resize", onScrollOrResize);
+      window.removeEventListener("orientationchange", onScrollOrResize);
       ro?.disconnect();
     };
   }, [offsetTop, offsetBottom, fieldKey]);
@@ -108,9 +111,9 @@ const VirtualizedItem: React.FC<VirtualizedItemProps> = ({
       style={{
         // reserve space when hidden (fallback to 1px to avoid collapse if height is 0)
         minHeight: !visible ? `${measuredHeight || 1}px` : undefined,
-        overflow: !visible ? 'hidden' : undefined,
+        overflow: !visible ? "hidden" : undefined,
         opacity: visible ? 1 : 0,
-        transition: 'opacity 0.2s ease-in-out',
+        transition: "opacity 0.2s ease-in-out",
       }}
     >
       {visible ? children : null}

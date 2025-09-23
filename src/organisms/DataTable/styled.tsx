@@ -46,7 +46,7 @@ export const DataTableWrapper = styled.div<{ $disabled?: boolean }>`
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: 999;
+            z-index: 98;
             background-color: rgba(255, 255, 255, 0.2);
             cursor: not-allowed;
             ${fadeInOnMount}

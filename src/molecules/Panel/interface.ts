@@ -1,6 +1,8 @@
 // src/components/Panel/interface.ts
+import React from "react";
 import { ColorType } from "../../common/interface";
 import { TooltipProps } from "../../atoms/Tooltip/interface";
+import type { AccordionItemDetail } from "../../molecules/Accordion/interface"; // reuse same detail shape
 
 export interface IconObject {
   icon: string;
@@ -19,10 +21,12 @@ export interface PanelProps {
   title?: string;
   /** Content inside the panel */
   children: React.ReactNode;
-  /** Left icon object */
+
+  /** Left icon object (back-compat) */
   leftIcon?: IconObject;
-  /** Array of right icons */
+  /** Array of right icons (back-compat) */
   rightIcons?: IconObject[];
+
   /** Panel theme color */
   color?: ColorType;
   /** Disable panel interaction */
@@ -35,4 +39,17 @@ export interface PanelProps {
   noPadding?: boolean; // default: false
   /** Additional class names */
   className?: string;
+
+  /** Custom header content slots (free-form) */
+  leftContent?: React.ReactNode;
+  rightContent?: React.ReactNode;
+
+  onHeaderClick?: () => void;
+
+  /**
+   * Badge / icon / text details, same model as Accordion.
+   * Useful for counts, status chips, extra actions, etc.
+   */
+  leftDetails?: AccordionItemDetail[];
+  rightDetails?: AccordionItemDetail[];
 }

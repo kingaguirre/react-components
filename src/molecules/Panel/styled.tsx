@@ -1,4 +1,5 @@
-import styled from "styled-components";
+// src/components/Panel/styled.ts
+import styled, { css } from "styled-components";
 import { theme } from "../../styles/theme";
 import { ColorType } from "../../common/interface";
 
@@ -23,6 +24,7 @@ export const PanelHeader = styled.div<{
   $hasLeftIcon: boolean;
   $hasRightIcons: boolean;
   $isSubHeader?: boolean;
+  $hasOnClick?: boolean;
 }>`
   display: flex;
   align-items: center;
@@ -32,6 +34,14 @@ export const PanelHeader = styled.div<{
   box-sizing: border-box;
   letter-spacing: 0.5px;
   border-radius: 2px;
+  gap: 8px;
+
+  ${({ $hasOnClick }) =>
+    !!$hasOnClick
+      ? css`
+          cursor: pointer;
+        `
+      : ""}
 
   ${({ $color, $disabled, $isSubHeader }) => {
     const normalBg = $disabled
@@ -65,13 +75,17 @@ export const PanelHeader = styled.div<{
     flex: 1;
     text-align: left;
     color: inherit;
-    cursor: ${({ $disabled }) => ($disabled ? "not-allowed" : "default")};
+    cursor: ${({ $disabled, $hasOnClick }) =>
+      $disabled ? "not-allowed" : $hasOnClick ? "pointer" : "default"};
     padding-left: ${({ $hasLeftIcon }) => ($hasLeftIcon ? "8px" : "0")};
     padding-right: ${({ $hasRightIcons }) => ($hasRightIcons ? "8px" : "0")};
     font-size: 12px;
     text-transform: uppercase;
     font-weight: bold;
     line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .right-header-icons-container {
@@ -98,7 +112,7 @@ export const PanelHeader = styled.div<{
 `;
 
 export const PanelContent = styled.div<{ $noPadding?: boolean }>`
-  padding: ${({ $noPadding }) => !!$noPadding ? 0 : 12}px;
+  padding: ${({ $noPadding }) => (!!$noPadding ? 0 : 12)}px;
   font-size: 14px;
   color: ${theme.colors.default.dark};
   p {
@@ -110,15 +124,11 @@ export const IconWrapper = styled.div<{ $clickable: boolean }>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-
-  /* Critical: bind to header color pipeline */
   color: var(--panel-header-fg, inherit);
-
   transition: all 0.3s ease;
   font-size: 16px;
   gap: 4px;
 
-  /* make sure inner glyphs follow the wrapper color */
   svg,
   i,
   path,
@@ -141,4 +151,51 @@ export const IconWrapper = styled.div<{ $clickable: boolean }>`
 export const Text = styled.div`
   font-size: 12px;
   color: inherit;
+`;
+
+/* NEW: header side groups + detail container + custom content wrappers */
+export const PanelSideGroup = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: inherit;
+`;
+
+export const PanelLeftContent = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: inherit;
+
+  & > * {
+    color: inherit;
+  }
+`;
+
+export const PanelRightContent = styled(PanelLeftContent)`
+  margin-left: auto;
+`;
+
+export const PanelDetailContainer = styled.div<{
+  $disabled?: boolean;
+  $align?: "left" | "right";
+}>`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: ${({ $disabled }) => ($disabled ? "default" : "pointer")};
+  margin: -2px 0;
+  font-size: inherit;
+  color: inherit;
+
+  .badge {
+    /* keep badge readable on dark headers */
+    box-shadow: 0 0 2px 1px rgba(255, 255, 255, 0.5);
+    color: white;
+  }
+
+  &:hover {
+    ${({ $disabled }) => ($disabled ? "" : "opacity: 0.95;")}
+  }
 `;

@@ -77,7 +77,8 @@ export const ButtonContainer = styled.button<{
   padding: ${({ $size }) => `${theme.sizes.buttonPadding[$size]}`};
   border-radius: ${({ $rounded, $size }) =>
     $rounded ? `${theme.sizes.boxSize[$size]}px` : "2px"};
-  width: ${({ $fullWidth, $width }) => ($fullWidth ? "100%" : $width ? `${$width}px`: "auto")};
+  width: ${({ $fullWidth, $width }) =>
+    $fullWidth ? "100%" : $width ? `${$width}px` : "auto"};
   cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
   transition: all 0.3s ease;
   border: 1px solid ${({ $color }) => theme.colors[$color].base};

@@ -1,4 +1,5 @@
 // src/atoms/FormControl/index.tsx
+import { useState } from 'react'
 import { render, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import '@testing-library/jest-dom'
@@ -267,9 +268,15 @@ describe('FormControl Component', () => {
         disabled
         showDisabledIcon
       />
-    )
-    expect(screen.getByTitle('Locked')).toBeInTheDocument()
-  })
+    );
+
+    // target the lock icon element, not the label
+    const lockIcon = screen
+      .getAllByTitle('Locked')
+      .find(el => el.classList.contains('container-icon') && el.classList.contains('lock-icon'));
+    expect(lockIcon).toBeTruthy();
+  });
+
 
   test('showDisabledIcon has no effect when not disabled', () => {
     render(
@@ -667,5 +674,106 @@ describe('FormControl Component', () => {
     expect(screen.getByTestId('cg-sm-a')).toBeInTheDocument()
     expect(screen.getByTestId('rg-sm-x')).toBeInTheDocument()
   })
+
+  test('value-only (no onChange) mirrors later prop updates into the input', async () => {
+    const { rerender } = render(
+      <FormControl
+        label="Mirror"
+        testId="mirror"
+        value="seed"
+        clearable
+      />
+    )
+
+    const input = screen.getByTestId('mirror') as HTMLInputElement
+    expect(input.value).toBe('seed')
+
+    // Prove it's editable (uncontrolled semantics)
+    await userEvent.type(input, 'X')
+    expect(input.value).toBe('seedX')
+
+    // Parent updates the value prop — component must resync the DOM value
+    rerender(
+      <FormControl
+        label="Mirror"
+        testId="mirror"
+        value="NEW"
+        clearable
+      />
+    )
+
+    await waitFor(() => expect(input.value).toBe('NEW'))
+    // Clear icon should still be visible since there's content
+    expect(screen.getByTestId('mirror-clear-icon')).toBeInTheDocument()
+  })
+
+  test('type=number with value-only resyncs and coerces invalid tokens on prop change', async () => {
+    const { rerender } = render(
+      <FormControl
+        label="Num Mirror"
+        type="number"
+        testId="num-mirror"
+        value={'12' as unknown as number}
+        clearable
+      />
+    )
+    const input = screen.getByTestId('num-mirror') as HTMLInputElement
+    expect(input.value).toBe('12')
+
+    await userEvent.type(input, '3') // user edit
+    expect(input.value).toBe('123')
+
+    // Now parent sets an invalid numeric token → should coerce to ''
+    rerender(
+      <FormControl
+        label="Num Mirror"
+        type="number"
+        testId="num-mirror"
+        value={'abc' as unknown as number}
+        clearable
+      />
+    )
+    await waitFor(() => expect(input.value).toBe(''))
+    expect(screen.queryByTestId('num-mirror-clear-icon')).toBeNull()
+  })
+
+  test('value-only (no onChange) mirrors parent state updates triggered by button', async () => {
+    function Parent() {
+      const [val, setVal] = useState('seed');
+      return (
+        <>
+          <FormControl
+            label="Mirror Btn"
+            testId="mirror-btn"
+            value={val}
+            clearable
+          />
+          <button type="button" onClick={() => setVal('next')}>set-next</button>
+          <button type="button" onClick={() => setVal((v) => v + 'X')}>append-x</button>
+        </>
+      );
+    }
+
+    render(<Parent />);
+
+    const input = screen.getByTestId('mirror-btn') as HTMLInputElement;
+    expect(input.value).toBe('seed');
+
+    // Prove the field is still editable (uncontrolled semantics)
+    await userEvent.type(input, 'U');
+    expect(input.value).toBe('seedU');
+
+    // Parent replaces value via button → input reflects it
+    await userEvent.click(screen.getByRole('button', { name: /set-next/i }));
+    await waitFor(() => expect(input.value).toBe('next'));
+
+    // Parent updates via functional setState → input reflects it
+    await userEvent.click(screen.getByRole('button', { name: /append-x/i }));
+    await waitFor(() => expect(input.value).toBe('nextX'));
+
+    // Clear icon should be visible since input has content
+    expect(screen.getByTestId('mirror-btn-clear-icon')).toBeInTheDocument();
+  });
+
 
 })

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from "react";
 import {
   Container,
   ChatWindow,
@@ -9,8 +9,8 @@ import {
   JsonContainer,
   RawJsonArea,
   CopyButton,
-} from './styled';
-import { askAI, askAIWithImage } from './aiService';
+} from "./styled";
+import { askAI, askAIWithImage } from "./aiService";
 
 interface Message {
   fromUser: boolean;
@@ -19,7 +19,7 @@ interface Message {
 
 export const FieldSettingsAIAgent: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [fieldSettings, setFieldSettings] = useState<any>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -30,14 +30,14 @@ export const FieldSettingsAIAgent: React.FC = () => {
     const promptToSend = input.trim()
       ? input
       : imageFile
-      ? 'Generate fields based on the uploaded image'
-      : '';
+        ? "Generate fields based on the uploaded image"
+        : "";
 
     setMessages((m) => [...m, { fromUser: true, text: promptToSend }]);
-    setInput('');
+    setInput("");
 
     try {
-      const placeholder = 'Generating…';
+      const placeholder = "Generating…";
       setMessages((m) => [...m, { fromUser: false, text: placeholder }]);
 
       let settings;
@@ -46,8 +46,8 @@ export const FieldSettingsAIAgent: React.FC = () => {
         const b64 = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.onload = () => {
-            if (typeof reader.result === 'string') resolve(reader.result);
-            else reject(new Error('Failed to read file'));
+            if (typeof reader.result === "string") resolve(reader.result);
+            else reject(new Error("Failed to read file"));
           };
           reader.onerror = () => reject(reader.error);
           reader.readAsDataURL(imageFile);
@@ -61,9 +61,9 @@ export const FieldSettingsAIAgent: React.FC = () => {
       setMessages((m) =>
         m.map((msg) =>
           msg.text === placeholder
-            ? { fromUser: false, text: 'Here you go:' }
-            : msg
-        )
+            ? { fromUser: false, text: "Here you go:" }
+            : msg,
+        ),
       );
       setFieldSettings(settings);
       setImageFile(null);
@@ -76,10 +76,10 @@ export const FieldSettingsAIAgent: React.FC = () => {
   };
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, fieldSettings]);
 
-  const rawJson = fieldSettings ? JSON.stringify(fieldSettings, null, 2) : '';
+  const rawJson = fieldSettings ? JSON.stringify(fieldSettings, null, 2) : "";
   const copyRaw = () => navigator.clipboard.writeText(rawJson);
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -102,7 +102,7 @@ export const FieldSettingsAIAgent: React.FC = () => {
           placeholder="Ask for fieldSettings…"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && send()}
+          onKeyDown={(e) => e.key === "Enter" && send()}
         />
         <SendButton onClick={send}>Send</SendButton>
       </InputRow>

@@ -1,7 +1,7 @@
 // src/organisms/FormRenderer/validation.tsx
-import { ZodString } from 'zod';
+import { ZodString } from "zod";
 
-declare module 'zod' {
+declare module "zod" {
   interface ZodString {
     required(message?: string): ZodString;
     _required?: boolean;
@@ -17,7 +17,7 @@ function fixString<T extends ZodString>(schema: T): T {
 function shallowCloneString(schema: ZodString): ZodString {
   return Object.create(
     Object.getPrototypeOf(schema),
-    Object.getOwnPropertyDescriptors(schema)
+    Object.getOwnPropertyDescriptors(schema),
   );
 }
 
@@ -28,11 +28,14 @@ function mergeRequiredFlag<T extends ZodString>(target: T, source: T) {
   }
 }
 
-ZodString.prototype.required = function (message = 'Required field'): ZodString {
+ZodString.prototype.required = function (
+  message = "Required field",
+): ZodString {
   const base = this;
   // clone + nonempty()
-  const nonEmpty = fixString(shallowCloneString(base))
-    .nonempty({ message }) as unknown as ZodString;
+  const nonEmpty = fixString(shallowCloneString(base)).nonempty({
+    message,
+  }) as unknown as ZodString;
   // carry over any prior flags
   mergeRequiredFlag(nonEmpty, base);
   (nonEmpty as any)._required = true;
@@ -42,9 +45,9 @@ ZodString.prototype.required = function (message = 'Required field'): ZodString 
 
 // wrap all other ZodString methods so they preserve the _required flag
 for (const key of Object.getOwnPropertyNames(ZodString.prototype)) {
-  if (['constructor', 'required'].includes(key)) continue;
+  if (["constructor", "required"].includes(key)) continue;
   const desc = Object.getOwnPropertyDescriptor(ZodString.prototype, key);
-  if (!desc || typeof desc.value !== 'function') continue;
+  if (!desc || typeof desc.value !== "function") continue;
   const original = desc.value as Function;
   Object.defineProperty(ZodString.prototype, key, {
     ...desc,
@@ -55,7 +58,7 @@ for (const key of Object.getOwnPropertyNames(ZodString.prototype)) {
         return result;
       }
       return result;
-    }
+    },
   });
 }
 
