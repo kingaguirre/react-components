@@ -55,6 +55,76 @@ import { Button } from "../../../../atoms/Button";
 import { Description, SectionWrapper, ButtonContainer } from "../../styled";
 
 /* ──────────────────────────────────────────────────────────────────────────────
+ * Built-in progressive field chunking (inside a single section/tab)
+ * Renders the first N simple fields immediately, then hydrates the rest on idle.
+ * Ensures the field containing `focusPath` is mounted if needed.
+ * ────────────────────────────────────────────────────────────────────────────*/
+function ChunkedGrid({
+  fields,
+  renderItem,
+  focusPath,
+}: {
+  fields: Array<FieldSetting>;
+  renderItem: (fs: FieldSetting) => React.ReactNode;
+  focusPath?: string | null;
+}) {
+  const CHUNK_THRESHOLD = 48; // only chunk if a section has >48 simple fields
+  const FIRST_CHUNK = 16;     // mount immediately
+  const STEP = 24;            // add per idle tick
+
+  const needsChunking = fields.length > CHUNK_THRESHOLD;
+
+  const [count, setCount] = React.useState<number>(
+    needsChunking ? Math.min(FIRST_CHUNK, fields.length) : fields.length
+  );
+
+  // Idle hydrator to progressively reveal more fields
+  React.useEffect(() => {
+    if (!needsChunking || count >= fields.length) return;
+
+    let cancelled = false;
+    const w: any = window;
+    const schedule = (fn: () => void) => {
+      if (typeof w.requestIdleCallback === "function") {
+        const id = w.requestIdleCallback(fn, { timeout: 800 });
+        return () => w.cancelIdleCallback?.(id);
+      }
+      const id = window.setTimeout(fn, 50);
+      return () => window.clearTimeout(id);
+    };
+
+    const tick = () => {
+      if (cancelled) return;
+      setCount((c) => Math.min(fields.length, c + STEP));
+      // schedule next tick if there are more to reveal
+      if (!cancelled && count + STEP < fields.length) {
+        cleanup = schedule(tick);
+      }
+    };
+
+    let cleanup = schedule(tick);
+    return () => {
+      cancelled = true;
+      cleanup?.();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [needsChunking, fields.length, count]);
+
+  // Ensure a focused/errored field is mounted
+  React.useEffect(() => {
+    if (!needsChunking || !focusPath) return;
+    const idx = fields.findIndex(
+      (f) => f?.name && (focusPath === f.name || focusPath.startsWith(f.name + "."))
+    );
+    if (idx >= 0 && idx + 1 > count) {
+      setCount(idx + 1);
+    }
+  }, [needsChunking, focusPath, fields, count]);
+
+  return <Grid>{fields.slice(0, count).map((fs) => renderItem(fs))}</Grid>;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────────
  * RenderSection as a memoized component (subscribes to visible/draft names)
  * ────────────────────────────────────────────────────────────────────────────*/
 type RenderSectionProps = {
@@ -85,6 +155,13 @@ type RenderSectionProps = {
     React.SetStateAction<Record<string, number>>
   >;
   focusPath?: string | null;
+
+  /** Optional progressive helpers (defaulted internally) */
+  pathKey?: string;
+  heavyReady?: boolean;
+  tabsActiveIndexRef?: React.MutableRefObject<Map<string, number>>;
+  mountedTabsRef?: React.MutableRefObject<Map<string, Set<number>>>;
+  onTabEnter?: (groupKey: string, index: number) => void;
 };
 
 export const RenderSection = React.memo(function RenderSection(
@@ -114,7 +191,32 @@ export const RenderSection = React.memo(function RenderSection(
     tableVersionMap,
     setTableVersionMap,
     focusPath = null,
+
+    // Optional progressive props with safe defaults
+    pathKey = "root",
+    heavyReady = true,
+    tabsActiveIndexRef: tabsIdxRefProp,
+    mountedTabsRef: mountedTabsRefProp,
+    onTabEnter: onTabEnterProp,
   } = props;
+
+  // Default holders if parent didn’t pass refs/handlers
+  const localTabsIdxRef = React.useRef<Map<string, number>>(new Map());
+  const tabsActiveIndexRef = tabsIdxRefProp ?? localTabsIdxRef;
+
+  const localMountedTabsRef = React.useRef<Map<string, Set<number>>>(new Map());
+  const mountedTabsRef = mountedTabsRefProp ?? localMountedTabsRef;
+
+  const onTabEnter =
+    onTabEnterProp ??
+    ((groupKey: string, idx: number) => {
+      let set = mountedTabsRef.current.get(groupKey);
+      if (!set) {
+        set = new Set<number>();
+        mountedTabsRef.current.set(groupKey, set);
+      }
+      set.add(idx);
+    });
 
   /** Build the list of field names this section renders, including DataTable DRAFT names. */
   const namesToWatch = useMemo(() => {
@@ -183,161 +285,145 @@ export const RenderSection = React.memo(function RenderSection(
     [debouncedFlush],
   );
 
+  /** Render a single simple field (used by ChunkedGrid) */
+  const renderOneField = (fs: FieldSetting) => {
+    const key = fs.name!;
+    const err = getDeepValue(errors, key)?.message;
+    const schemaForRequired = (fs as any).validation
+      ? (fs as any).validation(z, values)
+      : z.any();
+    const isReq = isZodRequired(schemaForRequired);
+
+    return (
+      <GridItem
+        key={key}
+        xs={(fs as any).col?.xs ?? 12}
+        sm={(fs as any).col?.sm ?? 6}
+        md={(fs as any).col?.md ?? 4}
+        lg={(fs as any).col?.lg ?? 3}
+      >
+        <VirtualizedItem fieldKey={key}>
+          <FieldErrorBoundary label={(fs as any).label}>
+            <Controller
+              name={key as any}
+              control={control}
+              shouldUnregister={false}
+              defaultValue={
+                getDeepValue(getValues(), key) ??
+                (isBooleanControl(fs as any) ? false : "")
+              }
+              render={({ field, fieldState }) => {
+                const errorMsg = fieldState.error?.message ?? err;
+
+                // Display value normalization
+                let displayValue: any = field.value;
+                if (!isBooleanControl(fs as any) && (fs as any).type !== "number") {
+                  if (displayValue === undefined || displayValue === null) displayValue = "";
+                } else if ((fs as any).type === "number") {
+                  displayValue =
+                    typeof displayValue === "number" && !isNaN(displayValue)
+                      ? displayValue
+                      : "";
+                }
+
+                const wrapped = (raw: any) => {
+                  let next = coerceChangeValue(fs as any, raw);
+
+                  // keep '' during number clearing
+                  const isClearedNumber =
+                    (fs as any).type === "number" &&
+                    (next === "" ||
+                      next === null ||
+                      (typeof next === "number" && Number.isNaN(next)));
+
+                  if (!isClearedNumber) {
+                    next = normalizeByType(fs as any, next);
+                  } else {
+                    next = "";
+                  }
+
+                  if (
+                    !isBooleanControl(fs as any) &&
+                    (fs as any).type !== "number" &&
+                    (next === undefined || next === null)
+                  )
+                    next = "";
+
+                  const inAnyTable = Object.keys(tableDataMap).some((tableKey) =>
+                    key.startsWith(`${tableKey}.`)
+                  );
+
+                  if (inAnyTable) {
+                    setValue(key as any, next, {
+                      shouldDirty: true,
+                      shouldTouch: true,
+                      shouldValidate: false,
+                    });
+                    queueTriggers([key]);
+                    return;
+                  }
+
+                  setValue(key as any, next, {
+                    shouldDirty: true,
+                    shouldTouch: true,
+                    shouldValidate: false,
+                  });
+                  onChange();
+                  queueTriggers([key, ...conditionalKeys]);
+                };
+
+                const handleBlur = () => {
+                  void trigger(key as any);
+                };
+
+                const testId = `${(fs as any).type ?? "text"}-${key.replace(/\./g, "-")}`;
+
+                const common: any = {
+                  ...field,
+                  showDisabledIcon: true,
+                  name: key,
+                  testId,
+                  "data-testid": testId,
+                  ...(isBooleanControl(fs as any)
+                    ? { checked: !!field.value }
+                    : { value: displayValue }),
+                  onChange: wrapped,
+                  onBlur: handleBlur,
+                  label: (fs as any).label,
+                  placeholder: (fs as any).placeholder,
+                  helpText: errorMsg,
+                  required: isReq,
+                  color: errorMsg ? "danger" : undefined,
+                  disabled: resolveDisabled(
+                    (fs as any).disabled,
+                    values,
+                    globalDisabled
+                  ),
+                };
+
+                if ((fs as any).render) return (fs as any).render({ field, fieldState, common });
+                if ((fs as any).type === "date") return <DatePicker {...common} />;
+                if ((fs as any).type === "dropdown")
+                  return <Dropdown {...common} options={(fs as any).options || []} />;
+                return <FormControl {...common} type={(fs as any).type!} options={(fs as any).options} />;
+              }}
+            />
+          </FieldErrorBoundary>
+        </VirtualizedItem>
+      </GridItem>
+    );
+  };
+
+  /** Flush buffered simple fields, with progressive chunking */
   const flush = () => {
     if (!standalone.length) return;
     nodes.push(
       <SectionWrapper className="fields-wrapper" key={`flush-${flushCount++}`}>
-        <Grid>
-          {standalone.map((fs: any) => {
-            const key = fs.name!;
-            const err = getDeepValue(errors, key)?.message;
-            const schemaForRequired = fs.validation
-              ? fs.validation(z, values)
-              : z.any();
-            const isReq = isZodRequired(schemaForRequired);
-
-            return (
-              <GridItem
-                key={key}
-                xs={fs.col?.xs ?? 12}
-                sm={fs.col?.sm ?? 6}
-                md={fs.col?.md ?? 4}
-                lg={fs.col?.lg ?? 3}
-              >
-                <VirtualizedItem fieldKey={key}>
-                  <FieldErrorBoundary label={fs.label}>
-                    <Controller
-                      name={key as any}
-                      control={control}
-                      shouldUnregister={false}
-                      defaultValue={
-                        getDeepValue(getValues(), key) ??
-                        (isBooleanControl(fs) ? false : "")
-                      }
-                      render={({ field, fieldState }) => {
-                        const errorMsg = fieldState.error?.message ?? err;
-
-                        // Controlled display value
-                        let displayValue: any = field.value;
-                        if (!isBooleanControl(fs) && fs.type !== "number") {
-                          if (
-                            displayValue === undefined ||
-                            displayValue === null
-                          )
-                            displayValue = "";
-                        } else if (fs.type === "number") {
-                          displayValue =
-                            typeof displayValue === "number" &&
-                            !isNaN(displayValue)
-                              ? displayValue
-                              : "";
-                        }
-
-                        const wrapped = (raw: any) => {
-                          let next = coerceChangeValue(fs as any, raw);
-
-                          // ✅ Number clearing: if user clears the input, keep '' in form state.
-                          // This prevents RHF/controlled value from snapping back to the previous number.
-                          const isClearedNumber =
-                            fs.type === "number" &&
-                            (next === "" ||
-                              next === null ||
-                              (typeof next === "number" && Number.isNaN(next)));
-
-                          if (!isClearedNumber) {
-                            next = normalizeByType(fs as any, next);
-                          } else {
-                            next = ""; // keep as empty string during editing
-                          }
-
-                          // Ensure text-like empties are preserved as ''
-                          if (
-                            !isBooleanControl(fs) &&
-                            fs.type !== "number" &&
-                            (next === undefined || next === null)
-                          )
-                            next = "";
-
-                          const inAnyTable = Object.keys(tableDataMap).some(
-                            (tableKey) => key.startsWith(`${tableKey}.`),
-                          );
-
-                          if (inAnyTable) {
-                            setValue(key as any, next, {
-                              shouldDirty: true,
-                              shouldTouch: true,
-                              shouldValidate: false,
-                            });
-                            // Debounced single-cell validation so errors clear while typing
-                            queueTriggers([key]);
-                            return;
-                          }
-
-                          setValue(key as any, next, {
-                            shouldDirty: true,
-                            shouldTouch: true,
-                            shouldValidate: false,
-                          });
-                          onChange();
-
-                          // Debounced validation for this field + conditional dependencies
-                          queueTriggers([key, ...conditionalKeys]);
-                        };
-
-                        const handleBlur = () => {
-                          // On blur, ensure we at least validate the current field immediately
-                          // (use a direct trigger to avoid waiting for the debounce timer)
-                          void trigger(key as any);
-                        };
-
-                        const testId = `${fs.type ?? "text"}-${key.replace(/\./g, "-")}`;
-
-                        const common: any = {
-                          ...field,
-                          showDisabledIcon: true,
-                          name: key,
-                          testId,
-                          "data-testid": testId,
-                          ...(isBooleanControl(fs)
-                            ? { checked: !!field.value }
-                            : { value: displayValue }),
-                          onChange: wrapped,
-                          onBlur: handleBlur,
-                          label: fs.label,
-                          placeholder: fs.placeholder,
-                          helpText: errorMsg,
-                          required: isReq,
-                          color: errorMsg ? "danger" : undefined,
-                          disabled: resolveDisabled(
-                            fs.disabled,
-                            values,
-                            globalDisabled,
-                          ),
-                        };
-
-                        if (fs.render)
-                          return fs.render({ field, fieldState, common });
-                        if (fs.type === "date")
-                          return <DatePicker {...common} />;
-                        if (fs.type === "dropdown")
-                          return (
-                            <Dropdown {...common} options={fs.options || []} />
-                          );
-                        return (
-                          <FormControl
-                            {...common}
-                            type={fs.type!}
-                            options={fs.options}
-                          />
-                        );
-                      }}
-                    />
-                  </FieldErrorBoundary>
-                </VirtualizedItem>
-              </GridItem>
-            );
-          })}
-        </Grid>
+        <ChunkedGrid
+          fields={standalone}
+          renderItem={renderOneField}
+          focusPath={focusPath}
+        />
       </SectionWrapper>,
     );
     standalone = [];
@@ -359,6 +445,9 @@ export const RenderSection = React.memo(function RenderSection(
       return;
     }
 
+    /* ────────────────────────────────────────────────────────────────────────
+     * DataTable section — always render nested draft inputs
+     * ──────────────────────────────────────────────────────────────────────*/
     if (hasDataTable(item)) {
       flush();
       const { dataTable } = item as { dataTable: DataTableSection };
@@ -374,6 +463,8 @@ export const RenderSection = React.memo(function RenderSection(
 
       const mapKey = config.dataSource;
       const activeIdx = activeRowIndexMap?.[mapKey] ?? null;
+
+      // if the table is nested (e.g., "parent.items"), merge parent context for predicates
       const parentKey = mapKey.includes(".")
         ? mapKey.split(".").slice(0, -1).join(".")
         : "";
@@ -400,6 +491,8 @@ export const RenderSection = React.memo(function RenderSection(
 
       const canonicalTable: any[] =
         tableDataMap[mapKey] ?? getDeepValue(originalData, mapKey) ?? [];
+
+      // child path for nested field names (active row → prefix with index)
       const childPath = activeIdx != null ? `${mapKey}.${activeIdx}` : mapKey;
 
       nodes.push(
@@ -411,6 +504,7 @@ export const RenderSection = React.memo(function RenderSection(
             className={`${!!header ? "has-header" : "no-header"}`}
           >
             {description && <Description>{description}</Description>}
+
             <SectionWrapper
               className="data-table-wrapper-section"
               $hasHeader={!!header}
@@ -435,12 +529,13 @@ export const RenderSection = React.memo(function RenderSection(
                     onChange();
                   }}
                   onActiveRowChange={(_, rowIndex) => {
-                    const idx = rowIndex != null ? Number(rowIndex) : null;
+                    const selIdx = rowIndex != null ? Number(rowIndex) : null;
                     const canonicalRow =
-                      idx != null ? (canonicalTable[idx] ?? null) : null;
+                      selIdx != null ? (canonicalTable[selIdx] ?? null) : null;
 
+                    // skip if same selection & unchanged snapshot
                     if (
-                      lastProcessedRef.current[mapKey] === idx &&
+                      lastProcessedRef.current[mapKey] === selIdx &&
                       JSON.stringify(rowSnapshots.current[mapKey] ?? null) ===
                         JSON.stringify(canonicalRow ?? null)
                     ) {
@@ -448,18 +543,19 @@ export const RenderSection = React.memo(function RenderSection(
                     }
 
                     setActiveRowIndexMap((prev) =>
-                      prev[mapKey] === idx ? prev : { ...prev, [mapKey]: idx },
+                      prev[mapKey] === selIdx
+                        ? prev
+                        : { ...prev, [mapKey]: selIdx },
                     );
                     rowSnapshots.current[mapKey] = canonicalRow
                       ? { ...canonicalRow }
                       : null;
-                    lastProcessedRef.current[mapKey] = idx;
+                    lastProcessedRef.current[mapKey] = selIdx;
 
                     clearErrors(mapKey as any);
 
-                    const namedFields = flattenForSchema(
-                      dtFields as any,
-                    ).filter(
+                    // seed all leaf inputs for the selected row
+                    const namedFields = flattenForSchema(dtFields as any).filter(
                       (fs: any): fs is FieldSetting & { name: string } =>
                         typeof fs?.name === "string" && fs.name.length > 0,
                     );
@@ -475,16 +571,13 @@ export const RenderSection = React.memo(function RenderSection(
                       return row?.[leaf];
                     };
 
-                    // Seed *every* leaf with canonical value OR an empty sentinel
                     namedFields.forEach((fs) => {
                       const raw = fs.name;
                       const full =
-                        idx != null
-                          ? `${mapKey}.${idx}.${raw}`
+                        selIdx != null
+                          ? `${mapKey}.${selIdx}.${raw}`
                           : `${mapKey}.${raw}`;
-                      const from = canonicalRow
-                        ? getFromRow(raw, canonicalRow)
-                        : undefined;
+                      const from = canonicalRow ? getFromRow(raw, canonicalRow) : undefined;
                       const val =
                         from !== undefined && from !== null
                           ? from
@@ -494,7 +587,7 @@ export const RenderSection = React.memo(function RenderSection(
                         shouldTouch: false,
                         shouldValidate: false,
                       });
-                      if (idx != null) toTrigger.push(full);
+                      if (selIdx != null) toTrigger.push(full);
                     });
 
                     if (toTrigger.length) void trigger(toTrigger);
@@ -552,6 +645,7 @@ export const RenderSection = React.memo(function RenderSection(
                             ),
                           }));
 
+                          // gather draft values
                           let draftValuesObj: Record<string, any> = {};
                           absFlatLeaves.forEach((abs) => {
                             const relName = abs.name.replace(
@@ -566,13 +660,13 @@ export const RenderSection = React.memo(function RenderSection(
                             );
                           });
 
+                          // validate draft as a row
                           let ctx = { ...getValues(), ...draftValuesObj };
                           for (const [relKey, v] of Object.entries(
                             draftValuesObj,
                           )) {
                             ctx = setDeepValue(ctx, `${mapKey}.${relKey}`, v);
                           }
-
                           const draftSchema = buildSchema(relFlat as any, ctx);
                           const result =
                             await draftSchema.safeParseAsync(draftValuesObj);
@@ -587,7 +681,6 @@ export const RenderSection = React.memo(function RenderSection(
                                 message: err.message,
                               });
                             });
-
                             const firstRel = Array.isArray(
                               result.error.errors[0].path,
                             )
@@ -604,7 +697,7 @@ export const RenderSection = React.memo(function RenderSection(
                             return;
                           }
 
-                          // Build/normalize new row and prepend
+                          // normalize & prepend new row
                           let newRow: Record<string, any> = {};
                           absFlatLeaves.forEach((abs) => {
                             const relName = abs.name.replace(
@@ -616,6 +709,7 @@ export const RenderSection = React.memo(function RenderSection(
                             newRow = setDeepValue(newRow, relName, v);
                           });
 
+                          // ensure nested child tables are present
                           const childTableKeys = (dtFields as any)
                             .filter((it: any) => "dataTable" in it)
                             .map(
@@ -631,6 +725,7 @@ export const RenderSection = React.memo(function RenderSection(
                             ? tableDataMap[mapKey]
                             : [];
                           const newTable = [newRow, ...prevFormRows];
+
                           const shifted = shiftNestedTableKeys(
                             tableDataMap,
                             mapKey,
@@ -641,21 +736,20 @@ export const RenderSection = React.memo(function RenderSection(
                           setTableDataMap({ ...shifted, [mapKey]: newTable });
                           setValue(mapKey, newTable);
 
-                          // Reset selection caches so reseed after prepend is not skipped
+                          // reset selection caches so reseed after prepend isn’t skipped
                           rowSnapshots.current[mapKey] = null as any;
                           lastProcessedRef.current[mapKey] = null;
 
-                          // Notify parent on table mutation
                           setTableVersionMap?.((m) => ({
                             ...m,
                             [mapKey]: (m[mapKey] ?? 0) + 1,
                           }));
                           onChange();
 
-                          // Clear draft inputs
+                          // clear draft inputs
                           absFlatLeaves.forEach((abs) => {
                             setValue(
-                              abs.name,
+                              `${abs.name}`,
                               isBooleanControl(abs) ? false : "",
                               {
                                 shouldDirty: false,
@@ -686,6 +780,7 @@ export const RenderSection = React.memo(function RenderSection(
                                 typeof fs?.name === "string" &&
                                 fs.name.length > 0,
                             ) as any[];
+
                           const fieldNames = flatFS.map(
                             (fs) => `${mapKey}.${activeIdx}.${fs.name}`,
                           );
@@ -734,6 +829,8 @@ export const RenderSection = React.memo(function RenderSection(
                           }));
                           rowSnapshots.current[mapKey] = null as any;
                           lastProcessedRef.current[mapKey] = null;
+
+                          // clear drafts
                           leafDraftFS2.forEach((fs: any) => {
                             setValue(
                               `${mapKey}.${fs.name}`,
@@ -847,7 +944,7 @@ export const RenderSection = React.memo(function RenderSection(
                 })()}
               </VirtualizedItem>
 
-              {/* Recursive render for dtFields with id prefix */}
+              {/* Always render nested fields so draft inputs exist immediately */}
               {dtFields && dtFields.length > 0 && (
                 <RenderSection
                   items={prefixItems(dtFields as any, childPath)}
@@ -872,6 +969,13 @@ export const RenderSection = React.memo(function RenderSection(
                   ancestorRowSelected={activeIdx != null}
                   tableVersionMap={tableVersionMap}
                   setTableVersionMap={setTableVersionMap}
+                  focusPath={focusPath}
+                  // progressive wiring (optional)
+                  pathKey={`${pathKey}::dt-${mapKey}`}
+                  heavyReady={heavyReady}
+                  tabsActiveIndexRef={tabsActiveIndexRef}
+                  mountedTabsRef={mountedTabsRef}
+                  onTabEnter={onTabEnter}
                 />
               )}
             </SectionWrapper>
@@ -881,6 +985,9 @@ export const RenderSection = React.memo(function RenderSection(
       return;
     }
 
+    /* ────────────────────────────────────────────────────────────────────────
+     * Accordion
+     * ──────────────────────────────────────────────────────────────────────*/
     if (hasAccordion(item)) {
       flush();
       const group = item;
@@ -918,8 +1025,8 @@ export const RenderSection = React.memo(function RenderSection(
           );
       } else {
         const firstErrIdx = errorCounts.findIndex((c) => c > 0);
-        const idx = indexWithFocus >= 0 ? indexWithFocus : firstErrIdx;
-        if (idx >= 0) forcedOpenKeys = [keys[idx]];
+        const idx2 = indexWithFocus >= 0 ? indexWithFocus : firstErrIdx;
+        if (idx2 >= 0) forcedOpenKeys = [keys[idx2]];
       }
 
       nodes.push(
@@ -946,7 +1053,6 @@ export const RenderSection = React.memo(function RenderSection(
                   return {
                     id: keys[i],
                     title: sec.title,
-                    // keep your error badge
                     rightDetails: secHasError
                       ? [
                           ...(sec.rightDetails ?? []),
@@ -986,6 +1092,12 @@ export const RenderSection = React.memo(function RenderSection(
                         tableVersionMap={tableVersionMap}
                         setTableVersionMap={setTableVersionMap}
                         focusPath={focusPath}
+                        // progressive wiring (optional)
+                        pathKey={`${pathKey}::acc-${keys[i]}`}
+                        heavyReady={heavyReady}
+                        tabsActiveIndexRef={tabsActiveIndexRef}
+                        mountedTabsRef={mountedTabsRef}
+                        onTabEnter={onTabEnter}
                       />
                     ),
                   };
@@ -998,6 +1110,11 @@ export const RenderSection = React.memo(function RenderSection(
       return;
     }
 
+    /* ────────────────────────────────────────────────────────────────────────
+     * Tabs — keeps local active index & remembers visited; content always rendered,
+     * but virtualization + chunking still control per-field mounting/cost.
+     * (If you want “render active/visited only”, you can gate with mountedTabsRef/heavyReady.)
+     * ──────────────────────────────────────────────────────────────────────*/
     if (hasTabs(item)) {
       flush();
       const group = item as FieldGroup;
@@ -1011,11 +1128,32 @@ export const RenderSection = React.memo(function RenderSection(
 
       if (visibleTabs.length === 0) return;
 
-      // If a focusPath points inside one of these tabs, select that tab index.
+      const groupKey = `${pathKey}::tabs-${idx}`;
+
+      // prefer focusPath; otherwise use remembered; fallback to 0
       const forcedIndex =
         focusPath != null
           ? firstTabIndexContainingPath(visibleTabs as any, focusPath)
           : -1;
+
+      const remembered = tabsActiveIndexRef.current.get(groupKey) ?? 0;
+
+      const [activeIndex, setActiveIndex] = React.useState<number>(
+        forcedIndex >= 0 ? forcedIndex : remembered,
+      );
+
+      React.useEffect(() => {
+        const next =
+          forcedIndex >= 0
+            ? forcedIndex
+            : tabsActiveIndexRef.current.get(groupKey) ?? 0;
+        setActiveIndex(next);
+      }, [forcedIndex, groupKey]);
+
+      React.useEffect(() => {
+        tabsActiveIndexRef.current.set(groupKey, activeIndex);
+        onTabEnter(groupKey, activeIndex);
+      }, [groupKey, activeIndex, onTabEnter]);
 
       nodes.push(
         <React.Fragment key={`hdr-tabs-${idx}`}>
@@ -1029,15 +1167,15 @@ export const RenderSection = React.memo(function RenderSection(
               <Description>{group.description}</Description>
             )}
 
-            <SectionWrapper
-              className="tabs-wrapper"
-              $hasHeader={!!group.header}
-            >
+            <SectionWrapper className="tabs-wrapper" $hasHeader={!!group.header}>
               <Tabs
-                // NOTE: drive selection only when we know a valid index from focusPath.
-                // Otherwise let Tabs run uncontrolled so user clicks/keyboard work naturally.
                 variant={group?.tabVariant}
-                activeTab={forcedIndex >= 0 ? forcedIndex : undefined}
+                activeTab={activeIndex}
+                onTabChange={(nextIdx: number) => {
+                  setActiveIndex(nextIdx);
+                  tabsActiveIndexRef.current.set(groupKey, nextIdx);
+                  onTabEnter(groupKey, nextIdx);
+                }}
                 tabs={visibleTabs.map((tab, i) => {
                   const errorCount = (
                     flattenForSchema(tab.fields) as any[]
@@ -1046,6 +1184,7 @@ export const RenderSection = React.memo(function RenderSection(
                     return count + (errObj?.message ? 1 : 0);
                   }, 0);
 
+                  // Always render content; ChunkedGrid + VirtualizedItem keep it cheap
                   return {
                     title: tab.title,
                     badgeValue: errorCount > 0 ? errorCount : undefined,
@@ -1075,13 +1214,16 @@ export const RenderSection = React.memo(function RenderSection(
                         tableVersionMap={tableVersionMap}
                         setTableVersionMap={setTableVersionMap}
                         focusPath={focusPath}
+                        // progressive wiring (optional)
+                        pathKey={`${groupKey}::tab-${i}`}
+                        heavyReady={heavyReady}
+                        tabsActiveIndexRef={tabsActiveIndexRef}
+                        mountedTabsRef={mountedTabsRef}
+                        onTabEnter={onTabEnter}
                       />
                     ),
                   };
                 })}
-                // Optional: if you want to release control after a user click while a focusPath was set,
-                // you can notify parent here. If not needed, you can omit onTabChange.
-                // onTabChange={() => {/* e.g., parent could clear a transient focusPath */}}
               />
             </SectionWrapper>
           </Panel>
@@ -1090,6 +1232,9 @@ export const RenderSection = React.memo(function RenderSection(
       return;
     }
 
+    /* ────────────────────────────────────────────────────────────────────────
+     * Group with fields
+     * ──────────────────────────────────────────────────────────────────────*/
     if (hasFields(item)) {
       flush();
       const group = item as FieldGroup;
@@ -1131,6 +1276,13 @@ export const RenderSection = React.memo(function RenderSection(
                 ancestorRowSelected={ancestorRowSelected}
                 tableVersionMap={tableVersionMap}
                 setTableVersionMap={setTableVersionMap}
+                focusPath={focusPath}
+                // progressive wiring (optional)
+                pathKey={`${pathKey}::group-${idx}`}
+                heavyReady={heavyReady}
+                tabsActiveIndexRef={tabsActiveIndexRef}
+                mountedTabsRef={mountedTabsRef}
+                onTabEnter={onTabEnter}
               />
             </SectionWrapper>
           </Panel>
@@ -1139,7 +1291,7 @@ export const RenderSection = React.memo(function RenderSection(
       return;
     }
 
-    // simple field
+    // simple field → buffer to be flushed in a chunked grid
     const fs = item as FieldSetting;
     const isFieldHidden =
       typeof (fs as any).hidden === "function"

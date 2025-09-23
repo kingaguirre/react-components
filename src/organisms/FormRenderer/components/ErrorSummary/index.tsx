@@ -1,4 +1,5 @@
-import React, { useEffect, useRef } from "react";
+// src/organisms/FormRenderer/components/ErrorSummary.tsx
+import React, { useEffect, useRef, useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Panel } from "../../../../molecules/Panel";
 import { DataTable } from "../../../../organisms/DataTable";
@@ -6,10 +7,10 @@ import type { ColumnSetting } from "../../../../organisms/DataTable/interface";
 import { Dock, ContentWrap } from "./styled";
 
 export type ErrorSummaryItem = {
-  field: string; // full path (for scroll/focus)
-  label: string; // leaf/pretty field name
+  field: string;     // full path (for scroll/focus)
+  label: string;     // leaf/pretty field name
   valueText: string; // current value, stringified
-  message: string; // validation message
+  message: string;   // validation message
 };
 
 type Props = {
@@ -46,20 +47,31 @@ export const ErrorSummary: React.FC<Props> = ({
   if (!visible || items.length === 0) return null;
 
   const dockRef = useRef<HTMLDivElement | null>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
 
-  // Close on click anywhere *outside* the dock, and on Escape
+  // Close on click anywhere *outside* the dock, and on Escape (with safe focus handling)
   useEffect(() => {
     if (!open) return;
+
+    const closeDock = () => {
+      const content = contentRef.current;
+      const active = document.activeElement as HTMLElement | null;
+      if (content && active && content.contains(active)) {
+        dockRef.current?.focus?.({ preventScroll: true });
+        active.blur?.();
+      }
+      onToggle(false);
+    };
 
     const handlePointerDown = (e: PointerEvent) => {
       const target = e.target as Node | null;
       if (dockRef.current && target && !dockRef.current.contains(target)) {
-        onToggle(false);
+        closeDock();
       }
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onToggle(false);
+      if (e.key === "Escape") closeDock();
     };
 
     document.addEventListener("pointerdown", handlePointerDown, true);
@@ -71,17 +83,42 @@ export const ErrorSummary: React.FC<Props> = ({
     };
   }, [open, onToggle]);
 
+  // Manage focus + inert/aria-hidden on collapsible content to avoid a11y warning
+  useLayoutEffect(() => {
+    const content = contentRef.current;
+    if (!content) return;
+
+    const active = document.activeElement as HTMLElement | null;
+    const containsFocus = !!(active && content.contains(active));
+
+    if (!open) {
+      if (containsFocus) {
+        dockRef.current?.focus?.({ preventScroll: true });
+        active?.blur?.();
+      }
+      content.setAttribute("inert", "");
+      content.setAttribute("aria-hidden", "true");
+    } else {
+      content.removeAttribute("inert");
+      content.setAttribute("aria-hidden", "false");
+    }
+
+    return () => {
+      content.removeAttribute("inert");
+      content.removeAttribute("aria-hidden");
+    };
+  }, [open]);
+
   const rowCount = Math.min(items.length, 5);
   const chevronIcon = open ? "keyboard_arrow_down" : "keyboard_arrow_up";
-  const [pulse, setPulse] = React.useState(false);
+  const [pulse, setPulse] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!visible) return;
     setPulse(false);
-    // next frame so CSS animation can restart reliably
     const id = requestAnimationFrame(() => {
       setPulse(true);
-      const t = setTimeout(() => setPulse(false), 1200); // keep in sync with keyframes
+      const t = setTimeout(() => setPulse(false), 1200); // sync with CSS animation if any
       return () => clearTimeout(t);
     });
     return () => cancelAnimationFrame(id);
@@ -131,6 +168,7 @@ export const ErrorSummary: React.FC<Props> = ({
       role="region"
       aria-live="polite"
       aria-label="Form issues dock"
+      tabIndex={-1} // focusable fallback target
       data-pulse={pulse ? "true" : "false"}
       $bottomOffset={bottomOffset}
       $width={width}
@@ -147,10 +185,25 @@ export const ErrorSummary: React.FC<Props> = ({
             tooltip: open ? "Hide errors" : "Show errors",
           },
         ]}
-        onHeaderClick={() => onToggle(!open)}
+        onHeaderClick={() => {
+          if (open) {
+            const content = contentRef.current;
+            const active = document.activeElement as HTMLElement | null;
+            if (content && active && content.contains(active)) {
+              dockRef.current?.focus?.({ preventScroll: true });
+              active.blur?.();
+            }
+          }
+          onToggle(!open);
+        }}
         className="error-summary-panel"
       >
-        <ContentWrap $open={open} $rowCount={rowCount} aria-hidden={!open}>
+        <ContentWrap
+          ref={contentRef}
+          $open={open}
+          $rowCount={rowCount}
+          // aria-hidden managed by effect to avoid conflicts when focused
+        >
           <div>
             <DataTable
               dataSource={rows}
@@ -166,7 +219,14 @@ export const ErrorSummary: React.FC<Props> = ({
               onRowClick={(rowData) => {
                 const path = (rowData as any)?.fieldPath as string;
                 if (path) onItemClick(path);
-                onToggle(false); // collapse back to header after jump
+                // blur before collapsing
+                const content = contentRef.current;
+                const active = document.activeElement as HTMLElement | null;
+                if (content && active && content.contains(active)) {
+                  dockRef.current?.focus?.({ preventScroll: true });
+                  active.blur?.();
+                }
+                onToggle(false);
               }}
               className="error-summary-table"
             />

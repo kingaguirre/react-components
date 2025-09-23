@@ -33,6 +33,8 @@ import {
   hasDataTable,
   toLeafFieldSettings,
   toSummaryItems,
+  scheduleIdle,
+  cancelIdle
 } from "./utils";
 
 import renderSkeletonSection from "./components/Skeleton";
@@ -62,6 +64,30 @@ export const FormRenderer = forwardRef(
       enableErrorBox = true,
       errorBoxConfig,
     } = props;
+
+    /** ────────────────────────────────────────────────────────────────────────
+     * NEW: built-in progressive mount state (no external props)
+     *  - heavyReady flips shortly after first paint to allow initial shell
+     *  - tabsActiveIndexRef remembers active tab per tabs-group
+     *  - mountedTabsRef tracks which tab indices have been mounted already
+     * ─────────────────────────────────────────────────────────────────────── */
+    const [heavyReady, setHeavyReady] = React.useState(false);
+    const idleHandleRef = React.useRef<any>(null);
+    React.useEffect(() => {
+      idleHandleRef.current = scheduleIdle(() => setHeavyReady(true), 120);
+      return () => { if (idleHandleRef.current) cancelIdle(idleHandleRef.current); };
+    }, []);
+
+    // Keyed by a stable group key we pass down during render
+    const tabsActiveIndexRef = React.useRef<Map<string, number>>(new Map());
+    const mountedTabsRef = React.useRef<Map<string, Set<number>>>(new Map());
+    const markTabMounted = React.useCallback((groupKey: string, index: number) => {
+      let set = mountedTabsRef.current.get(groupKey);
+      if (!set) { set = new Set<number>(); mountedTabsRef.current.set(groupKey, set); }
+      set.add(index);
+      tabsActiveIndexRef.current.set(groupKey, index); // remember last active
+    }, []);
+
     const rowSnapshots = React.useRef<Record<string, any>>({});
     const lastProcessedRef = React.useRef<Record<string, number | null>>({});
     const prevDataHashRef = React.useRef<string>("");
@@ -407,10 +433,9 @@ export const FormRenderer = forwardRef(
         try {
           register(name as any);
         } catch {
-          // No-op: register will throw if called during render; we're in an effect, so it's safe.
+          // No-op
         }
       }
-      // We intentionally exclude `register` from deps to avoid noisy re-runs; RHF keeps registration.
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [fieldSettings, dataSource, getValues, setValue]);
 
@@ -453,7 +478,6 @@ export const FormRenderer = forwardRef(
 
       // 4) Only clear if those hidden fields actually have errors
       if (hiddenNow.length) {
-        // read once; don't add to deps or you'll loop
         const hasErr = (name: string) => !!getDeepValue(errors as any, name);
         const toClear = hiddenNow.filter(hasErr);
         if (toClear.length) clearErrors(toClear as any);
@@ -461,7 +485,7 @@ export const FormRenderer = forwardRef(
 
       // 5) Remember the last visible set
       lastVisibleHashRef.current = visibleHash;
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+      // eslint-disable-next-line react-hooks/exhaustive-comments
     }, [_condWatch, fieldSettings]); // intentionally minimal deps
 
     const buildFullPayload = (): T => {
@@ -475,10 +499,8 @@ export const FormRenderer = forwardRef(
 
     // Resets RHF values + table state back to props.dataSource with minimal churn
     const resetToDataSource = React.useCallback(() => {
-      // 1) Reset RHF values using the already memoized defaults (seeded from dataSource)
       reset(initialDefaults as any);
 
-      // 2) Rebuild the table maps directly from props.dataSource (no recompute of schema)
       const nextTableMap: Record<string, any[]> = {};
       fieldSettings.forEach((item) => {
         if ((item as any).dataTable) {
@@ -491,7 +513,6 @@ export const FormRenderer = forwardRef(
 
       lastSubmitHashRef.current = hashWithTableMap(initialDefaults as any, nextTableMap);
 
-      // 3) Clear row selections/snapshots and bump table versions to force a clean re-render
       setActiveRowIndexMap({});
       rowSnapshots.current = {};
       lastProcessedRef.current = {};
@@ -501,7 +522,6 @@ export const FormRenderer = forwardRef(
         return { ...m, ...bumped };
       });
 
-      // 4) Clear UX affordances / errors
       clearErrors();
       setSummaryOpen(false);
       setSummaryTriggered(false);
@@ -521,7 +541,6 @@ export const FormRenderer = forwardRef(
       ref,
       () => ({
         submit: async () => {
-          // helper: compute result, call onSubmit, return result
           const finish = (
             valid: boolean,
             invalidFields: SubmitResult<T>["invalidFields"],
@@ -786,6 +805,13 @@ export const FormRenderer = forwardRef(
           renderSkeletonSection(fieldSettings, getValues())
         ) : (
           <RenderSection
+            /** NEW: built-in progressive controls */
+            pathKey="root"
+            heavyReady={heavyReady}
+            tabsActiveIndexRef={tabsActiveIndexRef}
+            mountedTabsRef={mountedTabsRef}
+            onTabEnter={markTabMounted}
+            /** existing props */
             items={fieldSettings}
             errors={errors}
             onChange={handleChange}
@@ -830,7 +856,6 @@ export const FormRenderer = forwardRef(
                 requestAnimationFrame(() =>
                   requestAnimationFrame(() => {
                     focusAfterOpen(fieldPath);
-                    // optional: clear to avoid re-driving selection after focus
                     setFocusPath(null);
                   }),
                 );

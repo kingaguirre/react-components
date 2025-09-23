@@ -768,3 +768,17 @@ export const toSummaryItems = (
   walk("", errs);
   return out;
 };
+
+/** ────────────────────────────────────────────────────────────────────────────
+ * Small idle scheduler (built-in, no public API)
+ * ─────────────────────────────────────────────────────────────────────────── */
+export const scheduleIdle = (fn: () => void, timeout = 120) => {
+  const w: any = typeof window !== "undefined" ? window : null;
+  if (w?.requestIdleCallback) return w.requestIdleCallback(fn, { timeout });
+  return setTimeout(fn, timeout);
+};
+export const cancelIdle = (h: any) => {
+  const w: any = typeof window !== "undefined" ? window : null;
+  if (w?.cancelIdleCallback) w.cancelIdleCallback(h);
+  else clearTimeout(h);
+};
