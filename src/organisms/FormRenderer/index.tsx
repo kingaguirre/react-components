@@ -465,8 +465,11 @@ export const FormRenderer = forwardRef(
       ).map((x) => x.name);
 
       // 2) Stable hash to detect real visibility changes
-      visibleNames.sort(); // order-agnostic
-      const visibleHash = visibleNames.join("|");
+      // Stable, order-agnostic; avoids in-place mutation
+      const visibleHash = [...visibleNames]
+        .sort((a, b) => a.localeCompare(b, "en", { numeric: true }))
+        .join("|");
+
       if (visibleHash === lastVisibleHashRef.current) return; // nothing changed → bail
 
       // 3) Compute hidden names vs. the full leaf set
