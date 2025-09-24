@@ -144,6 +144,11 @@ export const DataTable = <T extends object>({
   // Always have the freshest data when we need to emit
   const latestDataRef = useRef<DataRow[]>([]);
 
+  const columnSizingRef = useRef<Record<string, number>>({});
+
+  // (optional) track last measured container width to avoid noisy RO churn
+  const lastContainerWidthRef = useRef<number | null>(null);
+
   // Toast (controlled like showAlert)
   const [toastShow, setToastShow] = useState(false);
   const [toast, setToast] = useState<{
@@ -251,6 +256,10 @@ export const DataTable = <T extends object>({
   );
   const [isFocused, setIsFocused] = useState(false);
 
+  useEffect(() => {
+    columnSizingRef.current = columnSizing;
+  }, [columnSizing]);
+
   // Memoize the transformed data from dataSource
   const memoizedData = useMemo(
     () => UTILS.initializeDataWithIds(dataSource),
@@ -280,9 +289,12 @@ export const DataTable = <T extends object>({
     const el = tableContainerRef.current;
     if (!el) return;
 
+    const containerWidth = el.clientWidth;
+
+    // compute desired default sizing for current container width
     const defaultSizing = UTILS_CS.getInitialSize(
       safeColumnSettings,
-      el.clientWidth,
+      containerWidth,
       columnVisibility,
       {
         enableCellEditing,
@@ -293,13 +305,28 @@ export const DataTable = <T extends object>({
       },
     );
 
-    // block debounced emits for a short window while we programmatically update sizing
+    // merge with current sizing but DO NOT set state if nothing changes
+    const nextSizing = UTILS.mergeSizing(
+      defaultSizing,
+      columnSizingRef.current,
+      userSizedColsRef.current,
+    );
+
+    if (UTILS.shallowEqualNumberMap(nextSizing, columnSizingRef.current)) {
+      // no-op → prevents RO → setState → RO loop
+      return;
+    }
+
+    // We are going to update programmatically; don’t emit column-setting changes
     suppressEmits();
 
     isAutoSizingRef.current = true;
-    setColumnSizing((prev) =>
-      UTILS.mergeSizing(defaultSizing, prev, userSizedColsRef.current),
-    );
+    setColumnSizing(nextSizing);
+
+    // mark the width we just sized for (optional; helps ignore jitter)
+    lastContainerWidthRef.current = containerWidth;
+
+    // release flag on next frame so RO during our own changes is ignored
     requestAnimationFrame(() => {
       isAutoSizingRef.current = false;
     });
@@ -311,20 +338,32 @@ export const DataTable = <T extends object>({
     enableRowDeleting,
     enableRowSelection,
     expandedRowContent,
+    suppressEmits,
   ]);
 
   useLayoutEffect(() => {
-    applySizing();
+    applySizing(); // initial
 
-    // Observe container size
     const el = tableContainerRef.current;
+
     const ro =
       typeof ResizeObserver !== "undefined"
-        ? new ResizeObserver(() => applySizing())
+        ? new ResizeObserver(() => {
+            // ignore resize events immediately caused by our own programmatic sizing
+            if (isAutoSizingRef.current) return;
+
+            // (optional) if width didn’t actually change, bail early
+            const w = el?.clientWidth ?? 0;
+            if (lastContainerWidthRef.current != null && w === lastContainerWidthRef.current) {
+              return;
+            }
+
+            applySizing();
+          })
         : null;
+
     if (el) ro?.observe(el);
 
-    // Fallback to window resize/orientation changes
     let rafId: number | null = null;
     const onWinResize = () => {
       if (rafId != null) cancelAnimationFrame(rafId);
