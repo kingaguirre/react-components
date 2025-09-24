@@ -376,3 +376,16 @@ export async function exportRows(
     "xlsx",
   );
 }
+
+// helper: shallow compare number maps
+export const shallowEqualNumberMap = (
+  a: Record<string, number>,
+  b: Record<string, number>,
+) => {
+  if (a === b) return true;
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+  if (aKeys.length !== bKeys.length) return false;
+  for (const k of aKeys) if (a[k] !== b[k]) return false;
+  return true;
+};
