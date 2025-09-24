@@ -2,8 +2,8 @@ import { useMemo } from "react";
 import type { Table, Column } from "@tanstack/react-table";
 
 function clampToDef(n: number, col?: Column<any, unknown>) {
-  const min = Number(col?.columnDef?.minSize ?? 1);       // no arbitrary 40px floor
-  const max = Number(col?.columnDef?.maxSize ?? 10000);   // generous ceiling
+  const min = Number(col?.columnDef?.minSize ?? 1); // no arbitrary 40px floor
+  const max = Number(col?.columnDef?.maxSize ?? 10000); // generous ceiling
   const v = Math.round(Number.isFinite(n) ? n : 0);
   return Math.max(min, Math.min(max, v));
 }
@@ -25,7 +25,9 @@ export function useHeaderColSizes<TData>(
         const col: Column<any, unknown> | undefined = h?.column;
         const sz =
           (typeof h.getSize === "function" && h.getSize()) ||
-          (col && typeof (col as any).getSize === "function" && (col as any).getSize()) ||
+          (col &&
+            typeof (col as any).getSize === "function" &&
+            (col as any).getSize()) ||
           col?.columnDef?.size ||
           defaultSize;
         return clampToDef(sz, col); // ✅ honors 30px built-ins

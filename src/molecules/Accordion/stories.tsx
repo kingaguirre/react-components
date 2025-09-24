@@ -65,13 +65,13 @@ export const Default: StoryObj<typeof Accordion> = {
 const AccordionExamples = () => {
   const [dynamicContent, setDynamicContent] = useState(
     'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.'
-  )
-  const [allowMultiple, setAllowMultiple] = useState(false)
+  );
+  const [allowMultiple, setAllowMultiple] = useState(false);
 
   // Colors Accordion: one item per allowed color.
   const colors: AccordionItemProps[] = ['primary', 'info', 'success', 'warning', 'danger', 'default']
     .flatMap((col) => {
-      const title = `Accordion ${col.charAt(0).toUpperCase() + col.slice(1)}`
+      const title = `Accordion ${col.charAt(0).toUpperCase() + col.slice(1)}`;
       return [
         {
           title,
@@ -84,8 +84,8 @@ const AccordionExamples = () => {
           color: col as AccordionItemProps['color'],
           disabled: true,
         },
-      ]
-    })
+      ];
+    });
 
   // RightDetails Examples: various configurations.
   const detailExamples: AccordionItemProps[] = [
@@ -120,7 +120,29 @@ const AccordionExamples = () => {
       color: 'info',
       rightContent: <Button size='xs'>Extra</Button>,
     },
-  ]
+  ];
+
+  // ── NEW: defaultOpenKeys example items ──────────────────────────────────────
+  const defaultItems: AccordionItemProps[] = [
+    { id: 'd1', title: 'Default A', children: <div>Default A content</div>, color: 'primary' },
+    { id: 'd2', title: 'Default B', children: <div>Default B content</div>, color: 'success' },
+    { id: 'd3', title: 'Default C', children: <div>Default C content</div>, color: 'warning' },
+  ];
+
+  // ── NEW: forcedOpenKeys (“pinned”) example items/state ─────────────────────
+  const [pinned, setPinned] = useState(true);
+  const forcedItems: AccordionItemProps[] = [
+    { id: 'pA', title: 'Pinned A', children: <div>This one can be pinned open.</div>, color: 'info' },
+    { id: 'pB', title: 'Pinned B', children: <div>Toggle pin to allow closing A.</div>, color: 'danger' },
+  ];
+
+  // ── NEW: fully-controlled (openKeys + onOpenKeysChange) example ────────────
+  const [controlledKeys, setControlledKeys] = useState<string[]>(['c2']);
+  const controlledItems: AccordionItemProps[] = [
+    { id: 'c1', title: 'Controlled 1', children: <div>Controlled content 1</div>, color: 'primary' },
+    { id: 'c2', title: 'Controlled 2', children: <div>Controlled content 2</div>, color: 'success' },
+    { id: 'c3', title: 'Controlled 3', children: <div>Controlled content 3</div>, color: 'warning' },
+  ];
 
   return (
     <StoryWrapper title='Accordion Examples' subTitle={descriptionText}>
@@ -168,14 +190,12 @@ const AccordionExamples = () => {
             children: <div>Watch the console and alerts.</div>,
             color: 'info',
             onClick: (e, id) => {
-              console.log("[Accordion] header clicked", { id, type: e?.type });
+              console.log('[Accordion] header clicked', { id, type: e?.type });
               alert(`🖱️ [Accordion]\nHeader clicked\n\n• ID: ${id}\n• Event: ${e?.type}`);
             },
-
             onOpen: (e, id) => {
               console.log(`✅ [Accordion]\nJust opened!\n\n• ID: ${id}\n• Event: ${e?.type}`);
             },
-
             onClose: (e, id) => {
               console.log(`❌ [Accordion]\nJust closed!\n\n• ID: ${id}\n• Event: ${e?.type}`);
             },
@@ -185,14 +205,12 @@ const AccordionExamples = () => {
             children: <div>Watch the console and alerts.</div>,
             color: 'info',
             onClick: (e, id) => {
-              console.log("[Accordion] header clicked", { id, type: e?.type });
+              console.log('[Accordion] header clicked', { id, type: e?.type });
               alert(`🖱️ [Accordion]\nHeader clicked\n\n• ID: ${id}\n• Event: ${e?.type}`);
             },
-
             onOpen: (e, id) => {
               console.log(`✅ [Accordion]\nJust opened!\n\n• ID: ${id}\n• Event: ${e?.type}`);
             },
-
             onClose: (e, id) => {
               console.log(`❌ [Accordion]\nJust closed!\n\n• ID: ${id}\n• Event: ${e?.type}`);
             },
@@ -200,9 +218,28 @@ const AccordionExamples = () => {
         ]}
         allowMultiple={false}
       />
+
+      {/* ────────────────────────────────────────────────────────────────────── */}
+      {/* NEW FEATURE EXAMPLES                                                  */}
+      {/* ────────────────────────────────────────────────────────────────────── */}
+
+      <Title>Controlled Open Keys</Title>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+        <Button size='xs' onClick={() => setControlledKeys(['c1'])}>Open C1</Button>
+        <Button size='xs' onClick={() => setControlledKeys(['c2'])}>Open C2</Button>
+        <Button size='xs' onClick={() => setControlledKeys(['c3'])}>Open C3</Button>
+        <Button size='xs' onClick={() => setControlledKeys(['c1', 'c2'])}>Open C1 + C2</Button>
+        <Button size='xs' onClick={() => setControlledKeys([])}>Close All</Button>
+      </div>
+      <Accordion
+        items={controlledItems}
+        forcedOpenKeys={controlledKeys}                   // parent-controlled
+        onActiveKeysChange={setControlledKeys}       // keeps stories interactive
+        allowMultiple={true}
+      />
     </StoryWrapper>
-  )
-}
+  );
+};
 
 export const Examples: StoryObj<typeof Accordion> = {
   render: () => <AccordionExamples />,

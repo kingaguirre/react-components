@@ -1,9 +1,9 @@
 // src/organisms/FormRenderer/interface.ts
 
-import { ZodTypeAny } from 'zod';
-import { ColorType } from '../../common/interface';
-import { ControllerRenderProps,  ControllerFieldState } from 'react-hook-form';
-import { ColumnSetting } from '../../organisms/DataTable/interface';
+import { ZodTypeAny } from "zod";
+import { ColorType } from "../../common/interface";
+import { ControllerRenderProps, ControllerFieldState } from "react-hook-form";
+import { ColumnSetting } from "../../organisms/DataTable/interface";
 
 export interface ColSpan {
   xs?: number;
@@ -13,19 +13,19 @@ export interface ColSpan {
 }
 
 export type FieldType =
-  | 'text'
-  | 'number'
-  | 'textarea'
-  | 'dropdown'
-  | 'date'
-  | 'email'
-  | 'radio'
-  | 'checkbox'
-  | 'switch'
-  | 'radio-group'
-  | 'checkbox-group'
-  | 'radio-button-group'
-  | 'switch-group';
+  | "text"
+  | "number"
+  | "textarea"
+  | "dropdown"
+  | "date"
+  | "email"
+  | "radio"
+  | "checkbox"
+  | "switch"
+  | "radio-group"
+  | "checkbox-group"
+  | "radio-button-group"
+  | "switch-group";
 
 export interface SelectOption {
   value: string;
@@ -43,7 +43,10 @@ export interface FieldSetting {
 
   type?: FieldType;
   /** pass z and full dataSource to enable conditional schemas */
-  validation?: (z: typeof import('zod'), data?: Record<string, any>) => ZodTypeAny;
+  validation?: (
+    z: typeof import("zod"),
+    data?: Record<string, any>,
+  ) => ZodTypeAny;
 
   options?: SelectOption[];
   col?: ColSpan;
@@ -58,7 +61,7 @@ export interface FieldSetting {
    */
   render?: (params: {
     field: ControllerRenderProps;
-    fieldState:  ControllerFieldState;
+    fieldState: ControllerFieldState;
     common: {
       name: string;
       value: any;
@@ -112,7 +115,7 @@ export interface FieldGroup {
   tabs?: TabConfig[];
   accordion?: AccordionSection[];
   allowMultiple?: boolean; // allows multiple collapsed sections in the accordion
-
+  tabVariant?: 'default' | 'pill' // tab variant
   hidden?: boolean | ((values?: Record<string, any>) => boolean);
 }
 
@@ -141,6 +144,7 @@ export interface SubmitResult<T> {
   valid: boolean;
   values?: T;
   invalidFields?: Array<{ field: string; error: string; value: any }>;
+  updated: boolean;
 }
 
 export interface FormRendererProps<T extends Record<string, any>> {
@@ -154,9 +158,16 @@ export interface FormRendererProps<T extends Record<string, any>> {
 
   stickyHeader?: boolean;
   className?: string;
+  enableErrorBox?: boolean;
+  errorBoxConfig?: {
+    bottomOffset?: number;
+    width?: number;
+    title?: string;
+  };
 }
 
 export interface FormRendererRef<T> {
-  submit: () => void;
+  submit: () => Promise<SubmitResult<T>>;
   getValues: () => T;
+  reset: () => void;
 }

@@ -169,8 +169,8 @@ export const Dropdown: React.FC<DropdownProps> = ({
 
     // 2) Decide render order (top vs bottom for session customs)
     const renderOrder = mergedCustomCfg.optionAtTop
-      ? [session, persisted, base]     // TOP: session first
-      : [base, persisted, session];    // BOTTOM: session last
+      ? [session, persisted, base] // TOP: session first
+      : [base, persisted, session]; // BOTTOM: session last
 
     // 3) Emit in render order, but only the dedupe winners; apply edited label overrides
     const out: DropdownOption[] = [];
@@ -336,11 +336,20 @@ export const Dropdown: React.FC<DropdownProps> = ({
   // Build list with position control
   const visibleItems = useMemo(() => {
     if (!showCustomRow) return filteredOptions;
-    const others = { value: CUSTOM_SENTINEL, text: mergedCustomCfg.label, disabled: false };
+    const others = {
+      value: CUSTOM_SENTINEL,
+      text: mergedCustomCfg.label,
+      disabled: false,
+    };
     return mergedCustomCfg.optionAtTop
       ? [others, ...filteredOptions]
       : [...filteredOptions, others];
-  }, [showCustomRow, filteredOptions, mergedCustomCfg.label, mergedCustomCfg.optionAtTop]);
+  }, [
+    showCustomRow,
+    filteredOptions,
+    mergedCustomCfg.label,
+    mergedCustomCfg.optionAtTop,
+  ]);
 
   // Recompute position
   useEffect(() => {
@@ -625,7 +634,8 @@ export const Dropdown: React.FC<DropdownProps> = ({
         : { ...prevMap, [editingValue]: nextText },
     );
 
-    if (mergedCustomCfg.onEdit) defer(() => mergedCustomCfg.onEdit!(prev, nextOpt, raw));
+    if (mergedCustomCfg.onEdit)
+      defer(() => mergedCustomCfg.onEdit!(prev, nextOpt, raw));
 
     // Flash & refocus
     setFlashValue(editingValue);
@@ -948,22 +958,24 @@ export const Dropdown: React.FC<DropdownProps> = ({
 
     // Insert by position rule
     setNewOptions((prev) =>
-      mergedCustomCfg.optionAtTop ? [created, ...prev] : [...prev, created]
+      mergedCustomCfg.optionAtTop ? [created, ...prev] : [...prev, created],
     );
-    if (mergedCustomCfg.onAdd) defer(() => mergedCustomCfg.onAdd!(created, raw));
+    if (mergedCustomCfg.onAdd)
+      defer(() => mergedCustomCfg.onAdd!(created, raw));
 
     // ✅ Auto-select the newly added option when allowMultiple is false
     if (!mergedCustomCfg.allowMultiple) {
       if (isMulti) {
         // Compute next outside the state updater and avoid calling onChange inside it.
-        const next =
-          selectedValues.includes(value) ? selectedValues : [...selectedValues, value];
+        const next = selectedValues.includes(value)
+          ? selectedValues
+          : [...selectedValues, value];
 
         setSelectedValues(next);
         setDisplayValue(
           next.length
             ? `${next.length} selected ${ifElse(next.length === 1, "item", "items")}`
-            : ""
+            : "",
         );
 
         // Defer the external callback so we don't update parent during our render.

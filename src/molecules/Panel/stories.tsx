@@ -4,6 +4,7 @@ import { Panel } from './index'
 import { StoryWrapper, Title } from '../../components/StoryWrapper'
 import { Grid, GridItem } from '../../atoms/Grid'
 import { Button } from '../../atoms/Button'
+import { Icon } from '../../atoms/Icon'
 
 const descriptionText =
   'The Panel component is used to display content in a bordered container with an optional header, icons, and actions. It supports different colors, disabled states, and can be used as a headless container.'
@@ -117,10 +118,65 @@ const generateFormPropsStories = () => (
       </Panel>
     </GridItem>
 
-    {/* NEW: No Shadow example */}
+    {/* No Shadow example */}
     <GridItem xs={12}>
       <Panel title='No Shadow Panel' color='info' hideShadow>
         <p>Shadow is disabled via <code>hideShadow=&#123;true&#125;</code>.</p>
+      </Panel>
+    </GridItem>
+
+     <GridItem xs={12}>
+      <Panel
+        title='Panel with Badge Slots'
+        color='warning'
+        leftDetails={[
+          { text: 'Draft', color: 'info' }
+        ]}
+        rightDetails={[
+          { value: '5', valueColor: 'danger' },
+          { icon: 'info', iconColor: 'info', onClick: () => alert('Info clicked') }
+        ]}
+      >
+        <p>
+          Header shows left &amp; right details (badges/icons/text), same API as Accordion’s <code>rightDetails</code>.
+        </p>
+      </Panel>
+    </GridItem>
+
+    <GridItem xs={12} sm={6}>
+      <Panel
+        title='Panel with Custom Header Content'
+        color='primary'
+        leftContent={
+          <>
+            <Icon icon='filter_list' />
+            <span>Filters active</span>
+          </>
+        }
+        rightContent={
+          <Button size='xs' onClick={() => alert('Run clicked')}>Run</Button>
+        }
+      >
+        <p>
+          Use <code>leftContent</code> / <code>rightContent</code> to inject arbitrary header elements (buttons, chips, etc).
+        </p>
+      </Panel>
+    </GridItem>
+
+    <GridItem xs={12} sm={6}>
+      <Panel
+        title='SubHeader + Details'
+        color='default'
+        isSubHeader
+        leftDetails={[{ icon: 'warning', color: 'warning' }]}
+        rightDetails={[
+          { value: '12', valueColor: 'warning' },
+          { text: 'Open', color: 'default' }
+        ]}
+      >
+        <p>
+          SubHeader styling combined with details on both sides.
+        </p>
       </Panel>
     </GridItem>
   </Grid>

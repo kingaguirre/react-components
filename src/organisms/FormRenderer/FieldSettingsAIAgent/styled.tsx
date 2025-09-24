@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled from "styled-components";
 
 export const Container = styled.div`
   display: flex;
@@ -18,12 +18,12 @@ export const ChatWindow = styled.div`
 `;
 
 export const Bubble = styled.div<{ fromUser: boolean }>`
-  background: ${({ fromUser }) => (fromUser ? '#cce5ff' : '#e2e3e5')};
+  background: ${({ fromUser }) => (fromUser ? "#cce5ff" : "#e2e3e5")};
   color: #333;
   padding: 8px 12px;
   border-radius: 16px;
   max-width: 70%;
-  align-self: ${({ fromUser }) => (fromUser ? 'flex-end' : 'flex-start')};
+  align-self: ${({ fromUser }) => (fromUser ? "flex-end" : "flex-start")};
   margin: 4px 0;
 `;
 

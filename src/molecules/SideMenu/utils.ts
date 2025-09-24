@@ -1,12 +1,15 @@
-import { INode } from './interfaces';
+import { INode } from "./interfaces";
 
 export const rowHeightPx = 30;
 
 export const ensureSelection = (
   data: INode[],
   selectedItem: string | undefined,
-  selectedChildItem: string | undefined
-): { selectedItem: string | undefined; selectedChildItem: string | undefined } => {
+  selectedChildItem: string | undefined,
+): {
+  selectedItem: string | undefined;
+  selectedChildItem: string | undefined;
+} => {
   if (!data || data.length === 0) return { selectedItem, selectedChildItem };
 
   // If no selectedItem provided, use "isSelected" or first item

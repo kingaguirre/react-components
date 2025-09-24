@@ -91,4 +91,3 @@ export function transformColumnSettings<T extends object>(
 
   return result;
 }
-

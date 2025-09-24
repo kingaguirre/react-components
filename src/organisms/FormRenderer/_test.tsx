@@ -197,15 +197,25 @@ vi.mock('../../atoms/FormControl', () => {
   return { FormControl };
 });
 
+// ── Tabs mock (controlled-aware) ─────────────────────────────────────────────
 vi.mock('../../organisms/Tabs', () => {
   const React = require('react');
 
   const Tabs = (props: any) => {
     const firstEnabled = props.tabs?.findIndex((t: any) => !t.disabled) ?? 0;
-    const [sel, setSel] = React.useState(props.activeTab ?? firstEnabled);
+    const [sel, setSel] = React.useState(
+      props.activeTab ?? firstEnabled
+    );
+
+    // respond to controlled updates
+    React.useEffect(() => {
+      if (typeof props.activeTab === 'number') {
+        setSel(props.activeTab);
+      }
+    }, [props.activeTab]);
 
     return (
-      <div>
+      <div data-testid="mock-tabs">
         <div role="tablist">
           {props.tabs?.map((t: any, i: number) => (
             <button
@@ -216,13 +226,14 @@ vi.mock('../../organisms/Tabs', () => {
               tabIndex={sel === i ? 0 : -1}
               disabled={!!t.disabled}
               onClick={() => setSel(i)}
+              data-testid={`tab-${i}`}
             >
               {t.title}
               {t.badgeValue != null ? ` ${t.badgeValue}` : ''}
             </button>
           ))}
         </div>
-        <div id={`panel-${sel}`} role="tabpanel">
+        <div id={`panel-${sel}`} role="tabpanel" data-testid="tabpanel">
           {props.tabs?.[sel]?.content}
         </div>
       </div>
@@ -232,17 +243,37 @@ vi.mock('../../organisms/Tabs', () => {
   return { Tabs };
 });
 
+// ── Accordion mock (controlled-aware for activeKeys/forcedOpenKeys) ──────────
 vi.mock('../../molecules/Accordion', () => {
-  const Accordion = (props: any) => (
-    <div data-testid="mock-accordion">
-      {(props.items ?? []).map((it: any, i: number) => (
-        <details key={i} open={!!it.open} data-testid={`accordion-${i}`} aria-disabled={it.disabled ? 'true' : 'false'}>
-          <summary>{it.title}</summary>
-          <div>{it.children}</div>
-        </details>
-      ))}
-    </div>
-  );
+  const getKey = (it: any, i: number) => String(it?.id ?? i);
+
+  const Accordion = (props: any) => {
+    const activeSet = new Set(props.activeKeys ?? []);
+    const forcedSet = new Set(props.forcedOpenKeys ?? []);
+
+    return (
+      <div data-testid="mock-accordion">
+        {(props.items ?? []).map((it: any, i: number) => {
+          const key = getKey(it, i);
+          const open =
+            forcedSet.has(key) || activeSet.has(key) || !!it.open;
+
+          return (
+            <details
+              key={key}
+              open={open}
+              data-testid={`accordion-${key}`}
+              aria-disabled={it.disabled ? 'true' : 'false'}
+            >
+              <summary>{it.title}</summary>
+              <div>{it.children}</div>
+            </details>
+          );
+        })}
+      </div>
+    );
+  };
+
   return { Accordion };
 });
 
@@ -1068,5 +1099,435 @@ describe('FormRenderer', () => {
     expect(v.email ?? '').toBe('');
   });
 
+  test('submit updated flag: first submit false if unchanged; second unchanged false; change then true', async () => {
+    const onSubmit = vi.fn();
+    const ref = React.createRef<FormRendererRef<any>>();
+
+    render(
+      <FormRenderer
+        ref={ref}
+        fieldSettings={[
+          { name: 'name',  label: 'Name', type: 'text' },
+          { name: 'email', label: 'Email', type: 'text', validation: (z) => z.string().email('Invalid email') },
+        ]}
+        dataSource={{ name: 'Alice', email: 'not-email' }}
+        onSubmit={onSubmit}
+      />
+    );
+
+    // ensure initial effects (baseline hash seed) have run
+    await screen.findByTestId('text-name');
+
+    // 1) first submit with no changes -> updated: false
+    await act(async () => { await ref.current!.submit(); });
+    expect(onSubmit).toHaveBeenCalled();
+    let res = onSubmit.mock.calls.at(-1)?.[0];
+    expect(res.valid).toBe(false);
+    expect(res.updated).toBe(false);
+
+    // 2) second submit still unchanged -> updated: false
+    await act(async () => { await ref.current!.submit(); });
+    res = onSubmit.mock.calls.at(-1)?.[0];
+    expect(res.valid).toBe(false);
+    expect(res.updated).toBe(false);
+
+    // 3) fix email -> valid submit -> updated: true
+    await userEvent.clear(screen.getByTestId('text-email'));
+    await userEvent.type(screen.getByTestId('text-email'), 'alice@example.com');
+
+    await act(async () => { await ref.current!.submit(); });
+    res = onSubmit.mock.calls.at(-1)?.[0];
+    expect(res.valid).toBe(true);
+    expect(res.updated).toBe(true);
+  });
+
+  test('error summary dock: appears only after submit, collapsed by default, chevron opens, chevron collapses again', async () => {
+    const onSubmit = vi.fn();
+    const ref = React.createRef<FormRendererRef<any>>();
+
+    render(
+      <FormRenderer
+        ref={ref}
+        fieldSettings={[
+          { name: 'email', label: 'Email', type: 'text', validation: (z) => z.string().email('Invalid email') },
+          { name: 'role',  label: 'Role',  type: 'dropdown', options: [{ value: 'Admin', text: 'Admin' }] },
+        ]}
+        dataSource={{ email: 'bad', role: '' }}
+        onSubmit={onSubmit}
+      />
+    );
+
+    // not mounted before submit
+    expect(document.querySelector('.error-summary-panel')).toBeNull();
+
+    // submit invalid → dock mounts (collapsed)
+    await act(async () => { await ref.current!.submit(); });
+
+    const dock = document.querySelector('.error-summary-panel') as HTMLElement;
+    expect(dock).toBeInTheDocument();
+
+    // grab the mocked DataTable inside the dock
+    const dt = within(dock).getByTestId('mock-datatable');
+    // Content wrapper is the nearest ancestor with aria-hidden
+    const contentWrap = dt.closest('[aria-hidden]') as HTMLElement;
+    expect(contentWrap).toHaveAttribute('aria-hidden', 'true'); // collapsed by default
+
+    // open via chevron (last right icon in panel header)
+    const headerIcons = within(dock).getAllByTestId('icon');
+    expect(headerIcons.length).toBeGreaterThan(0);
+    const chevron = headerIcons[headerIcons.length - 1];
+    await userEvent.click(chevron);
+
+    // expanded now
+    await waitFor(() => {
+      expect(contentWrap).toHaveAttribute('aria-hidden', 'false');
+    });
+
+    // rows exist (mock renders <li> items)
+    const rows = within(dt).getAllByRole('listitem');
+    expect(rows.length).toBeGreaterThan(0);
+
+    // collapse again via chevron
+    await userEvent.click(chevron);
+    await waitFor(() => {
+      expect(contentWrap).toHaveAttribute('aria-hidden', 'true');
+    });
+  });
+
+  test('error summary: enableErrorBox=false prevents mounting even on invalid submit', async () => {
+    const onSubmit = vi.fn();
+    const ref = React.createRef<FormRendererRef<any>>();
+
+    render(
+      <FormRenderer
+        ref={ref}
+        fieldSettings={[
+          { name: 'email', label: 'Email', type: 'text', validation: (z) => z.string().email('Invalid email') },
+        ]}
+        dataSource={{ email: 'nope' }}
+        onSubmit={onSubmit}
+        enableErrorBox={false}
+      />
+    );
+
+    await act(async () => { await ref.current!.submit(); });
+    expect(onSubmit).toHaveBeenCalled();
+    // dock never appears
+    expect(document.querySelector('.error-summary-panel')).toBeNull();
+  });
+
+  test('error summary: custom title via errorBoxConfig', async () => {
+    const onSubmit = vi.fn();
+    const ref = React.createRef<FormRendererRef<any>>();
+
+    render(
+      <FormRenderer
+        ref={ref}
+        fieldSettings={[
+          { name: 'email', label: 'Email', type: 'text', validation: (z) => z.string().email('Invalid email') },
+        ]}
+        dataSource={{ email: 'x' }}
+        onSubmit={onSubmit}
+        errorBoxConfig={{ title: 'Form Issues', width: 640, bottomOffset: 12 }}
+      />
+    );
+
+    await act(async () => { await ref.current!.submit(); });
+    // panel mounts with the custom title
+    const dock = document.querySelector('.error-summary-panel') as HTMLElement;
+    expect(dock).toBeInTheDocument();
+    expect(within(dock).getByText('Form Issues')).toBeInTheDocument();
+  });
+
+  test('submit() resolves with same payload as onSubmit (valid + updated flag)', async () => {
+    const onSubmit = vi.fn();
+    const ref = React.createRef<FormRendererRef<any>>();
+
+    render(
+      <FormRenderer
+        ref={ref}
+        fieldSettings={[{ name: 'name', label: 'Name', type: 'text' }]}
+        dataSource={{ name: 'A' }}
+        onSubmit={onSubmit}
+      />
+    );
+
+    await screen.findByTestId('text-name'); // ensure baseline hash seeded
+
+    const r1 = await ref.current!.submit();
+    expect(onSubmit).toHaveBeenCalled();
+    const c1 = onSubmit.mock.calls.at(-1)![0];
+    expect(r1).toEqual(c1);
+    expect(r1.valid).toBe(true);
+
+    // First submit with no edits should NOT be marked updated
+    expect(r1.updated).toBe(false);
+
+    // second submit without changes → updated=false
+    const r2 = await ref.current!.submit();
+    const c2 = onSubmit.mock.calls.at(-1)![0];
+    expect(r2).toEqual(c2);
+    expect(r2.updated).toBe(false);
+  });
+
+  test('submit() resolves with invalidFields when invalid', async () => {
+    const onSubmit = vi.fn();
+    const ref = React.createRef<FormRendererRef<any>>();
+
+    render(
+      <FormRenderer
+        ref={ref}
+        fieldSettings={[{ name: 'email', label: 'Email', type: 'text', validation: (z) => z.string().email('Invalid email') }]}
+        dataSource={{ email: 'nope' }}
+        onSubmit={onSubmit}
+      />
+    );
+
+    const r = await ref.current!.submit();
+    expect(onSubmit).toHaveBeenCalled();
+    expect(r.valid).toBe(false);
+    expect(r.invalidFields.some(f => f.field === 'email' && /invalid/i.test(f.error))).toBe(true);
+  });
+
+  test('auto-focuses first invalid base field and attempts to scroll', async () => {
+    const onSubmit = vi.fn();
+    const ref = React.createRef<FormRendererRef<any>>();
+
+    // stub scroll helpers
+    (HTMLElement.prototype as any).scrollIntoView = vi.fn();
+    (HTMLElement.prototype as any).scrollTo = vi.fn();
+
+    render(
+      <FormRenderer
+        ref={ref}
+        fieldSettings={[
+          { name: 'name',  label: 'Name',  type: 'text' },
+          // invalid email on submit
+          { name: 'email', label: 'Email', type: 'text', validation: (z) => z.string().email('Invalid email') },
+        ]}
+        dataSource={{ name: 'Alice', email: 'nope' }}
+        onSubmit={onSubmit}
+      />
+    );
+
+    await act(async () => { await ref.current!.submit(); });
+
+    expect(onSubmit).toHaveBeenCalled();
+    const emailInput = screen.getByTestId('text-email');
+    // wait until focus settles (focus is scheduled via rAF)
+    await waitFor(() => {
+      expect(document.activeElement).toBe(emailInput);
+    });
+  });
+
+  test('auto-opens Accordion section containing invalid field and focuses it', async () => {
+    const onSubmit = vi.fn();
+    const ref = React.createRef<FormRendererRef<any>>();
+
+    const accordionWithInvalidSecond: SettingsItem = {
+      header: 'Accordion',
+      accordion: [
+        { title: 'Section 1', fields: [{ name: 'acc1', label: 'Acc1', type: 'text' }], open: true },
+        {
+          title: 'Section 2',
+          fields: [{
+            name: 'acc2',
+            label: 'Acc2',
+            type: 'text',
+            validation: (z) => z.string().min(1, 'Required in Section 2'),
+          }],
+        },
+      ],
+    };
+
+    render(
+      <FormRenderer
+        ref={ref}
+        fieldSettings={[accordionWithInvalidSecond]}
+        dataSource={{ acc1: 'ok', acc2: '' }} // acc2 invalid
+        onSubmit={onSubmit}
+      />
+    );
+
+    // Accordion shell present
+    const acc = await screen.findByTestId('mock-accordion');
+
+    // Resolve the <details> nodes via their visible titles
+    const sec1Details = within(acc).getByText('Section 1').closest('details') as HTMLElement;
+    const sec2Details = within(acc).getByText('Section 2').closest('details') as HTMLElement;
+
+    // We only need to assert that Section 2 starts closed.
+    expect(sec2Details).not.toHaveAttribute('open');
+
+    // Submit -> renderer should auto-open Section 2 (contains invalid field)
+    await act(async () => { await ref.current!.submit(); });
+
+    // Section 2 becomes open
+    await waitFor(() => {
+      const s2 = within(screen.getByTestId('mock-accordion'))
+        .getByText('Section 2')
+        .closest('details') as HTMLElement;
+      expect(s2).toHaveAttribute('open');
+    });
+
+    // Focus should land on the invalid field
+    const acc2Input = await screen.findByTestId('text-acc2');
+    await waitFor(() => expect(document.activeElement).toBe(acc2Input));
+  });
+
+
+  test('auto-switches Tabs to reveal invalid field and focuses it', async () => {
+    const onSubmit = vi.fn();
+    const ref = React.createRef<FormRendererRef<any>>();
+
+    const tabs: SettingsItem = {
+      header: 'Tabbed',
+      tabs: [
+        { title: 'General',  fields: [{ name: 'general.ok', label: 'OK', type: 'text' }] },
+        { title: 'Advanced', fields: [{
+          name: 'advanced.req',
+          label: 'Required in Advanced',
+          type: 'text',
+          validation: (z) => z.string().min(1, 'Required'),
+        }]},
+      ],
+    };
+
+    render(
+      <FormRenderer
+        ref={ref}
+        fieldSettings={[tabs]}
+        dataSource={{ general: { ok: 'x' }, advanced: { req: '' } }} // invalid lives on Advanced
+        onSubmit={onSubmit}
+      />
+    );
+
+    // General visible initially
+    const tablist = screen.getByRole('tablist');
+    const generalTab = within(tablist).getByRole('tab', { name: /general/i });
+    const advancedTab = within(tablist).getByRole('tab', { name: /advanced/i });
+    expect(generalTab).toHaveAttribute('aria-selected', 'true');
+    expect(advancedTab).toHaveAttribute('aria-selected', 'false');
+
+    await act(async () => { await ref.current!.submit(); });
+
+    // Form should switch Tabs to "Advanced"
+    await waitFor(() => {
+      expect(advancedTab).toHaveAttribute('aria-selected', 'true');
+    });
+
+    const advInput = screen.getByTestId('text-advanced-req');
+    await waitFor(() => {
+      expect(document.activeElement).toBe(advInput);
+    });
+  });
+
+  test('reset(): reverts values to dataSource and re-seeds updated baseline', async () => {
+    const onSubmit = vi.fn();
+    const ref = React.createRef<FormRendererRef<any>>();
+
+    render(
+      <FormRenderer
+        ref={ref}
+        fieldSettings={[{ name: 'name', label: 'Name', type: 'text' }]}
+        dataSource={{ name: 'Seed' }}
+        onSubmit={onSubmit}
+      />
+    );
+
+    // ensure initial effects ran
+    const nameInput = await screen.findByTestId('text-name') as HTMLInputElement;
+    expect(nameInput.value).toBe('Seed');
+
+    // change before submit -> updated true
+    await userEvent.clear(nameInput);
+    await userEvent.type(nameInput, 'Edited');
+    const r1 = await act(async () => await ref.current!.submit());
+    const c1 = onSubmit.mock.calls.at(-1)![0];
+    expect(r1).toEqual(c1);
+    expect(c1.updated).toBe(true);
+
+    // call reset -> value returns to dataSource
+    await act(async () => { ref.current!.reset(); });
+    await waitFor(() =>
+      expect((screen.getByTestId('text-name') as HTMLInputElement).value).toBe('Seed')
+    );
+
+    // submit after reset without changes -> updated false
+    const r2 = await act(async () => await ref.current!.submit());
+    const c2 = onSubmit.mock.calls.at(-1)![0];
+    expect(r2).toEqual(c2);
+    expect(c2.updated).toBe(false);
+
+    // change again -> updated true
+    await userEvent.clear(screen.getByTestId('text-name'));
+    await userEvent.type(screen.getByTestId('text-name'), 'Again');
+    const r3 = await act(async () => await ref.current!.submit());
+    const c3 = onSubmit.mock.calls.at(-1)![0];
+    expect(r3).toEqual(c3);
+    expect(c3.updated).toBe(true);
+  });
+
+  test('prop change: dataSource updates fields/tables and reseeds updated baseline', async () => {
+    const onSubmit = vi.fn();
+    const ref = React.createRef<FormRendererRef<any>>();
+
+    const fields: SettingsItem[] = [
+      { name: 'name', label: 'Name', type: 'text' },
+      { dataTable: {
+          header: 'Items',
+          config: { dataSource: 'items', columnSettings: [{ title: 'Name', column: 'name' }] },
+          fields: [{ name: 'name', label: 'Item Name', type: 'text' }, { name: 'qty', label: 'Qty', type: 'number' }],
+        } as DataTableSection },
+    ] as any;
+
+    const { rerender } = render(
+      <FormRenderer
+        ref={ref}
+        fieldSettings={fields}
+        dataSource={{ name: 'A', items: [] }}
+        onSubmit={onSubmit}
+      />
+    );
+
+    // initial mount shows A, no rows
+    const nameInput = await screen.findByTestId('text-name') as HTMLInputElement;
+    expect(nameInput.value).toBe('A');
+    expect(screen.queryByTestId('dt-row-0')).toBeNull();
+
+    // RERENDER with a new dataSource (simulate props change)
+    rerender(
+      <FormRenderer
+        ref={ref}
+        fieldSettings={fields}
+        dataSource={{ name: 'B', items: [{ name: 'X', qty: 1, lines: [] }] }}
+        onSubmit={onSubmit}
+      />
+    );
+
+    // Inputs reflect new props
+    await waitFor(() => expect((screen.getByTestId('text-name') as HTMLInputElement).value).toBe('B'));
+
+    // Mocked DataTable shows one row with new data
+    const row0 = await screen.findByTestId('dt-row-0');
+    expect(row0).toHaveTextContent('"name":"X"');
+    expect(row0).toHaveTextContent('"qty":1');
+
+    // First submit after dataSource change, with NO edits → updated should be FALSE (baseline reseeded)
+    const r1 = await ref.current!.submit();
+    const c1 = onSubmit.mock.calls.at(-1)![0];
+    expect(r1).toEqual(c1);
+    expect(r1.valid).toBe(true);
+    expect(r1.updated).toBe(false);
+
+    // Make an edit → submit → updated TRUE
+    await userEvent.clear(screen.getByTestId('text-name'));
+    await userEvent.type(screen.getByTestId('text-name'), 'C');
+    const r2 = await ref.current!.submit();
+    const c2 = onSubmit.mock.calls.at(-1)![0];
+    expect(r2).toEqual(c2);
+    expect(r2.valid).toBe(true);
+    expect(r2.updated).toBe(true);
+  });
 
 });

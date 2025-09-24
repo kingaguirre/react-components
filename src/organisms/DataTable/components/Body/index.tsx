@@ -27,7 +27,10 @@ interface BodyProps<TData> {
   onRowClick?: DataTableProps["onRowClick"];
   onRowDoubleClick?: DataTableProps["onRowDoubleClick"];
   expandedRowContent?: (RowData: any) => React.ReactNode;
-  uniqueValueMaps?: Record<string, string[] | Record<string, number> | undefined>;
+  uniqueValueMaps?: Record<
+    string,
+    string[] | Record<string, number> | undefined
+  >;
 }
 
 export const Body = <TData,>({
@@ -60,8 +63,12 @@ export const Body = <TData,>({
     : table.getFilteredRowModel().rows.length;
 
   // Non-built-in user columns (for guards/messages only)
-  const leafColumns = table.getAllLeafColumns().filter((c) => !BUILTIN_COLUMN_IDS.has(c.id));
-  const visibleLeafColumns = table.getVisibleLeafColumns().filter((c) => !BUILTIN_COLUMN_IDS.has(c.id));
+  const leafColumns = table
+    .getAllLeafColumns()
+    .filter((c) => !BUILTIN_COLUMN_IDS.has(c.id));
+  const visibleLeafColumns = table
+    .getVisibleLeafColumns()
+    .filter((c) => !BUILTIN_COLUMN_IDS.has(c.id));
 
   // Loading flags from meta
   const meta = ((table.options as any)?.meta ?? {}) as {
@@ -70,7 +77,7 @@ export const Body = <TData,>({
     loading?: boolean;
   };
   const isLoading = Boolean(meta.loading || meta.serverLoading);
-  
+
   // Memoized column sizes for the skeleton (includes built-ins via header groups)
   const colSizes = useHeaderColSizes(table, isLoading);
 
@@ -93,7 +100,9 @@ export const Body = <TData,>({
           uniqueValueMaps={uniqueValueMaps}
         />
         {row.getIsExpanded() && expandedRowContent && (
-          <ExpandedRowContainer $expandedRowRightOffset={expandedRowRightOffset}>
+          <ExpandedRowContainer
+            $expandedRowRightOffset={expandedRowRightOffset}
+          >
             {expandedRowContent(row.original)}
           </ExpandedRowContainer>
         )}
@@ -119,7 +128,9 @@ export const Body = <TData,>({
   if (leafColumns.length === 0) {
     return (
       <BodyContainer className="data-table-body-container">
-        <NoDataContainer $hasError>No column settings configured.</NoDataContainer>
+        <NoDataContainer $hasError>
+          No column settings configured.
+        </NoDataContainer>
       </BodyContainer>
     );
   }
@@ -132,15 +143,16 @@ export const Body = <TData,>({
     );
   }
 
- if (isLoading) {
+  if (isLoading) {
     const pageSize =
-      table.getState()?.pagination?.pageSize ??
-      rows.length ??
-      10;
+      table.getState()?.pagination?.pageSize ?? rows.length ?? 10;
 
     return (
       <BodyContainer className="data-table-body-container">
-        <SkeletonBody rows={pageSize} colSizes={colSizes.length ? colSizes : [120]} />
+        <SkeletonBody
+          rows={pageSize}
+          colSizes={colSizes.length ? colSizes : [120]}
+        />
       </BodyContainer>
     );
   }
@@ -150,7 +162,8 @@ export const Body = <TData,>({
     return (
       <BodyContainer className="data-table-body-container">
         <NoDataContainer>
-          <b>Notice</b>: Maximum rows set to 100,000. For improved performance on large datasets, consider server-side pagination.
+          <b>Notice</b>: Maximum rows set to 100,000. For improved performance
+          on large datasets, consider server-side pagination.
         </NoDataContainer>
       </BodyContainer>
     );

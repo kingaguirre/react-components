@@ -86,10 +86,14 @@ export const DropdownItem = styled.li<{
     > span {
       background-color: transparent;
     }
-    ${({ disabled }) => !disabled ? css`
-      &:hover { background: ${theme.colors.primary.dark}; }
-    ` : ''};
-    
+    ${({ disabled }) =>
+      !disabled
+        ? css`
+            &:hover {
+              background: ${theme.colors.primary.dark};
+            }
+          `
+        : ""};
   }
 
   /* IMPORTANT: scope checkbox shim to option rows */

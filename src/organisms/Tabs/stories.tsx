@@ -27,6 +27,7 @@ const coloredTabs: TabItemProps[] = [
   { title: 'Danger', color: 'danger', content: <p>Danger Content</p> },
   { title: 'Info', color: 'info', content: <p>Info Content</p> }
 ]
+
 const meta: Meta<typeof Tabs> = {
   title: 'Organisms/Tabs',
   component: Tabs,
@@ -59,7 +60,9 @@ export const Examples = {
     <StoryWrapper title='Tabs Examples' subTitle={descriptionText}>
       <Title>Pre-Selected Tab</Title>
       <p>The <code>activeTab</code> prop sets a pre-selected tab on mount.</p>
-      <Tabs tabs={basicTabs} activeTab={2} />
+      <Tabs tabs={basicTabs} activeTab={2}/>
+      <p>The <code>activeTab</code> prop sets a pre-selected tab on mount (variant='pill').</p>
+      <Tabs tabs={basicTabs} activeTab={2} variant="pill"/>
 
       <Title>Tabs with <code>onTabChange</code></Title>
       <p>Trigger an alert whenever the user changes tabs.</p>
@@ -105,6 +108,45 @@ export const Examples = {
           { title: 'Settings', content: <p>Settings Content</p> }
         ]}
       />
+
+      <Title>Externally Controlled Tabs</Title>
+      <p>
+        Drive the active tab from parent state using <code>activeTab</code>. Keep the component in sync by passing
+        <code> onTabChange</code> to update that state. This demonstrates true controlled usage (clicks and keyboard
+        nav both call your handler).
+      </p>
+      {(() => {
+        const ControlledDemo: React.FC = () => {
+          const controlledTabs: TabItemProps[] = [
+            { title: 'Overview', content: <p>Overview content</p>, color: 'primary' },
+            { title: 'Details', content: <p>Details content</p>, color: 'success' },
+            { title: 'Activity', content: <p>Recent activity</p>, color: 'info' },
+          ];
+          const [idx, setIdx] = React.useState(1);
+
+          const go = (n: number) => setIdx(Math.max(0, Math.min(controlledTabs.length - 1, n)));
+
+          return (
+            <div>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                <button onClick={() => go(0)}>First</button>
+                <button onClick={() => go(idx - 1)}>Prev</button>
+                <button onClick={() => go(idx + 1)}>Next</button>
+                <button onClick={() => go(controlledTabs.length - 1)}>Last</button>
+                <button onClick={() => go(2)}>Go to Activity</button>
+              </div>
+              <Tabs
+                tabs={controlledTabs}
+                activeTab={idx}
+                onTabChange={setIdx}
+                firstLastNavControl
+                variant="pill"
+              />
+            </div>
+          );
+        };
+        return <ControlledDemo />;
+      })()}
     </StoryWrapper>
   )
 }

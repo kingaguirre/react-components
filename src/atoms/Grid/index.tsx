@@ -104,11 +104,7 @@ export const Grid: React.FC<GridProps> = ({
         {...rest}
         className={["grid-wrapper", className].filter(Boolean).join(" ")}
       >
-        <StyledGrid
-          spacing={spacing}
-          style={style}
-          className="grid-component"
-        >
+        <StyledGrid spacing={spacing} style={style} className="grid-component">
           {children}
         </StyledGrid>
       </GridWrapper>
@@ -136,11 +132,7 @@ export const Grid: React.FC<GridProps> = ({
       {...rest}
       className={["grid-wrapper", className].filter(Boolean).join(" ")}
     >
-      <StyledGrid
-        spacing={spacing}
-        style={style}
-        className="grid-component"
-      >
+      <StyledGrid spacing={spacing} style={style} className="grid-component">
         {(showEmptyWarning || showInvalidWarning) && (
           <WarningBox role="alert" data-testid="grid-error">
             <Icon icon="info" />

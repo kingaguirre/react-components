@@ -4,7 +4,7 @@ import { FormControlProps, IconRight } from "./interface";
 import { theme } from "../../styles/theme";
 import { ColorType, SizeType } from "../../common/interface";
 
-export const FormControInputContainer = styled.div<{ $rounded?: boolean}>`
+export const FormControInputContainer = styled.div<{ $rounded?: boolean }>`
   box-sizing: border-box;
   position: relative;
   display: block;
@@ -20,14 +20,17 @@ export const FormControInputContainer = styled.div<{ $rounded?: boolean}>`
     box-sizing: border-box;
   }
 
-  ${({ $rounded }) => !!$rounded ? `
+  ${({ $rounded }) =>
+    !!$rounded
+      ? `
     .form-control-text,
     .form-control-number,
     .form-control-email,
     .form-control-password {
       border-radius: 999px;
     }
-  ` : ''}
+  `
+      : ""}
 `;
 
 export const FormControlWrapper = styled.div<{
@@ -109,6 +112,10 @@ export const Label = styled.span<{
   font-size: ${({ size }) => `${theme.sizes.label[size ?? "md"]}px`};
   font-family: ${theme.fontFamily};
   color: ${theme.colors.default.dark};
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
   > span {
     font-weight: bold;
     color: ${theme.colors.danger.base};

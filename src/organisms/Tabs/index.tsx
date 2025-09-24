@@ -1,3 +1,4 @@
+// src/organisms/Tabs/index.tsx
 import React, { useState, useRef, useEffect } from "react";
 import {
   TabsContainer,
@@ -18,6 +19,7 @@ export const Tabs: React.FC<TabsProps> = ({
   activeTab,
   firstLastNavControl = false,
   fullHeader = false,
+  variant = "default",
 }) => {
   const [selectedTab, setSelectedTab] = useState<number>(
     activeTab !== undefined
@@ -146,6 +148,7 @@ export const Tabs: React.FC<TabsProps> = ({
               wrapperRef.current?.focus();
             }}
             $position={firstLastNavControl ? "left-adjusted" : "left"}
+            $variant={variant}
           >
             <Icon icon="keyboard_arrow_left" />
           </ScrollButton>
@@ -154,6 +157,7 @@ export const Tabs: React.FC<TabsProps> = ({
           ref={tabListRef}
           className="tabs-container"
           $fullHeader={fullHeader}
+          $variant={variant}
         >
           {tabs?.map((tab, index) => {
             const active = selectedTab === index;
@@ -167,6 +171,7 @@ export const Tabs: React.FC<TabsProps> = ({
                 $disabled={disabled}
                 $color={tab.color ?? "primary"}
                 $fullHeader={fullHeader}
+                $variant={variant}
                 role="tab"
                 id={getTabId(index)}
                 aria-selected={active}
@@ -195,6 +200,7 @@ export const Tabs: React.FC<TabsProps> = ({
         {isScrollable && (
           <ScrollButton
             className="scroll-button-right"
+            $variant={variant}
             onClick={() => {
               moveFocus("right");
               wrapperRef.current?.focus();
@@ -218,7 +224,10 @@ export const Tabs: React.FC<TabsProps> = ({
       </TabWrapper>
 
       {/* --- Single visible panel; ARIA linked to the selected tab --- */}
-      <TabContentWrapper $color={tabs?.[selectedTab]?.color ?? "primary"}>
+      <TabContentWrapper
+        $color={tabs?.[selectedTab]?.color ?? "primary"}
+        $variant={variant}
+      >
         <TabContent
           key={selectedTab}
           className="fade-in"

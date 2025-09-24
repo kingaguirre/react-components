@@ -87,7 +87,7 @@ export const SelectColumn = <T extends object>(
     const meta = ((table.options as any)?.meta ?? {}) as {
       disabled?: boolean;
     };
-    const disabled = Boolean(meta.disabled)
+    const disabled = Boolean(meta.disabled);
 
     return (
       <CellContainer className="custom-column data-table-select-item">

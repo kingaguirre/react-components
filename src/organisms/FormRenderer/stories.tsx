@@ -46,7 +46,21 @@ export const Playground: StoryObj<typeof FormRenderer> = {
           <Button onClick={() => setDisabled(!disabled)}>
             {disabled ? 'Disabled' : 'Enabled'}
           </Button>
-          <Button onClick={() => formRef.current?.submit()}>
+          <Button onClick={async () => {
+            formRef.current?.reset();
+          }}>
+            Reset
+          </Button>
+          <Button onClick={async () => {
+            const data = await formRef.current?.getValues();
+            console.log('.getValues(): ', data)
+          }}>
+            Get Current Data
+          </Button>
+          <Button onClick={async () => {
+            const data = await formRef.current?.submit();
+            console.log('.submit(): ', data)
+          }}>
             Submit Form
           </Button>
         </div>

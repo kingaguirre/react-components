@@ -20,14 +20,14 @@ export { Modal } from "./organisms/Modal";
 export { Tabs } from "./organisms/Tabs";
 export { DataTable } from "./organisms/DataTable";
 export { AppShell } from "./organisms/AppShell";
-export { FormRenderer } from './organisms/FormRenderer';
+export { FormRenderer } from "./organisms/FormRenderer";
 
 // Theme
 export { theme, GlobalStyles } from "./styles";
 
 // Utls
 export { getScrollParent } from "./utils";
-export { exportRows } from "./organisms/DataTable/utils"
+export { exportRows } from "./organisms/DataTable/utils";
 
 // Interfaces -------------------------------------
 // Atoms
