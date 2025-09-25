@@ -541,7 +541,7 @@ describe('DataTable Row Features and Events (Client Mode)', () => {
     await userEvent.hover(cell);
     fireEvent.doubleClick(cell);
 
-    const invalidMessage = screen.queryByTestId('form-control-new-firstName-help-text');
+    const invalidMessage = await screen.findByTestId('form-control-new-firstName-help-text');
     expect(invalidMessage).toBeInTheDocument();
 
     const cellInput = screen.getByTestId('form-control-new-firstName');
@@ -691,7 +691,7 @@ describe('DataTable Row Features and Events (Client Mode)', () => {
     expect(screen.getByText(/Profile/i)).toBeInTheDocument();
   });
 
-  test('renders deep nested profile bio "Senior Developer at XYZ" in the DOM', () => {
+  test('renders deep nested profile bio "Senior Developer at XYZ" in the DOM', async () => {
     render(
       <DataTable
         dataSource={sampleData}
@@ -699,10 +699,10 @@ describe('DataTable Row Features and Events (Client Mode)', () => {
       />
     );
 
-    expect(screen.getByText(/Senior Developer at XYZ/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Senior Developer at XYZ/i)).toBeInTheDocument();
   });
 
-  test('different editor types', () => {
+  test('different editor types', async () => {
     render(
       <DataTable
         dataSource={sampleData}
@@ -710,10 +710,10 @@ describe('DataTable Row Features and Events (Client Mode)', () => {
       />
     );
 
-    expect(screen.getByText(/Senior Developer at XYZ/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Senior Developer at XYZ/i)).toBeInTheDocument();
   });
 
-  test('renders DataTable with various editor types and deep column values', () => {
+  test('renders DataTable with various editor types and deep column values', async () => {
     render(
       <DataTable
         dataSource={[
@@ -816,7 +816,7 @@ describe('DataTable Row Features and Events (Client Mode)', () => {
     expect(screen.queryByText(/Switch Group Field/i)).toBeInTheDocument();
     expect(screen.queryByText(/Radio Group Field/i)).toBeInTheDocument();
 
-    expect(screen.queryByText(/Text Value/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Text Value/i)).toBeInTheDocument();
     expect(screen.queryByText(/Textarea Value/i)).toBeInTheDocument();
 
     const option1Elements = screen.getAllByText(/Option1/i);
@@ -956,7 +956,7 @@ describe('DataTable Row Features and Events (Client Mode)', () => {
     expect(header).toBeVisible();
   });
 
-  test('custom cell renderer is honored', () => {
+  test('custom cell renderer is honored', async () => {
     render(
       <DataTable
         dataSource={[{ id: 'x', score: 92 }]}
@@ -970,7 +970,7 @@ describe('DataTable Row Features and Events (Client Mode)', () => {
         ]}
       />
     );
-    expect(screen.getByTestId('score-badge')).toHaveTextContent('🔥 High');
+    expect(await screen.findByTestId('score-badge')).toHaveTextContent('🔥 High');
   });
 
   test('renders title, container height/maxHeight, and right-aligned header/cell content (computed style)', () => {

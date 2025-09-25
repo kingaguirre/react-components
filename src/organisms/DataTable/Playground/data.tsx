@@ -1,6 +1,7 @@
 import { ColumnSetting, HeaderRightElement } from "../interface";
 import { Badge } from "../../../atoms/Badge";
 import { Dropdown } from "../../../molecules/Dropdown";
+import { CellGate } from '../components/CellRenderer/CellGate'
 
 const loremAddresses = [
   "Lorem ipsum dolor sit amet",
@@ -157,7 +158,7 @@ export const COLUMN_SETTINGS: ColumnSetting[] = [
     column: "birthdate",
     sort: "desc",
     // width: 160,
-    order: 1,
+    // order: 1,
     disabled: true,
     editor: {
       disabled: true,
@@ -170,8 +171,10 @@ export const COLUMN_SETTINGS: ColumnSetting[] = [
     groupTitle: "Profile",
     title: "Custom Text",
     column: "_",
+    order: 1,
     editor: false,
     cell: () => (
+      // <CellGate ready={false}>test</CellGate>
       <Dropdown
         options={[
           { value: "test", text: "Test" },

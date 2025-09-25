@@ -1,12 +1,12 @@
 export const theme: any = {
   colors: {
     primary: {
-      base: "#009fda",
-      light: "#6ba8d0",
+      base: "#1d81ec",
+      light: "#81b9f4",
       lighter: "#cce5ff",
-      pale: "#dbe8f3",
-      dark: "#0075b0",
-      darker: "#005c84",
+      pale: "#e5f1fc",
+      dark: "#0250a3",
+      darker: "#020b43",
     },
     secondary: {
       base: "#6ac07a",

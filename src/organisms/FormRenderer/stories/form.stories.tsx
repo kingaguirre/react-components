@@ -222,7 +222,7 @@ export const TabsAndAccordion = {
   render: () => {
     const fieldSettings: SettingsItem[] = [
       {
-        // header: "Tabbed",
+        header: "Tabbed",
         tabs: [
           {
             title: "General",
@@ -258,12 +258,6 @@ export const TabsAndAccordion = {
         ],
       },
     ];
-
-    const [values, setValues] = useState({ tabA: "", tabB: "", acc1: "", acc2: "" });
-    const handleChange = (v: any) => {
-      console.log("[FormRenderer:TabsAndAccordion] onChange values:", v);
-      setValues(v);
-    };
 
     const code = `import { FormRenderer } from "…";
 import { z } from "zod";
@@ -304,7 +298,7 @@ const dataSource = { tabA: "", tabB: "", acc1: "", acc2: "" };
         />
 
         <Title>Grouped Form</Title>
-        <FormRenderer fieldSettings={fieldSettings} dataSource={values} onSubmit={() => {}} onChange={handleChange} />
+        <FormRenderer fieldSettings={fieldSettings} dataSource={{}} onSubmit={() => {}} />
 
         <Guide emoji="📄" title="Code" subtitle="Full example with fieldSettings and dataSource." sections={[{ heading: "Usage", code }]} />
       </StoryWrapper>

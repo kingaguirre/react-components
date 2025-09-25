@@ -7,6 +7,7 @@ export const ActionContainer = styled.div`
   justify-content: center;
   gap: 6px;
 
+
   button {
     transition: ${theme.transition};
     border: transparent;
@@ -22,6 +23,7 @@ export const ActionContainer = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
+    margin: auto;
 
     &.delete,
     &.cancel {

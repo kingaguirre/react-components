@@ -1,4 +1,4 @@
-import React, { memo, useMemo } from "react";
+import React from "react";
 import { ColumnHeaderContainer, ColumnHeaderGroupContainer } from "./styled";
 import {
   SortableContext,
@@ -12,13 +12,13 @@ type Props = {
   enableColumnDragging?: boolean;
 };
 
-const ColumnHeaderComponent: React.FC<Props> = ({
+export const ColumnHeader: React.FC<Props> = ({
   table,
   columnOrder,
   enableColumnDragging,
 }) => {
   // Header groups are already memoized inside TanStack, but wrap just in case
-  const headerGroups = useMemo(() => table.getHeaderGroups(), [table]);
+  const headerGroups = table.getHeaderGroups();
 
   return (
     <ColumnHeaderContainer className="column-header-container">
@@ -45,11 +45,3 @@ const ColumnHeaderComponent: React.FC<Props> = ({
     </ColumnHeaderContainer>
   );
 };
-
-export const ColumnHeader = memo(
-  ColumnHeaderComponent,
-  (a, b) =>
-    a.table === b.table &&
-    a.enableColumnDragging === b.enableColumnDragging &&
-    a.columnOrder === b.columnOrder, // referential equality is fine; table sets this stably
-);

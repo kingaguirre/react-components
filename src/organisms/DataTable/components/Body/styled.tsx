@@ -143,7 +143,7 @@ export const DataTableRow = styled.div<{
     }
   }
 
-  &:not(.column-header-group-container) {
+  &:not(.column-header-group-container):not(.disabled) {
     &:hover {
       > * {
         background: #f6faff !important;
@@ -252,7 +252,8 @@ export const CellContent = styled.div<{
   }
 
   .wrapper-icon {
-    height: 30px;
+    height: 100%;
+    padding: 0 6px;
   }
 
   ${({ $isEditable }) =>

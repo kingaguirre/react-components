@@ -1,5 +1,9 @@
-import React, { useMemo } from "react";
-import { EditableCell } from "./EditableCell";
+import React, { useMemo, lazy, Suspense } from "react";
+// If EditableCell has ONLY a named export, map it to default:
+const LazyEditableCell = lazy(() =>
+  import("./EditableCell").then((m) => ({ default: m.EditableCell }))
+);
+import { CellSkeleton } from "../Body/SkeletonBody";
 
 // helpers
 const ESCAPE_RE = /[.*+?^${}()|[\]\\]/g;
@@ -74,23 +78,25 @@ const CellRendererComponent: React.FC<CellRendererProps> = ({
     }
 
     return (
-      <EditableCell
-        editorType={editorType || "text"}
-        options={options}
-        value={cellValue}
-        validation={validation}
-        onChange={(val) =>
-          handleCellCommit(row.original.__internalId, column.id, val)
-        }
-        autoFocus
-        onCancel={() => setEditingCell(null)}
-        name={`${row.original.__internalId}-${columnId}`}
-        testId={`form-control-${row.id}-${column.id}`}
-        uniqueValueMaps={uniqueValueMaps as any}
-        columnId={column.id}
-        rowData={row.original}
-        disabled={isDisabled}
-      />
+      <Suspense fallback={<CellSkeleton/>}>
+        <LazyEditableCell
+          editorType={editorType || "text"}
+          options={options}
+          value={cellValue}
+          validation={validation}
+          onChange={(val) =>
+            handleCellCommit(row.original.__internalId, column.id, val)
+          }
+          autoFocus
+          onCancel={() => setEditingCell(null)}
+          name={`${row.original.__internalId}-${columnId}`}
+          testId={`form-control-${row.id}-${column.id}`}
+          uniqueValueMaps={uniqueValueMaps as any}
+          columnId={column.id}
+          rowData={row.original}
+          disabled={isDisabled}
+        />
+      </Suspense>
     );
   }
 
@@ -179,3 +185,5 @@ const CellRendererComponent: React.FC<CellRendererProps> = ({
 };
 
 export const CellRenderer = React.memo(CellRendererComponent);
+
+export default CellRenderer;

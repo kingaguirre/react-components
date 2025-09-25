@@ -6,7 +6,11 @@ import {
   DataTableRow as DataTableRowStyles,
 } from "../Body/styled";
 
-export const CellContainer = styled(CellContainerStyles)``;
+export const CellContainer = styled(CellContainerStyles)`
+  &.data-table-select-item {
+    background-color: transparent;
+  }
+`;
 
 export const CellContent = styled(CellContentStyles)<{
   $hasDND?: boolean;

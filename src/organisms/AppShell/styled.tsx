@@ -7,7 +7,7 @@ export const Container = styled.div`
   flex-direction: column;
   height: 100vh;
   box-sizing: border-box;
-  min-width: 768px; // min-width for tablet portrait
+  min-width: 768px;
   box-sizing: border-box;
   background-color: #e1e1e1;
   overflow: hidden;
@@ -34,7 +34,7 @@ export const Header = styled.header`
     bottom: 0;
     z-index: 1000;
     position: absolute;
-    background-color: ${theme.colors.primary.dark};
+    background-color: ${theme.colors.secondary.dark};
   }
 `;
 
@@ -176,7 +176,7 @@ export const AnimatedIconWrapper = styled.div<{ $show: boolean }>`
   position: relative;
   min-width: ${({ $show }) => ($show ? 140 : 38)}px;
   height: 32px;
-  background-color: ${theme.colors.primary.darker};
+  background-color: ${theme.colors.secondary.dark};
   color: white;
   transition: all 0.3s ease;
   overflow: hidden;
