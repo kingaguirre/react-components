@@ -40,6 +40,7 @@ import {
 import renderSkeletonSection from "./components/Skeleton";
 
 import { ErrorSummary } from "./components/ErrorSummary";
+import { onRevealErrorSummary } from "./components/ErrorSummary/errorSummaryBus";
 import { RenderSection } from "./components/RenderSection";
 import { FormWrapper } from "./styled";
 import "./validation";
@@ -310,6 +311,21 @@ export const FormRenderer = forwardRef(
       reValidateMode: "onChange",
       shouldUnregister: false, // keep state even if never mounted
     });
+
+    // Listen for external reveal requests (Add/Update error paths)
+    React.useEffect(() => {
+      const off = onRevealErrorSummary(({ expand } = {}) => {
+        // Must set this, otherwise <ErrorSummary /> never renders
+        setSummaryTriggered(true);
+
+        // Match submit behavior (collapsed by default) unless explicitly asked to expand
+        setSummaryOpen(!!expand);
+
+        // Pulse to draw attention (same as submit path)
+        setSummaryPulseKey((k) => k + 1);
+      });
+      return off;
+    }, []);
 
     // Pre-register *all* absolute names so submit works even if nothing mounted yet.
     React.useLayoutEffect(() => {

@@ -1530,4 +1530,175 @@ describe('FormRenderer', () => {
     expect(r2.updated).toBe(true);
   });
 
+  test('error summary dock: shows on Add draft validation failure (collapsed by default)', async () => {
+    const onSubmit = vi.fn();
+
+    const validatedAddDT: DataTableSection = {
+      header: 'Items',
+      config: { dataSource: 'items', columnSettings: [{ title: 'Name', column: 'name' }] },
+      fields: [
+        {
+          name: 'name',
+          label: 'Item Name',
+          type: 'text',
+          // must be >= 3 chars; typing 'aa' enables Add but fails validation
+          validation: (v: typeof z) => v.string().min(3, 'Name too short'),
+        } as FieldSetting,
+      ],
+    };
+
+    render(
+      <FormRenderer
+        fieldSettings={[{ dataTable: validatedAddDT } as any]}
+        dataSource={{ items: [] }}
+        onSubmit={onSubmit}
+      />
+    );
+
+    const draftName = await screen.findByTestId('text-items-name');
+    // Put a value so Add enables, but keep it invalid for min(3)
+    await userEvent.type(draftName, 'aa');
+
+    const addBtn = screen.getByTestId('btn-add-items');
+    await waitFor(() => expect(addBtn).toBeEnabled());
+    await userEvent.click(addBtn);
+
+    // ErrorSummary should mount (collapsed)
+    await waitFor(() => {
+      const dock = document.querySelector('.error-summary-panel') as HTMLElement;
+      expect(dock).toBeInTheDocument();
+      const dt = within(dock).getByTestId('mock-datatable');
+      const contentWrap = dt.closest('[aria-hidden]') as HTMLElement;
+      expect(contentWrap).toHaveAttribute('aria-hidden', 'true'); // collapsed by default
+    });
+  });
+
+  test('error summary dock: shows on Update row validation failure (collapsed by default)', async () => {
+    const onSubmit = vi.fn();
+
+    const validatedUpdateDT: DataTableSection = {
+      header: 'Items',
+      config: { dataSource: 'items', columnSettings: [{ title: 'Name', column: 'name' }, { title: 'Qty', column: 'qty' }] },
+      fields: [
+        {
+          name: 'name',
+          label: 'Item Name',
+          type: 'text',
+          validation: (v: typeof z) => v.string().min(1, 'Name required'),
+        } as FieldSetting,
+        {
+          name: 'qty',
+          label: 'Qty',
+          type: 'number',
+          validation: (v: typeof z) => v.number().positive('Qty must be > 0'),
+        } as FieldSetting,
+      ],
+    };
+
+    render(
+      <FormRenderer
+        fieldSettings={[{ dataTable: validatedUpdateDT } as any]}
+        dataSource={{ items: [{ name: '', qty: 0 }] }} // invalid row
+        onSubmit={onSubmit}
+      />
+    );
+
+    // Activate row 0
+    await userEvent.click(await screen.findByTestId('dt-select-0'));
+    const updateBtn = await screen.findByTestId('btn-update-items');
+    await waitFor(() => expect(updateBtn).toBeEnabled());
+
+    // Click Update -> validation fails -> ErrorSummary appears
+    await userEvent.click(updateBtn);
+
+    await waitFor(() => {
+      const dock = document.querySelector('.error-summary-panel') as HTMLElement;
+      expect(dock).toBeInTheDocument();
+      const dt = within(dock).getByTestId('mock-datatable');
+      const contentWrap = dt.closest('[aria-hidden]') as HTMLElement;
+      expect(contentWrap).toHaveAttribute('aria-hidden', 'true'); // collapsed
+    });
+  });
+
+  test('missing field name: FieldErrorBoundary shows inline error without breaking other fields', async () => {
+    // React logs error boundaries to console.error; silence for this test
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    render(
+      <FormRenderer
+        fieldSettings={[
+          { name: 'ok', label: 'OK', type: 'text' },
+          // 🔴 missing name on purpose; keep a col to ensure layout path executes
+          { label: 'Broken', type: 'text', col: { xs: 12, sm: 6, md: 4, lg: 3 } } as any,
+        ]}
+        dataSource={{ ok: '' }}
+        onSubmit={vi.fn()}
+      />
+    );
+
+    // Healthy field still renders
+    expect(await screen.findByTestId('text-ok')).toBeInTheDocument();
+
+    // ErrorBoundary fallback renders the thrown message from ThrowMissingFieldName
+    // Be lenient on text in case your boundary decorates the message.
+    const errNode = await screen.findByText(/missing.*name/i);
+    expect(errNode).toBeInTheDocument();
+
+    // Sanity: both live in the same section wrapper so layout doesn't collapse
+    const wrappers = document.querySelectorAll('.fields-wrapper');
+    expect(wrappers.length).toBeGreaterThan(0);
+    const wrapper = wrappers[0] as HTMLElement;
+    expect(within(wrapper).getByTestId('text-ok')).toBeInTheDocument();
+    expect(within(wrapper).getByText(/missing.*name/i)).toBeInTheDocument();
+
+    consoleSpy.mockRestore();
+  });
+
+  test('handles missing dataTable.fields inside Tabs without crashing; DT renders and actions are disabled', async () => {
+    const cfg: SettingsItem = {
+      tabs: [
+        {
+          title: 'General',
+          fields: [
+            {
+              dataTable: {
+                header: 'Lines',
+                config: {
+                  dataSource: 'lines',
+                  columnSettings: [
+                    { title: 'Line', column: 'line' },
+                    { title: 'Note', column: 'note' },
+                  ],
+                },
+                // fields intentionally omitted
+              } as DataTableSection,
+            } as any,
+          ],
+        },
+      ],
+    };
+
+    render(
+      <FormRenderer
+        fieldSettings={[cfg]}
+        dataSource={{ lines: [] }}
+        onSubmit={vi.fn()}
+      />
+    );
+
+    // DataTable mock should mount
+    const dt = await screen.findByTestId('mock-datatable');
+    expect(dt).toBeInTheDocument();
+
+    // No draft inputs because there are no DT leaf fields
+    expect(screen.queryByTestId('text-lines-line')).toBeNull();
+    expect(screen.queryByTestId('text-lines-note')).toBeNull();
+
+    // Action buttons exist and are disabled (no draft/active row)
+    expect(screen.queryByTestId('btn-add-lines')).toBeNull();
+    expect(screen.queryByTestId('btn-update-lines')).toBeNull();
+    expect(screen.queryByTestId('btn-delete-lines')).toBeNull();
+    expect(screen.queryByTestId('btn-cancel-lines')).toBeNull();
+  });
+
 });

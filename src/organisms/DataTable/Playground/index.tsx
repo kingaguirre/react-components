@@ -70,6 +70,7 @@ export const DataTablePlayground: React.FC<DataTablePlaygroundProps> = ({
     useState("partialDelete");
   const [disabled, setDisabled] = useState(false);
   const [headerRightControls, setHeaderRightControls] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   // Clone the child element to inject playground state as props
   const clonedChild = React.cloneElement(children, {
@@ -97,6 +98,7 @@ export const DataTablePlayground: React.FC<DataTablePlaygroundProps> = ({
     partialRowDeletionID,
     disabled,
     headerRightControls,
+    loading,
     // Example event handlers these could also be overridden by the child if needed
     onRowClick: (row: any) => console.log("Row clicked:", row),
     onRowDoubleClick: (row: any) => console.log("Row double-clicked:", row),
@@ -140,6 +142,13 @@ export const DataTablePlayground: React.FC<DataTablePlaygroundProps> = ({
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+            />
+            <FormControl
+              size="sm"
+              text="Loading DataTable"
+              type="checkbox"
+              checked={loading}
+              onChange={(e) => setLoading(e.target.checked)}
             />
             <FormControl
               size="sm"

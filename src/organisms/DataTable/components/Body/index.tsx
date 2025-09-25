@@ -1,3 +1,4 @@
+// src/organisms/DataTable/components/Body/index.tsx
 import React, { useCallback } from "react";
 import { Table } from "@tanstack/react-table";
 import { BodyContainer, NoDataContainer, ExpandedRowContainer } from "./styled";
@@ -193,3 +194,4 @@ export const Body = <TData,>({
     </BodyContainer>
   );
 };
+

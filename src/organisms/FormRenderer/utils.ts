@@ -25,13 +25,15 @@ import type { ErrorSummaryItem } from "./components/ErrorSummary";
  * (you should already have this implemented; just ensure it returns
  * every FieldSetting in the tree, regardless of groups/tabs).
  */
-export function flattenForSchema(
-  items: import("./interface").SettingsItem[],
-): FieldSetting[] {
+export function flattenForSchema(items?: SettingsItem[]): FieldSetting[] {
   const out: FieldSetting[] = [];
 
-  function visit(arr: import("./interface").SettingsItem[]) {
+  function visit(arr?: SettingsItem[]) {
+    if (!Array.isArray(arr)) return; // ← guard
+
     for (const it of arr) {
+      if (!it) continue;
+
       // 1) Skip DataTable wrapper; callers decide when to handle its fields
       if ("dataTable" in it && (it as any).dataTable) {
         continue;
@@ -45,13 +47,17 @@ export function flattenForSchema(
 
       // 3) Tabs
       if ("tabs" in it && Array.isArray((it as any).tabs)) {
-        (it as any).tabs.forEach((tab: any) => visit(tab.fields));
+        (it as any).tabs.forEach((tab: any) => {
+          if (tab && Array.isArray(tab.fields)) visit(tab.fields); // ← guard
+        });
         continue;
       }
 
       // 4) Accordion
       if ("accordion" in it && Array.isArray((it as any).accordion)) {
-        (it as any).accordion.forEach((sec: any) => visit(sec.fields));
+        (it as any).accordion.forEach((sec: any) => {
+          if (sec && Array.isArray(sec.fields)) visit(sec.fields); // ← guard
+        });
         continue;
       }
 
@@ -70,7 +76,7 @@ export function flattenForSchema(
  */
 export function buildSchema(
   fields: FieldSetting[],
-  rowData: Record<string, any>,
+  rowData?: Record<string, any>,
 ): ZodTypeAny {
   type TreeNode = Record<string, any> & { __self?: ZodTypeAny };
   const tree: TreeNode = {};
@@ -207,55 +213,78 @@ export function resolveDisabled(
 }
 
 // Utility to get a deep value. If the path doesn't have dots, it directly returns the value.
-export const getDeepValue = (obj: any, path: string): any => {
+export const getDeepValue = <T = unknown>(obj: any, path?: string): T | undefined => {
+  if (obj == null || path == null || path === "") return undefined;
+
   if (!path.includes(".")) {
-    return obj ? obj[path] : undefined;
+    return obj ? (obj as any)[path] : undefined;
   }
-  return path.split(".").reduce((acc, key) => {
+
+  return path.split(".").reduce<any>((acc, key) => {
     if (acc == null) return undefined;
+
     const arrayMatch = key.match(/^\[(\d+)\]$/);
     if (arrayMatch) {
       const index = parseInt(arrayMatch[1], 10);
       return Array.isArray(acc) ? acc[index] : undefined;
     }
-    return acc[key];
-  }, obj);
+
+    return (acc as any)[key];
+  }, obj) as T | undefined;
 };
 
-export const setDeepValue = (obj: any, path: string, value: unknown): any => {
-  const keys = path.split(".");
-  const [first, ...rest] = keys;
+export const setDeepValue = (obj: any, path?: string, value?: unknown): any => {
+  // No-op when path is undefined/empty
+  if (path == null || path === "") return obj;
 
-  // 1) check for "prop[index]" form
-  const propIndex = first.match(/^(.+)\[(\d+)\]$/);
-  if (propIndex) {
-    const [, prop, idxStr] = propIndex;
-    const idx = parseInt(idxStr, 10);
-    const arr = Array.isArray(obj[prop]) ? [...obj[prop]] : [];
-    arr[idx] = rest.length
-      ? setDeepValue(arr[idx] || {}, rest.join("."), value)
-      : value;
-    return { ...obj, [prop]: arr };
-  }
+  const segments = path.split(".").filter(Boolean);
+  const [first, ...rest] = segments;
 
-  // 2) check for bare numeric segment: "0"
-  if (!isNaN(Number(first))) {
-    const idx = Number(first);
+  // Case A: bracket-only segment -> "[3]"
+  const bracketOnly = first.match(/^\[(\d+)\]$/);
+  if (bracketOnly) {
+    const idx = parseInt(bracketOnly[1], 10);
     const arr = Array.isArray(obj) ? [...obj] : [];
     arr[idx] = rest.length
-      ? setDeepValue(arr[idx] || {}, rest.join("."), value)
+      ? setDeepValue(arr[idx] ?? {}, rest.join("."), value)
       : value;
     return arr;
   }
 
-  // 3) normal object key
-  if (!rest.length) {
-    return { ...obj, [first]: value };
+  // Case B: prop[index] -> "items[3]"
+  const propIndex = first.match(/^(.+)\[(\d+)\]$/);
+  if (propIndex) {
+    const [, prop, idxStr] = propIndex;
+    const idx = parseInt(idxStr, 10);
+    const currProp = obj?.[prop];
+    const arr = Array.isArray(currProp) ? [...currProp] : [];
+    arr[idx] = rest.length
+      ? setDeepValue(arr[idx] ?? {}, rest.join("."), value)
+      : value;
+    return { ...(obj ?? {}), [prop]: arr };
   }
 
+  // Case C: bare numeric -> "0"
+  if (/^\d+$/.test(first)) {
+    const idx = Number(first);
+    const arr = Array.isArray(obj) ? [...obj] : [];
+    arr[idx] = rest.length
+      ? setDeepValue(arr[idx] ?? {}, rest.join("."), value)
+      : value;
+    return arr;
+  }
+
+  // Case D: normal object key
+  if (!rest.length) {
+    return { ...(obj ?? {}), [first]: value };
+  }
+
+  const next = obj?.[first];
+  const seed =
+    Array.isArray(next) ? [...next] : (next != null && typeof next === "object" ? { ...next } : {});
   return {
-    ...obj,
-    [first]: setDeepValue(obj?.[first] || {}, rest.join("."), value),
+    ...(obj ?? {}),
+    [first]: setDeepValue(seed, rest.join("."), value),
   };
 };
 
@@ -404,61 +433,81 @@ export const isItemHidden = (item: SettingsItem, values: any): boolean => {
 };
 
 export function filterVisibleSettings(
-  items: SettingsItem[],
-  values: any,
+  items?: SettingsItem[],            // ← make optional
+  values?: any,
 ): SettingsItem[] {
+  if (!Array.isArray(items)) return [];  // ← guard top-level
+
   const out: SettingsItem[] = [];
+
   for (const it of items) {
+    if (!it) continue;
+
+    // Respect per-item hidden
     if (isItemHidden(it, values)) continue;
 
+    // ── DataTable ───────────────────────────────────────────────────────────
     if (hasDataTable(it)) {
-      const dt = (it as any).dataTable as DataTableSection;
+      const dt = (it as any).dataTable as DataTableSection | undefined;
+      if (!dt) continue; // misconfigured, skip safely
+
+      const dtFields = Array.isArray(dt.fields) ? dt.fields : []; // guard
       out.push({
         ...(it as any),
         dataTable: {
           ...dt,
-          fields: filterVisibleSettings(dt.fields as any, values),
+          fields: filterVisibleSettings(dtFields, values),
         },
       } as any);
       continue;
     }
+
+    // ── Group with fields ──────────────────────────────────────────────────
     if (hasFields(it)) {
       const grp = it as FieldGroup;
-      out.push({ ...grp, fields: filterVisibleSettings(grp.fields!, values) });
+      const grpFields = Array.isArray((grp as any).fields) ? (grp as any).fields : [];
+      out.push({ ...grp, fields: filterVisibleSettings(grpFields, values) });
       continue;
     }
+
+    // ── Accordion ──────────────────────────────────────────────────────────
     if (hasAccordion(it)) {
-      const grp = it as FieldGroup & { accordion: AccordionSection[] };
-      const visSecs = grp.accordion
+      const grp = it as FieldGroup & { accordion?: AccordionSection[] };
+      const acc = Array.isArray(grp.accordion) ? grp.accordion : [];
+      const visSecs = acc
         .filter((sec) => {
-          const h: any = (sec as any).hidden;
+          const h: any = (sec as any)?.hidden;
           return typeof h === "function" ? !h(values) : !h;
         })
-        .map((sec) => ({
-          ...sec,
-          fields: filterVisibleSettings(sec.fields, values),
-        }));
+        .map((sec) => {
+          const secFields = Array.isArray(sec?.fields) ? sec.fields : [];
+          return { ...sec, fields: filterVisibleSettings(secFields, values) };
+        });
       if (visSecs.length) out.push({ ...grp, accordion: visSecs } as any);
       continue;
     }
+
+    // ── Tabs ───────────────────────────────────────────────────────────────
     if (hasTabs(it)) {
       const grp = it as FieldGroup & { tabs?: Tab[] };
-      const visTabs = grp
-        .tabs!.filter((tab) => {
-          const h: any = (tab as any).hidden;
+      const tabs = Array.isArray(grp.tabs) ? grp.tabs : [];
+      const visTabs = tabs
+        .filter((tab) => {
+          const h: any = (tab as any)?.hidden;
           return typeof h === "function" ? !h(values) : !h;
         })
-        .map((tab) => ({
-          ...tab,
-          fields: filterVisibleSettings(tab.fields, values),
-        }));
+        .map((tab) => {
+          const tabFields = Array.isArray(tab?.fields) ? tab.fields : [];
+          return { ...tab, fields: filterVisibleSettings(tabFields, values) };
+        });
       if (visTabs.length) out.push({ ...grp, tabs: visTabs } as any);
       continue;
     }
 
-    // Simple field
+    // ── Leaf field ─────────────────────────────────────────────────────────
     out.push(it);
   }
+
   return out;
 }
 
@@ -485,44 +534,81 @@ export function firstTabIndexContainingPath(
 }
 
 export function collectAbsoluteLeafFields(
-  items: SettingsItem[],
+  items?: SettingsItem[],                // ← make optional
   basePath = "",
 ): Array<{ name: string; fs: FieldSetting & { name: string } }> {
   const out: Array<{ name: string; fs: FieldSetting & { name: string } }> = [];
   const prefix = (p: string) => (basePath ? `${basePath}.${p}` : p);
 
+  if (!Array.isArray(items)) return out; // ← guard
+
   for (const it of items) {
+    if (!it) continue;
+
+    // DataTable wrapper
     if (hasDataTable(it)) {
-      const dt = (it as any).dataTable as DataTableSection;
-      const tableKey = dt.config.dataSource;
-      const leafs = toLeafFieldSettings(dt.fields as any);
-      for (const lf of leafs)
-        out.push({ name: `${prefix(tableKey)}.${lf.name}`, fs: lf }); // DRAFTs
-      out.push(
-        ...collectAbsoluteLeafFields(dt.fields as any, prefix(tableKey)),
-      ); // nested
-      continue;
-    }
-    if (hasFields(it)) {
-      out.push(
-        ...collectAbsoluteLeafFields((it as FieldGroup).fields!, basePath),
-      );
-      continue;
-    }
-    if (hasAccordion(it)) {
-      for (const sec of (it as any).accordion)
-        out.push(...collectAbsoluteLeafFields(sec.fields, basePath));
-      continue;
-    }
-    if (hasTabs(it)) {
-      for (const tab of (it as any).tabs)
-        out.push(...collectAbsoluteLeafFields(tab.fields, basePath));
+      const dt = (it as any).dataTable as DataTableSection | undefined;
+      const tableKey = dt?.config?.dataSource;
+      if (!tableKey) {
+        // misconfigured DT: can't compute absolute names; skip safely
+        continue;
+      }
+
+      const dtFields = Array.isArray(dt?.fields) ? dt!.fields : []; // ← guard
+      const leafs = toLeafFieldSettings(dtFields);
+
+      // DRAFT inputs
+      for (const lf of leafs) {
+        const nm = (lf as any)?.name;
+        if (typeof nm === "string" && nm.trim()) {
+          out.push({ name: `${prefix(tableKey)}.${nm}`, fs: lf as any });
+        }
+      }
+
+      // Nested content under the table rows
+      out.push(...collectAbsoluteLeafFields(dtFields as any, prefix(tableKey)));
       continue;
     }
 
-    const fs = it as FieldSetting & { name: string };
-    out.push({ name: prefix(fs.name), fs });
+    // Standard group
+    if (hasFields(it)) {
+      const grp = (it as any).fields;
+      out.push(...collectAbsoluteLeafFields(Array.isArray(grp) ? grp : [], basePath));
+      continue;
+    }
+
+    // Accordion
+    if (hasAccordion(it)) {
+      const acc = (it as any).accordion;
+      if (Array.isArray(acc)) {
+        for (const sec of acc) {
+          const secFields = Array.isArray(sec?.fields) ? sec.fields : [];
+          out.push(...collectAbsoluteLeafFields(secFields, basePath));
+        }
+      }
+      continue;
+    }
+
+    // Tabs
+    if (hasTabs(it)) {
+      const tabs = (it as any).tabs;
+      if (Array.isArray(tabs)) {
+        for (const tab of tabs) {
+          const tabFields = Array.isArray(tab?.fields) ? tab.fields : [];
+          out.push(...collectAbsoluteLeafFields(tabFields, basePath));
+        }
+      }
+      continue;
+    }
+
+    // Leaf field
+    const fs = it as Partial<FieldSetting> & { name?: string };
+    if (typeof fs?.name === "string" && fs.name.trim()) {
+      out.push({ name: prefix(fs.name), fs: fs as FieldSetting & { name: string } });
+    }
+    // else: unnamed leaf → skip here (render path will surface the error)
   }
+
   return out;
 }
 

@@ -1,56 +1,7 @@
-import { memo, useMemo } from "react";
+import React, { memo, useMemo } from "react";
 import styled, { keyframes } from "styled-components";
 
-type SkeletonBodyProps = {
-  rows: number;
-  /** Pixel widths per visible column (from TanStack col.getSize()) */
-  colSizes: number[];
-  /** Match your data row height exactly */
-  rowHeight?: number; // default 32
-  /** Corner radius for bars */
-  radius?: number; // default 6
-};
-
-export const SkeletonBody = memo(function SkeletonBody({
-  rows,
-  colSizes,
-  rowHeight = 32,
-  radius = 6,
-}: SkeletonBodyProps) {
-  const r = Math.max(1, rows | 0);
-  const c = Math.max(1, colSizes.length | 0);
-
-  const R = useMemo(() => Array.from({ length: r }), [r]);
-  const template = useMemo(
-    () => (c ? colSizes.map((w) => `${w}px`).join(" ") : "1fr"),
-    [c, colSizes],
-  );
-  const minWidth = useMemo(
-    () => (c ? colSizes.reduce((sum, n) => sum + n, 0) : 0),
-    [c, colSizes],
-  );
-
-  return (
-    <Wrap
-      role="status"
-      aria-live="polite"
-      aria-label="Loading table"
-      $minW={minWidth}
-    >
-      {R.map((_, ri) => (
-        <SkelRow key={ri} $h={rowHeight} $template={template}>
-          {Array.from({ length: c }).map((__, ci) => (
-            <SkelCell key={ci}>
-              <Bar $radius={radius} />
-            </SkelCell>
-          ))}
-        </SkelRow>
-      ))}
-    </Wrap>
-  );
-});
-
-// ---------- styles ----------
+/** ---------- Reusable primitives ---------- */
 
 const shimmer = keyframes`
   0%   { transform: translateX(-60%); opacity: 0.6; }
@@ -58,24 +9,10 @@ const shimmer = keyframes`
   100% { transform: translateX(60%); opacity: 0.6; }
 `;
 
-const Wrap = styled.div<{ $minW: number }>`
-  width: 100%;
-  min-width: ${({ $minW }) => ($minW > 0 ? `${$minW}px` : "auto")};
-  display: flex;
-  flex-direction: column;
-  background-color: #fefefe;
-`;
-
-const SkelRow = styled.div<{ $h: number; $template: string }>`
-  display: grid;
-  grid-template-columns: ${({ $template }) => $template};
-  align-items: center;
-  height: ${({ $h }) => `${$h}px`};
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06); /* match your row divider */
-`;
-
-const Bar = styled.div<{ $radius: number }>`
+// Low-level bar you can reuse anywhere
+const SkelBar = styled.div`
   height: 16px;
+  width: 100%;
   border-radius: 2px;
   background: linear-gradient(
     90deg,
@@ -85,7 +22,6 @@ const Bar = styled.div<{ $radius: number }>`
   );
   position: relative;
   overflow: hidden;
-  width: 100%;
 
   &:after {
     content: "";
@@ -101,17 +37,81 @@ const Bar = styled.div<{ $radius: number }>`
   }
 
   @media (prefers-reduced-motion: reduce) {
-    &:after {
-      animation: none;
-    }
+    &:after { animation: none; }
   }
 `;
 
-const SkelCell = styled.div`
+// Styled container that matches a table cell box
+const SkelCellContainer = styled.div`
   padding: 4px;
+  height: 30px;
+  border-right: 1px solid #e1e1e1;
   overflow: hidden;
   display: flex;
   align-items: center;
-  border-right: 1px solid #e1e1e1;
-  height: 31px;
 `;
+
+/** ---------- styles for layout ---------- */
+const Wrap = styled.div<{ $minW: number }>`
+  width: 100%;
+  min-width: ${({ $minW }) => ($minW > 0 ? `${$minW}px` : "auto")};
+  display: flex;
+  flex-direction: column;
+  background-color: #fefefe;
+`;
+
+const SkelRow = styled.div<{ $h: number; $template: string }>`
+  display: grid;
+  grid-template-columns: ${({ $template }) => $template};
+  align-items: center;
+  height: ${({ $h }) => `${$h}px`};
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+`;
+
+/** Convenience: multi-line cell skeleton (uses SkelBar) */
+export const CellSkeleton: React.FC = () => <SkelBar/>;
+
+/** ---------- Full table body skeleton (keeps your original behavior) ---------- */
+type SkeletonBodyProps = {
+  rows: number;
+  /** Pixel widths per visible column (from TanStack col.getSize()) */
+  colSizes: number[];
+  /** Match your data row height exactly */
+  rowHeight?: number; // default 30
+  /** Corner radius for bars */
+  radius?: number;    // default 6
+  withRightDividers?: boolean; // show grid col dividers
+};
+
+export const SkeletonBody = memo(function SkeletonBody({
+  rows,
+  colSizes,
+  rowHeight = 30
+}: SkeletonBodyProps) {
+  const r = Math.max(1, rows | 0);
+  const c = Math.max(1, colSizes.length | 0);
+
+  const R = useMemo(() => Array.from({ length: r }), [r]);
+  const template = useMemo(
+    () => (c ? colSizes.map((w) => `${w}px`).join(" ") : "1fr"),
+    [c, colSizes],
+  );
+  const minWidth = useMemo(
+    () => (c ? colSizes.reduce((sum, n) => sum + n, 0) : 0),
+    [c, colSizes],
+  );
+
+  return (
+    <Wrap role="status" aria-live="polite" aria-label="Loading table" $minW={minWidth}>
+      {R.map((_, ri) => (
+        <SkelRow key={ri} $h={rowHeight} $template={template}>
+          {Array.from({ length: c }).map((__, ci) => (
+            <SkelCellContainer key={ci}>
+              <CellSkeleton/>
+            </SkelCellContainer>
+          ))}
+        </SkelRow>
+      ))}
+    </Wrap>
+  );
+});

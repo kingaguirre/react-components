@@ -2,7 +2,6 @@ import React from "react";
 import { IconContainer, FallbackBox } from "./styled";
 import { IconProps } from "./interface";
 import "./font.css";
-import { injectFontCSS } from "./font";
 import { EXTRA_ICONS, SCB_ICONS } from "./data"; // Import list of available icons
 
 // ✅ Convert array to a Set for optimized lookup
@@ -16,11 +15,7 @@ export const Icon: React.FC<IconProps> = ({
   className = "",
   onClick,
 }) => {
-  const iconExists = ICON_SET.has(icon); // ✅ O(1) lookup time
-
-  React.useEffect(() => {
-    injectFontCSS();
-  }, []);
+  const iconExists = ICON_SET.has(icon);
 
   return iconExists ? (
     <IconContainer
@@ -33,8 +28,6 @@ export const Icon: React.FC<IconProps> = ({
       onClick={onClick}
     />
   ) : (
-    <FallbackBox data-testid="icon" $size={size}>
-      ?
-    </FallbackBox> // ✅ Show fallback if the icon is missing
+    <FallbackBox data-testid="icon" $size={size}>?</FallbackBox>
   );
 };

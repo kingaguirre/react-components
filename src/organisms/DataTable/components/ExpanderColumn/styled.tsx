@@ -15,6 +15,8 @@ export const ButtonIcon = styled.button`
   height: 16px;
   width: 16px;
   border-radius: 0;
+  margin: auto;
+
   &.expanded,
   &:hover {
     color: ${theme.colors.primary.base};
