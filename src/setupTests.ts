@@ -40,9 +40,10 @@ beforeAll(() => {
   );
   vi.stubGlobal('cancelAnimationFrame', (id: number) => clearTimeout(id as any));
 
-  // Idle callbacks → immediate
-  (globalThis as any).requestIdleCallback ??= (cb: Function) => setTimeout(cb, 0);
-  (globalThis as any).cancelIdleCallback ??= (id: any) => clearTimeout(id);
+  // ❌ DO NOT polyfill requestIdleCallback here.
+  // Vitest tracks timer categories; mapping ric→setTimeout + clearing with clearTimeout
+  // causes "Cannot clear timer: created with requestIdleCallback but cleared with clearTimeout".
+  // Tabs already falls back to setTimeout(1) when ric is absent, and tests await with findByText.
 
   // ResizeObserver stub
   (globalThis as any).ResizeObserver ??= class {
@@ -71,7 +72,7 @@ beforeAll(() => {
 afterAll(() => {
   __removeAnchorBlocker?.();
   vi.restoreAllMocks();        // restore window.open spy & any others
-  vi.unstubAllGlobals?.();     // undo stubGlobal (rAF/idle/RO/etc) if available
+  vi.unstubAllGlobals?.();     // undo stubGlobal (rAF/etc) if available
 });
 
 /* ──────────────────────────────────────────────────────────────
@@ -111,7 +112,11 @@ if (typeof Element !== 'undefined' && !Element.prototype.scrollTo) {
   };
 }
 if (!(HTMLElement.prototype as any).scrollIntoView) {
-  HTMLElement.prototype.scrollIntoView = vi.fn() as any;
+  Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+    writable: true,
+    configurable: true,
+    value: vi.fn(),
+  });
 }
 if (!('matchMedia' in window)) {
   (window as any).matchMedia = vi.fn().mockImplementation((query: string) => ({

@@ -1,5 +1,9 @@
-// src/organisms/Tabs/index.tsx
-import React, { useState, useRef, useEffect } from "react";
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  Suspense,
+} from "react";
 import {
   TabsContainer,
   TabItem,
@@ -21,20 +25,79 @@ export const Tabs: React.FC<TabsProps> = ({
   fullHeader = false,
   variant = "default",
 }) => {
-  const [selectedTab, setSelectedTab] = useState<number>(
+  // Resolve initial selected tab (first non-disabled)
+  const initial =
     activeTab !== undefined
       ? activeTab
-      : tabs?.findIndex((tab) => !tab.disabled),
-  );
-  const [focusedTab, setFocusedTab] = useState<number>(selectedTab);
+      : tabs?.findIndex((t) => !t.disabled) ?? 0;
+
+  const [selectedTab, setSelectedTab] = useState<number>(initial);
+  const [focusedTab, setFocusedTab] = useState<number>(initial);
   const [isScrollable, setIsScrollable] = useState(false);
+
   const tabListRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  // --- helpers for ARIA wiring ---
-  const getTabId = (i: number) => `tab-${i}`;
-  const getPanelId = (i: number) => `tabpanel-${i}`;
+  // ------- Built-in deferred mount for active panel (idle tick) -------
+  const [showContent, setShowContent] = useState(false);
+  const cancelIdleRef = useRef<() => void>();
 
+  const scheduleIdle = (cb: () => void) => {
+    const w = window as any;
+    if (typeof w.requestIdleCallback === "function") {
+      const id = w.requestIdleCallback(cb, { timeout: 120 });
+      cancelIdleRef.current = () => w.cancelIdleCallback?.(id);
+    } else {
+      const id = window.setTimeout(cb, 1);
+      cancelIdleRef.current = () => window.clearTimeout(id);
+    }
+  };
+
+  // ------- No-jump height choreography -------
+  const panelOuterRef = useRef<HTMLDivElement>(null); // TabContentWrapper
+  const panelInnerRef = useRef<HTMLDivElement>(null); // TabContent
+
+  // If not null, we set inline style height: px (content-box)
+  const [lockedHeight, setLockedHeight] = useState<number | null>(null);
+  // Special handling for the very first reveal
+  const firstRevealRef = useRef(true);
+  const heightUnlockTimerRef = useRef<number | null>(null);
+
+  const getWrapperPaddingY = (el: HTMLElement) => {
+    const cs = getComputedStyle(el);
+    return parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+  };
+
+  // Measure the current content-box height (not including wrapper padding)
+  const getContentBoxHeight = (
+    outer: HTMLElement | null,
+    inner: HTMLElement | null,
+  ) => {
+    if (inner) return inner.offsetHeight; // content-box height
+    if (outer) return Math.max(0, outer.clientHeight - getWrapperPaddingY(outer));
+    return 0;
+  };
+
+  const unlockHeightSoon = (ms = 240) => {
+    if (heightUnlockTimerRef.current) {
+      window.clearTimeout(heightUnlockTimerRef.current);
+    }
+    heightUnlockTimerRef.current = window.setTimeout(() => {
+      setLockedHeight(null); // release to auto
+      heightUnlockTimerRef.current = null;
+    }, ms);
+  };
+
+  useEffect(() => {
+    return () => {
+      cancelIdleRef.current?.();
+      if (heightUnlockTimerRef.current) {
+        window.clearTimeout(heightUnlockTimerRef.current);
+      }
+    };
+  }, []);
+
+  // ---------------- controlled sync ----------------
   useEffect(() => {
     if (activeTab !== undefined) {
       setSelectedTab(activeTab);
@@ -42,6 +105,7 @@ export const Tabs: React.FC<TabsProps> = ({
     }
   }, [activeTab]);
 
+  // ---------------- scrollability ----------------
   useEffect(() => {
     const checkScrollable = () => {
       if (tabListRef.current) {
@@ -50,7 +114,6 @@ export const Tabs: React.FC<TabsProps> = ({
         );
       }
     };
-
     checkScrollable();
     window.addEventListener("resize", checkScrollable);
     return () => window.removeEventListener("resize", checkScrollable);
@@ -58,58 +121,98 @@ export const Tabs: React.FC<TabsProps> = ({
 
   if (!tabs || tabs.length === 0) return null;
 
+  const getTabId = (i: number) => `tab-${i}`;
+  const getPanelId = (i: number) => `tabpanel-${i}`;
+
+  const ensureTabVisible = (index: number) => {
+    const el = tabListRef.current?.children[index] as HTMLElement | undefined;
+    el?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+  };
+
+  // ---------------- selection change ----------------
   const handleTabChange = (index: number) => {
     if (!tabs[index].disabled && selectedTab !== index) {
+      // 1) Lock to the current content-box height to prevent collapse
+      const prevH = getContentBoxHeight(panelOuterRef.current, panelInnerRef.current);
+      setLockedHeight(prevH);
+
+      // 2) Switch selection
       setSelectedTab(index);
       setFocusedTab(index);
       onTabChange?.(index);
       ensureTabVisible(index);
+
+      // 3) Defer mounting of the new content to next idle
+      cancelIdleRef.current?.();
+      setShowContent(false);
+      scheduleIdle(() => setShowContent(true));
     }
   };
 
-  const ensureTabVisible = (index: number) => {
-    if (tabListRef.current) {
-      const tabElement = tabListRef.current.children[index] as HTMLElement;
-      if (tabElement && typeof tabElement.scrollIntoView === "function") {
-        tabElement.scrollIntoView({
-          behavior: "smooth",
-          block: "nearest",
-          inline: "center",
+  // Also run for initial mount and any controlled change where selectedTab changes
+  useEffect(() => {
+    cancelIdleRef.current?.();
+    setShowContent(false);
+    scheduleIdle(() => setShowContent(true));
+    return () => cancelIdleRef.current?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTab]);
+
+  // When new content is mounted, animate height smoothly
+  useEffect(() => {
+    if (!showContent) return;
+
+    let r1 = 0, r2 = 0, r3 = 0;
+
+    r1 = requestAnimationFrame(() => {
+      const nextH = getContentBoxHeight(panelOuterRef.current, panelInnerRef.current);
+
+      if (firstRevealRef.current) {
+        // First-ever reveal:
+        // Start from 0 → animate to measured height → release
+        setLockedHeight(0);
+        r2 = requestAnimationFrame(() => {
+          setLockedHeight(nextH);
+          r3 = requestAnimationFrame(() => {
+            unlockHeightSoon(); // release to auto after the animation
+            firstRevealRef.current = false;
+          });
         });
+      } else {
+        // Subsequent tab switches: animate from previous locked → next
+        setLockedHeight(nextH);
+        // Release handled by transitionend (with fallback timer)
       }
-    }
-  };
+    });
 
-  const moveFocus = (direction: "left" | "right") => {
-    let newFocus = focusedTab;
-    if (direction === "left") {
-      do {
-        newFocus--;
-      } while (newFocus >= 0 && tabs[newFocus].disabled);
+    return () => {
+      cancelAnimationFrame(r1);
+      cancelAnimationFrame(r2);
+      cancelAnimationFrame(r3);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showContent, selectedTab]);
+
+  // ---------------- keyboard nav ----------------
+  const moveFocus = (dir: "left" | "right") => {
+    let i = focusedTab;
+    if (dir === "left") {
+      do i--; while (i >= 0 && tabs[i].disabled);
     } else {
-      do {
-        newFocus++;
-      } while (newFocus < tabs.length && tabs[newFocus].disabled);
+      do i++; while (i < tabs.length && tabs[i].disabled);
     }
-
-    if (newFocus >= 0 && newFocus < tabs.length) {
-      setFocusedTab(newFocus);
-      ensureTabVisible(newFocus);
+    if (i >= 0 && i < tabs.length) {
+      setFocusedTab(i);
+      ensureTabVisible(i);
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    const isInputField = ["INPUT", "TEXTAREA", "SELECT", "BUTTON"].includes(
-      (e.target as HTMLElement).tagName,
-    );
-
-    if (isInputField) return;
-
-    if (e.key === "ArrowLeft") {
-      moveFocus("left");
-    } else if (e.key === "ArrowRight") {
-      moveFocus("right");
-    } else if (e.key === "Enter") {
+    const tag = (e.target as HTMLElement).tagName;
+    if (["INPUT", "TEXTAREA", "SELECT", "BUTTON"].includes(tag)) return;
+    if (e.key === "ArrowLeft") moveFocus("left");
+    else if (e.key === "ArrowRight") moveFocus("right");
+    else if (e.key === "Enter") {
       handleTabChange(focusedTab);
       wrapperRef.current?.focus();
     }
@@ -124,11 +227,7 @@ export const Tabs: React.FC<TabsProps> = ({
       role="button"
       aria-pressed="false"
     >
-      <TabWrapper
-        className="tab-wrapper"
-        role="tablist"
-        aria-orientation="horizontal"
-      >
+      <TabWrapper role="tablist" aria-orientation="horizontal" className="tab-wrapper">
         {firstLastNavControl && (
           <NavButton
             className="nav-button-first"
@@ -140,6 +239,7 @@ export const Tabs: React.FC<TabsProps> = ({
             <Icon icon="first_page" />
           </NavButton>
         )}
+
         {isScrollable && (
           <ScrollButton
             className="scroll-button-left"
@@ -153,13 +253,14 @@ export const Tabs: React.FC<TabsProps> = ({
             <Icon icon="keyboard_arrow_left" />
           </ScrollButton>
         )}
+
         <TabsContainer
           ref={tabListRef}
           className="tabs-container"
           $fullHeader={fullHeader}
           $variant={variant}
         >
-          {tabs?.map((tab, index) => {
+          {tabs.map((tab, index) => {
             const active = selectedTab === index;
             const disabled = !!tab.disabled;
             return (
@@ -189,14 +290,13 @@ export const Tabs: React.FC<TabsProps> = ({
                 {tab.icon && <Icon icon={tab.icon} color={tab.iconColor} />}
                 <span className="title">{tab.title}</span>
                 {tab.badgeValue !== undefined && (
-                  <Badge color={tab.badgeColor ?? "danger"}>
-                    {tab.badgeValue}
-                  </Badge>
+                  <Badge color={tab.badgeColor ?? "danger"}>{tab.badgeValue}</Badge>
                 )}
               </TabItem>
             );
           })}
         </TabsContainer>
+
         {isScrollable && (
           <ScrollButton
             className="scroll-button-right"
@@ -210,6 +310,7 @@ export const Tabs: React.FC<TabsProps> = ({
             <Icon icon="keyboard_arrow_right" />
           </ScrollButton>
         )}
+
         {firstLastNavControl && (
           <NavButton
             className="nav-button-last"
@@ -223,19 +324,33 @@ export const Tabs: React.FC<TabsProps> = ({
         )}
       </TabWrapper>
 
-      {/* --- Single visible panel; ARIA linked to the selected tab --- */}
+      {/* Panel with height lock + smooth transition + Suspense */}
       <TabContentWrapper
+        ref={panelOuterRef}
         $color={tabs?.[selectedTab]?.color ?? "primary"}
         $variant={variant}
+        style={{ height: lockedHeight != null ? lockedHeight : undefined }}
+        onTransitionEnd={(e) => {
+          if (e.propertyName === "height") {
+            setLockedHeight(null); // release to auto after animation
+          }
+        }}
       >
         <TabContent
+          ref={panelInnerRef}
           key={selectedTab}
           className="fade-in"
           role="tabpanel"
           id={getPanelId(selectedTab)}
           aria-labelledby={getTabId(selectedTab)}
+          aria-busy={!showContent || undefined}
         >
-          {tabs?.[selectedTab]?.content}
+          {showContent ? (
+            // If consumer passes React.lazy, this truly code-splits; otherwise it just renders.
+            <Suspense fallback={null}>
+              {tabs?.[selectedTab]?.content ?? null}
+            </Suspense>
+          ) : null}
         </TabContent>
       </TabContentWrapper>
     </div>

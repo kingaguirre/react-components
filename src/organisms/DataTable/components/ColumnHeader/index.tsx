@@ -1,4 +1,4 @@
-import React, { memo, useMemo } from "react";
+import React from "react";
 import { ColumnHeaderContainer, ColumnHeaderGroupContainer } from "./styled";
 import {
   SortableContext,

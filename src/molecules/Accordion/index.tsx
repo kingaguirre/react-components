@@ -4,6 +4,7 @@ import React, {
   useEffect,
   useCallback,
   useMemo,
+  Suspense,
 } from "react";
 import {
   AccordionProps,
@@ -32,20 +33,18 @@ export const Accordion: React.FC<AccordionProps> = ({
   defaultOpenKeys,
   forcedOpenKeys,
 }) => {
-  // Make a stable key for each item
   const getKey = useCallback(
     (idx: number) => String(items[idx]?.id ?? idx),
     [items],
   );
 
-  // Uncontrolled internal map (when `activeKeys` is not provided AND item isn't auto-controlled)
+  // Uncontrolled map
   const [openItems, setOpenItems] = useState<Record<string, boolean>>({});
 
-  // Track previous `open` per item to detect parent-driven flips -> “auto-controlled” keys
+  // Track parent-driven open prop flips → auto-controlled keys
   const prevPropOpenRef = useRef<Record<string, boolean | undefined>>({});
   const autoControlledKeysRef = useRef<Set<string>>(new Set());
 
-  // Build quick lookup sets for controlled helpers
   const defaultOpenSet = useMemo(
     () => new Set(defaultOpenKeys ?? []),
     [defaultOpenKeys],
@@ -57,7 +56,6 @@ export const Accordion: React.FC<AccordionProps> = ({
   const fullyControlled = Array.isArray(activeKeys);
   const activeKeysSet = useMemo(() => new Set(activeKeys ?? []), [activeKeys]);
 
-  // Detect items whose `open` prop changed across renders (become auto-controlled)
   useEffect(() => {
     const nextPrev = { ...prevPropOpenRef.current };
     const nextAuto = new Set(autoControlledKeysRef.current);
@@ -67,49 +65,35 @@ export const Accordion: React.FC<AccordionProps> = ({
       const propOpen =
         typeof it.open === "boolean" ? (it.open as boolean) : undefined;
 
-      // record latest prop for compare next time
       const prev = nextPrev[key];
       nextPrev[key] = propOpen;
 
       if (propOpen !== undefined && prev !== undefined && prev !== propOpen) {
-        // flip detected -> this item becomes auto-controlled
         nextAuto.add(key);
       }
     });
 
     prevPropOpenRef.current = nextPrev;
     autoControlledKeysRef.current = nextAuto;
-    // NOTE: we do not mutate openItems here; visual state is derived on read.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, getKey]);
 
-  // Helper: compute the *visual* open state for a key right now
   const isOpenNow = (index: number): boolean => {
     const item = items[index];
     const key = getKey(index);
 
-    // 1) forced (always open)
     if (forcedOpenSet.has(key)) return true;
-
-    // 2) fully controlled via `activeKeys`
     if (fullyControlled) return activeKeysSet.has(key);
 
-    // 3) auto-controlled (parent flips `open` prop)
     const propOpen =
       typeof item.open === "boolean" ? (item.open as boolean) : undefined;
-    if (autoControlledKeysRef.current.has(key)) {
-      return !!propOpen;
-    }
+    if (autoControlledKeysRef.current.has(key)) return !!propOpen;
 
-    // 4) uncontrolled:
-    //    prefer internal state if we have it; otherwise fall back to:
-    //    defaultOpenKeys -> item.open -> false
     if (key in openItems) return !!openItems[key];
     if (defaultOpenSet.has(key)) return true;
     return !!propOpen;
   };
 
-  // Toggle intent handler for header clicks
   const toggleItem = (index: number, e?: React.MouseEvent) => {
     const item = items[index];
     const key = getKey(index);
@@ -118,19 +102,15 @@ export const Accordion: React.FC<AccordionProps> = ({
     const currentlyOpen = isOpenNow(index);
     const willOpen = !currentlyOpen;
 
-    // Early exit for "forced open" items when trying to close
     if (!willOpen && forcedOpenSet.has(key)) {
       item.onClick?.(e, idForCallback);
-      // don't fire onClose for a forced-open panel
       return;
     }
 
-    // Fire item-level click + open/close callbacks
     item.onClick?.(e, idForCallback);
     if (willOpen) item.onOpen?.(e, idForCallback);
     else item.onClose?.(e, idForCallback);
 
-    // 1) Fully controlled via activeKeys -> emit change only
     if (fullyControlled) {
       if (!onActiveKeysChange) return;
 
@@ -139,29 +119,21 @@ export const Accordion: React.FC<AccordionProps> = ({
         if (willOpen) next.add(key);
         else next.delete(key);
       } else {
-        if (willOpen) next = new Set([key]);
-        else next = new Set(); // closing the only open item
+        next = willOpen ? new Set([key]) : new Set();
       }
 
-      // ensure forced keys are present
       forcedOpenSet.forEach((fk) => next.add(fk));
       onActiveKeysChange(Array.from(next));
       return;
     }
 
-    // 2) Auto-controlled (parent manipulates `open` prop): don't mutate state
-    if (autoControlledKeysRef.current.has(key)) {
-      // parent must update `open` prop; we already fired callbacks
-      return;
-    }
+    if (autoControlledKeysRef.current.has(key)) return;
 
-    // 3) Uncontrolled: update internal map
     setOpenItems((prev) => {
       const prevMap = prev ?? {};
       const next: Record<string, boolean> = allowMultiple
         ? { ...prevMap }
         : Object.fromEntries(Object.keys(prevMap).map((k) => [k, false]));
-
       next[key] = willOpen;
       return next;
     });
@@ -190,6 +162,12 @@ interface AccordionItemInternalProps extends AccordionItemProps {
   toggle: (e?: React.MouseEvent) => void;
 }
 
+/**
+ * Built-in lazy policy (no props):
+ * - When opening: mount wrapper immediately, defer children with an idle tick (ric | setTimeout 1ms).
+ * - When closing: keep mounted during max-height transition, unmount children on transitionend.
+ * - If children are React.lazy, we wrap in <Suspense fallback={null}>.
+ */
 const AccordionItem: React.FC<AccordionItemInternalProps> = ({
   title,
   children,
@@ -201,29 +179,94 @@ const AccordionItem: React.FC<AccordionItemInternalProps> = ({
   disabled = false,
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
+
   const [maxHeight, setMaxHeight] = useState(0);
+  // Wrapper presence for animation (open or closing)
+  const [shouldRender, setShouldRender] = useState<boolean>(open);
+  // Children actually mounted (lazy)
+  const [showChildren, setShowChildren] = useState<boolean>(false);
+
+  // version token to cancel stale schedules
+  const ticketRef = useRef(0);
+
+  // idle scheduler (pairs with cancel)
+  const cancelIdleRef = useRef<() => void>();
+  const scheduleIdle = useCallback((cb: () => void) => {
+    const w = window as any;
+    if (typeof w.requestIdleCallback === "function") {
+      const id = w.requestIdleCallback(cb, { timeout: 120 });
+      cancelIdleRef.current = () => w.cancelIdleCallback?.(id);
+    } else {
+      const id = window.setTimeout(cb, 1);
+      cancelIdleRef.current = () => window.clearTimeout(id);
+    }
+  }, []);
+  useEffect(() => () => cancelIdleRef.current?.(), []);
 
   const updateHeight = useCallback(() => {
     if (contentRef.current) setMaxHeight(contentRef.current.scrollHeight);
   }, []);
 
+  // On open → show wrapper; children mount after an idle tick
   useEffect(() => {
+    if (open) {
+      setShouldRender(true);
+      ticketRef.current += 1;
+      const myTicket = ticketRef.current;
+
+      // start empty so header paints first
+      setShowChildren(false);
+      cancelIdleRef.current?.();
+      scheduleIdle(() => {
+        if (ticketRef.current === myTicket) setShowChildren(true);
+      });
+    } else {
+      // Closing: cancel any queued child-mount to avoid mounting after close
+      cancelIdleRef.current?.();
+      // unmount children on transitionend
+    }
+  }, [open, scheduleIdle]);
+
+  // Measure when wrapper is present and children mount/resize
+  useEffect(() => {
+    if (!shouldRender) return;
     updateHeight();
     const ro = new ResizeObserver(updateHeight);
     if (contentRef.current) ro.observe(contentRef.current);
     return () => ro.disconnect();
-  }, [updateHeight]);
+  }, [shouldRender, showChildren, updateHeight]);
 
-  // Ensure height recalculates when open changes
   useEffect(() => {
-    updateHeight();
-  }, [open, updateHeight]);
+    if (shouldRender) updateHeight();
+  }, [open, shouldRender, showChildren, updateHeight]);
 
   const handleHeaderClick = (e: React.MouseEvent) => {
     if (disabled) return;
     e.stopPropagation();
     toggle(e);
   };
+
+  const handleTransitionEnd = useCallback(
+    (e: React.TransitionEvent<HTMLDivElement>) => {
+      // Some environments (jsdom) deliver empty propertyName for synthetic transitionend.
+      // We only filter when a name is provided; otherwise accept and proceed.
+      const name = (e as any).propertyName as string | undefined;
+
+      // If a name is present, accept both kebab- and camel-case; otherwise allow.
+      const nameProvided = !!name && name.length > 0;
+      const isMaxHeight =
+        !nameProvided || name === "max-height" || name === "maxHeight";
+
+      if (!isMaxHeight) return;
+
+      // Only unmount when closing
+      if (!open) {
+        setShowChildren(false);
+        setShouldRender(false);
+      }
+    },
+    [open],
+  );
 
   return (
     <AccordionItemWrapper
@@ -292,10 +335,14 @@ const AccordionItem: React.FC<AccordionItemInternalProps> = ({
         $color={color}
         $expanded={open}
         $maxHeight={maxHeight}
+        onTransitionEndCapture={handleTransitionEnd}
+        aria-busy={open && shouldRender && !showChildren ? true : undefined}
       >
-        <AccordionContentInner ref={contentRef}>
-          {children}
-        </AccordionContentInner>
+        {shouldRender && (
+          <AccordionContentInner ref={contentRef}>
+            {showChildren ? <Suspense fallback={null}>{children}</Suspense> : null}
+          </AccordionContentInner>
+        )}
       </AccordionContentWrapper>
     </AccordionItemWrapper>
   );

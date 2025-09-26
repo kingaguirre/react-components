@@ -22,6 +22,33 @@ const meta: Meta<typeof Accordion> = {
 
 export default meta
 
+// Lazy demo helpers
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+const LazyShort = React.lazy(async () => {
+  await wait(600);
+  return { default: () => <div>Lazy short content (loaded ~600ms)</div> };
+});
+
+const LazyTall = React.lazy(async () => {
+  await wait(900);
+  return {
+    default: () => (
+      <div>
+        <p><strong>Lazy tall content</strong></p>
+        <div
+          style={{
+            height: 240,
+            borderRadius: 6,
+            background: "#f2f3f5",
+            boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.06)",
+          }}
+        />
+      </div>
+    ),
+  };
+});
+
 const sampleItems: AccordionItemProps[] = [
   {
     title: 'Accordion Item 1',
@@ -237,6 +264,47 @@ const AccordionExamples = () => {
         onActiveKeysChange={setControlledKeys}       // keeps stories interactive
         allowMultiple={true}
       />
+
+      <Title>Lazy-loaded Content (React.lazy)</Title>
+      <p>
+        Pass <code>React.lazy</code> components as <code>children</code>. Accordion has built-in
+        <code>{' <Suspense/>'}</code> and deferred mount, so there’s no API change. The header paints
+        immediately; the body mounts when the chunk resolves (empty height until then).
+      </p>
+
+      <Accordion
+        items={[
+          {
+            title: 'Eager',
+            children: <div>Eager content renders immediately.</div>,
+            color: 'primary',
+          },
+          {
+            title: 'Lazy (Short)',
+            children: <LazyShort />,
+            color: 'success',
+          },
+          {
+            title: 'Lazy (Tall)',
+            children: <LazyTall />,
+            color: 'info',
+          },
+        ]}
+        allowMultiple
+      />
+
+      {/* Optional: start on a lazy item to see first-mount height animation */}
+      <Accordion
+        items={[
+          {
+            title: 'Starts Open (Lazy Tall)',
+            children: <LazyTall />,
+            open: true,
+            color: 'warning',
+          },
+        ]}
+      />
+
     </StoryWrapper>
   );
 };

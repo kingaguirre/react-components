@@ -1,6 +1,6 @@
 // src/molecules/Accordion/Accordion.test.tsx
 import React from "react";
-import { render, screen, within, act, fireEvent } from "@testing-library/react";
+import { render, screen, within, act, fireEvent, waitFor } from "@testing-library/react";
 import { Accordion } from "./index";
 import { AccordionItemDetail, AccordionItemProps } from "./interface";
 import { vi } from "vitest";
@@ -25,14 +25,27 @@ describe("Accordion Component", () => {
     const header = titleNode.closest(".accordion-header");
     if (!header) throw new Error("Header container not found");
     return header as HTMLElement;
-    };
+  };
 
-  it("renders accordion items", () => {
-    render(<Accordion items={baseItems()} allowMultiple={true} />);
+  it("lazy-mounts open item only; closed item stays unmounted", async () => {
+    const items = [
+      { id: "1", title: "Item 1", children: <div>Content 1</div>, open: true },
+      { id: "2", title: "Item 2", children: <div>Content 2</div> }, // closed
+    ];
+
+    render(<Accordion items={items} allowMultiple />);
+
+    // Headers render immediately
     expect(screen.getByText("Item 1")).toBeInTheDocument();
     expect(screen.getByText("Item 2")).toBeInTheDocument();
-    expect(screen.getByText("Content 1")).toBeInTheDocument();
-    expect(screen.getByText("Content 2")).toBeInTheDocument();
+
+    // Immediately after paint: bodies are not mounted yet
+    expect(screen.queryByText("Content 1")).not.toBeInTheDocument();
+    expect(screen.queryByText("Content 2")).not.toBeInTheDocument();
+
+    // After the micro delay, Item 1's body appears; Item 2 remains absent
+    expect(await screen.findByText("Content 1")).toBeInTheDocument();
+    expect(screen.queryByText("Content 2")).not.toBeInTheDocument();
   });
 
   it("uncontrolled: initial closed -> click opens -> click closes", () => {
@@ -427,9 +440,105 @@ describe("Accordion Component", () => {
     render(<Harness />);
     // Click Item 3 -> activeKeys should change to a3, but a1 remains open (forced)
     fireEvent.click(getHeaderNode("Item 3"));
-    // If you want to assert visually, you could check aria/state on headers,
-    // but this test ensures the action doesn't crash and the handler path executes.
-    // (Optional) Add role/aria attributes to headers to assert expanded state explicitly.
   });
+
+  // ───────────────────────────────────────────────────────────────
+  // NEW: React.lazy coverage for Accordion children (no fake timers)
+  // ───────────────────────────────────────────────────────────────
+
+  it("React.lazy child renders for initially open panel after lazy resolves", async () => {
+    const LazyA = React.lazy(async () => {
+      await new Promise((r) => setTimeout(r, 20));
+      return { default: () => <div>Lazy A</div> };
+    });
+
+    render(
+      <Accordion
+        items={[
+          { id: "l-open", title: "Lazy Open", children: <LazyA />, open: true },
+          { id: "eager", title: "Eager", children: <div>Eager</div> },
+        ]}
+        allowMultiple
+      />
+    );
+
+    // Not visible immediately (deferred mount + suspense)
+    expect(screen.queryByText("Lazy A")).not.toBeInTheDocument();
+
+    // Let idle tick + lazy module resolve naturally
+    expect(await screen.findByText("Lazy A")).toBeInTheDocument();
+  });
+
+  it("React.lazy child loads when closed panel is opened", async () => {
+    const LazyB = React.lazy(async () => {
+      await new Promise((r) => setTimeout(r, 15));
+      return { default: () => <div>Lazy B</div> };
+    });
+
+    render(
+      <Accordion
+        items={[
+          { id: "a1", title: "A", children: <div>Content A</div>, open: true },
+          { id: "b1", title: "B (Lazy)", children: <LazyB /> },
+        ]}
+        allowMultiple
+      />
+    );
+
+    // Ensure A appears after initial idle
+    expect(await screen.findByText("Content A")).toBeInTheDocument();
+
+    // Open the lazy panel
+    fireEvent.click(getHeaderNode("B (Lazy)"));
+    expect(screen.queryByText("Lazy B")).not.toBeInTheDocument();
+
+    // Wait for the lazy module to resolve and the panel to mount its children
+    expect(await screen.findByText("Lazy B")).toBeInTheDocument();
+  });
+
+  it("unmounts children after close transition (onTransitionEnd)", async () => {
+    render(
+      <Accordion
+        items={[{ id: "x", title: "X", children: <div>X body</div>, open: true }]}
+      />
+    );
+
+    // Ensure mounted after idle tick
+    expect(await screen.findByText("X body")).toBeInTheDocument();
+
+    const header = screen.getByText("X").closest(".accordion-header")!;
+    const body = header.parentElement!.querySelector(".accordion-body") as HTMLElement;
+    const inner = body.querySelector(":scope > *") as HTMLElement; // AccordionContentInner
+
+    // Close it (keeps wrapper until transition end)
+    fireEvent.click(header);
+
+    // Let React render "closing" state
+    await Promise.resolve();
+
+    // Fire both property name variants on the wrapper
+    await act(async () => {
+      fireEvent.transitionEnd(body, { propertyName: "maxHeight" } as any);
+    });
+    await act(async () => {
+      fireEvent.transitionEnd(body, { propertyName: "max-height" } as any);
+    });
+
+    // If still present (env nuance), also fire on the inner node to bubble/capture through
+    if (screen.queryByText("X body") && inner) {
+      await act(async () => {
+        fireEvent.transitionEnd(inner, { propertyName: "maxHeight" } as any);
+      });
+      await act(async () => {
+        fireEvent.transitionEnd(inner, { propertyName: "max-height" } as any);
+      });
+    }
+
+    // Wait for unmount commit
+    await waitFor(() => {
+      expect(screen.queryByText("X body")).not.toBeInTheDocument();
+    });
+  });
+
 
 });
