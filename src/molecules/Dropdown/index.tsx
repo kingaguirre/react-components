@@ -657,13 +657,11 @@ export const Dropdown: React.FC<DropdownProps> = ({
   ) => {
     e.stopPropagation();
 
-    // Click/Enter on custom row -> start Add (and cancel Edit if any)
     if (selectedVal === CUSTOM_SENTINEL) {
       startAdd();
       return;
     }
 
-    // ignore clicks when this row is in edit mode
     if (editingValue === selectedVal) return;
 
     if (isMulti) {
@@ -671,45 +669,57 @@ export const Dropdown: React.FC<DropdownProps> = ({
         const next = prev.includes(selectedVal)
           ? prev.filter((v) => v !== selectedVal)
           : [...prev, selectedVal];
+
         setDisplayValue(
           next.length
             ? `${next.length} selected ${ifElse(next.length === 1, "item", "items")}`
             : "",
         );
+
         if (filter) {
           setFilterText("");
           setHasTyped(false);
         }
+
         lastMultiToggledRef.current = selectedVal;
         const i = visibleItems.findIndex((o) => o.value === selectedVal);
-        if (i !== -1) setFocusedIndex((prev) => (prev === i ? prev : i));
-        onChange?.(next);
+        if (i !== -1) setFocusedIndex((prevIdx) => (prevIdx === i ? prevIdx : i));
+
+        const nextOptions = combinedOptions.filter((o) => next.includes(o.value));
+        onChange?.(next, nextOptions);
+
         return next;
       });
+
       if (filter) setTimeout(() => filterInputRef.current?.focus(), 0);
     } else {
-      const opt = combinedOptions.find((o) => o.value === selectedVal);
+      const opt = combinedOptions.find((o) => o.value === selectedVal) || null;
       if (!opt) return;
+
       setIsOpen(false);
       setDisplayValue(opt.text);
       setSelectedValue(selectedVal);
+
       if (filter) {
         setFilterText(opt.text);
         setHasTyped(false);
       }
-      onChange?.(selectedVal);
+
+      onChange?.(selectedVal, opt);
     }
   };
 
   const handleClear = (e: React.MouseEvent) => {
     if (disabled) return;
     e.stopPropagation();
+
     setDisplayValue("");
     setFilterText("");
     setFocusedIndex((prev) => (prev === 0 ? prev : 0));
+
     if (isMulti) {
       setSelectedValues([]);
-      onChange?.([]);
+      onChange?.([], []);
       if (filter) {
         setIsOpen(true);
         setTimeout(() => {
@@ -719,7 +729,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
       }
     } else {
       setSelectedValue(null);
-      onChange?.(null);
+      onChange?.(null, null);
       setIsOpen(true);
       setTimeout(() => {
         formControlRef.current?.focus();
@@ -960,13 +970,11 @@ export const Dropdown: React.FC<DropdownProps> = ({
     setNewOptions((prev) =>
       mergedCustomCfg.optionAtTop ? [created, ...prev] : [...prev, created],
     );
-    if (mergedCustomCfg.onAdd)
-      defer(() => mergedCustomCfg.onAdd!(created, raw));
+    if (mergedCustomCfg.onAdd) defer(() => mergedCustomCfg.onAdd!(created, raw));
 
     // ✅ Auto-select the newly added option when allowMultiple is false
     if (!mergedCustomCfg.allowMultiple) {
       if (isMulti) {
-        // Compute next outside the state updater and avoid calling onChange inside it.
         const next = selectedValues.includes(value)
           ? selectedValues
           : [...selectedValues, value];
@@ -978,19 +986,23 @@ export const Dropdown: React.FC<DropdownProps> = ({
             : "",
         );
 
-        // Defer the external callback so we don't update parent during our render.
-        if (onChange) defer(() => onChange(next));
+        if (onChange) {
+          // Map to option objects; include the just-created option.
+          const lookup = new Map(combinedOptions.map((o) => [o.value, o]));
+          lookup.set(created.value, created);
+          const nextOptions = next
+            .map((v) => lookup.get(v))
+            .filter(Boolean) as DropdownOption[];
+          defer(() => onChange(next, nextOptions));
+        }
       } else {
         setSelectedValue(value);
         setDisplayValue(label);
-
-        // Defer callback to avoid parent update during child render.
-        if (onChange) defer(() => onChange(value));
-
-        // Close like a normal single-select pick
+        if (onChange) defer(() => onChange(value, created));
         setIsOpen(false);
       }
     }
+
 
     setIsCreatingCustom(false);
     setCustomText("");
@@ -1087,13 +1099,17 @@ export const Dropdown: React.FC<DropdownProps> = ({
                 const allEnabled = combinedOptions.filter((o) => !o.disabled);
                 const allSelected = selectedValues.length === allEnabled.length;
                 const next = allSelected ? [] : allEnabled.map((o) => o.value);
+
                 setSelectedValues(next);
                 setDisplayValue(
                   next.length
                     ? `${next.length} selected ${ifElse(next.length === 1, "item", "items")}`
                     : "",
                 );
-                onChange?.(next);
+
+                const nextOptions = allSelected ? [] : allEnabled;
+                onChange?.(next, nextOptions);
+
                 if (filter) {
                   setTimeout(() => {
                     filterInputRef.current?.focus();
