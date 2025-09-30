@@ -125,6 +125,7 @@ describe("Dropdown Component", () => {
     });
   });
 
+  // src/molecules/Dropdown/Dropdown.test.tsx
   it("selects an option in single select mode", async () => {
     const onChange = vi.fn();
     render(
@@ -139,7 +140,10 @@ describe("Dropdown Component", () => {
     await user.click(input);
 
     await user.click(await screen.findByText("Option 1"));
-    expect(onChange).toHaveBeenCalledWith("1");
+    expect(onChange).toHaveBeenCalledWith(
+      "1",
+      expect.objectContaining({ value: "1", text: "Option 1" })
+    );
 
     // menu should close; item should become absent or hidden
     await waitFor(() => {
@@ -206,15 +210,27 @@ describe("Dropdown Component", () => {
 
     const opt1 = await screen.findByText("Option 1");
     await user.click(opt1);
-    expect(onChange).toHaveBeenCalledWith(["1"]);
+    expect(onChange).toHaveBeenLastCalledWith(
+      ["1"],
+      [expect.objectContaining({ value: "1", text: "Option 1" })]
+    );
 
     const opt2 = await screen.findByText("Option 2");
     await user.click(opt2);
-    expect(onChange).toHaveBeenCalledWith(["1", "2"]);
+    expect(onChange).toHaveBeenLastCalledWith(
+      ["1", "2"],
+      [
+        expect.objectContaining({ value: "1", text: "Option 1" }),
+        expect.objectContaining({ value: "2", text: "Option 2" }),
+      ]
+    );
 
     // toggle Option 1 off
     await user.click(opt1);
-    expect(onChange).toHaveBeenCalledWith(["2"]);
+    expect(onChange).toHaveBeenLastCalledWith(
+      ["2"],
+      [expect.objectContaining({ value: "2", text: "Option 2" })]
+    );
 
     // summary text shown in input
     expect(screen.getByDisplayValue("1 selected item")).toBeInTheDocument();
@@ -526,7 +542,11 @@ describe("Dropdown – customOption & enableCustomOption", () => {
     expect(created.value).toBe("custom-mocha");
     expect(created.text).toBe("Others - Mocha");
     expect(raw).toBe("Mocha");
-    expect(onChange).toHaveBeenCalledWith("custom-mocha");
+
+    expect(onChange).toHaveBeenCalledWith(
+      "custom-mocha",
+      expect.objectContaining({ value: "custom-mocha", text: "Others - Mocha" })
+    );
   });
 
   it("multiselect + custom: auto-selects on add when allowMultiple=false; 'Select All' shown", async () => {
@@ -817,8 +837,11 @@ describe("Dropdown – custom option keyboard flows & outside clicks", () => {
     await user.keyboard("{Enter}");
 
     expect(onChange).toHaveBeenCalled();
-    const last = onChange.mock.calls.at(-1)![0];
-    expect(last).toBe("custom-new-value");
+    const [val, opt] = onChange.mock.calls.at(-1)!;
+    expect(val).toBe("custom-new-value");
+    expect(opt).toEqual(
+      expect.objectContaining({ value: "custom-new-value", text: "Others - New Value" })
+    );
 
     await waitFor(() =>
       expect(screen.getByDisplayValue("Others - New Value")).toBeInTheDocument()
@@ -903,11 +926,13 @@ describe("Dropdown – custom option keyboard flows & outside clicks", () => {
     await waitFor(() =>
       expect(screen.getByDisplayValue("Others - Clicky")).toBeInTheDocument()
     );
-    expect(onChange).toHaveBeenCalled();
-    const last = onChange.mock.calls.at(-1)![0];
-    expect(last).toBe("custom-clicky");
+    expect(onChange).toHaveBeenCalledWith(
+      "custom-clicky",
+      expect.objectContaining({ value: "custom-clicky", text: "Others - Clicky" })
+    );
     expect(screen.queryByRole("dropdown-menu")).toBeNull();
   });
+
 
   it("duplicate add when allowMultiple=true: second add does not create another item (no duplicates)", async () => {
     render(
@@ -978,7 +1003,10 @@ describe("Dropdown – customOption.allowMultiple & customOption.optionAtTop ins
       expect(screen.getByDisplayValue("Others - Alpha")).toBeInTheDocument()
     );
     expect(onChange).toHaveBeenCalled();
-    expect(onChange.mock.calls.at(-1)![0]).toBe("custom-alpha");
+    expect(onChange).toHaveBeenLastCalledWith(
+      "custom-alpha",
+      expect.objectContaining({ value: "custom-alpha", text: "Others - Alpha" })
+    );
 
     // Re-open: 'Others' should now be hidden (allowMultiple=false)
     await open();

@@ -6,6 +6,11 @@ export interface DropdownOption {
   disabled?: boolean;
 }
 
+export type DropdownChangeOptionArg =
+  | DropdownOption
+  | DropdownOption[]
+  | null;
+
 /** Configuration for the “custom option” add flow (formerly “Others”). */
 export interface CustomOptionConfig {
   /** Placeholder/label for the inline input row. Default: "Others" */
@@ -47,7 +52,12 @@ export interface DropdownProps {
   options: DropdownOption[];
   /** For single select, pass a string; for multiselect, pass an array of strings */
   value?: string | string[];
-  onChange?: (value: string | string[] | null) => void;
+   /**
+   * onChange now receives both the raw value(s) and the resolved option object(s).
+   * - Single-select: (value: string | null, option: DropdownOption | null)
+   * - Multi-select:  (value: string[], option: DropdownOption[])
+   */
+  onChange?: (value: string | string[] | null, option: DropdownChangeOptionArg) => void;
   filter?: boolean;
   filterAtBeginning?: boolean;
   placeholder?: string;
