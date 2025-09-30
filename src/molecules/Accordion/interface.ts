@@ -2,6 +2,7 @@
 import React from "react";
 import { ColorType } from "../../common/interface";
 
+/** Small metadata badges/icons shown on the right side of the header. */
 export interface AccordionItemDetail {
   value?: string;
   icon?: string;
@@ -34,7 +35,8 @@ export interface AccordionItemProps {
 /** Optional controlled API (if provided, component becomes controlled) */
 export interface AccordionControlledProps {
   /**
-   * When provided, Accordion is controlled. Keys must match item.id (or index string if id is omitted).
+   * When provided, Accordion is controlled. Keys must match item.id
+   * (or the index string if id is omitted).
    */
   activeKeys?: string[];
   /** Called with the next keys when user toggles headers (controlled mode). */

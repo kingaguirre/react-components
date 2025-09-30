@@ -45,7 +45,6 @@
     "test": "vitest",
     "test:e2e": "playwright test",
     "test:coverage": "vitest run --coverage",
-    "scan": "react-scan --config react-scan.config.js",
     "ai-server": "node src/organisms/FormRenderer/FieldSettingsAIAgent/server/chat.js"
   },
   "dependencies": {
@@ -112,7 +111,6 @@
     "jest-styled-components": "^7.2.0",
     "jsdom": "^26.1.0",
     "prettier": "^3.4.2",
-    "react-scan": "^0.2.14",
     "resize-observer-polyfill": "^1.5.1",
     "storybook": "^8.5.3",
     "storybook-dark-mode": "^4.0.2",

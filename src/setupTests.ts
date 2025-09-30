@@ -18,16 +18,12 @@ afterEach(() => {
 let __removeAnchorBlocker: (() => void) | null = null;
 
 beforeAll(() => {
-  // Some code may try window.open on blob URLs
   vi.spyOn(window, 'open').mockImplementation(() => null as any);
 
   const anchorBlocker = (e: Event) => {
-    // robust target detection across portals/animations
     const path = (e as any).composedPath?.() ?? [];
     const fromPath = path.find((n: any) => n?.tagName === 'A') as HTMLAnchorElement | undefined;
-    const fromTarget =
-      (e.target as Element | null)?.closest?.('a') as HTMLAnchorElement | null;
-
+    const fromTarget = (e.target as Element | null)?.closest?.('a') as HTMLAnchorElement | null;
     const a = fromPath ?? fromTarget ?? null;
     if (a) {
       e.preventDefault();
@@ -35,14 +31,48 @@ beforeAll(() => {
     }
   };
 
-  // Capture phase so we beat library handlers
   document.addEventListener('click', anchorBlocker, true);
   __removeAnchorBlocker = () => document.removeEventListener('click', anchorBlocker, true);
+
+  // rAF/cAF → immediate
+  vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) =>
+    setTimeout(() => cb(performance.now()), 0) as unknown as number
+  );
+  vi.stubGlobal('cancelAnimationFrame', (id: number) => clearTimeout(id as any));
+
+  // ❌ DO NOT polyfill requestIdleCallback here.
+  // Vitest tracks timer categories; mapping ric→setTimeout + clearing with clearTimeout
+  // causes "Cannot clear timer: created with requestIdleCallback but cleared with clearTimeout".
+  // Tabs already falls back to setTimeout(1) when ric is absent, and tests await with findByText.
+
+  // ResizeObserver stub
+  (globalThis as any).ResizeObserver ??= class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+
+  // matchMedia stub (common in responsive/theming code)
+  (window as any).matchMedia ??= (query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),           // deprecated
+    removeListener: vi.fn(),        // deprecated
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  });
+
+  // No-op scrolling/focus helpers
+  (HTMLElement.prototype as any).scrollIntoView = vi.fn();
+  (window as any).scrollTo = vi.fn();
 });
 
 afterAll(() => {
   __removeAnchorBlocker?.();
-  (window.open as any).mockRestore?.();
+  vi.restoreAllMocks();        // restore window.open spy & any others
+  vi.unstubAllGlobals?.();     // undo stubGlobal (rAF/etc) if available
 });
 
 /* ──────────────────────────────────────────────────────────────
@@ -82,7 +112,11 @@ if (typeof Element !== 'undefined' && !Element.prototype.scrollTo) {
   };
 }
 if (!(HTMLElement.prototype as any).scrollIntoView) {
-  HTMLElement.prototype.scrollIntoView = vi.fn() as any;
+  Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+    writable: true,
+    configurable: true,
+    value: vi.fn(),
+  });
 }
 if (!('matchMedia' in window)) {
   (window as any).matchMedia = vi.fn().mockImplementation((query: string) => ({

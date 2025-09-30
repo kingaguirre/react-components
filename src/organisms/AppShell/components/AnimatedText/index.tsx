@@ -23,7 +23,7 @@ const Text = styled.div<{ $expanded?: boolean }>`
   font-size: 12px;
   font-weight: bold;
   color: white;
-  padding: 8px;
+  padding: 6px 8px;
   transition: all 0.3s ease;
   opacity: ${({ $expanded }) => ($expanded ? 1 : 0)};
   text-transform: capitalize;

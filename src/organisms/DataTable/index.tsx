@@ -4,6 +4,8 @@ import React, {
   useMemo,
   useRef,
   useLayoutEffect,
+  lazy,
+  Suspense
 } from "react";
 import {
   RowData,
@@ -47,11 +49,12 @@ import { MainHeader } from "./components/MainHeader";
 import { SettingsPanel } from "./components/MainHeader/SettingsPanel";
 import { ColumnHeader } from "./components/ColumnHeader";
 import { Body } from "./components/Body";
+import { CellSkeleton } from "./components/Body/SkeletonBody";
 import { Footer } from "./components/Footer";
-import { CellRenderer } from "./components/CellRenderer";
 import { transformColumnSettings } from "./utils/columnCreation";
 import { SelectColumn } from "./components/SelectColumn";
 import { RowActionsColumn } from "./components/RowActionsColumn";
+// import { CellSkeleton } from "./components/CellRenderer/CellGate";
 import { useRowActions } from "./hooks/useRowActions";
 import { useAutoScroll } from "./hooks/useAutoScroll";
 import { useDebouncedColumnSettingsChange } from "./hooks/useDebouncedColumnSettingsChange";
@@ -75,6 +78,8 @@ import {
 import { restrictToHorizontalAxis } from "@dnd-kit/modifiers";
 import { arrayMove } from "@dnd-kit/sortable";
 import { Button } from "../../atoms/Button";
+
+const LazyCellRenderer = lazy(() => import("./components/CellRenderer"));
 
 /** ---------- STABLE DEFAULTS & GUARDS ---------- */
 const EMPTY_COL_SETTINGS: ReadonlyArray<any> = Object.freeze([]);
@@ -807,17 +812,22 @@ export const DataTable = <T extends object>({
         isDisabledRow: (row: any) => disabledRows.includes(row.__internalId),
       },
       cell: (cellProps: any) => (
-        <CellRenderer
-          {...cellProps}
-          {...colDef}
-          cellLoading={cellLoading}
-          editingCell={editingCell}
-          setEditingCell={setEditingCell}
-          handleCellCommit={handleCellCommit}
-          columnFilters={columnFilters}
-          globalFilter={globalFilter}
-          uniqueValueMaps={uniqueValueMaps}
-        />
+        <Defer>
+          <Suspense fallback={<CellSkeleton/>}>
+            <LazyCellRenderer
+              {...cellProps}
+              {...colDef}
+              // pass only what the cell actually needs to keep props stable
+              cellLoading={cellLoading}
+              editingCell={editingCell}
+              setEditingCell={setEditingCell}
+              handleCellCommit={handleCellCommit}
+              columnFilters={columnFilters}
+              globalFilter={globalFilter}
+              uniqueValueMaps={uniqueValueMaps}
+            />
+          </Suspense>
+        </Defer>
       ),
     };
   };
@@ -1238,6 +1248,29 @@ export const DataTable = <T extends object>({
     });
     return unsub;
   }, []);
+
+  // prefetch the chunk after first paint (no layout delay)
+  useEffect(() => {
+    // Defers the network fetch to idle to avoid blocking first paint
+    const id = (window as any).requestIdleCallback
+      ? (window as any).requestIdleCallback(() => import("./components/CellRenderer"))
+      : setTimeout(() => import("./components/CellRenderer"), 200);
+
+    return () => {
+      if ((window as any).cancelIdleCallback) (window as any).cancelIdleCallback(id);
+      else clearTimeout(id);
+    };
+  }, []);
+
+  const Defer: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const [ready, setReady] = React.useState(false);
+    React.useEffect(() => {
+      // next frame → after paint
+      const id = requestAnimationFrame(() => setReady(true));
+      return () => cancelAnimationFrame(id);
+    }, []);
+    return ready ? <>{children}</> : null;
+  };
 
   const restoreFocusToTable = React.useCallback(() => {
     // wait a tick so the modal unmounts first

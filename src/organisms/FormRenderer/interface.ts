@@ -149,7 +149,7 @@ export interface SubmitResult<T> {
 
 export interface FormRendererProps<T extends Record<string, any>> {
   fieldSettings: SettingsItem[];
-  dataSource: T;
+  dataSource?: T;
   onSubmit?: (result: SubmitResult<T>) => void;
   onChange?: (values: T) => void;
 

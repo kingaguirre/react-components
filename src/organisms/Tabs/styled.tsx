@@ -277,6 +277,8 @@ export const TabContentWrapper = styled.div<{
   color: ${theme.colors.default.dark};
   outline: none;
   transition: all 0.3s ease;
+  /* prevent bleed during height animation */
+  overflow: hidden;
 
   /* Modern content styling to match pill header */
   ${({ $variant, $color }) =>

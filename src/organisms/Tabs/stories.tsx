@@ -54,6 +54,35 @@ export const Default: StoryObj<typeof meta> = {
   tags: ['!dev']
 }
 
+// Simulate real lazy modules (no skeleton; resolves after a short delay)
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+const LazySmall = React.lazy(async () => {
+  await wait(600);
+  return {
+    default: () => <p>Lazy Small Content (loaded after ~600ms)</p>,
+  };
+});
+
+const LazyBig = React.lazy(async () => {
+  await wait(900);
+  return {
+    default: () => (
+      <div>
+        <p><strong>Lazy Big Content</strong></p>
+        <div
+          style={{
+            height: 220,
+            borderRadius: 6,
+            background: "#f2f3f5",
+            boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.06)",
+          }}
+        />
+      </div>
+    ),
+  };
+});
+
 export const Examples = {
   tags: ['!autodocs'],
   render: () => (
@@ -147,6 +176,25 @@ export const Examples = {
         };
         return <ControlledDemo />;
       })()}
+
+      <Title>Lazy-loaded Panels (React.lazy)</Title>
+      <p>
+        Pass <code>React.lazy</code> components as <code>content</code>. Tabs has built-in{' '}
+        <code>{'<Suspense/>'}</code> and deferred mounting, so there’s no API change. The active
+        tab mounts on an idle tick; if the panel is lazy, it renders when the chunk resolves (zero height in the meantime).
+      </p>
+
+      <Tabs
+        tabs={[
+          { title: 'Immediate', content: <p>Instant content</p> },
+          { title: 'Lazy Small', content: <LazySmall /> },
+          { title: 'Lazy Big', content: <LazyBig /> },
+        ]}
+        // Try starting on a lazy tab to see the first-mount height animation
+        activeTab={1}
+        variant="pill"
+      />
+
     </StoryWrapper>
   )
 }

@@ -52,6 +52,20 @@ export const demoSettings: SettingsItem[] = [
       hidden:   (v) => v.demoTable.mode === 'hidden',
       fields: [
         {
+          label: 'Maker',
+          name: 'maker',
+          placeholder: 'Enter Maker',
+          disabled:(v) => v.demoTable.mode === 'fieldsDisabled',
+        },
+        {
+          label: 'Approval Status',
+          name: 'bcaTerms.status',
+          placeholder: 'Enter Approval Status',
+          type: 'text',
+          validation: (z) => z.string().optional(),
+          disabled:(v) => v.demoTable.mode === 'fieldsDisabled',
+        },
+        {
           label: 'Maker Comments',
           name: 'bcaTerms.makerComments',
           placeholder: 'Enter Maker Comments',
@@ -65,14 +79,6 @@ export const demoSettings: SettingsItem[] = [
           placeholder: 'Enter Checker Comments',
           type: 'textarea',
           validation: (z) => z.string().min(1),
-          disabled:(v) => v.demoTable.mode === 'fieldsDisabled',
-        },
-        {
-          label: 'Approval Status',
-          name: 'bcaTerms.status',
-          placeholder: 'Enter Approval Status',
-          type: 'text',
-          validation: (z) => z.string().optional(),
           disabled:(v) => v.demoTable.mode === 'fieldsDisabled',
         },
         {
