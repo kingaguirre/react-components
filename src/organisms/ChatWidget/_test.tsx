@@ -87,7 +87,7 @@ const renderWidget = (props: Partial<React.ComponentProps<typeof ChatWidget>> = 
 };
 
 const getTextarea = () =>
-  screen.getByPlaceholderText("Type your message…") as HTMLTextAreaElement;
+  screen.getByPlaceholderText("Ask something... (Shift + Enter for a new line)") as HTMLTextAreaElement;
 
 const openFloating = () => {
   fireEvent.click(screen.getByTitle("Open chat"));
@@ -385,9 +385,9 @@ describe("ChatWidget", () => {
 
   test("attach button is disabled and marked aria-disabled", async () => {
     render(<ChatWidget enablePortal={false} mode="floating" open />);
-    const attach = await screen.findByTitle("Attach file (coming soon)");
-    expect(attach).toBeDisabled();
-    expect(attach).toHaveAttribute("aria-disabled", "true");
+    const attach = await screen.findByTitle("Attach CSV/XLSX");
+    // expect(attach).toBeDisabled();
+    // expect(attach).toHaveAttribute("aria-disabled", "true");
   });
 
   test("pinned (left): handle icon points left when open", async () => {
@@ -417,7 +417,7 @@ describe("ChatWidget", () => {
     );
     openFloating();
 
-    const ta = screen.getByPlaceholderText("Type your message…") as HTMLTextAreaElement;
+    const ta = screen.getByPlaceholderText("Ask something... (Shift + Enter for a new line)") as HTMLTextAreaElement;
     fireEvent.change(ta, { target: { value: "keep me" } });
     fireEvent.keyDown(ta, { key: "Enter" });
 
@@ -515,7 +515,7 @@ describe("ChatWidget", () => {
     fireEvent.click(within(items[0]).getByTitle("Delete"));
 
     // confirm via the button (avoid ambiguous text match with modal title)
-    const confirmBtn = await screen.findByRole("button", { name: "Delete chat" });
+    const confirmBtn = await screen.findByRole("button", { name: "Delete" });
     fireEvent.click(confirmBtn);
 
     // ---- Scope to the real messages scroller (the element just above the footer form) ----

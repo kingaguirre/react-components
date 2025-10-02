@@ -4,7 +4,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import ChatWidget from "..";
 import type { ChatSession } from "../interfaces";
 import { StoryWrapper } from "../../../components/StoryWrapper";
-import { DemoContainer } from "../stories";
+import { DemoContainer } from "../aiUtils/DemoContainer";
 import { streamFromExpress } from "../../../common/server/ai/expressClient";
 import {
   fetchWorkdeskFull,
@@ -12,8 +12,9 @@ import {
   TERMINOLOGY,
   type FullRow,
   type WorkdeskSummary,
-} from "../server/workdeskUtils";
-
+} from "../aiUtils/workdeskUtils";
+import { buildFormContextForAI } from "../aiUtils/formToAI";
+import { FIELD_SETTINGS, VALUES, COLUMN_SETTINGS, DATA_SOURCE } from '../aiUtils/data'
 /* -----------------------------------------------------------------------------
    Storybook meta
 ----------------------------------------------------------------------------- */
@@ -29,7 +30,31 @@ export const StreamingViaOpenAIProxy: StoryObj = {
   tags: ["!autodocs"],
   render: () => {
     const STORAGE_KEY = "chatwidget:sessions:streaming-demo";
+    const CONVO_KEY = "chatwidget:conversationId:streaming-demo";
 
+    // ---- Stable per-tab conversationId (used as context.sessionId) ----
+    const conversationIdRef = React.useRef<string | null>(null);
+    if (!conversationIdRef.current) {
+      try {
+        let id = sessionStorage.getItem(CONVO_KEY);
+        if (!id) {
+          // Prefer crypto UUID, fallback to random string
+          id =
+            (typeof crypto !== "undefined" &&
+              (crypto as any).randomUUID &&
+              (crypto as any).randomUUID()) ||
+            Math.random().toString(36).slice(2) + Date.now().toString(36);
+          sessionStorage.setItem(CONVO_KEY, id!);
+        }
+        conversationIdRef.current = id;
+      } catch {
+        conversationIdRef.current =
+          Math.random().toString(36).slice(2) + Date.now().toString(36);
+      }
+    }
+    const conversationId = conversationIdRef.current!;
+
+    // ---- Persist ChatWidget sessions in localStorage for the story ----
     const [sessions, setSessions] = React.useState<ChatSession[]>(() => {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
@@ -44,6 +69,16 @@ export const StreamingViaOpenAIProxy: StoryObj = {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
       } catch {}
     }, [sessions]);
+
+    // Optional: if you ever decide to add a “New chat” UI here,
+    // you can also reset the conversationId like this:
+    // const resetConversationId = () => {
+    //   try { sessionStorage.removeItem(CONVO_KEY); } catch {}
+    //   conversationIdRef.current =
+    //     ((crypto as any)?.randomUUID?.() as string) ||
+    //     Math.random().toString(36).slice(2) + Date.now().toString(36);
+    //   sessionStorage.setItem(CONVO_KEY, conversationIdRef.current);
+    // };
 
     // ---- “default memory” fetched from your backend ----
     const [stats, setStats] = React.useState<WorkdeskSummary | null>(null);
@@ -119,17 +154,43 @@ export const StreamingViaOpenAIProxy: StoryObj = {
               metadata: { ignoreUnread: true, seeded: true },
             }
           }
-          // Forward minimal memory; server plugin will ALWAYS deep-fetch full/range data.
-          context={{ memory: { stats, terminology: TERMINOLOGY } }}
-          onStreamMessage={async ({ text, messages, abortController, context }) =>
-            streamFromExpress({
+          // Forward minimal memory + sessionId; the server/plugin uses context.sessionId
+          // to remember your last range/top-N for follow-up exports.
+          context={{
+            sessionId: conversationId,
+            memory: { stats, terminology: TERMINOLOGY },
+          }}
+          onStreamMessage={async ({ text, messages, abortController, context }) => {
+            // const values = formRef.current?.getValues?.() ?? {};
+            const aiForm = buildFormContextForAI({
+              currentModule: "Transaction Workdesk",
+              currentScreen: "Transaction Workdesk Catalog",
+              // values: VALUES,
+              // fieldSettings: FIELD_SETTINGS as any,
+              values: DATA_SOURCE,
+              columnSettings: COLUMN_SETTINGS,
+              description: "This screen contains a table of the Transaction Workdesk catalog.",
+            });
+            return streamFromExpress({
               text,
               history: messages,
               signal: abortController.signal,
               model: "gpt-4o-mini",
-              context,
               proxyUrl: "http://localhost:4000/api/ai/stream",
-            })
+
+              // Base URL override (keep in localStorage to tweak in Storybook)
+              baseUrl: localStorage.getItem("ai:baseUrl") || "https://api.openai.com/v1",
+
+              // Dev parity—pull the saved key from server and forward as header
+              useServerKeyHeader: true,
+              devKeyEndpoint: "http://localhost:4000/api/dev/openai-key",
+
+              context: {
+                ...(context || {}),
+                tabId: conversationId,
+                form: aiForm,
+              },
+            })}
           }
         />
 
@@ -141,6 +202,10 @@ export const StreamingViaOpenAIProxy: StoryObj = {
               The assistant seeds a “Daily snapshot” from <code>/workdesk/full?limit=0</code>.
               The server-side plugin always deep-fetches the full dataset or any requested date range,
               so there’s no 50-row hotset fallback.
+              <br />
+              <strong>Tip:</strong> The session-scoped exports rely on{" "}
+              <code>context.sessionId</code> — which this story sets via{" "}
+              <code>sessionStorage</code>.
             </>
           }
           style={{ marginTop: 12 }}

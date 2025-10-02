@@ -10,11 +10,7 @@ import React, {
 } from "react";
 import { createPortal } from "react-dom";
 import * as S from "./styled";
-import type {
-  ChatMessage,
-  ChatWidgetProps,
-  ChatSession,
-} from "./interfaces";
+import type { ChatMessage, ChatWidgetProps, ChatSession } from "./interfaces";
 import { createId, isBrowser, nowIso, scrollToBottom } from "./utils";
 
 // DS primitives
@@ -23,6 +19,7 @@ import { FormControl } from "../../atoms/FormControl";
 import { Button } from "../../atoms/Button";
 import { Icon } from "../../atoms/Icon";
 import { Modal } from "../../organisms/Modal";
+import { Tooltip } from "../../atoms/Tooltip";
 import { timeAgo } from "../AppShell/components/NotificationDropdown/utils";
 
 // Local splits
@@ -31,26 +28,65 @@ import {
   REPLY_CANCEL_MESSAGE,
   TIMEAGO_TICK_MS,
 } from "./constants";
-import MarkdownContent, { toPlainText } from "./components/MarkdownContent";
+import MarkdownContent from "./components/MarkdownContent";
 import {
   useStorage,
   readSessionsFromStorage,
   writeSessionsToStorage,
   useFlushOnExit,
-  makeTitle,
+  makeTitleCap,
   messagesForPersistence,
   normalizeInitialMessage,
   MutateOptions,
-  useControlled
+  useControlled,
+  toPlainText,
+  scrub,
+  middleTruncateToWidth,
+  splitFilename,
 } from "./utils";
 
-// -------------------------------
+// --- Pixel-fitted name (base=100px, ext always visible) ---
+const AttachmentNameFitted: React.FC<{ name: string; widthPx?: number }> = ({
+  name,
+  widthPx = 100,
+}) => {
+  const { base, ext } = splitFilename(name);
+  const baseRef = React.useRef<HTMLSpanElement | null>(null);
+  const [font, setFont] = React.useState("11px system-ui");
 
-const ChatWidget: React.FC<ChatWidgetProps> = ({
+  // Grab actual computed font from the base span for accurate measurement
+  React.useLayoutEffect(() => {
+    const el = baseRef.current;
+    if (!el) return;
+    const cs = getComputedStyle(el);
+    const f =
+      `${cs.fontStyle} ${cs.fontVariant} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`
+        .replace(/\s+/g, " ")
+        .trim();
+    if (f) setFont(f);
+  }, [name]);
+
+  const displayBase = React.useMemo(() => {
+    if (typeof window === "undefined") return base;
+    return middleTruncateToWidth(base, widthPx, font);
+  }, [base, widthPx, font]);
+
+  return (
+    <S.AttachmentName title={name} $baseW={widthPx}>
+      <span className="base" ref={baseRef}>
+        {displayBase}
+      </span>
+      {ext && <span className="ext">.{ext}</span>}
+    </S.AttachmentName>
+  );
+};
+
+export const ChatWidget: React.FC<ChatWidgetProps> = ({
   // Behavior
   mode = "floating", // "floating" | "pinned"
   side = "right",
   showLauncher = true,
+  shadow = true,
 
   open,
   toggleOpen,
@@ -118,7 +154,8 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
 
   // Storage IO
   const readFromStore = useCallback(
-    (): ChatSession[] => readSessionsFromStorage(persistKey, storageRef, resolveStorage),
+    (): ChatSession[] =>
+      readSessionsFromStorage(persistKey, storageRef, resolveStorage),
     [persistKey, storageRef, resolveStorage],
   );
   const writeToStore = useCallback(
@@ -168,6 +205,9 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
   useEffect(() => {
     messagesRef.current = messagesState;
   }, [messagesState]);
+
+  const [animReady, setAnimReady] = useState(false);
+  useEffect(() => setAnimReady(true), []);
 
   // ---------- Sessions with built-in persistence ----------
   const isUncontrolledSessions = sessionsProp === undefined;
@@ -245,6 +285,53 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
     value: string;
   } | null>(null);
 
+  // ---------- NEW: attachment state ----------
+  const [attachments, setAttachments] = useState<
+    { id: string; name: string; mime: string; bytesB64: string }[]
+  >([]);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const pickFile = () => fileInputRef.current?.click();
+
+  const readFileAsB64 = async (file: File) => {
+    const ab = await file.arrayBuffer();
+    // btoa expects a binary string; Uint8Array → string
+    let binary = "";
+    const bytes = new Uint8Array(ab);
+    const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+    }
+    return btoa(binary);
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0] ?? null;
+    if (!f) return;
+    try {
+      const b64 = await readFileAsB64(f);
+      setAttachments([
+        {
+          id: createId("att"),
+          name: f.name,
+          mime: f.type || "",
+          bytesB64: b64,
+        },
+      ]);
+      onEvent?.("attach_file", { name: f.name, size: f.size, type: f.type });
+    } catch (err: any) {
+      onEvent?.("attach_error", { error: String(err?.message ?? err) });
+    } finally {
+      // allow re-picking the same file name
+      e.target.value = "";
+    }
+  };
+
+  const removeAttachment = () => {
+    if (loading) return;
+    setAttachments([]);
+  };
+
   // rename modal focusing and Enter handling
   const renameModalRef = useRef<HTMLDivElement | null>(null);
   const renameInputRef = useRef<HTMLInputElement | null>(null);
@@ -321,8 +408,19 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
     if (ta.scrollHeight > max) ta.scrollTop = ta.scrollHeight; // keep caret visible
   }, []);
 
+  const didInitRef = useRef(false);
   /** Open/close orchestration (render gate + exit animation) */
   useEffect(() => {
+    // Skip exit anim on first render when starting closed
+    if (!didInitRef.current) {
+      didInitRef.current = true;
+      if (!isOpen) {
+        setRendered(false);
+        setIsExiting(false);
+        return;
+      }
+    }
+
     if (isOpen) {
       setRendered(true);
       setIsExiting(false);
@@ -451,7 +549,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
     if (idx < 0) {
       const provisional: ChatSession = {
         id: targetSid,
-        title: makeTitle(persistable),
+        title: makeTitleCap(persistable),
         createdAt: now,
         updatedAt: now,
         messages: persistable,
@@ -471,21 +569,19 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
     const updated: ChatSession = {
       ...prev,
       messages: persistable,
-      title: prev.title || makeTitle(persistable),
+      title: prev.title || makeTitleCap(persistable),
       updatedAt: now,
     };
 
     if (contentChanged) {
-      const nextSessions = [
+      const next = [
         updated,
         ...sessionsState.filter((s) => s.id !== targetSid),
       ];
-      mutateSessions(nextSessions);
+      mutateSessions(next);
     } else {
-      const nextSessions = sessionsState.map((s) =>
-        s.id === targetSid ? updated : s,
-      );
-      mutateSessions(nextSessions);
+      const next = sessionsState.map((s) => (s.id === targetSid ? updated : s));
+      mutateSessions(next);
     }
   };
 
@@ -508,17 +604,20 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
               messages: persistable,
               updatedAt: now,
               title:
-                sessionsState[idx].title?.trim() || makeTitle(persistable),
+                sessionsState[idx].title?.trim() || makeTitleCap(persistable),
             }
           : {
               id: sid,
-              title: makeTitle(persistable),
+              title: makeTitleCap(persistable),
               createdAt: now,
               updatedAt: now,
               messages: persistable,
             };
 
-      const nextSessions = [updated, ...sessionsState.filter((s) => s.id !== sid)];
+      const nextSessions = [
+        updated,
+        ...sessionsState.filter((s) => s.id !== sid),
+      ];
       writeToStore(nextSessions);
     } catch {
       /* ignore */
@@ -548,7 +647,8 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
   // Replace/insert seed if `initialMessage` arrives later and no real messages yet
   useEffect(() => {
     // If there's any non-seeded message, do nothing (user has started chatting)
-    const hasNonSeed = messagesState?.some?.((m) => !m?.metadata?.seeded) ?? false;
+    const hasNonSeed =
+      messagesState?.some?.((m) => !m?.metadata?.seeded) ?? false;
     if (hasNonSeed) return;
 
     const nextSeed = resolveSeed();
@@ -575,7 +675,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
     const nextText =
       typeof nextMsg.content === "string" || typeof nextMsg.content === "number"
         ? String(nextMsg.content)
-        : toPlainText((nextMsg as any)?.content?.props?.children);
+        : toPlainText((nextMsg as any).content?.props?.children);
 
     if ((currText || "").trim() !== (nextText || "").trim()) {
       const updated = [...messagesState];
@@ -584,7 +684,6 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
       mutateMessages(updated, { silent: true });
     }
   }, [initialMessage, messagesState, resolveSeed]); // react when prop changes
-
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     const submitOnEnter = inputBehavior.submitOnEnter ?? true;
@@ -636,7 +735,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
 
           const updated: ChatSession = {
             ...prev,
-            title: prev.title?.trim() ? prev.title : makeTitle(persistable),
+            title: prev.title?.trim() ? prev.title : makeTitleCap(persistable),
             updatedAt: now,
             messages: persistable,
           };
@@ -661,7 +760,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
       }
 
       // Create new session
-      const title = makeTitle(persistable);
+      const title = makeTitleCap(persistable);
       const sess: ChatSession = {
         id: createId("session"),
         title,
@@ -744,6 +843,17 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
     if (inputBehavior.clearOnSend ?? true) setText("");
     onEvent?.("send", { length: trimmed.length });
 
+    const turnContext = {
+      ...(context as any),
+      // Scope server-side memory to THIS chat (not the whole tab)
+      sessionId:
+        targetSid ??
+        activeSessionIdRef.current ??
+        (context as any)?.sessionId ??
+        "default",
+      ...(attachments.length ? { attachments } : {}),
+    };
+
     try {
       if (onStreamMessage || (streamByDefault && onSendMessage)) {
         const aId = createId("assistant");
@@ -776,13 +886,13 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
             text: trimmed,
             messages: next,
             abortController: abort,
-            context,
+            context: turnContext, // ⬅ pass attachments
           });
         } else {
           const res = await onSendMessage!({
             text: trimmed,
             messages: next,
-            context,
+            context: turnContext, // ⬅ pass attachments
           });
           const content = (res as any)?.content ?? "";
           async function* streamFromText(s: string, chunk = 12, delay = 16) {
@@ -846,7 +956,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
         const res = await onSendMessage({
           text: trimmed,
           messages: next,
-          context,
+          context: turnContext, // ⬅ pass attachments
         });
         next = next.map((m) =>
           m.id === userId ? { ...m, status: "sent" } : m,
@@ -978,6 +1088,8 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
       setLoading(false);
       abortRef.current = null;
       stoppedByUserRef.current = false;
+      // ⬅ NEW: clear attachment after each turn (so it’s per-turn)
+      setAttachments([]);
     }
   }, [
     text,
@@ -994,6 +1106,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
     setActiveSession,
     autosize,
     isRenaming,
+    attachments,
   ]);
 
   const handleNewChat = () => {
@@ -1144,12 +1257,15 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
                     <S.Dot $variant="base" $delay={120} />
                     <S.Dot $variant="dark" $delay={240} />
                   </S.TypingIndicator>
-                ) : typeof m.content === "string" || typeof m.content === "number" ? (
-                  <MarkdownContent value={String(m.content)} />
+                ) : typeof m.content === "string" ||
+                  typeof m.content === "number" ? (
+                  <MarkdownContent value={scrub(String(m.content))} />
                 ) : React.isValidElement(m.content) ? (
                   m.content
                 ) : (m as any)?.content?.props ? (
-                  <MarkdownContent value={toPlainText((m as any).content.props?.children)} />
+                  <MarkdownContent
+                    value={toPlainText((m as any).content.props?.children)}
+                  />
                 ) : (
                   <span style={{ opacity: 0.7, fontStyle: "italic" }}>
                     [unsupported content]
@@ -1162,10 +1278,10 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
               {m.status === "sending"
                 ? "sending"
                 : m.status === "sent"
-                ? "sent"
-                : m.status === "error"
-                ? "error"
-                : ""}
+                  ? "sent"
+                  : m.status === "error"
+                    ? "error"
+                    : ""}
             </S.MetaLine>
           </div>
         ))}
@@ -1191,14 +1307,58 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
           />
 
           <S.IconDock>
-            <S.IconGhostBtn
-              type="button"
-              title="Attach file (coming soon)"
-              disabled
-              aria-disabled="true"
-            >
-              <Icon icon="attach_file" />
-            </S.IconGhostBtn>
+            <div>
+              {attachments.length > 0 ? (
+                <Tooltip
+                  content={
+                    loading
+                      ? "Streaming… file will be sent with this turn"
+                      : "Will be sent with your next message"
+                  }
+                >
+                  <S.AttachmentChip
+                    role="status"
+                    aria-label={`${attachments[0].name} attached`}
+                  >
+                    <Icon icon="attach_file" size={12} />
+                    <AttachmentNameFitted
+                      name={attachments[0].name}
+                      widthPx={100}
+                    />
+                    <S.AttachmentRemove
+                      type="button"
+                      onClick={removeAttachment}
+                      title="Remove attachment"
+                      aria-label="Remove attachment"
+                      disabled={loading || isRenaming}
+                      aria-disabled={loading || isRenaming}
+                    >
+                      <Icon icon="clear" size={12} />
+                    </S.AttachmentRemove>
+                  </S.AttachmentChip>
+                </Tooltip>
+              ) : (
+                <>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".csv,.xlsx"
+                    onChange={handleFileChange}
+                    style={{ display: "none" }}
+                  />
+
+                  <S.IconGhostBtn
+                    type="button"
+                    title="Attach CSV/XLSX"
+                    onClick={pickFile}
+                    disabled={loading || isRenaming}
+                    aria-disabled={loading || isRenaming}
+                  >
+                    <Icon icon="attach_file" />
+                  </S.IconGhostBtn>
+                </>
+              )}
+            </div>
 
             <div>
               {onStreamMessage && loading && (
@@ -1327,12 +1487,9 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
       $zIndex={zIndex + 1}
       $offset={offset}
     >
-      <S.AnimatedPanel
-        $entering={!!isOpen && !isExiting}
-        $exiting={!isOpen && isExiting}
-        $pos={position}
-      >
+      <S.AnimatedPanel $open={isOpen} $pos={position} $animReady={animReady}>
         <Panel
+          hideShadow={!shadow}
           title={headerTitle}
           leftIcon={{ icon: "chat" }}
           rightIcons={[
@@ -1352,7 +1509,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
 
   /** Pinned handle INSIDE portal/container */
   const pinnedHandle =
-    mode === "pinned" ? (
+    mode === "pinned" && showLauncher ? (
       <S.PinnedHandleLayer
         $zIndex={zIndex}
         $fixed={portalRoot === document.body}
@@ -1379,20 +1536,24 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
     ) : null;
 
   const pinnedPanel =
-    mode === "pinned" && rendered ? (
+    mode === "pinned" ? (
       <S.PinnedMount
         $side={side}
         $maxW={maxWidth}
         $zIndex={zIndex}
         $fixed={portalRoot === document.body}
+        $active={isOpen || isExiting}
       >
         <S.SidePanel
           ref={sidePanelRef}
           $side={side}
-          $entering={!!isOpen && !isExiting}
-          $exiting={!isOpen && isExiting}
+          $maxW={maxWidth}
+          $open={isOpen}
+          $animReady={animReady}
+          aria-hidden={!isOpen}
         >
           <Panel
+            hideShadow={!shadow}
             title={headerTitle}
             leftIcon={{ icon: "chat" }}
             rightIcons={[

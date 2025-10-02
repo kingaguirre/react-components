@@ -2,16 +2,20 @@
 // Run: npm i express cors && node server.js
 // Env knobs: DELAY_MS=400 DELAY_JITTER=200 PORT=4000
 import 'dotenv/config';
+import OpenAI from "openai";
 import express from "express";
 import cors from "cors";
-import { createAIStreamHandler } from "./src/common/server/ai/streamFactory.js";
-import { workdeskPlugin } from "./src/organisms/ChatWidget/server/workdesk.js";
+import { createAIStreamHandler, aiDownloadRoute } from "./src/common/server/ai/streamFactory.js";
+import { workdeskPlugin } from "./src/organisms/ChatWidget/aiUtils/workdesk.js";
 
 const PORT = Number(process.env.PORT ?? 4000);
 const BASE_DELAY = Number.isFinite(Number(process.env.DELAY_MS)) ? Number(process.env.DELAY_MS) : 100;
 const JITTER = Number.isFinite(Number(process.env.DELAY_JITTER)) ? Number(process.env.DELAY_JITTER) : 50;
 
 const app = express();
+// 🔺 MUST COME FIRST: body parsers
+app.use(express.json({ limit: "50mb" }));          // bump as needed
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use(cors());
 app.use(express.json());
 
@@ -780,7 +784,7 @@ app.get("/workdesk", (req, res) => {
 
   const statusStr = typeof status === "string" ? status.trim().toUpperCase() : "";
   if (statusStr && statusStr !== "ALL") {
-    rows = rows.filter((r) => /Initiated/i.test(r.workflowStage) ? "PENDING" : "REGISTERED" === statusStr);
+    rows = rows.filter((r) => deriveStatus(r) === statusStr);
   }
   if (String(trnSearch).trim()) {
     const needle = String(trnSearch).toLowerCase();
@@ -996,13 +1000,118 @@ app.get("/txn/id/:id", (req, res) => {
 });
 
 // ------------------ /api/ai/stream (OpenAI proxy) ------------------
-const aiStream = createAIStreamHandler({
-  plugin: workdeskPlugin,
-  openaiApiKey: process.env.OPENAI_API_KEY,
-  baseUrl: `http://localhost:${PORT}`,
-  cacheTtlMs: 15_000,
+app.post("/api/ai/stream", (req, res, next) => {
+  const handler = createAIStreamHandler({
+    plugin: workdeskPlugin,
+    openaiApiKey: req.get("x-openai-key") || req.app?.locals?.devOpenAIKey || process.env.OPENAI_API_KEY,
+    baseUrl: `http://localhost:${PORT}`,
+    cacheTtlMs: 15_000,
+  });
+  return handler(req, res, next);
 });
-app.post("/api/ai/stream", aiStream);
+
+// Serve one-time download links (used by CSV/XLSX exports)
+app.get("/__ai-download/:token", aiDownloadRoute);
+
+// (Optional) nicer error for 413s
+app.use((err, req, res, next) => {
+  if (err?.type === "entity.too.large") {
+    return res.status(413).send("Payload too large. Try a smaller file or compress it.");
+  }
+  next(err);
+});
+
+// ------------------ /api/ai/openai (OpenAI streaming proxy via SDK) ------------------
+app.post("/api/ai/openai", async (req, res) => {
+  const headerKey = req.get("x-openai-key"); // optional client-supplied key
+  const apiKey = headerKey || process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    return res
+      .status(400)
+      .send("OpenAI key missing (set OPENAI_API_KEY or send X-OpenAI-Key)");
+  }
+
+  const {
+    model = "gpt-4o-mini",
+    stream = true,
+    temperature = 0.2,
+    messages,
+    input,
+    baseUrl,
+  } = req.body || {};
+
+  const finalMessages = Array.isArray(messages)
+    ? messages
+    : [{ role: "user", content: String(input ?? "") }];
+
+  // Instantiate SDK with optional baseURL override (falls back to env or default)
+  const client = new OpenAI({
+    apiKey,
+    baseURL: baseUrl || process.env.OPENAI_BASE_URL || "https://api.openai.com/v1",
+  });
+
+  // Streamed: write SSE frames that your client already expects
+  if (stream) {
+    res.status(200);
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+
+    try {
+      const s = await client.chat.completions.create({
+        model,
+        temperature,
+        messages: finalMessages,
+        stream: true,
+      });
+
+      for await (const chunk of s) {
+        // Re-emit as SSE so the frontend parser works unchanged
+        res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+      }
+      res.write("data: [DONE]\n\n");
+    } catch (err) {
+      const status = typeof err?.status === "number" ? err.status : 500;
+      const payload = {
+        name: err?.name || "UpstreamError",
+        message: err?.message || "Unknown upstream error",
+        status,
+      };
+      // send an SSE error event and end
+      res.write(`event: error\ndata: ${JSON.stringify(payload)}\n\n`);
+      res.status(status);
+    } finally {
+      res.end();
+    }
+    return;
+  }
+
+  // Non-streamed JSON response
+  try {
+    const out = await client.chat.completions.create({
+      model,
+      temperature,
+      messages: finalMessages,
+      stream: false,
+    });
+    res.status(200).json(out);
+  } catch (err) {
+    res
+      .status(typeof err?.status === "number" ? err.status : 500)
+      .json({ error: { name: err?.name, message: err?.message, status: err?.status } });
+  }
+});
+
+// ------------------ DEV OpenAI key storage (in-memory) ------------------
+// in your dev key routes:
+app.get("/api/dev/openai-key", (req, res) => {
+  res.json({ key: req.app.locals.devOpenAIKey || "", hasKey: !!req.app.locals.devOpenAIKey });
+});
+app.put("/api/dev/openai-key", (req, res) => {
+  req.app.locals.devOpenAIKey = typeof req.body?.key === "string" ? req.body.key : "";
+  res.json({ ok: true, hasKey: !!req.app.locals.devOpenAIKey });
+});
 
 app.listen(PORT, () => {
   console.log(`Local API http://localhost:${PORT}  (delay ~${BASE_DELAY}ms ± ${JITTER}ms)`);
