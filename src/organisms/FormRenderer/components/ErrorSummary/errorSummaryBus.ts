@@ -8,16 +8,19 @@ export type ErrorSummaryRevealDetail = {
 
 export const revealErrorSummary = (detail: ErrorSummaryRevealDetail = {}) => {
   if (typeof window === "undefined") return;
-  window.dispatchEvent(new CustomEvent<EventDetail>(EVENT as any, { detail } as any));
+  window.dispatchEvent(
+    new CustomEvent<EventDetail>(EVENT as any, { detail } as any),
+  );
 };
 
 type EventDetail = CustomEvent<ErrorSummaryRevealDetail>;
 
 export const onRevealErrorSummary = (
-  handler: (detail: ErrorSummaryRevealDetail) => void
+  handler: (detail: ErrorSummaryRevealDetail) => void,
 ) => {
   if (typeof window === "undefined") return () => {};
-  const wrapped = (e: Event) => handler((e as unknown as EventDetail).detail ?? {});
+  const wrapped = (e: Event) =>
+    handler((e as unknown as EventDetail).detail ?? {});
   window.addEventListener(EVENT, wrapped as EventListener);
   return () => window.removeEventListener(EVENT, wrapped as EventListener);
 };

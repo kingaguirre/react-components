@@ -232,6 +232,7 @@ export const Modal: React.FC<ModalProps> = (props) => {
         tabIndex={-1}
       >
         <Panel
+          isSubHeader={props.isSubHeader}
           title={title}
           color={color}
           leftIcon={leftIcon}

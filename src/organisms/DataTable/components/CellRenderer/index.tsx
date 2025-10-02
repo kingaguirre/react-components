@@ -1,7 +1,7 @@
 import React, { useMemo, lazy, Suspense } from "react";
 // If EditableCell has ONLY a named export, map it to default:
 const LazyEditableCell = lazy(() =>
-  import("./EditableCell").then((m) => ({ default: m.EditableCell }))
+  import("./EditableCell").then((m) => ({ default: m.EditableCell })),
 );
 import { CellSkeleton } from "../Body/SkeletonBody";
 
@@ -78,7 +78,7 @@ const CellRendererComponent: React.FC<CellRendererProps> = ({
     }
 
     return (
-      <Suspense fallback={<CellSkeleton/>}>
+      <Suspense fallback={<CellSkeleton />}>
         <LazyEditableCell
           editorType={editorType || "text"}
           options={options}

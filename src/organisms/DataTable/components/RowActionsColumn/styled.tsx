@@ -7,7 +7,6 @@ export const ActionContainer = styled.div`
   justify-content: center;
   gap: 6px;
 
-
   button {
     transition: ${theme.transition};
     border: transparent;

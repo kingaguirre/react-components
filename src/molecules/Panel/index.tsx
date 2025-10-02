@@ -58,7 +58,6 @@ export const Panel: React.FC<PanelProps> = ({
           className="panel-header"
           $color={color}
           $disabled={disabled}
-          $hasLeftIcon={!!leftIcon}
           $hasRightIcons={rightIcons.length > 0}
           $isSubHeader={isSubHeader}
           $hasOnClick={!!onHeaderClick}

@@ -1,5 +1,4 @@
 // src/organisms/FormRenderer/FieldSettingsAIAgent/aiService.ts
-
 export async function askAI(userPrompt: string) {
   const systemPrompt = `
 You are a form-config generator. Respond with VALID JSON ONLY: an array of SettingsItem objects matching this interface exactly:

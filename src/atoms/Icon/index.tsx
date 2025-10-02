@@ -28,6 +28,8 @@ export const Icon: React.FC<IconProps> = ({
       onClick={onClick}
     />
   ) : (
-    <FallbackBox data-testid="icon" $size={size}>?</FallbackBox>
+    <FallbackBox data-testid="icon" $size={size}>
+      ?
+    </FallbackBox>
   );
 };

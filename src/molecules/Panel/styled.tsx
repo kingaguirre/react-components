@@ -16,12 +16,16 @@ export const PanelContainer = styled.div<{
       : "none"};
   pointer-events: ${({ $disabled }) => ($disabled ? "none" : "auto")};
   font-family: ${theme.fontFamily};
+  box-sizing: border-box;
+
+  * {
+    box-sizing: border-box;
+  }
 `;
 
 export const PanelHeader = styled.div<{
   $color: ColorType;
   $disabled: boolean;
-  $hasLeftIcon: boolean;
   $hasRightIcons: boolean;
   $isSubHeader?: boolean;
   $hasOnClick?: boolean;
@@ -77,7 +81,6 @@ export const PanelHeader = styled.div<{
     color: inherit;
     cursor: ${({ $disabled, $hasOnClick }) =>
       $disabled ? "not-allowed" : $hasOnClick ? "pointer" : "default"};
-    padding-left: ${({ $hasLeftIcon }) => ($hasLeftIcon ? "8px" : "0")};
     padding-right: ${({ $hasRightIcons }) => ($hasRightIcons ? "8px" : "0")};
     font-size: 12px;
     text-transform: uppercase;

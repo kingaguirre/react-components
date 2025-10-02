@@ -34,7 +34,7 @@ import {
   toLeafFieldSettings,
   toSummaryItems,
   scheduleIdle,
-  cancelIdle
+  cancelIdle,
 } from "./utils";
 
 import renderSkeletonSection from "./components/Skeleton";
@@ -76,18 +76,26 @@ export const FormRenderer = forwardRef(
     const idleHandleRef = React.useRef<any>(null);
     React.useEffect(() => {
       idleHandleRef.current = scheduleIdle(() => setHeavyReady(true), 120);
-      return () => { if (idleHandleRef.current) cancelIdle(idleHandleRef.current); };
+      return () => {
+        if (idleHandleRef.current) cancelIdle(idleHandleRef.current);
+      };
     }, []);
 
     // Keyed by a stable group key we pass down during render
     const tabsActiveIndexRef = React.useRef<Map<string, number>>(new Map());
     const mountedTabsRef = React.useRef<Map<string, Set<number>>>(new Map());
-    const markTabMounted = React.useCallback((groupKey: string, index: number) => {
-      let set = mountedTabsRef.current.get(groupKey);
-      if (!set) { set = new Set<number>(); mountedTabsRef.current.set(groupKey, set); }
-      set.add(index);
-      tabsActiveIndexRef.current.set(groupKey, index); // remember last active
-    }, []);
+    const markTabMounted = React.useCallback(
+      (groupKey: string, index: number) => {
+        let set = mountedTabsRef.current.get(groupKey);
+        if (!set) {
+          set = new Set<number>();
+          mountedTabsRef.current.set(groupKey, set);
+        }
+        set.add(index);
+        tabsActiveIndexRef.current.set(groupKey, index); // remember last active
+      },
+      [],
+    );
 
     const rowSnapshots = React.useRef<Record<string, any>>({});
     const lastProcessedRef = React.useRef<Record<string, number | null>>({});
@@ -397,7 +405,10 @@ export const FormRenderer = forwardRef(
 
       // d) NEW: pre-seed the "last submitted" hash to the baseline
       // so first submit is only "updated: true" if user actually changed something.
-      lastSubmitHashRef.current = hashWithTableMap(initialDefaults as any, nextTableMap);
+      lastSubmitHashRef.current = hashWithTableMap(
+        initialDefaults as any,
+        nextTableMap,
+      );
     }, [dataSource, fieldSettings, reset, initialDefaults, hashWithTableMap]);
 
     React.useEffect(() => {
@@ -530,7 +541,10 @@ export const FormRenderer = forwardRef(
 
       setTableDataMap(nextTableMap);
 
-      lastSubmitHashRef.current = hashWithTableMap(initialDefaults as any, nextTableMap);
+      lastSubmitHashRef.current = hashWithTableMap(
+        initialDefaults as any,
+        nextTableMap,
+      );
 
       setActiveRowIndexMap({});
       rowSnapshots.current = {};
@@ -808,7 +822,7 @@ export const FormRenderer = forwardRef(
         tableDataMap,
         trigger,
         setError,
-        resetToDataSource
+        resetToDataSource,
       ],
     );
 

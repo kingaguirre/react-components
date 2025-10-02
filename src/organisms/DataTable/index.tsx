@@ -5,7 +5,7 @@ import React, {
   useRef,
   useLayoutEffect,
   lazy,
-  Suspense
+  Suspense,
 } from "react";
 import {
   RowData,
@@ -359,7 +359,10 @@ export const DataTable = <T extends object>({
 
             // (optional) if width didn’t actually change, bail early
             const w = el?.clientWidth ?? 0;
-            if (lastContainerWidthRef.current != null && w === lastContainerWidthRef.current) {
+            if (
+              lastContainerWidthRef.current != null &&
+              w === lastContainerWidthRef.current
+            ) {
               return;
             }
 
@@ -813,7 +816,7 @@ export const DataTable = <T extends object>({
       },
       cell: (cellProps: any) => (
         <Defer>
-          <Suspense fallback={<CellSkeleton/>}>
+          <Suspense fallback={<CellSkeleton />}>
             <LazyCellRenderer
               {...cellProps}
               {...colDef}
@@ -1253,11 +1256,14 @@ export const DataTable = <T extends object>({
   useEffect(() => {
     // Defers the network fetch to idle to avoid blocking first paint
     const id = (window as any).requestIdleCallback
-      ? (window as any).requestIdleCallback(() => import("./components/CellRenderer"))
+      ? (window as any).requestIdleCallback(
+          () => import("./components/CellRenderer"),
+        )
       : setTimeout(() => import("./components/CellRenderer"), 200);
 
     return () => {
-      if ((window as any).cancelIdleCallback) (window as any).cancelIdleCallback(id);
+      if ((window as any).cancelIdleCallback)
+        (window as any).cancelIdleCallback(id);
       else clearTimeout(id);
     };
   }, []);

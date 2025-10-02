@@ -115,7 +115,7 @@ export interface FieldGroup {
   tabs?: TabConfig[];
   accordion?: AccordionSection[];
   allowMultiple?: boolean; // allows multiple collapsed sections in the accordion
-  tabVariant?: 'default' | 'pill' // tab variant
+  tabVariant?: "default" | "pill"; // tab variant
   hidden?: boolean | ((values?: Record<string, any>) => boolean);
 }
 

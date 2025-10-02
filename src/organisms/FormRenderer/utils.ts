@@ -213,7 +213,10 @@ export function resolveDisabled(
 }
 
 // Utility to get a deep value. If the path doesn't have dots, it directly returns the value.
-export const getDeepValue = <T = unknown>(obj: any, path?: string): T | undefined => {
+export const getDeepValue = <T = unknown>(
+  obj: any,
+  path?: string,
+): T | undefined => {
   if (obj == null || path == null || path === "") return undefined;
 
   if (!path.includes(".")) {
@@ -280,8 +283,11 @@ export const setDeepValue = (obj: any, path?: string, value?: unknown): any => {
   }
 
   const next = obj?.[first];
-  const seed =
-    Array.isArray(next) ? [...next] : (next != null && typeof next === "object" ? { ...next } : {});
+  const seed = Array.isArray(next)
+    ? [...next]
+    : next != null && typeof next === "object"
+      ? { ...next }
+      : {};
   return {
     ...(obj ?? {}),
     [first]: setDeepValue(seed, rest.join("."), value),
@@ -433,10 +439,10 @@ export const isItemHidden = (item: SettingsItem, values: any): boolean => {
 };
 
 export function filterVisibleSettings(
-  items?: SettingsItem[],            // ← make optional
+  items?: SettingsItem[], // ← make optional
   values?: any,
 ): SettingsItem[] {
-  if (!Array.isArray(items)) return [];  // ← guard top-level
+  if (!Array.isArray(items)) return []; // ← guard top-level
 
   const out: SettingsItem[] = [];
 
@@ -465,7 +471,9 @@ export function filterVisibleSettings(
     // ── Group with fields ──────────────────────────────────────────────────
     if (hasFields(it)) {
       const grp = it as FieldGroup;
-      const grpFields = Array.isArray((grp as any).fields) ? (grp as any).fields : [];
+      const grpFields = Array.isArray((grp as any).fields)
+        ? (grp as any).fields
+        : [];
       out.push({ ...grp, fields: filterVisibleSettings(grpFields, values) });
       continue;
     }
@@ -534,7 +542,7 @@ export function firstTabIndexContainingPath(
 }
 
 export function collectAbsoluteLeafFields(
-  items?: SettingsItem[],                // ← make optional
+  items?: SettingsItem[], // ← make optional
   basePath = "",
 ): Array<{ name: string; fs: FieldSetting & { name: string } }> {
   const out: Array<{ name: string; fs: FieldSetting & { name: string } }> = [];
@@ -573,7 +581,9 @@ export function collectAbsoluteLeafFields(
     // Standard group
     if (hasFields(it)) {
       const grp = (it as any).fields;
-      out.push(...collectAbsoluteLeafFields(Array.isArray(grp) ? grp : [], basePath));
+      out.push(
+        ...collectAbsoluteLeafFields(Array.isArray(grp) ? grp : [], basePath),
+      );
       continue;
     }
 
@@ -604,7 +614,10 @@ export function collectAbsoluteLeafFields(
     // Leaf field
     const fs = it as Partial<FieldSetting> & { name?: string };
     if (typeof fs?.name === "string" && fs.name.trim()) {
-      out.push({ name: prefix(fs.name), fs: fs as FieldSetting & { name: string } });
+      out.push({
+        name: prefix(fs.name),
+        fs: fs as FieldSetting & { name: string },
+      });
     }
     // else: unnamed leaf → skip here (render path will surface the error)
   }

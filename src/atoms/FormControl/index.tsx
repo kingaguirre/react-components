@@ -313,7 +313,12 @@ export const FormControl = forwardRef<
         className={`form-control-input-container ${type ?? ""} ${className ?? ""} ${disabled ? "disabled" : ""} ${isInvalid ? "invalid" : ""}`}
       >
         {label && (
-          <Label className="form-control-label" color={color} size={size} title={label}>
+          <Label
+            className="form-control-label"
+            color={color}
+            size={size}
+            title={label}
+          >
             {required && <span>*</span>}
             {label}
           </Label>
