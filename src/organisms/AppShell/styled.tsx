@@ -70,7 +70,7 @@ export const ContentWrapper = styled.div`
 
 export const MainContent = styled.main`
   flex: 1;
-  padding: 16px;
+  padding: 12px;
   overflow: auto;
   background-color: #e1e1e1;
   ${scrollStyle}

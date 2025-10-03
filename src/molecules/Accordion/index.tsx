@@ -340,7 +340,9 @@ const AccordionItem: React.FC<AccordionItemInternalProps> = ({
       >
         {shouldRender && (
           <AccordionContentInner ref={contentRef}>
-            {showChildren ? <Suspense fallback={null}>{children}</Suspense> : null}
+            {showChildren ? (
+              <Suspense fallback={null}>{children}</Suspense>
+            ) : null}
           </AccordionContentInner>
         )}
       </AccordionContentWrapper>

@@ -683,9 +683,12 @@ export const Dropdown: React.FC<DropdownProps> = ({
 
         lastMultiToggledRef.current = selectedVal;
         const i = visibleItems.findIndex((o) => o.value === selectedVal);
-        if (i !== -1) setFocusedIndex((prevIdx) => (prevIdx === i ? prevIdx : i));
+        if (i !== -1)
+          setFocusedIndex((prevIdx) => (prevIdx === i ? prevIdx : i));
 
-        const nextOptions = combinedOptions.filter((o) => next.includes(o.value));
+        const nextOptions = combinedOptions.filter((o) =>
+          next.includes(o.value),
+        );
         onChange?.(next, nextOptions);
 
         return next;
@@ -970,7 +973,8 @@ export const Dropdown: React.FC<DropdownProps> = ({
     setNewOptions((prev) =>
       mergedCustomCfg.optionAtTop ? [created, ...prev] : [...prev, created],
     );
-    if (mergedCustomCfg.onAdd) defer(() => mergedCustomCfg.onAdd!(created, raw));
+    if (mergedCustomCfg.onAdd)
+      defer(() => mergedCustomCfg.onAdd!(created, raw));
 
     // ✅ Auto-select the newly added option when allowMultiple is false
     if (!mergedCustomCfg.allowMultiple) {
@@ -1002,7 +1006,6 @@ export const Dropdown: React.FC<DropdownProps> = ({
         setIsOpen(false);
       }
     }
-
 
     setIsCreatingCustom(false);
     setCustomText("");

@@ -1,10 +1,6 @@
 // src/organisms/FormRenderer/components/RenderSection/index.tsx
 import React, { useMemo } from "react";
-import {
-  UseFormSetError,
-  UseFormClearErrors,
-  useWatch,
-} from "react-hook-form";
+import { UseFormSetError, UseFormClearErrors, useWatch } from "react-hook-form";
 
 import {
   SettingsItem,
@@ -44,7 +40,6 @@ import { Button } from "../../../../atoms/Button";
 import { revealErrorSummary } from "../ErrorSummary/errorSummaryBus";
 import { ChunkedGrid, RenderOneField } from "./RenderOneField";
 import { Description, SectionWrapper, ButtonContainer } from "../../styled";
-
 
 /* ──────────────────────────────────────────────────────────────────────────────
  * RenderSection as a memoized component (subscribes to visible/draft names)
@@ -148,7 +143,7 @@ export const RenderSection = React.memo(function RenderSection(
       for (const it of nodes) {
         if (hasDataTable(it)) {
           const mapKey = (it as any).dataTable.config.dataSource;
-          const leafs = toLeafFieldSettings(((it as any).dataTable.fields) ?? []); 
+          const leafs = toLeafFieldSettings((it as any).dataTable.fields ?? []);
           for (const lf of leafs)
             names.push(`${basePath ? basePath + "." : ""}${mapKey}.${lf.name}`); // DRAFT inputs
           // Active row inputs are handled by recursion when rendered (prefixItems with index)
@@ -237,7 +232,7 @@ export const RenderSection = React.memo(function RenderSection(
       tableDataMap,
       conditionalKeys,
       queueTriggers,
-    ]
+    ],
   );
 
   /** Flush buffered simple fields, with progressive chunking */
@@ -382,7 +377,9 @@ export const RenderSection = React.memo(function RenderSection(
                     clearErrors(mapKey as any);
 
                     // seed all leaf inputs for the selected row
-                    const namedFields = flattenForSchema(dtLeafFields as any).filter(
+                    const namedFields = flattenForSchema(
+                      dtLeafFields as any,
+                    ).filter(
                       (fs: any): fs is FieldSetting & { name: string } =>
                         typeof fs?.name === "string" && fs.name.length > 0,
                     );
@@ -404,7 +401,9 @@ export const RenderSection = React.memo(function RenderSection(
                         selIdx != null
                           ? `${mapKey}.${selIdx}.${raw}`
                           : `${mapKey}.${raw}`;
-                      const from = canonicalRow ? getFromRow(raw, canonicalRow) : undefined;
+                      const from = canonicalRow
+                        ? getFromRow(raw, canonicalRow)
+                        : undefined;
                       const val =
                         from !== undefined && from !== null
                           ? from
@@ -428,7 +427,9 @@ export const RenderSection = React.memo(function RenderSection(
                   const showActions = leafDraftFS.length > 0;
                   if (!showActions) return null;
 
-                  const draftValues = leafDraftFS.map((fs: any) => getDeepValue(getValues(), `${mapKey}.${fs.name}`) );
+                  const draftValues = leafDraftFS.map((fs: any) =>
+                    getDeepValue(getValues(), `${mapKey}.${fs.name}`),
+                  );
                   const hasDraft = draftValues.some(
                     (v) =>
                       v != null &&
@@ -603,8 +604,10 @@ export const RenderSection = React.memo(function RenderSection(
                         data-testid={`btn-update-${mapKey}`}
                         onClick={async () => {
                           if (isBlockedByAncestor || activeIdx == null) return;
-                          
-                          (document.activeElement as HTMLElement | null)?.blur?.();
+
+                          (
+                            document.activeElement as HTMLElement | null
+                          )?.blur?.();
 
                           const flatFS: Array<FieldSetting & { name: string }> =
                             flattenForSchema(dtLeafFields as any).filter(
@@ -616,7 +619,9 @@ export const RenderSection = React.memo(function RenderSection(
                           const fieldNames = flatFS.map(
                             (fs) => `${mapKey}.${activeIdx}.${fs.name}`,
                           );
-                          const isValid = await trigger(fieldNames, { shouldFocus: true });
+                          const isValid = await trigger(fieldNames, {
+                            shouldFocus: true,
+                          });
                           if (!isValid) {
                             // show the ErrorSummary dock (collapsed)
                             revealErrorSummary();
@@ -980,7 +985,7 @@ export const RenderSection = React.memo(function RenderSection(
         const next =
           forcedIndex >= 0
             ? forcedIndex
-            : tabsActiveIndexRef.current.get(groupKey) ?? 0;
+            : (tabsActiveIndexRef.current.get(groupKey) ?? 0);
         setActiveIndex(next);
       }, [forcedIndex, groupKey]);
 
@@ -1001,7 +1006,10 @@ export const RenderSection = React.memo(function RenderSection(
               <Description>{group.description}</Description>
             )}
 
-            <SectionWrapper className="tabs-wrapper" $hasHeader={!!group.header}>
+            <SectionWrapper
+              className="tabs-wrapper"
+              $hasHeader={!!group.header}
+            >
               <Tabs
                 variant={group?.tabVariant}
                 activeTab={activeIndex}

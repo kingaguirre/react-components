@@ -7,10 +7,10 @@ import type { ColumnSetting } from "../../../../organisms/DataTable/interface";
 import { Dock, ContentWrap } from "./styled";
 
 export type ErrorSummaryItem = {
-  field: string;     // full path (for scroll/focus)
-  label: string;     // leaf/pretty field name
+  field: string; // full path (for scroll/focus)
+  label: string; // leaf/pretty field name
   valueText: string; // current value, stringified
-  message: string;   // validation message
+  message: string; // validation message
 };
 
 type Props = {

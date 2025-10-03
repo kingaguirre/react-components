@@ -1,9 +1,4 @@
-import React, {
-  useState,
-  useRef,
-  useEffect,
-  Suspense,
-} from "react";
+import React, { useState, useRef, useEffect, Suspense } from "react";
 import {
   TabsContainer,
   TabItem,
@@ -29,7 +24,7 @@ export const Tabs: React.FC<TabsProps> = ({
   const initial =
     activeTab !== undefined
       ? activeTab
-      : tabs?.findIndex((t) => !t.disabled) ?? 0;
+      : (tabs?.findIndex((t) => !t.disabled) ?? 0);
 
   const [selectedTab, setSelectedTab] = useState<number>(initial);
   const [focusedTab, setFocusedTab] = useState<number>(initial);
@@ -74,7 +69,8 @@ export const Tabs: React.FC<TabsProps> = ({
     inner: HTMLElement | null,
   ) => {
     if (inner) return inner.offsetHeight; // content-box height
-    if (outer) return Math.max(0, outer.clientHeight - getWrapperPaddingY(outer));
+    if (outer)
+      return Math.max(0, outer.clientHeight - getWrapperPaddingY(outer));
     return 0;
   };
 
@@ -126,14 +122,21 @@ export const Tabs: React.FC<TabsProps> = ({
 
   const ensureTabVisible = (index: number) => {
     const el = tabListRef.current?.children[index] as HTMLElement | undefined;
-    el?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    el?.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+      inline: "center",
+    });
   };
 
   // ---------------- selection change ----------------
   const handleTabChange = (index: number) => {
     if (!tabs[index].disabled && selectedTab !== index) {
       // 1) Lock to the current content-box height to prevent collapse
-      const prevH = getContentBoxHeight(panelOuterRef.current, panelInnerRef.current);
+      const prevH = getContentBoxHeight(
+        panelOuterRef.current,
+        panelInnerRef.current,
+      );
       setLockedHeight(prevH);
 
       // 2) Switch selection
@@ -162,10 +165,15 @@ export const Tabs: React.FC<TabsProps> = ({
   useEffect(() => {
     if (!showContent) return;
 
-    let r1 = 0, r2 = 0, r3 = 0;
+    let r1 = 0,
+      r2 = 0,
+      r3 = 0;
 
     r1 = requestAnimationFrame(() => {
-      const nextH = getContentBoxHeight(panelOuterRef.current, panelInnerRef.current);
+      const nextH = getContentBoxHeight(
+        panelOuterRef.current,
+        panelInnerRef.current,
+      );
 
       if (firstRevealRef.current) {
         // First-ever reveal:
@@ -197,9 +205,11 @@ export const Tabs: React.FC<TabsProps> = ({
   const moveFocus = (dir: "left" | "right") => {
     let i = focusedTab;
     if (dir === "left") {
-      do i--; while (i >= 0 && tabs[i].disabled);
+      do i--;
+      while (i >= 0 && tabs[i].disabled);
     } else {
-      do i++; while (i < tabs.length && tabs[i].disabled);
+      do i++;
+      while (i < tabs.length && tabs[i].disabled);
     }
     if (i >= 0 && i < tabs.length) {
       setFocusedTab(i);
@@ -227,7 +237,11 @@ export const Tabs: React.FC<TabsProps> = ({
       role="button"
       aria-pressed="false"
     >
-      <TabWrapper role="tablist" aria-orientation="horizontal" className="tab-wrapper">
+      <TabWrapper
+        role="tablist"
+        aria-orientation="horizontal"
+        className="tab-wrapper"
+      >
         {firstLastNavControl && (
           <NavButton
             className="nav-button-first"
@@ -290,7 +304,9 @@ export const Tabs: React.FC<TabsProps> = ({
                 {tab.icon && <Icon icon={tab.icon} color={tab.iconColor} />}
                 <span className="title">{tab.title}</span>
                 {tab.badgeValue !== undefined && (
-                  <Badge color={tab.badgeColor ?? "danger"}>{tab.badgeValue}</Badge>
+                  <Badge color={tab.badgeColor ?? "danger"}>
+                    {tab.badgeValue}
+                  </Badge>
                 )}
               </TabItem>
             );

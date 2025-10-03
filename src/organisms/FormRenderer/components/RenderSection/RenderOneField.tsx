@@ -128,8 +128,12 @@ const RenderOneFieldBase: React.FC<RenderOneFieldProps> = ({
 
               // Normalize display value for inputs
               let displayValue: any = field.value;
-              if (!isBooleanControl(fs as any) && (fs as any).type !== "number") {
-                if (displayValue === undefined || displayValue === null) displayValue = "";
+              if (
+                !isBooleanControl(fs as any) &&
+                (fs as any).type !== "number"
+              ) {
+                if (displayValue === undefined || displayValue === null)
+                  displayValue = "";
               } else if ((fs as any).type === "number") {
                 displayValue =
                   typeof displayValue === "number" && !isNaN(displayValue)
@@ -158,7 +162,7 @@ const RenderOneFieldBase: React.FC<RenderOneFieldProps> = ({
                 }
 
                 const inAnyTable = Object.keys(tableDataMap).some((tableKey) =>
-                  key.startsWith(`${tableKey}.`)
+                  key.startsWith(`${tableKey}.`),
                 );
 
                 if (inAnyTable) {
@@ -202,14 +206,28 @@ const RenderOneFieldBase: React.FC<RenderOneFieldProps> = ({
                 helpText: errorMsg,
                 required: isReq,
                 color: errorMsg ? "danger" : undefined,
-                disabled: resolveDisabled((fs as any).disabled, values, globalDisabled),
+                disabled: resolveDisabled(
+                  (fs as any).disabled,
+                  values,
+                  globalDisabled,
+                ),
               };
 
-              if ((fs as any).render) return (fs as any).render({ field, fieldState, common });
-              if ((fs as any).type === "date") return <DatePicker {...common} />;
+              if ((fs as any).render)
+                return (fs as any).render({ field, fieldState, common });
+              if ((fs as any).type === "date")
+                return <DatePicker {...common} />;
               if ((fs as any).type === "dropdown")
-                return <Dropdown {...common} options={(fs as any).options || []} />;
-              return <FormControl {...common} type={(fs as any).type!} options={(fs as any).options} />;
+                return (
+                  <Dropdown {...common} options={(fs as any).options || []} />
+                );
+              return (
+                <FormControl
+                  {...common}
+                  type={(fs as any).type!}
+                  options={(fs as any).options}
+                />
+              );
             }}
           />
         </FieldErrorBoundary>
@@ -230,7 +248,12 @@ const areEqual = (prev: RenderOneFieldProps, next: RenderOneFieldProps) => {
 
   const aCol = a?.col ?? {};
   const bCol = b?.col ?? {};
-  if (aCol.xs !== bCol.xs || aCol.sm !== bCol.sm || aCol.md !== bCol.md || aCol.lg !== bCol.lg) {
+  if (
+    aCol.xs !== bCol.xs ||
+    aCol.sm !== bCol.sm ||
+    aCol.md !== bCol.md ||
+    aCol.lg !== bCol.lg
+  ) {
     return false;
   }
 
@@ -286,7 +309,7 @@ export function ChunkedGrid({
   const needsChunking = fields.length > CHUNK_THRESHOLD;
 
   const [count, setCount] = React.useState<number>(
-    needsChunking ? Math.min(FIRST_CHUNK, fields.length) : fields.length
+    needsChunking ? Math.min(FIRST_CHUNK, fields.length) : fields.length,
   );
 
   React.useEffect(() => {
@@ -317,10 +340,13 @@ export function ChunkedGrid({
   React.useEffect(() => {
     if (!needsChunking || !focusPath) return;
     const idx = fields.findIndex(
-      (f) => f?.name && (focusPath === f.name || focusPath.startsWith(f.name + "."))
+      (f) =>
+        f?.name && (focusPath === f.name || focusPath.startsWith(f.name + ".")),
     );
     if (idx >= 0 && idx + 1 > count) setCount(idx + 1);
   }, [needsChunking, focusPath, fields, count]);
 
-  return <Grid>{fields.slice(0, count).map((fs, i) => renderItem(fs, i))}</Grid>;
+  return (
+    <Grid>{fields.slice(0, count).map((fs, i) => renderItem(fs, i))}</Grid>
+  );
 }

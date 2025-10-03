@@ -37,7 +37,9 @@ const SkelBar = styled.div`
   }
 
   @media (prefers-reduced-motion: reduce) {
-    &:after { animation: none; }
+    &:after {
+      animation: none;
+    }
   }
 `;
 
@@ -69,7 +71,7 @@ const SkelRow = styled.div<{ $h: number; $template: string }>`
 `;
 
 /** Convenience: multi-line cell skeleton (uses SkelBar) */
-export const CellSkeleton: React.FC = () => <SkelBar/>;
+export const CellSkeleton: React.FC = () => <SkelBar />;
 
 /** ---------- Full table body skeleton (keeps your original behavior) ---------- */
 type SkeletonBodyProps = {
@@ -79,14 +81,14 @@ type SkeletonBodyProps = {
   /** Match your data row height exactly */
   rowHeight?: number; // default 30
   /** Corner radius for bars */
-  radius?: number;    // default 6
+  radius?: number; // default 6
   withRightDividers?: boolean; // show grid col dividers
 };
 
 export const SkeletonBody = memo(function SkeletonBody({
   rows,
   colSizes,
-  rowHeight = 30
+  rowHeight = 30,
 }: SkeletonBodyProps) {
   const r = Math.max(1, rows | 0);
   const c = Math.max(1, colSizes.length | 0);
@@ -102,12 +104,17 @@ export const SkeletonBody = memo(function SkeletonBody({
   );
 
   return (
-    <Wrap role="status" aria-live="polite" aria-label="Loading table" $minW={minWidth}>
+    <Wrap
+      role="status"
+      aria-live="polite"
+      aria-label="Loading table"
+      $minW={minWidth}
+    >
       {R.map((_, ri) => (
         <SkelRow key={ri} $h={rowHeight} $template={template}>
           {Array.from({ length: c }).map((__, ci) => (
             <SkelCellContainer key={ci}>
-              <CellSkeleton/>
+              <CellSkeleton />
             </SkelCellContainer>
           ))}
         </SkelRow>
