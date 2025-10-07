@@ -1023,12 +1023,15 @@ app.use((err, req, res, next) => {
 
 // ------------------ /api/ai/openai (OpenAI streaming proxy via SDK) ------------------
 app.post("/api/ai/openai", async (req, res) => {
-  const headerKey = req.get("x-openai-key"); // optional client-supplied key
-  const apiKey = headerKey || process.env.OPENAI_API_KEY;
+  const headerKey = req.get("x-openai-key");             // optional
+  const devKey = req.app?.locals?.devOpenAIKey;          // in-memory key you saved
+  const envKey = process.env.OPENAI_API_KEY;             // .env (optional)
+  const apiKey = headerKey || devKey || envKey;
+
   if (!apiKey) {
     return res
       .status(400)
-      .send("OpenAI key missing (set OPENAI_API_KEY or send X-OpenAI-Key)");
+      .send("OpenAI key missing (send X-OpenAI-Key, PUT /api/dev/openai-key, or set OPENAI_API_KEY)");
   }
 
   const {

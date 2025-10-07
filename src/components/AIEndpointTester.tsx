@@ -120,8 +120,10 @@ export const AIEndpointTester = () => {
   }, [appendLog]);
 
   const headers = useMemo(() => {
-    return { "Content-Type": "application/json" };
-  }, []);
+    const h: Record<string, string> = { "Content-Type": "application/json" };
+    if (openaiServerKey.trim()) h["X-OpenAI-Key"] = openaiServerKey.trim(); // ← add this
+    return h;
+  }, [openaiServerKey]);
 
   const payload = useMemo(() => {
     const core =
