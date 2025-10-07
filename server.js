@@ -1021,20 +1021,35 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
+// ------------------ DEV OpenAI key storage (in-memory) ------------------
+app.get("/api/dev/openai-key", (req, res) => {
+  res.json({
+    key: req.app.locals.devOpenAIKey || "",
+    hasKey: !!req.app.locals.devOpenAIKey,
+  });
+});
+app.put("/api/dev/openai-key", (req, res) => {
+  req.app.locals.devOpenAIKey =
+    typeof req.body?.key === "string" ? req.body.key : "";
+  res.json({ ok: true, hasKey: !!req.app.locals.devOpenAIKey });
+});
+
 // ------------------ /api/ai/openai (OpenAI streaming proxy via SDK) ------------------
 app.post("/api/ai/openai", async (req, res) => {
-  const headerKey = req.get("x-openai-key");             // optional
-  const devKey = req.app?.locals?.devOpenAIKey;          // in-memory key you saved
-  const envKey = process.env.OPENAI_API_KEY;             // .env (optional)
-  const apiKey = headerKey || devKey || envKey;
+  const headerKey = req.get("x-openai-key");
+  const apiKey =
+    headerKey || req.app?.locals?.devOpenAIKey || process.env.OPENAI_API_KEY;
 
   if (!apiKey) {
     return res
       .status(400)
-      .send("OpenAI key missing (send X-OpenAI-Key, PUT /api/dev/openai-key, or set OPENAI_API_KEY)");
+      .send(
+        "OpenAI key missing (send X-OpenAI-Key, PUT /api/dev/openai-key, or set OPENAI_API_KEY)",
+      );
   }
 
   const {
+    api = "chat.completions", // "chat.completions" | "responses"
     model = "gpt-4o-mini",
     stream = true,
     temperature = 0.2,
@@ -1047,13 +1062,51 @@ app.post("/api/ai/openai", async (req, res) => {
     ? messages
     : [{ role: "user", content: String(input ?? "") }];
 
-  // Instantiate SDK with optional baseURL override (falls back to env or default)
   const client = new OpenAI({
     apiKey,
     baseURL: baseUrl || process.env.OPENAI_BASE_URL || "https://api.openai.com/v1",
   });
 
-  // Streamed: write SSE frames that your client already expects
+  // Emit the same SSE delta frames your client already parses
+  const emitDelta = (s) =>
+    res.write(
+      `data: ${JSON.stringify({ choices: [{ delta: { content: s } }] })}\n\n`,
+    );
+
+  const fakeStreamText = async (text) => {
+    // Fallback when real streaming isn't available; chunk to feel streamy
+    const CHUNK = 600;
+    for (let i = 0; i < text.length; i += CHUNK) {
+      emitDelta(text.slice(i, i + CHUNK));
+      // tiny delay helps UI feel like a stream
+      // eslint-disable-next-line no-await-in-loop
+      await new Promise((r) => setTimeout(r, 10));
+    }
+  };
+
+  const extractResponsesText = (resp) => {
+    // Try common shapes from Responses API
+    if (typeof resp?.output_text === "string") return resp.output_text;
+    if (Array.isArray(resp?.output)) {
+      const parts = [];
+      for (const seg of resp.output) {
+        // SDKs differ; handle a few possibilities
+        if (typeof seg?.content === "string") parts.push(seg.content);
+        else if (Array.isArray(seg?.content)) {
+          for (const c of seg.content) {
+            if (typeof c?.text === "string") parts.push(c.text);
+            else if (typeof c === "string") parts.push(c);
+          }
+        } else if (typeof seg?.text === "string") {
+          parts.push(seg.text);
+        }
+      }
+      if (parts.length) return parts.join("");
+    }
+    // Last resort
+    return JSON.stringify(resp);
+  };
+
   if (stream) {
     res.status(200);
     res.setHeader("Content-Type", "text/event-stream");
@@ -1062,16 +1115,57 @@ app.post("/api/ai/openai", async (req, res) => {
     res.setHeader("X-Accel-Buffering", "no");
 
     try {
-      const s = await client.chat.completions.create({
-        model,
-        temperature,
-        messages: finalMessages,
-        stream: true,
-      });
+      if (api === "responses") {
+        // Try native streaming if available
+        let usedNativeStream = false;
+        if (client?.responses?.stream) {
+          try {
+            const s = await client.responses.stream({
+              model,
+              input: finalMessages.map((m) => m.content).join("\n"),
+              temperature,
+            });
+            usedNativeStream = true;
 
-      for await (const chunk of s) {
-        // Re-emit as SSE so the frontend parser works unchanged
-        res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+            for await (const event of s) {
+              const t = event?.type || "";
+              // The SDK surfaces granular types; forward only text deltas
+              if (
+                t.endsWith(".delta") &&
+                typeof event?.delta === "string" &&
+                event?.item_type?.includes("output_text")
+              ) {
+                emitDelta(event.delta);
+              }
+              if (t === "response.completed") break;
+            }
+          } catch (err) {
+            // fall through to non-streaming path below
+            usedNativeStream = false;
+          }
+        }
+
+        if (!usedNativeStream) {
+          // Fallback: one-shot + fake streaming
+          const out = await client.responses.create({
+            model,
+            input: finalMessages.map((m) => m.content).join("\n"),
+            temperature,
+          });
+          const text = extractResponsesText(out);
+          await fakeStreamText(text);
+        }
+      } else {
+        // chat.completions (your current path)
+        const s = await client.chat.completions.create({
+          model,
+          temperature,
+          messages: finalMessages,
+          stream: true,
+        });
+        for await (const chunk of s) {
+          res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+        }
       }
       res.write("data: [DONE]\n\n");
     } catch (err) {
@@ -1081,7 +1175,6 @@ app.post("/api/ai/openai", async (req, res) => {
         message: err?.message || "Unknown upstream error",
         status,
       };
-      // send an SSE error event and end
       res.write(`event: error\ndata: ${JSON.stringify(payload)}\n\n`);
       res.status(status);
     } finally {
@@ -1092,28 +1185,33 @@ app.post("/api/ai/openai", async (req, res) => {
 
   // Non-streamed JSON response
   try {
-    const out = await client.chat.completions.create({
-      model,
-      temperature,
-      messages: finalMessages,
-      stream: false,
-    });
-    res.status(200).json(out);
+    if (api === "responses") {
+      const out = await client.responses.create({
+        model,
+        input: finalMessages.map((m) => m.content).join("\n"),
+        temperature,
+      });
+      res.status(200).json(out);
+    } else {
+      const out = await client.chat.completions.create({
+        model,
+        temperature,
+        messages: finalMessages,
+        stream: false,
+      });
+      res.status(200).json(out);
+    }
   } catch (err) {
     res
       .status(typeof err?.status === "number" ? err.status : 500)
-      .json({ error: { name: err?.name, message: err?.message, status: err?.status } });
+      .json({
+        error: {
+          name: err?.name,
+          message: err?.message,
+          status: err?.status,
+        },
+      });
   }
-});
-
-// ------------------ DEV OpenAI key storage (in-memory) ------------------
-// in your dev key routes:
-app.get("/api/dev/openai-key", (req, res) => {
-  res.json({ key: req.app.locals.devOpenAIKey || "", hasKey: !!req.app.locals.devOpenAIKey });
-});
-app.put("/api/dev/openai-key", (req, res) => {
-  req.app.locals.devOpenAIKey = typeof req.body?.key === "string" ? req.body.key : "";
-  res.json({ ok: true, hasKey: !!req.app.locals.devOpenAIKey });
 });
 
 app.listen(PORT, () => {
