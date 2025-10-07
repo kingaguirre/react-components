@@ -11,33 +11,29 @@ import styled from "styled-components";
 import { theme } from "../styles";
 
 type Parser = "auto" | "sse" | "ndjson" | "text" | "json";
-type UiState =
-  | "idle"
-  | "requesting"
-  | "streaming"
-  | "done"
-  | "error"
-  | "aborted";
+type UiState = "idle" | "requesting" | "streaming" | "done" | "error" | "aborted";
 type APIPath = "chat.completions" | "responses";
 
-const API_BASE = "http://localhost:4000"; // /api/dev/openai-key and /api/ai/openai
+const API_BASE = "http://localhost:4000"; // /api/dev/openai-key, /api/dev/openai-prefs, /api/ai/openai
 
 export const AIEndpointTester = () => {
   // OpenAI server key (dev storage)
   const [openaiServerKey, setOpenaiServerKey] = useState("");
   const [openaiServerKeySaved, setOpenaiServerKeySaved] = useState(false);
 
+  // Server defaults (baseUrl/model/stream) saved on server
+  const [serverDefaultsSaved, setServerDefaultsSaved] = useState(false);
+
   // Payload knobs
-  const [api, setApi] = useState<APIPath>("chat.completions"); // NEW
+  const [api, setApi] = useState<APIPath>("chat.completions");
   const [model, setModel] = useState("gpt-4o-mini");
   const [temperature, setTemperature] = useState(0.2);
-  const [prompt, setPrompt] = useState("what is earth");
-  const [payloadMode, setPayloadMode] = useState<"messages" | "input">(
-    "messages",
-  );
+  const [prompt, setPrompt] = useState("say hello in 3 words");
+  const [payloadMode, setPayloadMode] = useState<"messages" | "input">("messages");
   const [stream, setStream] = useState(true);
   const [timeoutMs, setTimeoutMs] = useState(30000);
   const [parser, setParser] = useState<Parser>("auto");
+  const [baseUrl, setBaseUrl] = useState("https://api.openai.com/v1");
 
   // UI state
   const [state, setState] = useState<UiState>("idle");
@@ -46,26 +42,42 @@ export const AIEndpointTester = () => {
   const [output, setOutput] = useState("");
   const [logs, setLogs] = useState<string[]>([]);
   const [hint, setHint] = useState("");
-  const [streamGuess, setStreamGuess] = useState<"yes" | "no" | "unknown">(
-    "unknown",
-  );
+  const [streamGuess, setStreamGuess] = useState<"yes" | "no" | "unknown">("unknown");
   const [copiedOut, setCopiedOut] = useState(false);
   const [copiedCurl, setCopiedCurl] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
-  const [baseUrl, setBaseUrl] = useState("https://api.openai.com/v1"); // NEW
 
-  // Load server-saved OpenAI key on mount
+  // Load server-saved OpenAI key + defaults on mount
   useEffect(() => {
     let ignore = false;
     (async () => {
       try {
-        const r = await fetch(`${API_BASE}/api/dev/openai-key`);
-        if (!r.ok) return;
-        const d = await r.json();
-        if (ignore) return;
-        const k = String(d?.key || "");
-        setOpenaiServerKeySaved(!!k);
-        if (k && !openaiServerKey) setOpenaiServerKey(k);
+        // key
+        const r1 = await fetch(`${API_BASE}/api/dev/openai-key`);
+        if (r1.ok) {
+          const d = await r1.json();
+          if (!ignore) {
+            const k = String(d?.key || "");
+            setOpenaiServerKeySaved(!!k);
+            if (k && !openaiServerKey) setOpenaiServerKey(k);
+          }
+        }
+      } catch {}
+      try {
+        // defaults
+        const r2 = await fetch(`${API_BASE}/api/dev/openai-prefs`);
+        if (r2.ok) {
+          const d = await r2.json();
+          if (!ignore) {
+            const prefs = d?.prefs || {};
+            const has = !!prefs && Object.keys(prefs).length > 0;
+            setServerDefaultsSaved(!!d?.hasPrefs || has);
+            // Apply server defaults on mount
+            if (typeof prefs.baseUrl === "string" && prefs.baseUrl) setBaseUrl(prefs.baseUrl);
+            if (typeof prefs.model === "string" && prefs.model) setModel(prefs.model);
+            if (typeof prefs.stream === "boolean") setStream(prefs.stream);
+          }
+        }
       } catch {}
     })();
     return () => {
@@ -89,16 +101,8 @@ export const AIEndpointTester = () => {
       const d = await r.json().catch(() => ({}));
       const has = !!openaiServerKey;
       setOpenaiServerKeySaved(has);
-      appendLog(
-        `[openai] server key ${has ? "saved" : "cleared"} (${
-          d?.hasKey ? "has" : "empty"
-        })`,
-      );
-      setHint(
-        has
-          ? "Saved OpenAI key on server (in-memory)."
-          : "Cleared OpenAI key on server.",
-      );
+      appendLog(`[openai] server key ${has ? "saved" : "cleared"} (${d?.hasKey ? "has" : "empty"})`);
+      setHint(has ? "Saved OpenAI key on server (in-memory)." : "Cleared OpenAI key on server.");
     } catch (e: any) {
       appendLog(`[openai] save error: ${e?.message || String(e)}`);
       setHint("Failed to save OpenAI key. Check /api/dev/openai-key.");
@@ -123,12 +127,45 @@ export const AIEndpointTester = () => {
     }
   }, [appendLog]);
 
+  // NEW: save/clear server defaults
+  const saveServerDefaults = useCallback(async () => {
+    try {
+      const r = await fetch(`${API_BASE}/api/dev/openai-prefs`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ baseUrl, model, stream }),
+      });
+      const d = await r.json().catch(() => ({}));
+      const has = !!d?.hasPrefs;
+      setServerDefaultsSaved(has);
+      appendLog(`[openai] server defaults saved (${JSON.stringify({ baseUrl, model, stream })})`);
+      setHint("Saved server defaults (baseUrl/model/stream).");
+    } catch (e: any) {
+      appendLog(`[openai] save defaults error: ${e?.message || String(e)}`);
+      setHint("Failed to save defaults. Check /api/dev/openai-prefs.");
+    }
+  }, [baseUrl, model, stream, appendLog]);
+
+  const clearServerDefaults = useCallback(async () => {
+    try {
+      const r = await fetch(`${API_BASE}/api/dev/openai-prefs`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}), // clearing
+      });
+      await r.json().catch(() => ({}));
+      setServerDefaultsSaved(false);
+      appendLog("[openai] server defaults cleared");
+      setHint("Cleared server defaults (baseUrl/model/stream).");
+    } catch (e: any) {
+      appendLog(`[openai] clear defaults error: ${e?.message || String(e)}`);
+      setHint("Failed to clear defaults. Check /api/dev/openai-prefs.");
+    }
+  }, [appendLog]);
+
   const headers = useMemo(() => {
     const h: Record<string, string> = { "Content-Type": "application/json" };
-    if (openaiServerKey.trim()) {
-      // Send key if present (can be overridden server-side by saved key/env)
-      h["X-OpenAI-Key"] = openaiServerKey.trim();
-    }
+    if (openaiServerKey.trim()) h["X-OpenAI-Key"] = openaiServerKey.trim();
     return h;
   }, [openaiServerKey]);
 
@@ -146,9 +183,9 @@ export const AIEndpointTester = () => {
     const hdrs = `-H "Content-Type: application/json"${
       openaiServerKey ? ` -H "X-OpenAI-Key: ${openaiServerKey}"` : ""
     }`;
-    return `curl -X POST ${hdrs} -d ${JSON.stringify(
-      JSON.stringify(payload),
-    )} ${JSON.stringify(targetUrl)}`;
+    return `curl -X POST ${hdrs} -d ${JSON.stringify(JSON.stringify(payload))} ${JSON.stringify(
+      targetUrl,
+    )}`;
   }, [targetUrl, payload, openaiServerKey]);
 
   // Run request
@@ -206,9 +243,7 @@ export const AIEndpointTester = () => {
       const len = resp.headers.get("content-length");
       const guess = computeStreamGuess(mode, ct, len, stream);
       setStreamGuess(guess);
-      appendLog(
-        `[resp] stream? ${guess} (ct=${ct}, len=${len || "—"}, mode=${mode})`,
-      );
+      appendLog(`[resp] stream? ${guess} (ct=${ct}, len=${len || "—"}, mode=${mode})`);
 
       setState("streaming");
       const onChunk = (s: string) => setOutput((prev) => prev + s);
@@ -278,10 +313,7 @@ export const AIEndpointTester = () => {
         <Badge>AI</Badge>
         <HeadText>
           <Title>AI Endpoint Tester</Title>
-          <Sub>
-            OpenAI (proxy) only — server key saved in-memory. Enter = Send,
-            Shift+Enter = newline.
-          </Sub>
+          <Sub>OpenAI (proxy) only — server key & defaults saved in-memory. Enter = Send, Shift+Enter = newline.</Sub>
         </HeadText>
       </HeaderCard>
 
@@ -298,19 +330,26 @@ export const AIEndpointTester = () => {
                 onChange={(e) => setOpenaiServerKey(e.target.value)}
                 autoComplete="off"
               />
-              <BtnPrimary
-                onClick={saveOpenAIServerKey}
-                disabled={!openaiServerKey.trim()}
-              >
+              <BtnPrimary onClick={saveOpenAIServerKey} disabled={!openaiServerKey.trim()}>
                 Save
               </BtnPrimary>
               <BtnDanger onClick={clearOpenAIServerKey}>Clear</BtnDanger>
             </div>
-            <MiniNote>
-              {openaiServerKeySaved
-                ? "Saved on server (in-memory)"
-                : "No saved server key"}
-            </MiniNote>
+            <MiniNote>{openaiServerKeySaved ? "Saved on server (in-memory)" : "No saved server key"}</MiniNote>
+          </Field>
+        </KeyRow>
+      </KeyCard>
+
+      {/* NEW: Server Defaults bar */}
+      <KeyCard>
+        <KeyRow>
+          <Field compact style={{ margin: 0 }}>
+            <Label>Server Defaults (baseUrl / model / stream)</Label>
+            <div style={{ display: "flex", gap: 8 }}>
+              <BtnPrimary onClick={saveServerDefaults}>Save Defaults</BtnPrimary>
+              <BtnDanger onClick={clearServerDefaults}>Clear Defaults</BtnDanger>
+            </div>
+            <MiniNote>{serverDefaultsSaved ? "Defaults saved on server" : "No saved defaults on server"}</MiniNote>
           </Field>
         </KeyRow>
       </KeyCard>
@@ -321,11 +360,7 @@ export const AIEndpointTester = () => {
         <Row4>
           <Field>
             <Label>OpenAI Base URL</Label>
-            <Input
-              value={baseUrl}
-              onChange={(e) => setBaseUrl(e.target.value)}
-              placeholder="https://api.openai.com/v1"
-            />
+            <Input value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="https://api.openai.com/v1" />
           </Field>
           <Field>
             <Label>Model</Label>
@@ -344,12 +379,7 @@ export const AIEndpointTester = () => {
           </Field>
           <Field narrow>
             <Label>Timeout (ms)</Label>
-            <Input
-              type="number"
-              min={0}
-              value={timeoutMs}
-              onChange={(e) => setTimeoutMs(Number(e.target.value || 0))}
-            />
+            <Input type="number" min={0} value={timeoutMs} onChange={(e) => setTimeoutMs(Number(e.target.value || 0))} />
           </Field>
         </Row4>
 
@@ -358,16 +388,10 @@ export const AIEndpointTester = () => {
           <Field>
             <Label>API</Label>
             <Segmented>
-              <SegBtn
-                className={api === "chat.completions" ? "active" : ""}
-                onClick={() => setApi("chat.completions")}
-              >
+              <SegBtn className={api === "chat.completions" ? "active" : ""} onClick={() => setApi("chat.completions")}>
                 chat.completions
               </SegBtn>
-              <SegBtn
-                className={api === "responses" ? "active" : ""}
-                onClick={() => setApi("responses")}
-              >
+              <SegBtn className={api === "responses" ? "active" : ""} onClick={() => setApi("responses")}>
                 responses
               </SegBtn>
             </Segmented>
@@ -375,16 +399,10 @@ export const AIEndpointTester = () => {
           <Field>
             <Label>Payload</Label>
             <Segmented>
-              <SegBtn
-                className={payloadMode === "messages" ? "active" : ""}
-                onClick={() => setPayloadMode("messages")}
-              >
+              <SegBtn className={payloadMode === "messages" ? "active" : ""} onClick={() => setPayloadMode("messages")}>
                 messages[]
               </SegBtn>
-              <SegBtn
-                className={payloadMode === "input" ? "active" : ""}
-                onClick={() => setPayloadMode("input")}
-              >
+              <SegBtn className={payloadMode === "input" ? "active" : ""} onClick={() => setPayloadMode("input")}>
                 input
               </SegBtn>
             </Segmented>
@@ -392,16 +410,10 @@ export const AIEndpointTester = () => {
           <Field>
             <Label>Stream</Label>
             <Segmented>
-              <SegBtn
-                className={stream ? "active" : ""}
-                onClick={() => setStream(true)}
-              >
+              <SegBtn className={stream ? "active" : ""} onClick={() => setStream(true)}>
                 true
               </SegBtn>
-              <SegBtn
-                className={!stream ? "active" : ""}
-                onClick={() => setStream(false)}
-              >
+              <SegBtn className={!stream ? "active" : ""} onClick={() => setStream(false)}>
                 false
               </SegBtn>
             </Segmented>
@@ -409,17 +421,11 @@ export const AIEndpointTester = () => {
           <Field>
             <Label>Parser</Label>
             <Segmented>
-              {(["auto", "sse", "ndjson", "text", "json"] as Parser[]).map(
-                (p) => (
-                  <SegBtn
-                    key={p}
-                    className={parser === p ? "active" : ""}
-                    onClick={() => setParser(p)}
-                  >
-                    {p}
-                  </SegBtn>
-                ),
-              )}
+              {(["auto", "sse", "ndjson", "text", "json"] as Parser[]).map((p) => (
+                <SegBtn key={p} className={parser === p ? "active" : ""} onClick={() => setParser(p)}>
+                  {p}
+                </SegBtn>
+              ))}
             </Segmented>
           </Field>
         </Row4>
@@ -427,30 +433,16 @@ export const AIEndpointTester = () => {
         {/* Prompt */}
         <Field>
           <Label>Prompt / Input</Label>
-          <Textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            onKeyDown={onPromptKey}
-          />
+          <Textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} onKeyDown={onPromptKey} />
         </Field>
 
-        <div
-          style={{ display: "flex", gap: 8, justifyContent: "space-between" }}
-        >
+        <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
           {/* Actions under prompt */}
           <RowInline>
-            <ButtonPrimary
-              onClick={start}
-              disabled={state === "streaming" || state === "requesting"}
-            >
-              {state === "streaming" || state === "requesting"
-                ? "Running…"
-                : "Send"}
+            <ButtonPrimary onClick={start} disabled={state === "streaming" || state === "requesting"}>
+              {state === "streaming" || state === "requesting" ? "Running…" : "Send"}
             </ButtonPrimary>
-            <ButtonOutline
-              onClick={abort}
-              disabled={state !== "streaming" && state !== "requesting"}
-            >
+            <ButtonOutline onClick={abort} disabled={state !== "streaming" && state !== "requesting"}>
               Abort
             </ButtonOutline>
             <ButtonGhost onClick={reset}>Reset</ButtonGhost>
@@ -472,9 +464,7 @@ export const AIEndpointTester = () => {
         <Card>
           <RowBetween>
             <PanelTitle>Output (stream)</PanelTitle>
-            <Small onClick={() => copy(output, "out")}>
-              {copiedOut ? "✓ Copied" : "Copy"}
-            </Small>
+            <Small onClick={() => copy(output, "out")}>{copiedOut ? "✓ Copied" : "Copy"}</Small>
           </RowBetween>
           <Pre $fixed>{output || "(no output yet)"}</Pre>
         </Card>
@@ -493,9 +483,7 @@ export const AIEndpointTester = () => {
         <Card>
           <RowBetween>
             <PanelTitle>cURL (copy to terminal)</PanelTitle>
-            <Small onClick={() => copy(curl, "curl")}>
-              {copiedCurl ? "✓ Copied" : "Copy"}
-            </Small>
+            <Small onClick={() => copy(curl, "curl")}>{copiedCurl ? "✓ Copied" : "Copy"}</Small>
           </RowBetween>
           <Pre small>{curl || "(will generate after you send once)"}</Pre>
         </Card>
@@ -525,7 +513,7 @@ const Card = styled.div`
   border-radius: 14px;
   box-shadow: 0 10px 30px rgba(2, 8, 23, 0.08);
   padding: 12px;
-  min-width: 0; /* prevent grid overflow by long content */
+  min-width: 0;
 `;
 
 const HeaderCard = styled(Card)`
@@ -571,10 +559,10 @@ const Row3 = styled.div`
   }
   > * {
     min-width: 0;
-  } /* allow children to shrink */
+  }
 `;
 const Row4 = styled(Row3)`
-  grid-template-columns: repeat(4, minmax(240px, 1fr));
+  grid-template-columns: repeat(5, minmax(240px, 1fr));
 `;
 const RowInline = styled.div`
   display: flex;
@@ -593,7 +581,7 @@ const TwoCol = styled.div`
   }
   > * {
     min-width: 0;
-  } /* prevent columns from expanding */
+  }
 `;
 
 /* key row */
@@ -802,22 +790,14 @@ function detectParser(ct: string): Parser {
   if (c.includes("application/json")) return "json";
   return "text";
 }
-function computeStreamGuess(
-  mode: Parser,
-  _ct: string,
-  lenHeader: string | null,
-  streamRequested: boolean,
-): "yes" | "no" | "unknown" {
+function computeStreamGuess(mode: Parser, _ct: string, lenHeader: string | null, streamRequested: boolean) {
   if (mode === "sse" || mode === "ndjson") return "yes";
   if (mode === "text" && streamRequested) return "yes";
   const len = lenHeader ? Number(lenHeader) : NaN;
   if (!Number.isNaN(len) && len > 0 && mode === "json") return "no";
   return "unknown";
 }
-async function pumpSSE(
-  body: ReadableStream<Uint8Array>,
-  onChunk: (s: string) => void,
-) {
+async function pumpSSE(body: ReadableStream<Uint8Array>, onChunk: (s: string) => void) {
   const reader = body.getReader();
   const dec = new TextDecoder();
   let buf = "";
@@ -849,10 +829,7 @@ async function pumpSSE(
     }
   }
 }
-async function pumpNDJSON(
-  body: ReadableStream<Uint8Array>,
-  onChunk: (s: string) => void,
-) {
+async function pumpNDJSON(body: ReadableStream<Uint8Array>, onChunk: (s: string) => void) {
   const reader = body.getReader();
   const dec = new TextDecoder();
   let buf = "";
@@ -880,10 +857,7 @@ async function pumpNDJSON(
     }
   }
 }
-async function pumpText(
-  body: ReadableStream<Uint8Array>,
-  onChunk: (s: string) => void,
-) {
+async function pumpText(body: ReadableStream<Uint8Array>, onChunk: (s: string) => void) {
   const reader = body.getReader();
   const dec = new TextDecoder();
   while (true) {
@@ -894,31 +868,24 @@ async function pumpText(
 }
 function extract(obj: any): string {
   if (obj?.choices?.[0]?.delta?.content) return obj.choices[0].delta.content;
-  if (obj?.choices?.[0]?.message?.content)
-    return obj.choices[0].message.content;
+  if (obj?.choices?.[0]?.message?.content) return obj.choices[0].message.content;
   if (typeof obj?.content === "string") return obj.content;
   if (typeof obj?.text === "string") return obj.text;
-  if (Array.isArray(obj?.content))
-    return obj.content.map((p: any) => p?.text || p?.content || "").join("");
+  if (Array.isArray(obj?.content)) return obj.content.map((p: any) => p?.text || p?.content || "").join("");
   return JSON.stringify(obj);
 }
 function truncate(s: string, max = 2000) {
   return s.length > max ? s.slice(0, max) + "\n…(truncated)…" : s;
 }
 function hintFromHttp(status: number, ct: string, body: string): string {
-  if (status === 401 || status === 403)
-    return "Auth failed (key missing/invalid).";
+  if (status === 401 || status === 403) return "Auth failed (key missing/invalid).";
   if (status === 404) return "Wrong path — verify the proxy route.";
   if (status === 405) return "Wrong method — should be POST.";
-  if (status === 415)
-    return "Unsupported Media Type — set 'Content-Type: application/json'.";
-  if (status === 413)
-    return "Payload too large — trim request or raise server limit.";
+  if (status === 415) return "Unsupported Media Type — set 'Content-Type: application/json'.";
+  if (status === 413) return "Payload too large — trim request or raise server limit.";
   if (status >= 500) return "Server error — upstream crashed or unavailable.";
-  if (ct.includes("html"))
-    return "Got HTML (error page). Check gateway / auth.";
-  if (body && /cors|allow-origin|preflight/i.test(body))
-    return "CORS — enable CORS or call via same-origin proxy.";
+  if (ct.includes("html")) return "Got HTML (error page). Check gateway / auth.";
+  if (body && /cors|allow-origin|preflight/i.test(body)) return "CORS — enable CORS or call via same-origin proxy.";
   return "Non-OK HTTP status. Inspect logs and body above.";
 }
 function hintFromFetchError(e: any): string {
@@ -926,8 +893,7 @@ function hintFromFetchError(e: any): string {
   if (/Failed to fetch/i.test(msg) || /NetworkError/i.test(msg)) {
     return "Fetch failed — likely CORS or mixed content (http on https). Use a server proxy or enable CORS.";
   }
-  if (/timeout/i.test(msg) || e?.name === "AbortError")
-    return "Timed out — server slow or blocked.";
+  if (/timeout/i.test(msg) || e?.name === "AbortError") return "Timed out — server slow or blocked.";
   return `Unknown fetch error: ${msg}`;
 }
 async function safeText(r: Response): Promise<string> {
