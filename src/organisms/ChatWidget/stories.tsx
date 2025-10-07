@@ -5,7 +5,7 @@ import ChatWidget from "./index";
 import type { ChatMessage } from "./interfaces";
 import { StoryWrapper, Title } from "../../components/StoryWrapper";
 import AIEndpointTester from "../../components/AIEndpointTester";
-import { DemoContainer } from "./aiUtils/DemoContainer";
+import { DemoContainer } from "../../components/DemoContainer";
 
 const meta: Meta<typeof ChatWidget> = {
   title: "Organisms/ChatWidget",

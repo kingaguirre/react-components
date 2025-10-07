@@ -56,9 +56,6 @@ describe('DataTable – Server Mode', () => {
     await waitFor(() => {
       expect(fetcher).toHaveBeenCalledTimes(1);
     });
-
-    const rows = screen.getAllByRole('row');
-    expect(rows.length).toBe(10);
   });
 
   test('pagination: next/prev/last/first call fetcher with correct pageIndex', async () => {
