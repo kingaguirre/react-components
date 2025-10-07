@@ -1023,74 +1023,78 @@ app.use((err, req, res, next) => {
 
 // ------------------ DEV OpenAI key storage (in-memory) ------------------
 app.get("/api/dev/openai-key", (req, res) => {
-  res.json({
-    key: req.app.locals.devOpenAIKey || "",
-    hasKey: !!req.app.locals.devOpenAIKey,
-  });
+  res.json({ key: req.app.locals.devOpenAIKey || "", hasKey: !!req.app.locals.devOpenAIKey });
 });
 app.put("/api/dev/openai-key", (req, res) => {
-  req.app.locals.devOpenAIKey =
-    typeof req.body?.key === "string" ? req.body.key : "";
+  req.app.locals.devOpenAIKey = typeof req.body?.key === "string" ? req.body.key : "";
   res.json({ ok: true, hasKey: !!req.app.locals.devOpenAIKey });
+});
+
+// ------------------ DEV OpenAI prefs (baseUrl/model/stream) in-memory ------------------
+app.get("/api/dev/openai-prefs", (req, res) => {
+  const prefs = req.app.locals.devOpenAIPrefs || {};
+  res.json({ ok: true, prefs, hasPrefs: Object.keys(prefs).length > 0 });
+});
+app.put("/api/dev/openai-prefs", (req, res) => {
+  const body = req.body || {};
+  const next = {};
+  if (typeof body.baseUrl === "string" && body.baseUrl.trim()) next.baseUrl = body.baseUrl.trim();
+  if (typeof body.model === "string" && body.model.trim()) next.model = body.model.trim();
+  if (typeof body.stream === "boolean") next.stream = !!body.stream;
+  req.app.locals.devOpenAIPrefs = next;
+  res.json({ ok: true, prefs: next, hasPrefs: Object.keys(next).length > 0 });
 });
 
 // ------------------ /api/ai/openai (OpenAI streaming proxy via SDK) ------------------
 app.post("/api/ai/openai", async (req, res) => {
-  const headerKey = req.get("x-openai-key");
-  const apiKey =
-    headerKey || req.app?.locals?.devOpenAIKey || process.env.OPENAI_API_KEY;
+  const headerKey = req.get("x-openai-key"); // optional client-supplied key
+  const apiKey = headerKey || req.app?.locals?.devOpenAIKey || process.env.OPENAI_API_KEY;
 
   if (!apiKey) {
     return res
       .status(400)
-      .send(
-        "OpenAI key missing (send X-OpenAI-Key, PUT /api/dev/openai-key, or set OPENAI_API_KEY)",
-      );
+      .send("OpenAI key missing (send X-OpenAI-Key, PUT /api/dev/openai-key, or set OPENAI_API_KEY)");
   }
 
-  const {
-    api = "chat.completions", // "chat.completions" | "responses"
-    model = "gpt-4o-mini",
-    stream = true,
-    temperature = 0.2,
-    messages,
-    input,
-    baseUrl,
-  } = req.body || {};
+  // Pull saved prefs as fallback for baseUrl, model, stream
+  const prefs = req.app.locals?.devOpenAIPrefs || {};
 
-  const finalMessages = Array.isArray(messages)
-    ? messages
-    : [{ role: "user", content: String(input ?? "") }];
+  // Request body (allow override), else fall back to server prefs, else defaults
+  const body = req.body || {};
+  const api = body.api || "chat.completions"; // not stored; explicit per-request
+  const model = body.model || prefs.model || "gpt-4o-mini";
+  const temperature = typeof body.temperature === "number" ? body.temperature : 0.2;
 
-  const client = new OpenAI({
-    apiKey,
-    baseURL: baseUrl || process.env.OPENAI_BASE_URL || "https://api.openai.com/v1",
-  });
+  // stream: prefer explicit request flag, else saved pref, else default true
+  const hasStreamFlag = Object.prototype.hasOwnProperty.call(body, "stream");
+  const stream = hasStreamFlag ? !!body.stream : (typeof prefs.stream === "boolean" ? !!prefs.stream : true);
 
-  // Emit the same SSE delta frames your client already parses
+  // baseURL: request value → saved pref → env → default
+  const baseURL = body.baseUrl || prefs.baseUrl || process.env.OPENAI_BASE_URL || "https://api.openai.com/v1";
+
+  const messages = Array.isArray(body.messages) ? body.messages : undefined;
+  const input = body.input != null ? String(body.input) : undefined;
+  const finalMessages = messages || [{ role: "user", content: String(input ?? "") }];
+
+  const client = new OpenAI({ apiKey, baseURL });
+
   const emitDelta = (s) =>
-    res.write(
-      `data: ${JSON.stringify({ choices: [{ delta: { content: s } }] })}\n\n`,
-    );
+    res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: s } }] })}\n\n`);
 
   const fakeStreamText = async (text) => {
-    // Fallback when real streaming isn't available; chunk to feel streamy
     const CHUNK = 600;
     for (let i = 0; i < text.length; i += CHUNK) {
       emitDelta(text.slice(i, i + CHUNK));
-      // tiny delay helps UI feel like a stream
       // eslint-disable-next-line no-await-in-loop
       await new Promise((r) => setTimeout(r, 10));
     }
   };
 
   const extractResponsesText = (resp) => {
-    // Try common shapes from Responses API
     if (typeof resp?.output_text === "string") return resp.output_text;
     if (Array.isArray(resp?.output)) {
       const parts = [];
       for (const seg of resp.output) {
-        // SDKs differ; handle a few possibilities
         if (typeof seg?.content === "string") parts.push(seg.content);
         else if (Array.isArray(seg?.content)) {
           for (const c of seg.content) {
@@ -1103,7 +1107,6 @@ app.post("/api/ai/openai", async (req, res) => {
       }
       if (parts.length) return parts.join("");
     }
-    // Last resort
     return JSON.stringify(resp);
   };
 
@@ -1116,7 +1119,6 @@ app.post("/api/ai/openai", async (req, res) => {
 
     try {
       if (api === "responses") {
-        // Try native streaming if available
         let usedNativeStream = false;
         if (client?.responses?.stream) {
           try {
@@ -1126,27 +1128,16 @@ app.post("/api/ai/openai", async (req, res) => {
               temperature,
             });
             usedNativeStream = true;
-
             for await (const event of s) {
               const t = event?.type || "";
-              // The SDK surfaces granular types; forward only text deltas
-              if (
-                t.endsWith(".delta") &&
-                typeof event?.delta === "string" &&
-                event?.item_type?.includes("output_text")
-              ) {
-                emitDelta(event.delta);
-              }
+              if (t.endsWith(".delta") && typeof event?.delta === "string") emitDelta(event.delta);
               if (t === "response.completed") break;
             }
-          } catch (err) {
-            // fall through to non-streaming path below
+          } catch {
             usedNativeStream = false;
           }
         }
-
         if (!usedNativeStream) {
-          // Fallback: one-shot + fake streaming
           const out = await client.responses.create({
             model,
             input: finalMessages.map((m) => m.content).join("\n"),
@@ -1156,7 +1147,6 @@ app.post("/api/ai/openai", async (req, res) => {
           await fakeStreamText(text);
         }
       } else {
-        // chat.completions (your current path)
         const s = await client.chat.completions.create({
           model,
           temperature,
@@ -1183,7 +1173,7 @@ app.post("/api/ai/openai", async (req, res) => {
     return;
   }
 
-  // Non-streamed JSON response
+  // Non-streamed JSON
   try {
     if (api === "responses") {
       const out = await client.responses.create({
@@ -1202,17 +1192,12 @@ app.post("/api/ai/openai", async (req, res) => {
       res.status(200).json(out);
     }
   } catch (err) {
-    res
-      .status(typeof err?.status === "number" ? err.status : 500)
-      .json({
-        error: {
-          name: err?.name,
-          message: err?.message,
-          status: err?.status,
-        },
-      });
+    res.status(typeof err?.status === "number" ? err.status : 500).json({
+      error: { name: err?.name, message: err?.message, status: err?.status },
+    });
   }
 });
+
 
 app.listen(PORT, () => {
   console.log(`Local API http://localhost:${PORT}  (delay ~${BASE_DELAY}ms ± ${JITTER}ms)`);
