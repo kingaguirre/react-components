@@ -18,6 +18,7 @@ type UiState =
   | "done"
   | "error"
   | "aborted";
+type APIPath = "chat.completions" | "responses";
 
 const API_BASE = "http://localhost:4000"; // /api/dev/openai-key and /api/ai/openai
 
@@ -27,9 +28,10 @@ export const AIEndpointTester = () => {
   const [openaiServerKeySaved, setOpenaiServerKeySaved] = useState(false);
 
   // Payload knobs
+  const [api, setApi] = useState<APIPath>("chat.completions"); // NEW
   const [model, setModel] = useState("gpt-4o-mini");
   const [temperature, setTemperature] = useState(0.2);
-  const [prompt, setPrompt] = useState("say hello in 3 words");
+  const [prompt, setPrompt] = useState("what is earth");
   const [payloadMode, setPayloadMode] = useState<"messages" | "input">(
     "messages",
   );
@@ -88,7 +90,9 @@ export const AIEndpointTester = () => {
       const has = !!openaiServerKey;
       setOpenaiServerKeySaved(has);
       appendLog(
-        `[openai] server key ${has ? "saved" : "cleared"} (${d?.hasKey ? "has" : "empty"})`,
+        `[openai] server key ${has ? "saved" : "cleared"} (${
+          d?.hasKey ? "has" : "empty"
+        })`,
       );
       setHint(
         has
@@ -121,7 +125,10 @@ export const AIEndpointTester = () => {
 
   const headers = useMemo(() => {
     const h: Record<string, string> = { "Content-Type": "application/json" };
-    if (openaiServerKey.trim()) h["X-OpenAI-Key"] = openaiServerKey.trim(); // ← add this
+    if (openaiServerKey.trim()) {
+      // Send key if present (can be overridden server-side by saved key/env)
+      h["X-OpenAI-Key"] = openaiServerKey.trim();
+    }
     return h;
   }, [openaiServerKey]);
 
@@ -130,15 +137,19 @@ export const AIEndpointTester = () => {
       payloadMode === "messages"
         ? { messages: [{ role: "user", content: prompt }] }
         : { input: prompt };
-    return { model, stream, temperature, baseUrl, ...core }; // NEW baseUrl
-  }, [model, stream, payloadMode, prompt, temperature, baseUrl]);
+    return { api, model, stream, temperature, baseUrl, ...core };
+  }, [api, model, stream, payloadMode, prompt, temperature, baseUrl]);
 
   const targetUrl = `${API_BASE}/api/ai/openai`;
 
   const curl = useMemo(() => {
-    const hdrs = `-H "Content-Type: application/json"`;
-    return `curl -X POST ${hdrs} -d ${JSON.stringify(JSON.stringify(payload))} ${JSON.stringify(targetUrl)}`;
-  }, [targetUrl, payload]);
+    const hdrs = `-H "Content-Type: application/json"${
+      openaiServerKey ? ` -H "X-OpenAI-Key: ${openaiServerKey}"` : ""
+    }`;
+    return `curl -X POST ${hdrs} -d ${JSON.stringify(
+      JSON.stringify(payload),
+    )} ${JSON.stringify(targetUrl)}`;
+  }, [targetUrl, payload, openaiServerKey]);
 
   // Run request
   const reset = useCallback(() => {
@@ -306,7 +317,7 @@ export const AIEndpointTester = () => {
 
       {/* Controls */}
       <Card>
-        {/* Model / Temp / Timeout */}
+        {/* API / BaseURL / Model / Temp / Timeout */}
         <Row4>
           <Field>
             <Label>OpenAI Base URL</Label>
@@ -343,7 +354,24 @@ export const AIEndpointTester = () => {
         </Row4>
 
         {/* Payload / Stream / Parser */}
-        <Row3>
+        <Row4>
+          <Field>
+            <Label>API</Label>
+            <Segmented>
+              <SegBtn
+                className={api === "chat.completions" ? "active" : ""}
+                onClick={() => setApi("chat.completions")}
+              >
+                chat.completions
+              </SegBtn>
+              <SegBtn
+                className={api === "responses" ? "active" : ""}
+                onClick={() => setApi("responses")}
+              >
+                responses
+              </SegBtn>
+            </Segmented>
+          </Field>
           <Field>
             <Label>Payload</Label>
             <Segmented>
@@ -394,7 +422,7 @@ export const AIEndpointTester = () => {
               )}
             </Segmented>
           </Field>
-        </Row3>
+        </Row4>
 
         {/* Prompt */}
         <Field>
@@ -431,6 +459,7 @@ export const AIEndpointTester = () => {
           {/* Status line */}
           <RowInline>
             <Status $state={state}>{state}</Status>
+            <Pill>{api}</Pill>
             <Pill>{httpStatus || "—"}</Pill>
             <Pill>{ctype || "—"}</Pill>
             <Pill>Stream: {streamGuess}</Pill>
@@ -695,8 +724,8 @@ const Pre = styled.pre<{ small?: boolean; $fixed?: boolean }>`
   width: 100%;
   max-width: 100%;
   white-space: pre-wrap;
-  overflow-wrap: anywhere; /* NEW: break long tokens */
-  word-break: break-word; /* NEW: break long tokens */
+  overflow-wrap: anywhere;
+  word-break: break-word;
   font-family:
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
     "Courier New";
