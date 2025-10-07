@@ -169,7 +169,7 @@ export function makeTabularPlugin(options) {
     const keys = new Set();
     for (const r of rows) Object.keys(r || {}).forEach(k => keys.add(k));
     const preferred = ["trn","id","receivedAt","__receivedAtMs","workflowStage","status","product","bookingLocation"];
-    const rest = [...keys].filter(k => !preferred.includes(k)).sort();
+    const rest = [...keys].filter(k => !preferred.includes(k));
     return preferred.filter(k => keys.has(k)).concat(rest);
   }
 

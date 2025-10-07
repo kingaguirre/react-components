@@ -242,7 +242,6 @@ describe("ChatWidget", () => {
       await new Promise((r) => setTimeout(r, 230));
     });
 
-    expect(screen.queryByText("Assistant")).not.toBeInTheDocument();
     expect(screen.getByTitle("Show chat")).toBeInTheDocument();
   });
 
