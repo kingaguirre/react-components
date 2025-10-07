@@ -11,6 +11,7 @@
     "useDefineForClassFields": true,
     "lib": ["DOM", "DOM.Iterable", "ES6"],
     "allowJs": true,
+    "checkJs": false,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,
@@ -27,6 +28,15 @@
     "importHelpers": true,
     "types": ["vitest/globals", "node"]
   },
+  "files": [
+    "src/global.d.ts",
+    "src/index.ts",
+    "src/common/server/ai/index.ts",
+    "src/common/server/ai/expressClient.ts",
+    "src/common/server/ai/conversationId.ts",
+    "src/common/server/ai/streamFactory.js",
+    "src/common/server/ai/tabularPlugin.js",
+  ],
   "include": [
     "src/global.d.ts",
     "src/index.ts",

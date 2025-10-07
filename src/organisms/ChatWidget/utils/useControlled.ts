@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 /** Local controlled/uncontrolled helper */
-export const useControlled = <T,>(
+export const useControlled = <T>(
   controlled: T | undefined,
   defaultValue: T,
 ) => {
@@ -9,6 +9,6 @@ export const useControlled = <T,>(
   const isCtrl = controlled !== undefined;
   return [
     isCtrl ? controlled : uncontrolled,
-    isCtrl ? (() => {}) : setUncontrolled,
+    isCtrl ? () => {} : setUncontrolled,
   ] as const;
 };

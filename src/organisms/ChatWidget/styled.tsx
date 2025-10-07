@@ -3,24 +3,6 @@
 import styled, { keyframes, css } from "styled-components";
 import { theme, scrollStyle } from "../../styles";
 
-/* Pinned side animations */
-const sideInRight = keyframes`
-  from { transform: translateX(100%); opacity: 0; }
-  to   { transform: translateX(0);    opacity: 1; }
-`;
-const sideOutRight = keyframes`
-  from { transform: translateX(0);    opacity: 1; }
-  to   { transform: translateX(100%); opacity: 0; }
-`;
-const sideInLeft = keyframes`
-  from { transform: translateX(-100%); opacity: 0; }
-  to   { transform: translateX(0);     opacity: 1; }
-`;
-const sideOutLeft = keyframes`
-  from { transform: translateX(0);     opacity: 1; }
-  to   { transform: translateX(-100%); opacity: 0; }
-`;
-
 /* ====== Floating layout ====== */
 export const RootPortalWrap = styled.div<{
   $position: "bottom-right" | "bottom-left";
@@ -107,38 +89,21 @@ export const WindowMount = styled.div<{
   z-index: ${({ $zIndex }) => $zIndex};
 `;
 
-// side-aware float animations for floating mode
-const floatInRight = keyframes`
-  from { transform: translate(8px, 8px) scale(0.98); opacity: 0; }
-  to   { transform: translate(0, 0)     scale(1.00); opacity: 1; }
-`;
-const floatOutRight = keyframes`
-  from { transform: translate(0, 0)     scale(1.00); opacity: 1; }
-  to   { transform: translate(8px, 8px) scale(0.98); opacity: 0; }
-`;
-const floatInLeft = keyframes`
-  from { transform: translate(-8px, 8px) scale(0.98); opacity: 0; }
-  to   { transform: translate(0, 0)      scale(1.00); opacity: 1; }
-`;
-const floatOutLeft = keyframes`
-  from { transform: translate(0, 0)      scale(1.00); opacity: 1; }
-  to   { transform: translate(-8px, 8px) scale(0.98); opacity: 0; }
-`;
-
-// Update AnimatedPanel to pick animation by position
 export const AnimatedPanel = styled.div<{
-  $entering: boolean;
-  $exiting: boolean;
-  $pos?: "bottom-right" | "bottom-left"; // NEW
+  $open: boolean;
+  $pos?: "bottom-right" | "bottom-left";
+  $animReady?: boolean;
 }>`
-  animation: ${({ $entering, $exiting, $pos = "bottom-right" }) => {
-      if ($entering)
-        return $pos === "bottom-right" ? floatInRight : floatInLeft;
-      if ($exiting)
-        return $pos === "bottom-right" ? floatOutRight : floatOutLeft;
-      return "none";
-    }}
-    200ms ease forwards;
+  will-change: transform, opacity;
+  transform: ${({ $open, $pos = "bottom-right" }) =>
+    $open
+      ? "translate3d(0,0,0) scale(1)"
+      : $pos === "bottom-right"
+        ? "translate3d(8px,8px,0) scale(.98)"
+        : "translate3d(-8px,8px,0) scale(.98)"};
+  opacity: ${({ $open }) => ($open ? 1 : 0)};
+  transition: ${({ $animReady }) =>
+    $animReady ? "transform 200ms ease, opacity 200ms ease" : "none"};
 `;
 
 /* ====== Pinned layout ====== */
@@ -154,16 +119,22 @@ export const PinnedMount = styled.div<{
   $maxW: number;
   $zIndex: number;
   $fixed: boolean;
+  $active: boolean;
 }>`
-  position: ${({ $fixed }) => ($fixed ? "fixed" : "absolute")}; /* CHANGED */
+  position: ${({ $fixed }) => ($fixed ? "fixed" : "absolute")};
   top: 0;
   bottom: 0;
   ${({ $side }) => ($side === "right" ? "right: 0;" : "left: 0;")}
-  width: ${({ $maxW }) => $maxW}px;
+  width: 0;
+  overflow: visible;
   z-index: ${({ $zIndex }) => $zIndex};
   pointer-events: none;
   height: 100%;
   max-height: 100%;
+  contain: layout style;
+  isolation: isolate;
+  transform: translateZ(0);
+  visibility: ${({ $active }) => ($active ? "visible" : "hidden")};
 `;
 
 export const PinnedHandleLayer = styled.div<{
@@ -217,21 +188,34 @@ export const PinnedHandle = styled.button<{
 
 export const SidePanel = styled.div<{
   $side: "right" | "left";
-  $entering: boolean;
-  $exiting: boolean;
+  $maxW: number;
+  $open: boolean;
+  $animReady?: boolean;
 }>`
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  ${({ $side }) => ($side === "right" ? "right: 0;" : "left: 0;")}
+  width: ${({ $maxW }) => $maxW}px;
   height: 100%;
-  pointer-events: all;
+  /* Only clickable when open */
+  pointer-events: ${({ $open }) => ($open ? "all" : "none")};
 
-  animation: ${({ $side, $entering, $exiting }) => {
-      if ($entering) return $side === "right" ? sideInRight : sideInLeft;
-      if ($exiting) return $side === "right" ? sideOutRight : sideOutLeft;
-      return "none";
-    }}
-    220ms ease forwards;
+  /* Off-canvas base state; transform-only = no layout */
+  transform: ${({ $side, $open }) =>
+    $open
+      ? "translate3d(0,0,0)"
+      : $side === "right"
+        ? "translate3d(100%,0,0)"
+        : "translate3d(-100%,0,0)"};
+  opacity: ${({ $open }) => ($open ? 1 : 0)};
+  transition: ${({ $animReady }) =>
+    $animReady ? "transform 220ms ease, opacity 220ms ease" : "none"};
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+
   display: flex;
   flex-direction: column;
-  height: 100%;
   max-height: 100%;
   min-height: 0;
 `;
@@ -660,4 +644,68 @@ export const Dot = styled.span<{
         : theme.colors.primary.base};
   animation: ${bounce} 1s infinite ease-in-out;
   animation-delay: ${({ $delay = 0 }) => `${$delay}ms`};
+`;
+
+export const AttachmentChip = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px ${theme.colors.primary.light};
+  background: ${theme.colors.primary.pale};
+  color: ${theme.colors.primary.base};
+  font-size: 11px;
+  line-height: 1;
+  max-width: 160px;
+  max-height: 20px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+  align-self: center;
+  margin-top: 4px;
+  margin-left: 2px;
+  cursor: default;
+`;
+
+export const AttachmentName = styled.span<{ $baseW?: number }>`
+  display: inline-flex;
+  align-items: baseline;
+  white-space: nowrap;
+
+  .base {
+    max-width: ${(p) => p.$baseW ?? 100}px;
+    overflow: hidden; /* just in case parent shrinks unexpectedly */
+    text-overflow: clip; /* we middle-truncate in JS; no extra ellipsis */
+    white-space: nowrap;
+  }
+
+  .ext {
+    flex: 0 0 auto;
+  }
+`;
+
+export const AttachmentRemove = styled.button`
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  margin: 0;
+  line-height: 0;
+
+  &:hover {
+    opacity: 0.9;
+  }
+  &:active {
+    opacity: 0.8;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
 `;

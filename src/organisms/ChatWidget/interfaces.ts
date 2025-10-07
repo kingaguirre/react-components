@@ -47,6 +47,8 @@ export interface ChatWidgetProps {
   /** Show bottom-right floating launcher (floating mode). Default true. */
   showLauncher?: boolean;
 
+  shadow?: boolean;
+
   /** Controlled open; if omitted uses internal state */
   open?: boolean;
   toggleOpen?: (open: boolean) => void;

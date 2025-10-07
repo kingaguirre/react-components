@@ -39,7 +39,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
     lineHeight: "1.3",
     borderRadius: "2px",
     color: "#fff",
-    zIndex: 998,
+    zIndex: 999,
     maxWidth,
     minWidth,
   };

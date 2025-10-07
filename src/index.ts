@@ -21,6 +21,7 @@ export { Tabs } from "./organisms/Tabs";
 export { DataTable } from "./organisms/DataTable";
 export { AppShell } from "./organisms/AppShell";
 export { FormRenderer } from "./organisms/FormRenderer";
+export { ChatWidget } from "./organisms/ChatWidget";
 
 // Theme
 export { theme, GlobalStyles } from "./styles";
@@ -52,3 +53,8 @@ export * from "./organisms/Tabs/interface";
 export * from "./organisms/DataTable/interface";
 export * from "./organisms/AppShell/interface";
 export * from "./organisms/FormRenderer/interface";
+export * from "./organisms/ChatWidget/interfaces";
+
+// AI Utils
+export * from "./common/server/ai";
+export { AIEndpointTester } from "./components/AIEndpointTester";

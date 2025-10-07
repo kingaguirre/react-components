@@ -1,4 +1,3 @@
-import React from "react";
 import { Icon } from "../../atoms/Icon";
 
 export const DEFAULT_INITIAL_MESSAGE = (
@@ -23,4 +22,4 @@ export const REPLY_CANCEL_MESSAGE = (
   </>
 );
 
-export const TIMEAGO_TICK_MS = 30_000; // refresh “time ago” every 30s
+export const TIMEAGO_TICK_MS = 30_000;

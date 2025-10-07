@@ -39,8 +39,19 @@ export const makeTitle = (msgs: ChatMessage[]) => {
   return title || "New chat";
 };
 
+export const upperFirst = (s: string) =>
+  typeof s === "string" && s.length ? s[0].toUpperCase() + s.slice(1) : s;
+
+export const makeTitleCap = (msgs: ChatMessage[]) =>
+  upperFirst(makeTitle(msgs));
+
 export const normalizeInitialMessage = (
-  seedAny: string | React.ReactElement | Partial<ChatMessage> | null | undefined,
+  seedAny:
+    | string
+    | React.ReactElement
+    | Partial<ChatMessage>
+    | null
+    | undefined,
 ): ChatMessage => {
   const seed = seedAny;
   if (typeof seed === "string" || React.isValidElement(seed)) {

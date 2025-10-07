@@ -50,7 +50,7 @@ export default defineConfig({
         '**/_test.tsx',
         '**/stories/**',
         '**/__tests__/**',
-        'src/components/**',
+        'src/server/**'
       ],
     }),
     react(),
@@ -62,15 +62,6 @@ export default defineConfig({
       // ensure only one instance of React is used
       'react': path.resolve('node_modules', 'react'),
       'react-dom': path.resolve('node_modules', 'react-dom'),
-    },
-  },
-  server: {
-    proxy: {
-      '/api/chat': {
-        target: 'http://localhost:3001',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/chat/, '/chat'),
-      },
     },
   },
   build: {
@@ -85,7 +76,12 @@ export default defineConfig({
       },
     },
     rollupOptions: {
-      external: [ 'react', 'react-dom' ],
+      external: [
+        'react',
+        'react-dom',
+        'react/jsx-runtime',
+        'react/jsx-dev-runtime'
+      ],
       output: {
         exports: 'named',
         globals: { react: 'React', 'react-dom': 'ReactDOM' },
