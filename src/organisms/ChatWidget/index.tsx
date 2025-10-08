@@ -201,6 +201,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
   );
 
   // Always-fresh snapshot for async code paths
+  const descriptionRef = useRef<HTMLDivElement | null>(null);
   const messagesRef = useRef<ChatMessage[]>(messagesState);
   useEffect(() => {
     messagesRef.current = messagesState;
@@ -1190,7 +1191,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
     if (mode === "pinned") {
       requestAnimationFrame(() => recalcPinnedHeights());
     }
-  }, [text, autosize, mode, recalcPinnedHeights]);
+  }, [description, text, autosize, mode, recalcPinnedHeights]);
 
   useLayoutEffect(() => {
     recalcPinnedHeights();
@@ -1209,7 +1210,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
     addRO(sidePanelRef.current);
     addRO(footerRef.current);
     addRO(messagesDivRef.current);
-
+    addRO(descriptionRef.current);
     if (portalRoot instanceof Element) addRO(portalRoot); // container height changes
 
     return () => observers.forEach((ro) => ro.disconnect());
@@ -1227,9 +1228,11 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
   const PanelContent = (
     <>
       {description && (
-        <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 6 }}>
+        <S.Description
+          ref={descriptionRef}
+        >
           {description}
-        </div>
+        </S.Description>
       )}
 
       <S.Messages

@@ -709,3 +709,10 @@ export const AttachmentRemove = styled.button`
     pointer-events: none;
   }
 `;
+
+export const Description = styled.div`
+  font-size: 11px;
+  color: ${theme.colors.default.base};
+  margin-bottom: 6px;
+  line-height: 1.2;
+`

@@ -428,7 +428,12 @@ function evaluateFormOrTable(form, ctx) {
 /* -------------------------- intent detectors -------------------------- */
 const wantsScreen   = (q="") => /\b(where am i|what screen|current screen|which screen)\b/i.test(q);
 const wantsModule   = (q="") => /\b(current\s+module|which\s+module|what\s+module)\b/i.test(q);
-const wantsAnalyze  = (q="") => /\b(analy[sz]e|validate|validation|what'?s missing|missing fields?|invalid|errors?)\b/i.test(q);
+// Compare/diff should take priority over form-analysis so we don't block tabularPlugin.
+const wantsCompare  = (q="") => /\b(compare|diff(?:erence)?|what'?s new|what changed|changes?)\b/i.test(q);
+const wantsAnalyze  = (q="") =>
+  !wantsCompare(q) &&
+  /\b(analy[sz]e|validate|validation|what'?s missing|missing fields?|invalid|errors?)\b/i.test(q);
+
 const wantsRequired = (q="") => /\b(required fields?|which fields are required|list required)\b/i.test(q);
 
 // --- dataset analytics intents → must delegate to tabularPlugin ---
@@ -554,8 +559,13 @@ export function workdeskPlugin({ baseUrl, cacheTtlMs = 0, makeDownloadLink }) {
   return {
     ...base,
     augment: async ({ text, messages, context }) => {
-      const q = String(text || "").trim();
+      const q = String(text || "").trim().toLowerCase();
       const rawForm = context?.form;
+
+      // ✅ Always delegate file comparisons/diffs to tabularPlugin (it handles attachments & diffing).
+      if (wantsCompare(q)) {
+        return base.augment({ text, messages, context });
+      }
 
       // Always delegate dataset analytics to the base tabular plugin
       if (wantsLatest(q) || wantsOldest(q)) {

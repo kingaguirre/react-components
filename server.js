@@ -6,7 +6,7 @@ import OpenAI from "openai";
 import express from "express";
 import cors from "cors";
 import { createAIStreamHandler, aiDownloadRoute } from "./src/common/server/ai/streamFactory.js";
-import { workdeskPlugin } from "./src/organisms/ChatWidget/aiUtils/workdesk.js";
+import { workdeskPlugin } from "./src/organisms/ChatWidget/aiUtils/workdeskPlugin.js";
 
 const PORT = Number(process.env.PORT ?? 4000);
 const BASE_DELAY = Number.isFinite(Number(process.env.DELAY_MS)) ? Number(process.env.DELAY_MS) : 100;
