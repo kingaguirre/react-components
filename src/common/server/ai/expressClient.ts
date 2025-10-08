@@ -1,89 +1,126 @@
 // src/organisms/ChatWidget/server/expressClient.ts
 type Msg = { role: "system" | "user" | "assistant"; content: string };
+
+const DEFAULTS = {
+  PROXY_URL: "http://localhost:4000/api/ai/stream",
+  SETTINGS_ENDPOINT: "http://localhost:4000/api/dev/openai-settings",
+  KEY_ENDPOINT: "http://localhost:4000/api/dev/openai-key",
+  BASE_URL: "https://api.openai.com/v1",
+  MODEL: "gpt-4o-mini",
+  KEY_TTL_MS: 60_000,
+  SETTINGS_TTL_MS: 60_000,
+};
+
+let __cachedKey: string | undefined;
+let __keyFetchedAt = 0;
+
+let __cachedSettings: any | undefined;
+let __settingsFetchedAt = 0;
+
 const toText = (v: any): string => (typeof v === "string" ? v : "");
 const isStringy = (x: any) =>
   typeof x?.content === "string" && x.content.trim().length > 0;
 
-/** Convert your ChatWidget thread into OpenAI messages (skip JSX seeds, empties) */
-function toOpenAIMessages(history: any[], latestUserText: string): Msg[] {
+function toOpenAIMessages(history: any[], latestUserText: string, maxContext = 24): Msg[] {
   const trimmed = (history ?? [])
-    .filter(
-      (m) => (m.role === "user" || m.role === "assistant") && isStringy(m),
-    )
+    .filter((m) => (m.role === "user" || m.role === "assistant") && isStringy(m))
     .map((m) => ({ role: m.role, content: toText(m.content) }))
-    // Cap context to last 24 messages for token sanity
-    .slice(-24);
+    .slice(-maxContext);
 
-  // Ensure the very latest user input is present (in case the placeholder path reorders)
   if (!trimmed.length || trimmed[trimmed.length - 1].role !== "user") {
     trimmed.push({ role: "user", content: latestUserText });
   }
   return trimmed;
 }
 
-// Lightweight fetch of the dev key (same endpoint your tester uses)
-async function getDevOpenAIKey(endpoint: string): Promise<string | undefined> {
+async function fetchJSON<T = any>(url: string): Promise<T | undefined> {
   try {
-    const r = await fetch(endpoint, { method: "GET" });
+    const r = await fetch(url, { method: "GET" });
     if (!r.ok) return;
-    const j = await r.json().catch(() => null);
-    const k = j?.key ? String(j.key) : "";
-    return k || undefined;
+    return (await r.json().catch(() => undefined)) as T | undefined;
   } catch {
     return;
   }
 }
 
+async function getDevKey(endpoint = DEFAULTS.KEY_ENDPOINT): Promise<string | undefined> {
+  const now = Date.now();
+  if (__cachedKey && now - __keyFetchedAt < DEFAULTS.KEY_TTL_MS) return __cachedKey;
+
+  const data = await fetchJSON<{ key?: string }>(endpoint);
+  const k = (data?.key && String(data.key)) || "";
+  __cachedKey = k || undefined;
+  __keyFetchedAt = Date.now();
+  return __cachedKey;
+}
+
+async function getSavedSettings(endpoint = DEFAULTS.SETTINGS_ENDPOINT): Promise<any | undefined> {
+  const now = Date.now();
+  if (__cachedSettings && now - __settingsFetchedAt < DEFAULTS.SETTINGS_TTL_MS) return __cachedSettings;
+
+  const data = await fetchJSON<{ settings?: any; hasSettings?: boolean }>(endpoint);
+  const s = data?.settings || {};
+  __cachedSettings = s;
+  __settingsFetchedAt = Date.now();
+  return __cachedSettings;
+}
+
+/**
+ * Minimal streaming client.
+ * - Auto-loads saved settings (baseUrl/model) and dev key from your dev endpoints.
+ * - Explicit params override the saved values.
+ */
 export async function* streamFromExpress(params: {
   text: string;
   history: any[];
   signal: AbortSignal;
-  model?: string;
-  proxyUrl?: string;
   context?: any;
-  maxContext?: number;
 
-  /** NEW: upstream OpenAI-compatible base URL to use (e.g., https://api.openai.com/v1) */
+  // Optional overrides (default is to use saved settings)
+  model?: string;
   baseUrl?: string;
 
-  /**
-   * NEW: forward the dev/server-saved key as X-OpenAI-Key (DEV ONLY).
-   * If true, we’ll GET it from devKeyEndpoint and attach the header.
-   */
-  useServerKeyHeader?: boolean;
+  // Optional endpoint overrides
+  proxyUrl?: string;
+  settingsEndpoint?: string;
+  devKeyEndpoint?: string;
 
-  /** NEW: where to fetch the dev key from (defaults to same origin route) */
-  devKeyEndpoint?: string; // e.g., "http://localhost:4000/api/dev/openai-key"
+  // Context window cap
+  maxContext?: number;
 }): AsyncIterable<string> {
   const {
     text,
     history,
     signal,
     context,
+    model: modelOverride,
+    baseUrl: baseUrlOverride,
+    proxyUrl = DEFAULTS.PROXY_URL,
+    settingsEndpoint = DEFAULTS.SETTINGS_ENDPOINT,
+    devKeyEndpoint = DEFAULTS.KEY_ENDPOINT,
     maxContext = 24,
-    model = "gpt-4o-mini",
-    proxyUrl = "",
-    baseUrl,
-    useServerKeyHeader = false, // NEW
-    devKeyEndpoint = "/api/dev/openai-key", // NEW
   } = params;
 
-  const messages = toOpenAIMessages(history, text).slice(-maxContext);
+  // Pull saved settings/key
+  const saved = (await getSavedSettings(settingsEndpoint)) || {};
+  const savedModel = typeof saved.model === "string" && saved.model ? saved.model : DEFAULTS.MODEL;
+  const savedBaseUrl =
+    typeof saved.baseUrl === "string" && saved.baseUrl ? saved.baseUrl : DEFAULTS.BASE_URL;
 
-  const attachments = Array.isArray(context?.attachments)
-    ? context.attachments
-    : [];
+  const model = modelOverride || savedModel;
+  const baseUrl = baseUrlOverride || savedBaseUrl;
 
-  // NEW: optionally fetch and forward key as a header (dev-only convenience)
-  let openaiKey: string | undefined;
-  if (useServerKeyHeader) {
-    openaiKey = await getDevOpenAIKey(devKeyEndpoint);
+  const messages = toOpenAIMessages(history, text, maxContext);
+
+  const attachments = Array.isArray(context?.attachments) ? context.attachments : [];
+  const key = await getDevKey(devKeyEndpoint);
+
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (key) {
+    // Primary (Bearer) and back-compat for proxies expecting X-OpenAI-Key
+    headers["Authorization"] = `Bearer ${key}`;
+    headers["X-OpenAI-Key"] = key;
   }
-
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  if (openaiKey) headers["X-OpenAI-Key"] = openaiKey; // server may read this
 
   const res = await fetch(proxyUrl, {
     method: "POST",
@@ -95,7 +132,8 @@ export async function* streamFromExpress(params: {
       history,
       attachments,
       context: { ...(context || {}), attachments },
-      baseUrl, // NEW: pass through to server
+      baseUrl,   // upstream OpenAI-compatible endpoint
+      stream: true,
     }),
     signal,
   });
@@ -113,17 +151,13 @@ export async function* streamFromExpress(params: {
       const { value, done } = await reader.read();
       if (done) break;
       if (signal.aborted) {
-        try {
-          await reader.cancel();
-        } catch {}
+        try { await reader.cancel(); } catch {}
         break;
       }
       const chunk = decoder.decode(value, { stream: true });
       if (chunk) yield chunk;
     }
   } finally {
-    try {
-      reader.releaseLock();
-    } catch {}
+    try { reader.releaseLock(); } catch {}
   }
 }

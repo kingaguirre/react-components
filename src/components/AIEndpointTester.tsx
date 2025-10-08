@@ -1,39 +1,36 @@
+// src/AIEndpointTester.tsx
 "use client";
 
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { theme } from "../styles";
 
 type Parser = "auto" | "sse" | "ndjson" | "text" | "json";
 type UiState = "idle" | "requesting" | "streaming" | "done" | "error" | "aborted";
-type APIPath = "chat.completions" | "responses";
 
-const API_BASE = "http://localhost:4000"; // /api/dev/openai-key, /api/dev/openai-prefs, /api/ai/openai
+const LS_SERVER_BASE = "aiTester:serverBase";
 
-export const AIEndpointTester = () => {
-  // OpenAI server key (dev storage)
+export function AIEndpointTester() {
+  // ---------- Tester server base (where your Express proxy runs) ----------
+  const defaultServerBase =
+    typeof window !== "undefined" ? window.location.origin : "http://localhost:4000";
+  const [serverBase, setServerBase] = useState<string>("");
+  const effectiveServerBase = (serverBase || defaultServerBase).replace(/\/+$/, "");
+
+  // ---------- Key/JWT (Authorization: Bearer) ----------
   const [openaiServerKey, setOpenaiServerKey] = useState("");
   const [openaiServerKeySaved, setOpenaiServerKeySaved] = useState(false);
 
-  // Server defaults (baseUrl/model/stream) saved on server
-  const [serverDefaultsSaved, setServerDefaultsSaved] = useState(false);
+  // ---------- Settings persisted on server (no secrets) ----------
+  const [settingsSaved, setSettingsSaved] = useState(false);
 
-  // Payload knobs
-  const [api, setApi] = useState<APIPath>("chat.completions");
-  const [model, setModel] = useState("gpt-4o-mini");
-  const [temperature, setTemperature] = useState(0.2);
-  const [prompt, setPrompt] = useState("say hello in 3 words");
-  const [payloadMode, setPayloadMode] = useState<"messages" | "input">("messages");
-  const [stream, setStream] = useState(true);
-  const [timeoutMs, setTimeoutMs] = useState(30000);
-  const [parser, setParser] = useState<Parser>("auto");
+  // ---- Tweakable settings (persisted) ----
   const [baseUrl, setBaseUrl] = useState("https://api.openai.com/v1");
+  const [model, setModel] = useState("gpt-4o-mini");
+  const [stream, setStream] = useState(true);
+  const [payloadMode, setPayloadMode] = useState<"messages" | "input">("messages");
+  const [parser, setParser] = useState<Parser>("auto");
+  const [prompt, setPrompt] = useState("say hello in 3 words");
 
   // UI state
   const [state, setState] = useState<UiState>("idle");
@@ -47,13 +44,28 @@ export const AIEndpointTester = () => {
   const [copiedCurl, setCopiedCurl] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
-  // Load server-saved OpenAI key + defaults on mount
+  // ---------- Derived endpoints ----------
+  const keyUrl = `${effectiveServerBase}/api/dev/openai-key`;
+  const settingsUrl = `${effectiveServerBase}/api/dev/openai-settings`;
+  const proxyUrl = `${effectiveServerBase}/api/ai/openai`;
+
+  // ---------- Helpers ----------
+  const appendLog = useCallback((line: string) => setLogs((prev) => [...prev, line]), []);
+
+  // ---------- Boot: hydrate serverBase from LS, then fetch key + settings ----------
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(LS_SERVER_BASE);
+      if (saved && typeof saved === "string") setServerBase(saved);
+    } catch {}
+  }, []);
+
   useEffect(() => {
     let ignore = false;
     (async () => {
+      // key
       try {
-        // key
-        const r1 = await fetch(`${API_BASE}/api/dev/openai-key`);
+        const r1 = await fetch(keyUrl);
         if (r1.ok) {
           const d = await r1.json();
           if (!ignore) {
@@ -61,39 +73,102 @@ export const AIEndpointTester = () => {
             setOpenaiServerKeySaved(!!k);
             if (k && !openaiServerKey) setOpenaiServerKey(k);
           }
-        }
-      } catch {}
+        } else if (!ignore) setOpenaiServerKeySaved(false);
+      } catch {
+        if (!ignore) setOpenaiServerKeySaved(false);
+      }
+      // settings
       try {
-        // defaults
-        const r2 = await fetch(`${API_BASE}/api/dev/openai-prefs`);
+        const r2 = await fetch(settingsUrl);
         if (r2.ok) {
           const d = await r2.json();
-          if (!ignore) {
-            const prefs = d?.prefs || {};
-            const has = !!prefs && Object.keys(prefs).length > 0;
-            setServerDefaultsSaved(!!d?.hasPrefs || has);
-            // Apply server defaults on mount
-            if (typeof prefs.baseUrl === "string" && prefs.baseUrl) setBaseUrl(prefs.baseUrl);
-            if (typeof prefs.model === "string" && prefs.model) setModel(prefs.model);
-            if (typeof prefs.stream === "boolean") setStream(prefs.stream);
-          }
-        }
-      } catch {}
+          if (!ignore && d?.hasSettings && d.settings) {
+            applySettings(d.settings); // includes serverBase
+            setSettingsSaved(true);
+          } else if (!ignore) setSettingsSaved(false);
+        } else if (!ignore) setSettingsSaved(false);
+      } catch {
+        if (!ignore) setSettingsSaved(false);
+      }
     })();
-    return () => {
-      ignore = true;
-    };
+    return () => { ignore = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveServerBase]);
+
+  // ---------- Settings (non-secret) object ----------
+  const makeSettings = useCallback(
+    () => ({
+      // IMPORTANT: save serverBase with the rest
+      serverBase,
+      baseUrl,
+      model,
+      stream,
+      payloadMode,
+      parser,
+      prompt,
+    }),
+    [serverBase, baseUrl, model, stream, payloadMode, parser, prompt],
+  );
+
+  const applySettings = useCallback((s: any) => {
+    if (!s || typeof s !== "object") return;
+    if (typeof s.serverBase === "string") setServerBase(s.serverBase);
+    if (typeof s.baseUrl === "string") setBaseUrl(s.baseUrl);
+    if (typeof s.model === "string") setModel(s.model);
+    if (typeof s.stream === "boolean") setStream(!!s.stream);
+    if (s.payloadMode === "messages" || s.payloadMode === "input") setPayloadMode(s.payloadMode);
+    if (["auto", "sse", "ndjson", "text", "json"].includes(s.parser)) setParser(s.parser);
+    if (typeof s.prompt === "string") setPrompt(s.prompt);
   }, []);
 
-  // Helpers
-  const appendLog = useCallback((line: string) => {
-    setLogs((prev) => [...prev, line]);
-  }, []);
+  const saveAllSettings = useCallback(async () => {
+    const settings = makeSettings();
+    // persist serverBase locally too (so the app knows which proxy to talk to on reload)
+    try { localStorage.setItem(LS_SERVER_BASE, (settings.serverBase || "").replace(/\/+$/, "")); } catch {}
+    try {
+      const r = await fetch(settingsUrl, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(settings),
+      });
+      const d = await r.json().catch(() => ({}));
+      setSettingsSaved(!!d?.hasSettings);
+      appendLog(`[settings] saved: ${JSON.stringify(settings)}`);
+      setHint(`Saved settings on ${effectiveServerBase}.`);
+    } catch (e: any) {
+      appendLog(`[settings] save error: ${e?.message || String(e)}`);
+      setHint("Failed to save settings. Check /api/dev/openai-settings.");
+    }
+  }, [makeSettings, appendLog, settingsUrl, effectiveServerBase]);
 
+  const loadAllSettings = useCallback(async () => {
+    try {
+      const r = await fetch(settingsUrl);
+      if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+      const d = await r.json();
+      if (d?.hasSettings && d.settings) {
+        applySettings(d.settings);
+        // mirror serverBase into LS when loading
+        if (typeof d.settings.serverBase === "string") {
+          try { localStorage.setItem(LS_SERVER_BASE, d.settings.serverBase.replace(/\/+$/, "")); } catch {}
+        }
+        setSettingsSaved(true);
+        appendLog(`[settings] loaded: ${JSON.stringify(d.settings)}`);
+        setHint(`Loaded settings from ${effectiveServerBase}.`);
+      } else {
+        setSettingsSaved(false);
+        setHint("No saved settings on server.");
+      }
+    } catch (e: any) {
+      appendLog(`[settings] load error: ${e?.message || String(e)}`);
+      setHint("Failed to load settings. Check /api/dev/openai-settings.");
+    }
+  }, [applySettings, appendLog, settingsUrl, effectiveServerBase]);
+
+  // Save/Clear key
   const saveOpenAIServerKey = useCallback(async () => {
     try {
-      const r = await fetch(`${API_BASE}/api/dev/openai-key`, {
+      const r = await fetch(keyUrl, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ key: openaiServerKey }),
@@ -102,17 +177,17 @@ export const AIEndpointTester = () => {
       const has = !!openaiServerKey;
       setOpenaiServerKeySaved(has);
       appendLog(`[openai] server key ${has ? "saved" : "cleared"} (${d?.hasKey ? "has" : "empty"})`);
-      setHint(has ? "Saved OpenAI key on server (in-memory)." : "Cleared OpenAI key on server.");
+      setHint(has ? "Saved Bearer token on server (in-memory)." : "Cleared token on server.");
     } catch (e: any) {
       appendLog(`[openai] save error: ${e?.message || String(e)}`);
-      setHint("Failed to save OpenAI key. Check /api/dev/openai-key.");
+      setHint("Failed to save key. Check /api/dev/openai-key.");
     }
-  }, [openaiServerKey, appendLog]);
+  }, [openaiServerKey, appendLog, keyUrl]);
 
   const clearOpenAIServerKey = useCallback(async () => {
     setOpenaiServerKey("");
     try {
-      const r = await fetch(`${API_BASE}/api/dev/openai-key`, {
+      const r = await fetch(keyUrl, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ key: "" }),
@@ -120,75 +195,52 @@ export const AIEndpointTester = () => {
       await r.json().catch(() => ({}));
       setOpenaiServerKeySaved(false);
       appendLog("[openai] server key cleared");
-      setHint("Cleared OpenAI key on server.");
+      setHint("Cleared key on server.");
     } catch (e: any) {
       appendLog(`[openai] clear error: ${e?.message || String(e)}`);
-      setHint("Failed to clear OpenAI key. Check /api/dev/openai-key.");
+      setHint("Failed to clear key. Check /api/dev/openai-key.");
     }
-  }, [appendLog]);
+  }, [appendLog, keyUrl]);
 
-  // NEW: save/clear server defaults
-  const saveServerDefaults = useCallback(async () => {
-    try {
-      const r = await fetch(`${API_BASE}/api/dev/openai-prefs`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ baseUrl, model, stream }),
-      });
-      const d = await r.json().catch(() => ({}));
-      const has = !!d?.hasPrefs;
-      setServerDefaultsSaved(has);
-      appendLog(`[openai] server defaults saved (${JSON.stringify({ baseUrl, model, stream })})`);
-      setHint("Saved server defaults (baseUrl/model/stream).");
-    } catch (e: any) {
-      appendLog(`[openai] save defaults error: ${e?.message || String(e)}`);
-      setHint("Failed to save defaults. Check /api/dev/openai-prefs.");
-    }
-  }, [baseUrl, model, stream, appendLog]);
-
-  const clearServerDefaults = useCallback(async () => {
-    try {
-      const r = await fetch(`${API_BASE}/api/dev/openai-prefs`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}), // clearing
-      });
-      await r.json().catch(() => ({}));
-      setServerDefaultsSaved(false);
-      appendLog("[openai] server defaults cleared");
-      setHint("Cleared server defaults (baseUrl/model/stream).");
-    } catch (e: any) {
-      appendLog(`[openai] clear defaults error: ${e?.message || String(e)}`);
-      setHint("Failed to clear defaults. Check /api/dev/openai-prefs.");
-    }
-  }, [appendLog]);
-
+  // ---------- Request wiring ----------
   const headers = useMemo(() => {
     const h: Record<string, string> = { "Content-Type": "application/json" };
-    if (openaiServerKey.trim()) h["X-OpenAI-Key"] = openaiServerKey.trim();
+    if (stream) h["Accept"] = "text/event-stream";
+    const key = openaiServerKey.trim();
+    if (key) h["Authorization"] = `Bearer ${key}`;
     return h;
-  }, [openaiServerKey]);
+  }, [openaiServerKey, stream]);
 
   const payload = useMemo(() => {
     const core =
       payloadMode === "messages"
         ? { messages: [{ role: "user", content: prompt }] }
         : { input: prompt };
-    return { api, model, stream, temperature, baseUrl, ...core };
-  }, [api, model, stream, payloadMode, prompt, temperature, baseUrl]);
+    return { model, stream, baseUrl, ...core }; // no temperature/path/etc.
+  }, [model, stream, baseUrl, payloadMode, prompt]);
 
-  const targetUrl = `${API_BASE}/api/ai/openai`;
+  // Direct URL+payload for cURL (always upstream)
+  const directUrl = useMemo(() => joinUrl(baseUrl, "/chat/completions"), [baseUrl]);
+  const directWirePayload = useMemo(() => {
+    const core =
+      payloadMode === "messages"
+        ? { messages: [{ role: "user", content: prompt }] }
+        : { input: prompt };
+    const out: any = { model, ...core };
+    if (stream) out.stream = true;
+    return out;
+  }, [model, payloadMode, prompt, stream]);
 
   const curl = useMemo(() => {
-    const hdrs = `-H "Content-Type: application/json"${
-      openaiServerKey ? ` -H "X-OpenAI-Key: ${openaiServerKey}"` : ""
-    }`;
-    return `curl -X POST ${hdrs} -d ${JSON.stringify(JSON.stringify(payload))} ${JSON.stringify(
-      targetUrl,
-    )}`;
-  }, [targetUrl, payload, openaiServerKey]);
+    const authHeader = openaiServerKey ? `-H "Authorization: Bearer ${openaiServerKey}"` : "";
+    const hdrs = ['-H "Content-Type: application/json"', authHeader].filter(Boolean).join(" ");
+    const body = JSON.stringify(JSON.stringify(directWirePayload));
+    return `curl -X POST ${JSON.stringify(directUrl)} ${hdrs} -d ${body}`;
+  }, [openaiServerKey, directWirePayload, directUrl]);
 
-  // Run request
+  // Send via proxy on the chosen server base
+  const targetUrl = proxyUrl;
+
   const reset = useCallback(() => {
     abortRef.current?.abort?.();
     abortRef.current = null;
@@ -209,7 +261,6 @@ export const AIEndpointTester = () => {
 
     const controller = new AbortController();
     abortRef.current = controller;
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
 
     let resp: Response | null = null;
     try {
@@ -223,7 +274,6 @@ export const AIEndpointTester = () => {
         body: JSON.stringify(payload),
         signal: controller.signal,
       });
-      clearTimeout(timer);
 
       setHttpStatus(`${resp.status} ${resp.statusText}`);
       const ct = (resp.headers.get("content-type") || "").toLowerCase();
@@ -237,13 +287,13 @@ export const AIEndpointTester = () => {
         return;
       }
 
-      const mode: Parser = parser === "auto" ? detectParser(ct) : parser;
-      appendLog(`[resp] content-type: ${ct} → parser: ${mode}`);
+      const modeParser: Parser = parser === "auto" ? detectParser(ct) : parser;
+      appendLog(`[resp] content-type: ${ct} → parser: ${modeParser}`);
 
       const len = resp.headers.get("content-length");
-      const guess = computeStreamGuess(mode, ct, len, stream);
+      const guess = computeStreamGuess(modeParser, ct, len, stream);
       setStreamGuess(guess);
-      appendLog(`[resp] stream? ${guess} (ct=${ct}, len=${len || "—"}, mode=${mode})`);
+      appendLog(`[resp] stream? ${guess} (ct=${ct}, len=${len || "—"}, mode=${modeParser})`);
 
       setState("streaming");
       const onChunk = (s: string) => setOutput((prev) => prev + s);
@@ -255,56 +305,30 @@ export const AIEndpointTester = () => {
         return;
       }
 
-      if (mode === "sse") await pumpSSE(resp.body, onChunk);
-      else if (mode === "ndjson") await pumpNDJSON(resp.body, onChunk);
-      else if (mode === "text") await pumpText(resp.body, onChunk);
+      if (modeParser === "sse") await pumpSSE(resp.body, onChunk);
+      else if (modeParser === "ndjson") await pumpNDJSON(resp.body, onChunk);
+      else if (modeParser === "text") await pumpText(resp.body, onChunk);
       else {
         const text = await safeText(resp);
-        try {
-          onChunk(extract(JSON.parse(text)) || text);
-        } catch {
-          onChunk(text);
-        }
+        try { onChunk(extract(JSON.parse(text)) || text); } catch { onChunk(text); }
       }
-
       setState("done");
     } catch (e: any) {
-      clearTimeout(timer);
       setState("error");
-      const msg = e?.message || String(e);
-      appendLog(`[err] ${msg}`);
+      appendLog(`[err] ${e?.message || String(e)}`);
       setHint(hintFromFetchError(e));
     }
-  }, [targetUrl, headers, payload, timeoutMs, parser, stream, appendLog]);
+  }, [targetUrl, headers, payload, parser, stream, appendLog]);
 
-  const abort = useCallback(() => {
-    abortRef.current?.abort?.();
-    setState("aborted");
-  }, []);
+  const abort = useCallback(() => { abortRef.current?.abort?.(); setState("aborted"); }, []);
 
   const copy = useCallback(async (text: string, which: "out" | "curl") => {
     try {
       await navigator.clipboard.writeText(text);
-      if (which === "out") {
-        setCopiedOut(true);
-        setTimeout(() => setCopiedOut(false), 1200);
-      } else {
-        setCopiedCurl(true);
-        setTimeout(() => setCopiedCurl(false), 1200);
-      }
+      if (which === "out") { setCopiedOut(true); setTimeout(() => setCopiedOut(false), 1200); }
+      else { setCopiedCurl(true); setTimeout(() => setCopiedCurl(false), 1200); }
     } catch {}
   }, []);
-
-  // Submit on Enter (Shift+Enter = newline)
-  const onPromptKey = useCallback(
-    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        start();
-      }
-    },
-    [start],
-  );
 
   return (
     <Wrap>
@@ -313,87 +337,73 @@ export const AIEndpointTester = () => {
         <Badge>AI</Badge>
         <HeadText>
           <Title>AI Endpoint Tester</Title>
-          <Sub>OpenAI (proxy) only — server key & defaults saved in-memory. Enter = Send, Shift+Enter = newline.</Sub>
+          <Sub>Server Base saved with settings • Bearer auth • Direct cURL</Sub>
         </HeadText>
       </HeaderCard>
 
-      {/* TOP: Server OpenAI Key bar */}
+      {/* KEY PANEL — Save/Clear key */}
       <KeyCard>
-        <KeyRow>
-          <Field compact style={{ margin: 0 }}>
-            <Label>Server OpenAI Key (saved on server)</Label>
-            <div style={{ display: "flex", gap: 8 }}>
-              <Input
-                type="password"
-                placeholder="sk-..."
-                value={openaiServerKey}
-                onChange={(e) => setOpenaiServerKey(e.target.value)}
-                autoComplete="off"
-              />
-              <BtnPrimary onClick={saveOpenAIServerKey} disabled={!openaiServerKey.trim()}>
-                Save
-              </BtnPrimary>
-              <BtnDanger onClick={clearOpenAIServerKey}>Clear</BtnDanger>
-            </div>
-            <MiniNote>{openaiServerKeySaved ? "Saved on server (in-memory)" : "No saved server key"}</MiniNote>
-          </Field>
-        </KeyRow>
+        <Field compact>
+          <Label>Server Key / JWT (Authorization: Bearer)</Label>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Input
+              type="password"
+              placeholder="<JWT or sk-...>"
+              value={openaiServerKey}
+              onChange={(e) => setOpenaiServerKey(e.target.value)}
+            />
+            <BtnPrimary onClick={saveOpenAIServerKey} disabled={!openaiServerKey.trim()}>
+              Save
+            </BtnPrimary>
+            <BtnDanger onClick={clearOpenAIServerKey}>Clear</BtnDanger>
+          </div>
+          <MiniNote>{openaiServerKeySaved ? "Saved on server" : "No key saved"}</MiniNote>
+        </Field>
       </KeyCard>
 
-      {/* NEW: Server Defaults bar */}
+      {/* SETTINGS PANEL — includes Server Base and Save/Load */}
       <KeyCard>
-        <KeyRow>
-          <Field compact style={{ margin: 0 }}>
-            <Label>Server Defaults (baseUrl / model / stream)</Label>
-            <div style={{ display: "flex", gap: 8 }}>
-              <BtnPrimary onClick={saveServerDefaults}>Save Defaults</BtnPrimary>
-              <BtnDanger onClick={clearServerDefaults}>Clear Defaults</BtnDanger>
-            </div>
-            <MiniNote>{serverDefaultsSaved ? "Defaults saved on server" : "No saved defaults on server"}</MiniNote>
-          </Field>
-        </KeyRow>
-      </KeyCard>
-
-      {/* Controls */}
-      <Card>
-        {/* API / BaseURL / Model / Temp / Timeout */}
         <Row4>
           <Field>
-            <Label>OpenAI Base URL</Label>
-            <Input value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="https://api.openai.com/v1" />
+            <Label>Tester Server Base URL (Express proxy)</Label>
+            <Input
+              value={serverBase}
+              onChange={(e) => setServerBase(e.target.value)}
+              placeholder={defaultServerBase}
+            />
+            <MiniNote>Effective: <code>{effectiveServerBase}</code></MiniNote>
+          </Field>
+          <Field>
+            <Label>Upstream Base URL</Label>
+            <Input
+              value={baseUrl}
+              onChange={(e) => setBaseUrl(e.target.value)}
+              placeholder="https://api.openai.com/v1"
+            />
+            <MiniNote>Corp: https://gateway.scaifactory.dev.azure.scbdev.net/v1</MiniNote>
           </Field>
           <Field>
             <Label>Model</Label>
             <Input value={model} onChange={(e) => setModel(e.target.value)} />
           </Field>
-          <Field narrow>
-            <Label>Temperature</Label>
-            <Input
-              type="number"
-              step={0.1}
-              min={0}
-              max={2}
-              value={temperature}
-              onChange={(e) => setTemperature(Number(e.target.value))}
-            />
-          </Field>
-          <Field narrow>
-            <Label>Timeout (ms)</Label>
-            <Input type="number" min={0} value={timeoutMs} onChange={(e) => setTimeoutMs(Number(e.target.value || 0))} />
+          <Field>
+            <Label>Stream</Label>
+            <Segmented>
+              <SegBtn className={stream ? "active" : ""} onClick={() => setStream(true)}>true</SegBtn>
+              <SegBtn className={!stream ? "active" : ""} onClick={() => setStream(false)}>false</SegBtn>
+            </Segmented>
           </Field>
         </Row4>
 
-        {/* Payload / Stream / Parser */}
         <Row4>
           <Field>
-            <Label>API</Label>
+            <Label>Parser</Label>
             <Segmented>
-              <SegBtn className={api === "chat.completions" ? "active" : ""} onClick={() => setApi("chat.completions")}>
-                chat.completions
-              </SegBtn>
-              <SegBtn className={api === "responses" ? "active" : ""} onClick={() => setApi("responses")}>
-                responses
-              </SegBtn>
+              {(["auto","sse","ndjson","text","json"] as Parser[]).map((p) => (
+                <SegBtn key={p} className={parser === p ? "active" : ""} onClick={() => setParser(p)}>
+                  {p}
+                </SegBtn>
+              ))}
             </Segmented>
           </Field>
           <Field>
@@ -408,50 +418,43 @@ export const AIEndpointTester = () => {
             </Segmented>
           </Field>
           <Field>
-            <Label>Stream</Label>
-            <Segmented>
-              <SegBtn className={stream ? "active" : ""} onClick={() => setStream(true)}>
-                true
-              </SegBtn>
-              <SegBtn className={!stream ? "active" : ""} onClick={() => setStream(false)}>
-                false
-              </SegBtn>
-            </Segmented>
+            <Label>Save / Load Settings</Label>
+            <div style={{ display: "flex", gap: 8 }}>
+              <BtnPrimary onClick={saveAllSettings}>Save Settings</BtnPrimary>
+              <BtnOutline onClick={loadAllSettings}>Load Settings</BtnOutline>
+            </div>
+            <MiniNote>{settingsSaved ? "Settings saved on server" : "No saved settings"}</MiniNote>
           </Field>
           <Field>
-            <Label>Parser</Label>
-            <Segmented>
-              {(["auto", "sse", "ndjson", "text", "json"] as Parser[]).map((p) => (
-                <SegBtn key={p} className={parser === p ? "active" : ""} onClick={() => setParser(p)}>
-                  {p}
-                </SegBtn>
-              ))}
-            </Segmented>
+            <Label>—</Label>
+            <MiniNote>Settings include server base, upstream base URL, model, stream, parser, payload mode, and prompt.</MiniNote>
           </Field>
         </Row4>
+      </KeyCard>
 
-        {/* Prompt */}
+      {/* Controls */}
+      <Card>
         <Field>
           <Label>Prompt / Input</Label>
-          <Textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} onKeyDown={onPromptKey} />
+          <Textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); start(); }
+            }}
+          />
         </Field>
 
         <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
-          {/* Actions under prompt */}
           <RowInline>
             <ButtonPrimary onClick={start} disabled={state === "streaming" || state === "requesting"}>
               {state === "streaming" || state === "requesting" ? "Running…" : "Send"}
             </ButtonPrimary>
-            <ButtonOutline onClick={abort} disabled={state !== "streaming" && state !== "requesting"}>
-              Abort
-            </ButtonOutline>
+            <ButtonOutline onClick={abort} disabled={state !== "streaming" && state !== "requesting"}>Abort</ButtonOutline>
             <ButtonGhost onClick={reset}>Reset</ButtonGhost>
           </RowInline>
-
-          {/* Status line */}
           <RowInline>
             <Status $state={state}>{state}</Status>
-            <Pill>{api}</Pill>
             <Pill>{httpStatus || "—"}</Pill>
             <Pill>{ctype || "—"}</Pill>
             <Pill>Stream: {streamGuess}</Pill>
@@ -485,12 +488,12 @@ export const AIEndpointTester = () => {
             <PanelTitle>cURL (copy to terminal)</PanelTitle>
             <Small onClick={() => copy(curl, "curl")}>{copiedCurl ? "✓ Copied" : "Copy"}</Small>
           </RowBetween>
-          <Pre small>{curl || "(will generate after you send once)"}</Pre>
+          <Pre small>{curl || "(will generate after you change settings)"}</Pre>
         </Card>
       </TwoCol>
     </Wrap>
   );
-};
+}
 
 /* ===================== styled ===================== */
 
@@ -501,10 +504,7 @@ const Wrap = styled.div`
   max-width: 1080px;
   margin: 0 auto;
   padding: 16px;
-  &,
-  * {
-    box-sizing: border-box;
-  }
+  &, * { box-sizing: border-box; }
 `;
 
 const Card = styled.div`
@@ -522,31 +522,16 @@ const HeaderCard = styled(Card)`
   gap: 12px;
   align-items: center;
 `;
-const KeyCard = styled(Card)`
-  margin: 12px 0;
-`;
+const KeyCard = styled(Card)` margin: 12px 0; `;
 
 const Badge = styled.div`
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  color: ${theme.colors.primary.base};
-  font-weight: 800;
-  border: 1px solid ${theme.colors.default.lighter};
-  background: linear-gradient(135deg, #eaf2ff, #efe9ff);
-  text-align: center;
-  line-height: 36px;
+  width: 36px; height: 36px; border-radius: 10px; color: ${theme.colors.primary.base}; font-weight: 800;
+  border: 1px solid ${theme.colors.default.lighter}; background: linear-gradient(135deg, #eaf2ff, #efe9ff); text-align: center; line-height: 36px;
 `;
 
 const HeadText = styled.div``;
-const Title = styled.div`
-  font-size: 18px;
-  font-weight: 800;
-`;
-const Sub = styled.div`
-  font-size: 13px;
-  color: ${theme.colors.light.dark};
-`;
+const Title = styled.div` font-size: 18px; font-weight: 800; `;
+const Sub = styled.div` font-size: 13px; color: ${theme.colors.light.dark}; `;
 
 /* layouts */
 const Row3 = styled.div`
@@ -554,133 +539,51 @@ const Row3 = styled.div`
   grid-template-columns: repeat(3, minmax(240px, 1fr));
   gap: 12px;
   margin-bottom: 12px;
-  @media (max-width: 900px) {
-    grid-template-columns: 1fr;
-  }
-  > * {
-    min-width: 0;
-  }
+  @media (max-width: 900px) { grid-template-columns: 1fr; }
+  > * { min-width: 0; }
 `;
-const Row4 = styled(Row3)`
-  grid-template-columns: repeat(5, minmax(240px, 1fr));
-`;
-const RowInline = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin: 8px 0 12px;
-`;
+const Row4 = styled(Row3)` grid-template-columns: repeat(4, minmax(240px, 1fr)); `;
+const RowInline = styled.div` display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 8px 0 12px; `;
 const TwoCol = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-top: 12px;
-  @media (max-width: 900px) {
-    grid-template-columns: 1fr;
-  }
-  > * {
-    min-width: 0;
-  }
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;
+  @media (max-width: 900px) { grid-template-columns: 1fr; } > * { min-width: 0; }
 `;
 
-/* key row */
-const KeyRow = styled.div`
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: 8px;
-  align-items: end;
-  @media (max-width: 720px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-/* fields */
 const Field = styled.label<{ narrow?: boolean; compact?: boolean }>`
-  display: block;
-  width: 100%;
+  display: block; width: 100%;
   max-width: ${(p) => (p.narrow ? "360px" : "unset")};
   ${(p) => (p.compact ? "margin: 0;" : "")}
 `;
 const Label = styled.div`
-  margin-bottom: 6px;
-  font-size: ${theme.sizes.label.md}px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: ${theme.colors.light.dark};
+  margin-bottom: 6px; font-size: ${theme.sizes.label.md}px;
+  text-transform: uppercase; letter-spacing: 0.04em; color: ${theme.colors.light.dark};
 `;
 const Input = styled.input`
-  width: 100%;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid ${theme.colors.default.lighter};
-  background: #fff;
-  color: ${theme.colors.light.darker};
+  width: 100%; padding: 10px 12px; border-radius: 10px;
+  border: 1px solid ${theme.colors.default.lighter}; background: #fff; color: ${theme.colors.light.darker};
   outline: none;
-  &:focus {
-    border-color: ${theme.colors.primary.base};
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
-  }
+  &:focus { border-color: ${theme.colors.primary.base}; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15); }
 `;
 const Textarea = styled.textarea`
-  width: min(100%, 100%);
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid ${theme.colors.default.lighter};
-  background: #fff;
-  color: ${theme.colors.light.darker};
-  outline: none;
-  min-height: 120px;
-  resize: vertical;
-  &:focus {
-    border-color: ${theme.colors.primary.base};
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
-  }
+  width: min(100%, 100%); padding: 10px 12px; border-radius: 10px;
+  border: 1px solid ${theme.colors.default.lighter}; background: #fff; color: ${theme.colors.light.darker};
+  outline: none; min-height: 120px; resize: vertical;
+  &:focus { border-color: ${theme.colors.primary.base}; box-shadow: 0 0 0 3px rgba(37,99,235,0.15); }
 `;
 
-/* buttons */
 const ButtonBase = styled.button`
-  padding: ${theme.sizes.buttonPadding.md};
-  border-radius: 10px;
-  font-size: 14px;
-  cursor: pointer;
-  border: 1px solid transparent;
+  padding: ${theme.sizes.buttonPadding.md}; border-radius: 10px; font-size: 14px; cursor: pointer; border: 1px solid transparent;
 `;
-const ButtonPrimary = styled(ButtonBase)`
-  background: ${theme.colors.primary.base};
-  color: #fff;
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-`;
-const ButtonOutline = styled(ButtonBase)`
-  background: transparent;
-  border-color: ${theme.colors.default.lighter};
-`;
-const ButtonGhost = styled(ButtonBase)`
-  background: transparent;
-  color: ${theme.colors.light.dark};
-`;
-
-const BtnPrimary = styled(ButtonBase)`
-  background: ${theme.colors.primary.base};
-  color: #fff;
-`;
-const BtnDanger = styled(ButtonBase)`
-  background: transparent;
-  color: ${theme.colors.danger.dark};
-  border: 1px solid ${theme.colors.danger.light};
-`;
+const ButtonPrimary = styled(ButtonBase)` background: ${theme.colors.primary.base}; color: #fff; &:disabled { opacity: .6; cursor: not-allowed; }`;
+const ButtonOutline = styled(ButtonBase)` background: transparent; border-color: ${theme.colors.default.lighter}; `;
+const ButtonGhost = styled(ButtonBase)` background: transparent; color: ${theme.colors.light.dark}; `;
+const BtnPrimary = styled(ButtonBase)` background: ${theme.colors.primary.base}; color: #fff; `;
+const BtnOutline = styled(ButtonBase)` background: transparent; border: 1px solid ${theme.colors.default.lighter}; `;
+const BtnDanger = styled(ButtonBase)` background: transparent; color: ${theme.colors.danger.dark}; border: 1px solid ${theme.colors.danger.light}; `;
 
 const Pill = styled.div`
-  display: inline-block;
-  padding: 6px 8px;
-  border-radius: 999px;
-  border: 1px solid ${theme.colors.default.lighter};
-  font-size: 12px;
-  color: ${theme.colors.light.dark};
-  text-align: center;
+  display: inline-block; padding: 6px 8px; border-radius: 999px; border: 1px solid ${theme.colors.default.lighter};
+  font-size: 12px; color: ${theme.colors.light.dark}; text-align: center;
 `;
 const Status = styled(Pill)<{ $state?: UiState }>`
   border-color: ${(p) => stateColor[p.$state || "idle"].border};
@@ -694,94 +597,44 @@ const stateColor: Record<UiState | "idle", { border: string; text: string }> = {
   error: { border: "#dc2626", text: "#dc2626" },
   aborted: { border: "#b45309", text: "#b45309" },
 };
-
-const RowBetween = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 8px;
-`;
-
-const PanelTitle = styled.div`
-  font-size: 13px;
-  font-weight: 800;
-  color: ${theme.colors.light.dark};
-`;
+const RowBetween = styled.div` display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; `;
+const PanelTitle = styled.div` font-size: 13px; font-weight: 800; color: ${theme.colors.light.dark}; `;
 const Pre = styled.pre<{ small?: boolean; $fixed?: boolean }>`
-  width: 100%;
-  max-width: 100%;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  word-break: break-word;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
-    "Courier New";
-  font-size: 13px;
-  padding: 10px;
-  border-radius: 10px;
-  border: 1px solid ${theme.colors.default.lighter};
-  background: #fff;
-  color: ${theme.colors.light.darker};
-  min-height: ${(p) => (p.$fixed ? "360px" : p.small ? "120px" : "140px")};
-  max-height: ${(p) => (p.$fixed ? "360px" : "300px")};
+  width: 100%; max-width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New";
+  font-size: 13px; padding: 10px; border-radius: 10px; border: 1px solid ${theme.colors.default.lighter};
+  background: #fff; color: ${theme.colors.light.darker};
+  min-height: ${(p) => (p.$fixed ? "360px" : p.small ? "120px" : "140px")}; max-height: ${(p) => (p.$fixed ? "360px" : "300px")};
   overflow: auto;
 `;
 const Hint = styled.div`
-  width: 100%;
-  font-size: 14px;
-  padding: 10px;
-  border-radius: 10px;
-  background: ${theme.colors.warning.pale};
-  border: 1px solid ${theme.colors.warning.light};
-  color: ${theme.colors.warning.darker};
+  width: 100%; font-size: 14px; padding: 10px; border-radius: 10px;
+  background: ${theme.colors.warning.pale}; border: 1px solid ${theme.colors.warning.light}; color: ${theme.colors.warning.darker};
   min-height: 140px;
 `;
 const Small = styled.button`
-  padding: 6px 10px;
-  border-radius: 8px;
-  border: 1px solid ${theme.colors.default.lighter};
-  background: transparent;
-  cursor: pointer;
-  font-size: 12px;
-  text-align: center;
-  &:hover {
-    background: ${theme.colors.light.pale};
-  }
+  padding: 6px 10px; border-radius: 8px; border: 1px solid ${theme.colors.default.lighter};
+  background: transparent; cursor: pointer; font-size: 12px; text-align: center;
+  &:hover { background: ${theme.colors.light.pale}; }
 `;
 const MiniNote = styled.div`
-  margin-top: 6px;
-  font-size: 12px;
-  color: ${theme.colors.light.dark};
-  line-height: 1.4;
+  margin-top: 6px; font-size: 12px; color: ${theme.colors.light.dark}; line-height: 1.4;
 `;
-
 const Segmented = styled.div`
-  display: inline-block;
-  border: 1px solid ${theme.colors.default.lighter};
-  border-radius: 10px;
-  overflow: hidden;
-  white-space: nowrap;
+  display: inline-block; border: 1px solid ${theme.colors.default.lighter}; border-radius: 10px; overflow: hidden; white-space: nowrap;
 `;
 const SegBtn = styled.button`
-  display: inline-block;
-  padding: 8px 12px;
-  font-size: 13px;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
-  color: ${theme.colors.light.dark};
-  &:not(:first-child) {
-    border-left: 1px solid ${theme.colors.default.lighter};
-  }
-  &.active {
-    background: ${theme.colors.light.pale};
-    color: ${theme.colors.primary.dark};
-    font-weight: 700;
-  }
+  display: inline-block; padding: 8px 12px; font-size: 13px; border: 0; background: transparent; cursor: pointer; color: ${theme.colors.light.dark};
+  &:not(:first-child) { border-left: 1px solid ${theme.colors.default.lighter}; }
+  &.active { background: ${theme.colors.light.pale}; color: ${theme.colors.primary.dark}; font-weight: 700; }
 `;
 
 /* ===================== helpers ===================== */
+function joinUrl(base: string, p: string) {
+  const left = base.replace(/\/+$/, "");
+  const right = (p || "/").replace(/^\/+/, "");
+  return `${left}/${right}`;
+}
 function detectParser(ct: string): Parser {
   const c = ct || "";
   if (c.includes("text/event-stream")) return "sse";
@@ -804,7 +657,7 @@ async function pumpSSE(body: ReadableStream<Uint8Array>, onChunk: (s: string) =>
   while (true) {
     const { value, done } = await reader.read();
     if (done) break;
-    buf += dec.decode(value, { stream: true });
+    buf += dec.decode(value, { stream: true }).replace(/\r\n/g, "\n");
     let i;
     while ((i = buf.indexOf("\n\n")) !== -1) {
       const event = buf.slice(0, i);
@@ -813,21 +666,11 @@ async function pumpSSE(body: ReadableStream<Uint8Array>, onChunk: (s: string) =>
         if (!line.startsWith("data:")) continue;
         const data = line.slice(5).trim();
         if (data === "[DONE]") return;
-        try {
-          onChunk(extract(JSON.parse(data)));
-        } catch {
-          onChunk(data);
-        }
+        try { onChunk(extract(JSON.parse(data))); } catch { onChunk(data); }
       }
     }
   }
-  if (buf.trim()) {
-    try {
-      onChunk(extract(JSON.parse(buf)));
-    } catch {
-      onChunk(buf);
-    }
-  }
+  if (buf.trim()) { try { onChunk(extract(JSON.parse(buf))); } catch { onChunk(buf); } }
 }
 async function pumpNDJSON(body: ReadableStream<Uint8Array>, onChunk: (s: string) => void) {
   const reader = body.getReader();
@@ -842,20 +685,10 @@ async function pumpNDJSON(body: ReadableStream<Uint8Array>, onChunk: (s: string)
       const line = buf.slice(0, nl).trim();
       buf = buf.slice(nl + 1);
       if (!line) continue;
-      try {
-        onChunk(extract(JSON.parse(line)));
-      } catch {
-        onChunk(line);
-      }
+      try { onChunk(extract(JSON.parse(line))); } catch { onChunk(line); }
     }
   }
-  if (buf.trim()) {
-    try {
-      onChunk(extract(JSON.parse(buf)));
-    } catch {
-      onChunk(buf);
-    }
-  }
+  if (buf.trim()) { try { onChunk(extract(JSON.parse(buf))); } catch { onChunk(buf); } }
 }
 async function pumpText(body: ReadableStream<Uint8Array>, onChunk: (s: string) => void) {
   const reader = body.getReader();
@@ -874,9 +707,7 @@ function extract(obj: any): string {
   if (Array.isArray(obj?.content)) return obj.content.map((p: any) => p?.text || p?.content || "").join("");
   return JSON.stringify(obj);
 }
-function truncate(s: string, max = 2000) {
-  return s.length > max ? s.slice(0, max) + "\n…(truncated)…" : s;
-}
+function truncate(s: string, max = 2000) { return s.length > max ? s.slice(0, max) + "\n…(truncated)…" : s; }
 function hintFromHttp(status: number, ct: string, body: string): string {
   if (status === 401 || status === 403) return "Auth failed (key missing/invalid).";
   if (status === 404) return "Wrong path — verify the proxy route.";
@@ -888,21 +719,12 @@ function hintFromHttp(status: number, ct: string, body: string): string {
   if (body && /cors|allow-origin|preflight/i.test(body)) return "CORS — enable CORS or call via same-origin proxy.";
   return "Non-OK HTTP status. Inspect logs and body above.";
 }
+async function safeText(r: Response): Promise<string> { try { const t = await r.text(); return t ?? ""; } catch { return ""; } }
 function hintFromFetchError(e: any): string {
   const msg = e?.message || "";
-  if (/Failed to fetch/i.test(msg) || /NetworkError/i.test(msg)) {
-    return "Fetch failed — likely CORS or mixed content (http on https). Use a server proxy or enable CORS.";
-  }
+  if (/Failed to fetch/i.test(msg) || /NetworkError/i.test(msg)) return "Fetch failed — likely CORS or mixed content.";
   if (/timeout/i.test(msg) || e?.name === "AbortError") return "Timed out — server slow or blocked.";
   return `Unknown fetch error: ${msg}`;
 }
-async function safeText(r: Response): Promise<string> {
-  try {
-    const t = await r.text();
-    return t ?? "";
-  } catch {
-    return "";
-  }
-}
 
-export default AIEndpointTester;
+export default AIEndpointTester
