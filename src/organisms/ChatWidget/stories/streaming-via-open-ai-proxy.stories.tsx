@@ -4,7 +4,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import ChatWidget from "..";
 import type { ChatSession } from "../interfaces";
 import { StoryWrapper } from "../../../components/StoryWrapper";
-import { DemoContainer } from "../aiUtils/DemoContainer";
+import { DemoContainer } from "../../../components/DemoContainer";
 import { streamFromExpress } from "../../../common/server/ai/expressClient";
 import {
   fetchWorkdeskFull,
@@ -13,8 +13,13 @@ import {
   type FullRow,
   type WorkdeskSummary,
 } from "../aiUtils/workdeskUtils";
-import { buildFormContextForAI } from "../aiUtils/formToAI";
-import { FIELD_SETTINGS, VALUES, COLUMN_SETTINGS, DATA_SOURCE } from '../aiUtils/data'
+import { buildFormContextForAI } from "../aiUtils/buildFormContextForAI";
+import {
+  // FIELD_SETTINGS,
+  // VALUES,
+  COLUMN_SETTINGS,
+  DATA_SOURCE
+} from '../aiUtils/data'
 /* -----------------------------------------------------------------------------
    Storybook meta
 ----------------------------------------------------------------------------- */
