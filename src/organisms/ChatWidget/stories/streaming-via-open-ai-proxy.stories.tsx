@@ -6,6 +6,7 @@ import type { ChatSession } from "../interfaces";
 import { StoryWrapper } from "../../../components/StoryWrapper";
 import { DemoContainer } from "../../../components/DemoContainer";
 import { streamFromExpress } from "../../../common/server/ai/expressClient";
+import { GradientText } from '../../../components/GradientText'
 import {
   fetchWorkdeskFull,
   summarizeFullWorkdesk,
@@ -145,7 +146,11 @@ export const StreamingViaOpenAIProxy: StoryObj = {
           mode="pinned"
           side="right"
           title="Helix Assistant"
-          description="Information provided by Helix Assistant is for guidance only and may not always be accurate. Always double-check before making key decisions."
+          description={(
+            <>
+              Information provided by <GradientText bold>Helix Assistant</GradientText> is for guidance only and may not always be accurate. Always double-check before making key decisions.
+            </>
+          )}
           portalRoot={document.body}
           sessions={sessions}
           onSessionsChange={setSessions}

@@ -55,7 +55,7 @@ export interface ChatWidgetProps {
 
   /** Copy / visuals */
   title?: string;
-  description?: string;
+  description?: React.ReactNode;
   assistantName?: string;
 
   /** Floating position */
