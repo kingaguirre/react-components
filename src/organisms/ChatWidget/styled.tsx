@@ -715,12 +715,4 @@ export const Description = styled.div`
   color: ${theme.colors.default.base};
   margin-bottom: 6px;
   line-height: 1.2;
-  > b {
-    color: ${theme.colors.default.dark};
-    background: linear-gradient(135deg, ${theme.colors.primary.dark}, ${theme.colors.primary.base}, ${theme.colors.secondary.base}, ${theme.colors.secondary.dark});
-    background-clip: text;
-    -webkit-background-clip: text;
-    color: transparent;
-    -webkit-text-fill-color: transparent; /* crucial for WebKit */
-  }
 `

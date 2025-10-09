@@ -80,6 +80,7 @@
     "remark-math": "^6.0.0",
     "shiki": "^3.13.0",
     "styled-components": "^6.1.19",
+    "undici": "^7.16.0",
     "vite-plugin-dts": "^4.5.0",
     "vite-tsconfig-paths": "^5.1.4",
     "zod": "^3.25.67"

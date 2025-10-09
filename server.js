@@ -2,9 +2,9 @@
 // Run: npm i express cors && node server.js
 // Env knobs: DELAY_MS=400 DELAY_JITTER=200 PORT=4000
 import 'dotenv/config';
-import OpenAI from "openai";
 import express from "express";
 import cors from "cors";
+import { ProxyAgent, fetch as undiciFetch } from "undici";
 import { createAIStreamHandler, aiDownloadRoute } from "./src/common/server/ai/streamFactory.js";
 import { workdeskPlugin } from "./src/organisms/ChatWidget/aiUtils/workdeskPlugin.js";
 
@@ -1021,7 +1021,7 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
-// ------------------ DEV OpenAI key storage (in-memory) ------------------
+// ------------------ DEV storage ------------------
 app.get("/api/dev/openai-key", (req, res) => {
   res.json({ key: req.app.locals.devOpenAIKey || "", hasKey: !!req.app.locals.devOpenAIKey });
 });
@@ -1030,174 +1030,141 @@ app.put("/api/dev/openai-key", (req, res) => {
   res.json({ ok: true, hasKey: !!req.app.locals.devOpenAIKey });
 });
 
-// ------------------ DEV OpenAI prefs (baseUrl/model/stream) in-memory ------------------
+// Legacy minimal prefs (kept for back-compat)
 app.get("/api/dev/openai-prefs", (req, res) => {
   const prefs = req.app.locals.devOpenAIPrefs || {};
   res.json({ ok: true, prefs, hasPrefs: Object.keys(prefs).length > 0 });
 });
 app.put("/api/dev/openai-prefs", (req, res) => {
-  const body = req.body || {};
+  const b = req.body || {};
   const next = {};
-  if (typeof body.baseUrl === "string" && body.baseUrl.trim()) next.baseUrl = body.baseUrl.trim();
-  if (typeof body.model === "string" && body.model.trim()) next.model = body.model.trim();
-  if (typeof body.stream === "boolean") next.stream = !!body.stream;
+  if (typeof b.baseUrl === "string" && b.baseUrl.trim()) next.baseUrl = b.baseUrl.trim();
+  if (typeof b.model === "string" && b.model.trim()) next.model = b.model.trim();
+  if (typeof b.stream === "boolean") next.stream = !!b.stream;
   req.app.locals.devOpenAIPrefs = next;
   res.json({ ok: true, prefs: next, hasPrefs: Object.keys(next).length > 0 });
 });
 
-// ------------------ /api/ai/openai (OpenAI streaming proxy via SDK) ------------------
-app.post("/api/ai/openai", async (req, res) => {
-  const headerKey = req.get("x-openai-key"); // optional client-supplied key
-  const apiKey = headerKey || req.app?.locals?.devOpenAIKey || process.env.OPENAI_API_KEY;
+// ------------------ NEW: full settings save/load ------------------
+app.get("/api/dev/openai-settings", (req, res) => {
+  const s = req.app.locals.devOpenAISettings || null;
+  res.json({ ok: true, settings: s, hasSettings: !!s });
+});
 
-  if (!apiKey) {
-    return res
-      .status(400)
-      .send("OpenAI key missing (send X-OpenAI-Key, PUT /api/dev/openai-key, or set OPENAI_API_KEY)");
-  }
-
-  // Pull saved prefs as fallback for baseUrl, model, stream
-  const prefs = req.app.locals?.devOpenAIPrefs || {};
-
-  // Request body (allow override), else fall back to server prefs, else defaults
+app.put("/api/dev/openai-settings", (req, res) => {
+  // Save the entire settings blob (key/JWT NOT included)
+  const allowed = [
+    "baseUrl","useRawPath","rawPath","model","stream","includeTemperature","temperature",
+    "payloadMode","parser","authMode","curlTarget","preferHttp1","timeoutMs","noTimeout"
+  ];
   const body = req.body || {};
-  const api = body.api || "chat.completions"; // not stored; explicit per-request
-  const model = body.model || prefs.model || "gpt-4o-mini";
-  const temperature = typeof body.temperature === "number" ? body.temperature : 0.2;
+  const next = {};
+  for (const k of allowed) {
+    if (Object.prototype.hasOwnProperty.call(body, k)) next[k] = body[k];
+  }
+  req.app.locals.devOpenAISettings = next;
+  res.json({ ok: true, settings: next, hasSettings: Object.keys(next).length > 0 });
+});
 
-  // stream: prefer explicit request flag, else saved pref, else default true
-  const hasStreamFlag = Object.prototype.hasOwnProperty.call(body, "stream");
-  const stream = hasStreamFlag ? !!body.stream : (typeof prefs.stream === "boolean" ? !!prefs.stream : true);
+// ------------------ Helpers ------------------
+function joinUrl(base, p) {
+  const left = (base || "").replace(/\/+$/, "");
+  const right = (p || "/").replace(/^\/+/, "");
+  return `${left}/${right}`;
+}
 
-  // baseURL: request value → saved pref → env → default
-  const baseURL = body.baseUrl || prefs.baseUrl || process.env.OPENAI_BASE_URL || "https://api.openai.com/v1";
+// ------------------ /api/ai/openai (RAW passthrough) ------------------
+app.post("/api/ai/openai", async (req, res) => {
+  // Accept both X-OpenAI-Key and Authorization: Bearer
+  const headerKey = req.get("x-openai-key") || "";
+  const authz = req.get("authorization") || "";
+  const bearer = authz.toLowerCase().startsWith("bearer ") ? authz.slice(7) : "";
+  const apiKey = bearer || headerKey || req.app?.locals?.devOpenAIKey || process.env.OPENAI_API_KEY;
+  if (!apiKey) return res.status(400).send("Missing key: send Authorization: Bearer <token> or X-OpenAI-Key.");
+
+  const prefs = req.app.locals?.devOpenAIPrefs || {};
+  const body = req.body || {};
+  // Prefer request body; fallback to saved full settings; then legacy prefs; then defaults
+  const saved = req.app.locals.devOpenAISettings || {};
+
+  const model = body.model ?? saved.model ?? prefs.model ?? "gpt-4o-mini";
+  const baseURL = body.baseUrl ?? saved.baseUrl ?? prefs.baseUrl ?? process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1";
+  const stream = Object.prototype.hasOwnProperty.call(body, "stream")
+    ? !!body.stream
+    : Object.prototype.hasOwnProperty.call(saved, "stream")
+      ? !!saved.stream
+      : (typeof prefs.stream === "boolean" ? !!prefs.stream : true);
+
+  const temperature =
+    typeof body.temperature === "number" ? body.temperature
+    : (typeof saved.temperature === "number" ? saved.temperature : undefined);
 
   const messages = Array.isArray(body.messages) ? body.messages : undefined;
   const input = body.input != null ? String(body.input) : undefined;
-  const finalMessages = messages || [{ role: "user", content: String(input ?? "") }];
 
-  const client = new OpenAI({ apiKey, baseURL });
+  // If client sends a path, use it; else use saved path if 'useRawPath' true; else default
+  const requestPath = typeof body.path === "string" && body.path.trim() ? body.path.trim() : null;
+  const savedPath = saved.useRawPath && typeof saved.rawPath === "string" && saved.rawPath.trim() ? saved.rawPath.trim() : null;
+  const path = requestPath || savedPath || "/chat/completions";
 
-  const emitDelta = (s) =>
-    res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: s } }] })}\n\n`);
+  const url = joinUrl(baseURL, path);
 
-  const fakeStreamText = async (text) => {
-    const CHUNK = 600;
-    for (let i = 0; i < text.length; i += CHUNK) {
-      emitDelta(text.slice(i, i + CHUNK));
-      // eslint-disable-next-line no-await-in-loop
-      await new Promise((r) => setTimeout(r, 10));
-    }
+  // Corp proxy support (optional)
+  const HTTPS_PROXY = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
+  const dispatcher = HTTPS_PROXY ? new ProxyAgent(HTTPS_PROXY) : undefined;
+
+  // Upstream request
+  const upstreamHeaders = { "Content-Type": "application/json" };
+  if (stream) upstreamHeaders["Accept"] = "text/event-stream";
+  if (bearer) upstreamHeaders["Authorization"] = `Bearer ${bearer}`;
+  else if (headerKey) upstreamHeaders["X-OpenAI-Key"] = headerKey;
+
+  const upstreamBody = {
+    model,
+    ...(messages ? { messages } : input ? { input } : {}),
+    ...(stream ? { stream: true } : {}),
+    ...(temperature !== undefined ? { temperature } : {}),
   };
 
-  const extractResponsesText = (resp) => {
-    if (typeof resp?.output_text === "string") return resp.output_text;
-    if (Array.isArray(resp?.output)) {
-      const parts = [];
-      for (const seg of resp.output) {
-        if (typeof seg?.content === "string") parts.push(seg.content);
-        else if (Array.isArray(seg?.content)) {
-          for (const c of seg.content) {
-            if (typeof c?.text === "string") parts.push(c.text);
-            else if (typeof c === "string") parts.push(c);
-          }
-        } else if (typeof seg?.text === "string") {
-          parts.push(seg.text);
-        }
-      }
-      if (parts.length) return parts.join("");
-    }
-    return JSON.stringify(resp);
-  };
-
-  if (stream) {
-    res.status(200);
-    res.setHeader("Content-Type", "text/event-stream");
-    res.setHeader("Cache-Control", "no-cache");
-    res.setHeader("Connection", "keep-alive");
-    res.setHeader("X-Accel-Buffering", "no");
-
-    try {
-      if (api === "responses") {
-        let usedNativeStream = false;
-        if (client?.responses?.stream) {
-          try {
-            const s = await client.responses.stream({
-              model,
-              input: finalMessages.map((m) => m.content).join("\n"),
-              temperature,
-            });
-            usedNativeStream = true;
-            for await (const event of s) {
-              const t = event?.type || "";
-              if (t.endsWith(".delta") && typeof event?.delta === "string") emitDelta(event.delta);
-              if (t === "response.completed") break;
-            }
-          } catch {
-            usedNativeStream = false;
-          }
-        }
-        if (!usedNativeStream) {
-          const out = await client.responses.create({
-            model,
-            input: finalMessages.map((m) => m.content).join("\n"),
-            temperature,
-          });
-          const text = extractResponsesText(out);
-          await fakeStreamText(text);
-        }
-      } else {
-        const s = await client.chat.completions.create({
-          model,
-          temperature,
-          messages: finalMessages,
-          stream: true,
-        });
-        for await (const chunk of s) {
-          res.write(`data: ${JSON.stringify(chunk)}\n\n`);
-        }
-      }
-      res.write("data: [DONE]\n\n");
-    } catch (err) {
-      const status = typeof err?.status === "number" ? err.status : 500;
-      const payload = {
-        name: err?.name || "UpstreamError",
-        message: err?.message || "Unknown upstream error",
-        status,
-      };
-      res.write(`event: error\ndata: ${JSON.stringify(payload)}\n\n`);
-      res.status(status);
-    } finally {
-      res.end();
-    }
-    return;
-  }
-
-  // Non-streamed JSON
+  let upstreamResp;
   try {
-    if (api === "responses") {
-      const out = await client.responses.create({
-        model,
-        input: finalMessages.map((m) => m.content).join("\n"),
-        temperature,
-      });
-      res.status(200).json(out);
-    } else {
-      const out = await client.chat.completions.create({
-        model,
-        temperature,
-        messages: finalMessages,
-        stream: false,
-      });
-      res.status(200).json(out);
-    }
-  } catch (err) {
-    res.status(typeof err?.status === "number" ? err.status : 500).json({
-      error: { name: err?.name, message: err?.message, status: err?.status },
+    upstreamResp = await undiciFetch(url, {
+      method: "POST",
+      headers: upstreamHeaders,
+      body: JSON.stringify(upstreamBody),
+      dispatcher,
     });
+  } catch (e) {
+    return res.status(502).json({ error: { name: e?.name, message: e?.message, code: e?.code } });
   }
-});
 
+  // Stream passthrough or JSON forward
+  const ct = upstreamResp.headers.get("content-type") || "";
+  if (stream && ct.includes("text/event-stream")) {
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    });
+    if (!upstreamResp.body) return res.end();
+
+    const reader = upstreamResp.body.getReader();
+    const dec = new TextDecoder();
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      res.write(dec.decode(value)); // raw SSE passthrough
+    }
+    return res.end();
+  }
+
+  // Non-SSE: forward status + body
+  const text = await upstreamResp.text();
+  res.status(upstreamResp.status);
+  res.setHeader("Content-Type", ct || "application/json");
+  return res.send(text);
+});
 
 app.listen(PORT, () => {
   console.log(`Local API http://localhost:${PORT}  (delay ~${BASE_DELAY}ms ± ${JITTER}ms)`);
