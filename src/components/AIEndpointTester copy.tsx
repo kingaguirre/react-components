@@ -11,7 +11,7 @@ type UiState = "idle" | "requesting" | "streaming" | "done" | "error" | "aborted
 const LS_SERVER_BASE = "aiTester:serverBase";
 
 export function AIEndpointTester() {
-  // ---------- Tester server base (where your dev endpoints live) ----------
+  // ---------- Tester server base (where your Express proxy runs) ----------
   const defaultServerBase =
     typeof window !== "undefined" ? window.location.origin : "http://localhost:4000";
   const [serverBase, setServerBase] = useState<string>("");
@@ -44,9 +44,10 @@ export function AIEndpointTester() {
   const [copiedCurl, setCopiedCurl] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
-  // ---------- Dev endpoints (for key/settings only) ----------
+  // ---------- Derived endpoints ----------
   const keyUrl = `${effectiveServerBase}/api/dev/openai-key`;
   const settingsUrl = `${effectiveServerBase}/api/dev/openai-settings`;
+  const proxyUrl = `${effectiveServerBase}/api/ai/openai`;
 
   // ---------- Helpers ----------
   const appendLog = useCallback((line: string) => setLogs((prev) => [...prev, line]), []);
@@ -97,6 +98,7 @@ export function AIEndpointTester() {
   // ---------- Settings (non-secret) object ----------
   const makeSettings = useCallback(
     () => ({
+      // IMPORTANT: save serverBase with the rest
       serverBase,
       baseUrl,
       model,
@@ -121,6 +123,7 @@ export function AIEndpointTester() {
 
   const saveAllSettings = useCallback(async () => {
     const settings = makeSettings();
+    // persist serverBase locally too (so the app knows which proxy to talk to on reload)
     try { localStorage.setItem(LS_SERVER_BASE, (settings.serverBase || "").replace(/\/+$/, "")); } catch {}
     try {
       const r = await fetch(settingsUrl, {
@@ -145,6 +148,7 @@ export function AIEndpointTester() {
       const d = await r.json();
       if (d?.hasSettings && d.settings) {
         applySettings(d.settings);
+        // mirror serverBase into LS when loading
         if (typeof d.settings.serverBase === "string") {
           try { localStorage.setItem(LS_SERVER_BASE, d.settings.serverBase.replace(/\/+$/, "")); } catch {}
         }
@@ -198,12 +202,12 @@ export function AIEndpointTester() {
     }
   }, [appendLog, keyUrl]);
 
-  // ---------- Request wiring (DIRECT to upstream) ----------
+  // ---------- Request wiring ----------
   const headers = useMemo(() => {
     const h: Record<string, string> = { "Content-Type": "application/json" };
     if (stream) h["Accept"] = "text/event-stream";
     const key = openaiServerKey.trim();
-    if (key) h["Authorization"] = `Bearer ${key}`; // WARNING: exposes key in browser
+    if (key) h["Authorization"] = `Bearer ${key}`;
     return h;
   }, [openaiServerKey, stream]);
 
@@ -212,19 +216,30 @@ export function AIEndpointTester() {
       payloadMode === "messages"
         ? { messages: [{ role: "user", content: prompt }] }
         : { input: prompt };
+    return { model, stream, baseUrl, ...core }; // no temperature/path/etc.
+  }, [model, stream, baseUrl, payloadMode, prompt]);
+
+  // Direct URL+payload for cURL (always upstream)
+  const directUrl = useMemo(() => joinUrl(baseUrl, "/chat/completions"), [baseUrl]);
+  const directWirePayload = useMemo(() => {
+    const core =
+      payloadMode === "messages"
+        ? { messages: [{ role: "user", content: prompt }] }
+        : { input: prompt };
     const out: any = { model, ...core };
     if (stream) out.stream = true;
-    return out; // no temperature/path/etc.
-  }, [model, stream, payloadMode, prompt]);
-
-  const directUrl = useMemo(() => joinUrl(baseUrl, "/chat/completions"), [baseUrl]);
+    return out;
+  }, [model, payloadMode, prompt, stream]);
 
   const curl = useMemo(() => {
     const authHeader = openaiServerKey ? `-H "Authorization: Bearer ${openaiServerKey}"` : "";
     const hdrs = ['-H "Content-Type: application/json"', authHeader].filter(Boolean).join(" ");
-    const body = JSON.stringify(JSON.stringify(payload));
+    const body = JSON.stringify(JSON.stringify(directWirePayload));
     return `curl -X POST ${JSON.stringify(directUrl)} ${hdrs} -d ${body}`;
-  }, [openaiServerKey, payload, directUrl]);
+  }, [openaiServerKey, directWirePayload, directUrl]);
+
+  // Send via proxy on the chosen server base
+  const targetUrl = proxyUrl;
 
   const reset = useCallback(() => {
     abortRef.current?.abort?.();
@@ -249,14 +264,12 @@ export function AIEndpointTester() {
 
     let resp: Response | null = null;
     try {
-      appendLog(`[req] POST ${directUrl}`);
+      appendLog(`[req] POST ${targetUrl}`);
       appendLog(`[req] headers ${JSON.stringify(headers)}`);
       appendLog(`[req] payload ${JSON.stringify(payload)}`);
 
-      resp = await fetch(directUrl, {
+      resp = await fetch(targetUrl, {
         method: "POST",
-        mode: "cors",                 // **must** be allowed by upstream
-        credentials: "omit",          // set to "include" if your gateway uses cookies
         headers,
         body: JSON.stringify(payload),
         signal: controller.signal,
@@ -305,7 +318,7 @@ export function AIEndpointTester() {
       appendLog(`[err] ${e?.message || String(e)}`);
       setHint(hintFromFetchError(e));
     }
-  }, [directUrl, headers, payload, parser, stream, appendLog]);
+  }, [targetUrl, headers, payload, parser, stream, appendLog]);
 
   const abort = useCallback(() => { abortRef.current?.abort?.(); setState("aborted"); }, []);
 
@@ -324,7 +337,7 @@ export function AIEndpointTester() {
         <Badge>AI</Badge>
         <HeadText>
           <Title>AI Endpoint Tester</Title>
-          <Sub>Direct upstream call • Dev server only stores settings/key</Sub>
+          <Sub>Server Base saved with settings • Bearer auth • Direct cURL</Sub>
         </HeadText>
       </HeaderCard>
 
@@ -345,7 +358,6 @@ export function AIEndpointTester() {
             <BtnDanger onClick={clearOpenAIServerKey}>Clear</BtnDanger>
           </div>
           <MiniNote>{openaiServerKeySaved ? "Saved on server" : "No key saved"}</MiniNote>
-          <MiniNote>⚠️ When you click "Send", this key is sent from the browser to the upstream. Use only with a CORS-enabled gateway & non-sensitive token.</MiniNote>
         </Field>
       </KeyCard>
 
@@ -353,7 +365,7 @@ export function AIEndpointTester() {
       <KeyCard>
         <Row4>
           <Field>
-            <Label>Tester Server Base URL (for key/settings only)</Label>
+            <Label>Tester Server Base URL</Label>
             <Input
               value={serverBase}
               onChange={(e) => setServerBase(e.target.value)}
@@ -413,10 +425,11 @@ export function AIEndpointTester() {
             <MiniNote>{settingsSaved ? "Settings saved on server" : "No saved settings"}</MiniNote>
           </Field>
           <Field>
-            <Label>Corp example</Label>
-            <MiniNote><b>Base URL:</b> https://gateway.scaifactory.dev.azure.scbdev.net/v1</MiniNote>
-            <MiniNote><b>Model:</b> tradeexpress-gpt4o</MiniNote>
-            <MiniNote>Upstream must allow CORS for your app origin.</MiniNote>
+            <Label>Corp:</Label>
+            <MiniNote><b>Base URL: </b>https://gateway.scaifactory.dev.azure.scbdev.net/v1</MiniNote>
+            <MiniNote><b>Model: </b>tradeexpress-gpt4o</MiniNote>
+
+            <MiniNote>Settings include server base, upstream base URL, model, stream, parser, payload mode, and prompt.</MiniNote>
           </Field>
         </Row4>
       </KeyCard>
@@ -522,6 +535,7 @@ const HeadText = styled.div``;
 const Title = styled.div` font-size: 18px; font-weight: 800; `;
 const Sub = styled.div` font-size: 13px; color: ${theme.colors.light.dark}; `;
 
+/* layouts */
 const Row3 = styled.div`
   display: grid;
   grid-template-columns: repeat(3, minmax(240px, 1fr));
@@ -699,21 +713,21 @@ function extract(obj: any): string {
 function truncate(s: string, max = 2000) { return s.length > max ? s.slice(0, max) + "\n…(truncated)…" : s; }
 function hintFromHttp(status: number, ct: string, body: string): string {
   if (status === 401 || status === 403) return "Auth failed (key missing/invalid).";
-  if (status === 404) return "Wrong path — verify the endpoint.";
+  if (status === 404) return "Wrong path — verify the proxy route.";
   if (status === 405) return "Wrong method — should be POST.";
   if (status === 415) return "Unsupported Media Type — set 'Content-Type: application/json'.";
-  if (status === 413) return "Payload too large — trim request.";
+  if (status === 413) return "Payload too large — trim request or raise server limit.";
   if (status >= 500) return "Server error — upstream crashed or unavailable.";
-  if (ct.includes("html")) return "Got HTML (error page). Likely CORS/gateway issue.";
-  if (body && /cors|allow-origin|preflight/i.test(body)) return "CORS — enable CORS on the upstream or use a proxy.";
+  if (ct.includes("html")) return "Got HTML (error page). Check gateway / auth.";
+  if (body && /cors|allow-origin|preflight/i.test(body)) return "CORS — enable CORS or call via same-origin proxy.";
   return "Non-OK HTTP status. Inspect logs and body above.";
 }
 async function safeText(r: Response): Promise<string> { try { const t = await r.text(); return t ?? ""; } catch { return ""; } }
 function hintFromFetchError(e: any): string {
   const msg = e?.message || "";
   if (/Failed to fetch/i.test(msg) || /NetworkError/i.test(msg)) return "Fetch failed — likely CORS or mixed content.";
-  if (/timeout/i.test(msg) || e?.name === "AbortError") return "Timed out — upstream slow or blocked.";
+  if (/timeout/i.test(msg) || e?.name === "AbortError") return "Timed out — server slow or blocked.";
   return `Unknown fetch error: ${msg}`;
 }
 
-export default AIEndpointTester;
+export default AIEndpointTester
