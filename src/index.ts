@@ -56,6 +56,8 @@ export * from "./organisms/FormRenderer/interface";
 export * from "./organisms/ChatWidget/interfaces";
 
 // AI Utils
-export * from "./common/server/ai";
 export { AIEndpointTester } from "./components/AIEndpointTester";
+export * from './organisms/ChatWidget/aiUtils'
+
+// Components
 export { GradientText } from "./components/GradientText";

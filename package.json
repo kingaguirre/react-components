@@ -40,7 +40,7 @@
   ],
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build && vite build --config vite.server.config.ts",
+    "build": "tsc && vite build",
     "preview": "vite preview",
     "start": "storybook dev -p 6006",
     "build-storybook": "storybook build",

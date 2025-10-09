@@ -9,6 +9,7 @@ export interface ChatMessage {
   status?: ChatStatus;
   metadata?: Record<string, any>;
   error?: boolean;
+  attachments?: any;
 }
 
 /** Lightweight saved transcript */

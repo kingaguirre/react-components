@@ -1,1 +1,0 @@
-export function aiDownloadRoute(...args: any[]): any;

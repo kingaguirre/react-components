@@ -56,7 +56,7 @@ describe("<GradientText />", () => {
 
     await waitFor(() => {
       const css = cssForElement(el);
-      expect(css).toMatch(/linear-gradient\s*\(135deg/i);
+      expect(css).toMatch(/linear-gradient\s*\(\s*135deg/i);
       expect(css).toMatch(/background-clip:\s*text/i);
       // webkit specifics are critical for real rendering
       expect(css).toMatch(/-webkit-background-clip:\s*text/i);

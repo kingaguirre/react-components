@@ -5,17 +5,24 @@ import ChatWidget from "..";
 import type { ChatSession } from "../interfaces";
 import { StoryWrapper } from "../../../components/StoryWrapper";
 import { DemoContainer } from "../../../components/DemoContainer";
-import { streamFromExpress } from "../../../common/server/ai/expressClient";
-import { GradientText } from '../../../components/GradientText'
+import { GradientText } from "../../../components/GradientText";
 import {
   fetchWorkdeskFull,
   summarizeFullWorkdesk,
   TERMINOLOGY,
   type FullRow,
   type WorkdeskSummary,
-} from "../aiUtils/workdeskUtils";
-import { buildFormContextForAI } from "../aiUtils/buildFormContextForAI";
-import { COLUMN_SETTINGS, DATA_SOURCE } from '../aiUtils/data'
+  type RunAdaptersFn,
+  // Screen-aware UI adapter + details
+  memory, shape, facets, brandNames, kb,
+  streamFromAI,
+  makeDataReaderAdapter,
+  createRunAdapters,
+  makeUiScreenAdapter,
+  makeUploadCompareAdapter,
+  buildFormContextForAI
+} from "../aiUtils";
+import { COLUMN_SETTINGS, DATA_SOURCE } from "../aiUtils/data";
 
 const meta: Meta<typeof ChatWidget> = {
   title: "organisms/ChatWidget",
@@ -24,15 +31,29 @@ const meta: Meta<typeof ChatWidget> = {
 };
 export default meta;
 
+// Used only for demo DB snapshot + adapter data fetches (NOT for AI settings/key endpoints).
 const API_BASE = "http://localhost:4000";
 
+// LocalStorage key used by AI Tester & aiClient
+const LS_DEV_API_BASE = "aiTester:devApiBase";
+
+function getDevApiBaseFromLS(): string {
+  try {
+    const v = localStorage.getItem(LS_DEV_API_BASE);
+    return typeof v === "string" ? v : "";
+  } catch {
+    return "";
+  }
+}
+
 export const StreamingViaOpenAIProxy: StoryObj = {
-  name: "Streaming — OpenAI via Express Proxy",
+  name: "Streaming — Direct Upstream (Saved Settings)",
   tags: ["!autodocs"],
   render: () => {
     const STORAGE_KEY = "chatwidget:sessions:streaming-demo";
     const CONVO_KEY = "chatwidget:conversationId:streaming-demo";
 
+    // Stable per-tab conversationId
     const conversationIdRef = React.useRef<string | null>(null);
     if (!conversationIdRef.current) {
       try {
@@ -53,14 +74,19 @@ export const StreamingViaOpenAIProxy: StoryObj = {
     }
     const conversationId = conversationIdRef.current!;
 
+    // Persist ChatWidget sessions in localStorage
     const [sessions, setSessions] = React.useState<ChatSession[]>(() => {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
         return raw ? (JSON.parse(raw) as ChatSession[]) : [];
-      } catch { return []; }
+      } catch {
+        return [];
+      }
     });
     React.useEffect(() => {
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions)); } catch {}
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+      } catch { }
     }, [sessions]);
 
     // Seed snapshot
@@ -89,30 +115,92 @@ export const StreamingViaOpenAIProxy: StoryObj = {
           setSeed({
             id: "seed-memory",
             role: "assistant",
-            content: "**📊 TradeExpress Helix — Daily Snapshot**\n\n- Data is unavailable right now. I’ll still answer your questions.\n",
+            content:
+              "**📊 TradeExpress Helix — Daily Snapshot**\n\n- Data is unavailable right now. I’ll still answer your questions.\n",
             createdAt: new Date().toISOString(),
             status: "sent",
             metadata: { seeded: true, ignoreUnread: true },
           });
         }
       })();
-      return () => { cancelled = true; };
+      return () => {
+        cancelled = true;
+      };
     }, []);
+
+    // --- Build adapters -> runAdapters (memoized) ---
+    const dataReader = React.useMemo(
+      () =>
+        makeDataReaderAdapter({
+          baseUrl: API_BASE,
+          endpoints: {
+            list: "/workdesk",
+            full: "/workdesk/full",
+            byKey: (id: string) => `/txn/${encodeURIComponent(id)}`,
+          },
+          memory,
+          shape,
+          facets,
+          brandNames,
+          kb,
+        }),
+      []
+    );
+
+    // upload-compare adapter (owns "compare/diff" + export-it for its aggregation + export uploaded)
+    const uploadCompare = React.useMemo(
+      () =>
+        makeUploadCompareAdapter({
+          baseUrl: API_BASE,
+          endpoints: {
+            list: "/workdesk",
+            full: "/workdesk/full",
+            byKey: (id: string) => `/txn/${encodeURIComponent(id)}`,
+          },
+        }),
+      []
+    );
+
+    // dedicated screen-aware UI adapter
+    const uiScreenAdapter = React.useMemo(
+      () =>
+        makeUiScreenAdapter({
+          getFormContext: () =>
+            buildFormContextForAI({
+              currentModule: "Transaction Workdesk",
+              currentScreen: "Transaction Workdesk Catalog",
+              values: DATA_SOURCE,
+              columnSettings: COLUMN_SETTINGS,
+              description:
+                "This screen contains a table of the Transaction Workdesk catalog.",
+            }),
+        }),
+      []
+    );
+
+    const runAdapters: RunAdaptersFn = React.useMemo(
+      () => createRunAdapters([uploadCompare, uiScreenAdapter, dataReader]),
+      [uploadCompare, uiScreenAdapter, dataReader]
+    );
+
+    const devApiBase = getDevApiBaseFromLS();
 
     return (
       <StoryWrapper
-        title="ChatWidget — OpenAI Streaming"
-        subTitle="Streams from an Express proxy; auto-uses saved settings (model/baseUrl/key)."
+        title="ChatWidget — Direct Upstream Streaming"
+        subTitle="Directly calls <baseUrl>/chat/completions; reads saved model/baseUrl/key from your dev endpoints (Dev API Base from localStorage)."
       >
         <ChatWidget
           mode="pinned"
           side="right"
           title="Helix Assistant"
-          description={(
+          description={
             <>
-              Information provided by <GradientText bold>Helix Assistant</GradientText> is for guidance only and may not always be accurate. Always double-check before making key decisions.
+              Information provided by <GradientText bold>Helix Assistant</GradientText> is for
+              guidance only and may not always be accurate. Always double-check before making key
+              decisions.
             </>
-          )}
+          }
           portalRoot={document.body}
           sessions={sessions}
           onSessionsChange={setSessions}
@@ -120,7 +208,7 @@ export const StreamingViaOpenAIProxy: StoryObj = {
             seed ?? {
               id: "seed",
               role: "assistant",
-              content: "Hi! I’m wired to an Express proxy hitting OpenAI.",
+              content: "Hi! I’m wired to OpenAI directly (no proxy).",
               status: "sent",
               createdAt: new Date().toISOString(),
               metadata: { ignoreUnread: true, seeded: true },
@@ -131,38 +219,38 @@ export const StreamingViaOpenAIProxy: StoryObj = {
             memory: { stats, terminology: TERMINOLOGY },
           }}
           onStreamMessage={async ({ text, messages, abortController, context }) => {
-            const aiForm = buildFormContextForAI({
-              currentModule: "Transaction Workdesk",
-              currentScreen: "Transaction Workdesk Catalog",
-              values: DATA_SOURCE,
-              columnSettings: COLUMN_SETTINGS,
-              description: "This screen contains a table of the Transaction Workdesk catalog.",
-            });
-
-            // MINIMAL: rely on saved settings & saved key on the server
-            return streamFromExpress({
+            const attachments = Array.isArray(context?.attachments) ? context.attachments : [];
+            return streamFromAI({
               text,
               history: messages,
               signal: abortController.signal,
-              context: { ...(context || {}), tabId: conversationId, form: aiForm },
-
-              // You *can* override, but you don't have to:
-              // model: "tradeexpress-gpt4o",
-              // baseUrl: "https://gateway.scaifactory.dev.azure.scbdev.net/v1",
-              // proxyUrl: "http://localhost:4000/api/ai/stream",
-              // settingsEndpoint: "http://localhost:4000/api/dev/openai-settings",
-              // devKeyEndpoint: "http://localhost:4000/api/dev/openai-key",
-            })}
-          }
+              context: { ...(context || {}), tabId: conversationId, attachments },
+              runAdapters,
+              dataBase: API_BASE,
+              devApiBase,
+              maxContext: 24,
+            });
+          }}
         />
 
         <DemoContainer
           icon="⚡"
-          title="Proxy Streaming with Memory"
+          title="Direct Streaming with Saved Settings"
           note={
             <>
-              Uses saved settings from <code>/api/dev/openai-settings</code> and a saved key from{" "}
-              <code>/api/dev/openai-key</code>. Pass overrides only if you need them.
+              Reads <code>baseUrl</code> &amp; <code>model</code> from{" "}
+              <code>{devApiBase || ""}/api/dev/openai-settings</code> (same-origin if blank) and a key
+              from <code>{devApiBase || ""}/api/dev/openai-key</code>. Then calls{" "}
+              <code>{`<baseUrl>/chat/completions`}</code> directly with <code>Authorization: Bearer ...</code>.
+              <br />
+              <strong>Adapters:</strong>{" "}
+              <em>UI Screen</em> (screen context) → <em>Upload Compare</em> (CSV/XLSX diff + export uploaded) →{" "}
+              <em>Data Reader</em> (ranges/top-N/oldest + exports).
+              <br />
+              <small>
+                Dev API Base (localStorage <code>aiTester:devApiBase</code>):{" "}
+                <code>{devApiBase || "(same-origin)"}</code>
+              </small>
             </>
           }
           style={{ marginTop: 12 }}

@@ -1,1 +1,0 @@
-export function createAIStreamHandler(...args: any[]): any;

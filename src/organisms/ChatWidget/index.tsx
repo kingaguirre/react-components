@@ -821,6 +821,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
       content: trimmed as any,
       createdAt: nowIso(),
       status: "sending",
+      attachments: attachments.length ? attachments : undefined,
     };
 
     let next = [...messagesState, userMsg];
@@ -1228,11 +1229,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
   const PanelContent = (
     <>
       {description && (
-        <S.Description
-          ref={descriptionRef}
-        >
-          {description}
-        </S.Description>
+        <S.Description ref={descriptionRef}>{description}</S.Description>
       )}
 
       <S.Messages
