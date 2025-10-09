@@ -8,20 +8,22 @@ import { theme } from "../styles";
 type Parser = "auto" | "sse" | "ndjson" | "text" | "json";
 type UiState = "idle" | "requesting" | "streaming" | "done" | "error" | "aborted";
 
-const LS_SERVER_BASE = "aiTester:serverBase";
+/**
+ * NOTE: This version does NOT use any Express/proxy.
+ * The Send button performs a DIRECT fetch to the upstream URL.
+ * It builds the exact same request as the cURL shown in the UI.
+ * Be aware that most upstreams (e.g., api.openai.com) block browser calls via CORS.
+ * This is purely for parity with your cURL request.
+ */
 
-export function AIEndpointTester() {
-  // ---------- Tester server base (where your dev endpoints live) ----------
-  const defaultServerBase =
-    typeof window !== "undefined" ? window.location.origin : "http://localhost:4000";
-  const [serverBase, setServerBase] = useState<string>("");
-  const effectiveServerBase = (serverBase || defaultServerBase).replace(/\/+$/, "");
+const LS_KEY = "aiTester:key";
+const LS_SETTINGS = "aiTester:settings";
 
-  // ---------- Key/JWT (Authorization: Bearer) ----------
-  const [openaiServerKey, setOpenaiServerKey] = useState("");
-  const [openaiServerKeySaved, setOpenaiServerKeySaved] = useState(false);
+export default function AIEndpointTester() {
+  // ---------- Auth (Authorization: Bearer ...) ----------
+  const [openaiKey, setOpenaiKey] = useState("");
 
-  // ---------- Settings persisted on server (no secrets) ----------
+  // ---------- Saved settings (localStorage only) ----------
   const [settingsSaved, setSettingsSaved] = useState(false);
 
   // ---- Tweakable settings (persisted) ----
@@ -44,60 +46,28 @@ export function AIEndpointTester() {
   const [copiedCurl, setCopiedCurl] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
-  // ---------- Dev endpoints (for key/settings only) ----------
-  const keyUrl = `${effectiveServerBase}/api/dev/openai-key`;
-  const settingsUrl = `${effectiveServerBase}/api/dev/openai-settings`;
+  // ---------- Load from localStorage on boot ----------
+  useEffect(() => {
+    try {
+      const k = localStorage.getItem(LS_KEY);
+      if (k) setOpenaiKey(k);
+    } catch {}
+    try {
+      const raw = localStorage.getItem(LS_SETTINGS);
+      if (raw) {
+        const s = JSON.parse(raw);
+        applySettings(s);
+        setSettingsSaved(true);
+      }
+    } catch {}
+  }, []);
 
   // ---------- Helpers ----------
   const appendLog = useCallback((line: string) => setLogs((prev) => [...prev, line]), []);
 
-  // ---------- Boot: hydrate serverBase from LS, then fetch key + settings ----------
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(LS_SERVER_BASE);
-      if (saved && typeof saved === "string") setServerBase(saved);
-    } catch {}
-  }, []);
-
-  useEffect(() => {
-    let ignore = false;
-    (async () => {
-      // key
-      try {
-        const r1 = await fetch(keyUrl);
-        if (r1.ok) {
-          const d = await r1.json();
-          if (!ignore) {
-            const k = String(d?.key || "");
-            setOpenaiServerKeySaved(!!k);
-            if (k && !openaiServerKey) setOpenaiServerKey(k);
-          }
-        } else if (!ignore) setOpenaiServerKeySaved(false);
-      } catch {
-        if (!ignore) setOpenaiServerKeySaved(false);
-      }
-      // settings
-      try {
-        const r2 = await fetch(settingsUrl);
-        if (r2.ok) {
-          const d = await r2.json();
-          if (!ignore && d?.hasSettings && d.settings) {
-            applySettings(d.settings); // includes serverBase
-            setSettingsSaved(true);
-          } else if (!ignore) setSettingsSaved(false);
-        } else if (!ignore) setSettingsSaved(false);
-      } catch {
-        if (!ignore) setSettingsSaved(false);
-      }
-    })();
-    return () => { ignore = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveServerBase]);
-
-  // ---------- Settings (non-secret) object ----------
+  // ---------- Build + apply settings (non-secret) ----------
   const makeSettings = useCallback(
     () => ({
-      serverBase,
       baseUrl,
       model,
       stream,
@@ -105,12 +75,23 @@ export function AIEndpointTester() {
       parser,
       prompt,
     }),
-    [serverBase, baseUrl, model, stream, payloadMode, parser, prompt],
+    [baseUrl, model, stream, payloadMode, parser, prompt],
+  );
+
+  const DEFAULTS = useMemo(
+    () => ({
+      baseUrl: "https://api.openai.com/v1",
+      model: "gpt-4o-mini",
+      stream: true,
+      payloadMode: "messages" as const,
+      parser: "auto" as Parser,
+      prompt: "say hello in 3 words",
+    }),
+    [],
   );
 
   const applySettings = useCallback((s: any) => {
     if (!s || typeof s !== "object") return;
-    if (typeof s.serverBase === "string") setServerBase(s.serverBase);
     if (typeof s.baseUrl === "string") setBaseUrl(s.baseUrl);
     if (typeof s.model === "string") setModel(s.model);
     if (typeof s.stream === "boolean") setStream(!!s.stream);
@@ -119,113 +100,100 @@ export function AIEndpointTester() {
     if (typeof s.prompt === "string") setPrompt(s.prompt);
   }, []);
 
-  const saveAllSettings = useCallback(async () => {
+  const saveAllSettings = useCallback(() => {
     const settings = makeSettings();
-    try { localStorage.setItem(LS_SERVER_BASE, (settings.serverBase || "").replace(/\/+$/, "")); } catch {}
     try {
-      const r = await fetch(settingsUrl, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(settings),
-      });
-      const d = await r.json().catch(() => ({}));
-      setSettingsSaved(!!d?.hasSettings);
+      localStorage.setItem(LS_SETTINGS, JSON.stringify(settings));
+      setSettingsSaved(true);
       appendLog(`[settings] saved: ${JSON.stringify(settings)}`);
-      setHint(`Saved settings on ${effectiveServerBase}.`);
+      setHint("Saved settings (localStorage).");
     } catch (e: any) {
       appendLog(`[settings] save error: ${e?.message || String(e)}`);
-      setHint("Failed to save settings. Check /api/dev/openai-settings.");
+      setHint("Failed to save settings to localStorage.");
     }
-  }, [makeSettings, appendLog, settingsUrl, effectiveServerBase]);
+  }, [makeSettings, appendLog]);
 
-  const loadAllSettings = useCallback(async () => {
+  const loadAllSettings = useCallback(() => {
     try {
-      const r = await fetch(settingsUrl);
-      if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
-      const d = await r.json();
-      if (d?.hasSettings && d.settings) {
-        applySettings(d.settings);
-        if (typeof d.settings.serverBase === "string") {
-          try { localStorage.setItem(LS_SERVER_BASE, d.settings.serverBase.replace(/\/+$/, "")); } catch {}
-        }
-        setSettingsSaved(true);
-        appendLog(`[settings] loaded: ${JSON.stringify(d.settings)}`);
-        setHint(`Loaded settings from ${effectiveServerBase}.`);
-      } else {
+      const raw = localStorage.getItem(LS_SETTINGS);
+      if (!raw) {
         setSettingsSaved(false);
-        setHint("No saved settings on server.");
+        setHint("No saved settings in localStorage.");
+        return;
       }
+      const d = JSON.parse(raw);
+      applySettings(d);
+      setSettingsSaved(true);
+      appendLog(`[settings] loaded: ${JSON.stringify(d)}`);
+      setHint("Loaded settings from localStorage.");
     } catch (e: any) {
       appendLog(`[settings] load error: ${e?.message || String(e)}`);
-      setHint("Failed to load settings. Check /api/dev/openai-settings.");
+      setHint("Failed to load settings from localStorage.");
     }
-  }, [applySettings, appendLog, settingsUrl, effectiveServerBase]);
+  }, [applySettings, appendLog]);
 
-  // Save/Clear key
-  const saveOpenAIServerKey = useCallback(async () => {
+  const resetToDefaults = useCallback(() => {
+    applySettings(DEFAULTS);
+    setHint("Reset to defaults.");
+    appendLog("[settings] reset to defaults");
+  }, [applySettings, DEFAULTS]);
+
+  // Save/Clear key (localStorage)
+  const saveKey = useCallback(() => {
     try {
-      const r = await fetch(keyUrl, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: openaiServerKey }),
-      });
-      const d = await r.json().catch(() => ({}));
-      const has = !!openaiServerKey;
-      setOpenaiServerKeySaved(has);
-      appendLog(`[openai] server key ${has ? "saved" : "cleared"} (${d?.hasKey ? "has" : "empty"})`);
-      setHint(has ? "Saved Bearer token on server (in-memory)." : "Cleared token on server.");
+      localStorage.setItem(LS_KEY, openaiKey);
+      appendLog("[key] saved to localStorage");
+      setHint("Saved Bearer token (localStorage).");
     } catch (e: any) {
-      appendLog(`[openai] save error: ${e?.message || String(e)}`);
-      setHint("Failed to save key. Check /api/dev/openai-key.");
+      appendLog(`[key] save error: ${e?.message || String(e)}`);
+      setHint("Failed to save key to localStorage.");
     }
-  }, [openaiServerKey, appendLog, keyUrl]);
+  }, [openaiKey, appendLog]);
 
-  const clearOpenAIServerKey = useCallback(async () => {
-    setOpenaiServerKey("");
+  const clearKey = useCallback(() => {
+    setOpenaiKey("");
     try {
-      const r = await fetch(keyUrl, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: "" }),
-      });
-      await r.json().catch(() => ({}));
-      setOpenaiServerKeySaved(false);
-      appendLog("[openai] server key cleared");
-      setHint("Cleared key on server.");
+      localStorage.removeItem(LS_KEY);
+      appendLog("[key] cleared from localStorage");
+      setHint("Cleared key (localStorage).");
     } catch (e: any) {
-      appendLog(`[openai] clear error: ${e?.message || String(e)}`);
-      setHint("Failed to clear key. Check /api/dev/openai-key.");
+      appendLog(`[key] clear error: ${e?.message || String(e)}`);
+      setHint("Failed to clear key in localStorage.");
     }
-  }, [appendLog, keyUrl]);
+  }, [appendLog]);
 
-  // ---------- Request wiring (DIRECT to upstream) ----------
-  const headers = useMemo(() => {
-    const h: Record<string, string> = { "Content-Type": "application/json" };
-    if (stream) h["Accept"] = "text/event-stream";
-    const key = openaiServerKey.trim();
-    if (key) h["Authorization"] = `Bearer ${key}`; // WARNING: exposes key in browser
-    return h;
-  }, [openaiServerKey, stream]);
+  // ---------- Exact upstream URL + payload (matches cURL) ----------
+  const directUrl = useMemo(() => joinUrl(baseUrl, "/chat/completions"), [baseUrl]);
 
-  const payload = useMemo(() => {
+  const directWirePayload = useMemo(() => {
     const core =
       payloadMode === "messages"
         ? { messages: [{ role: "user", content: prompt }] }
         : { input: prompt };
     const out: any = { model, ...core };
     if (stream) out.stream = true;
-    return out; // no temperature/path/etc.
-  }, [model, stream, payloadMode, prompt]);
+    return out;
+  }, [model, payloadMode, prompt, stream]);
 
-  const directUrl = useMemo(() => joinUrl(baseUrl, "/chat/completions"), [baseUrl]);
-
+  // ---------- Exact cURL (the source of truth) ----------
   const curl = useMemo(() => {
-    const authHeader = openaiServerKey ? `-H "Authorization: Bearer ${openaiServerKey}"` : "";
+    const authHeader = openaiKey ? `-H "Authorization: Bearer ${openaiKey}"` : "";
     const hdrs = ['-H "Content-Type: application/json"', authHeader].filter(Boolean).join(" ");
-    const body = JSON.stringify(JSON.stringify(payload));
+    const body = JSON.stringify(JSON.stringify(directWirePayload));
+    // EXACT order to mirror your working example
     return `curl -X POST ${JSON.stringify(directUrl)} ${hdrs} -d ${body}`;
-  }, [openaiServerKey, payload, directUrl]);
+  }, [openaiKey, directWirePayload, directUrl]);
 
+  // ---------- Derived request parts for fetch (MUST match cURL) ----------
+  const headers = useMemo(() => {
+    // IMPORTANT: Do NOT add Accept: text/event-stream to match cURL exactly
+    const h: Record<string, string> = { "Content-Type": "application/json" };
+    const key = openaiKey.trim();
+    if (key) h["Authorization"] = `Bearer ${key}`;
+    return h;
+  }, [openaiKey]);
+
+  // ---------- Send (direct fetch to upstream) ----------
   const reset = useCallback(() => {
     abortRef.current?.abort?.();
     abortRef.current = null;
@@ -251,14 +219,12 @@ export function AIEndpointTester() {
     try {
       appendLog(`[req] POST ${directUrl}`);
       appendLog(`[req] headers ${JSON.stringify(headers)}`);
-      appendLog(`[req] payload ${JSON.stringify(payload)}`);
+      appendLog(`[req] payload ${JSON.stringify(directWirePayload)}`);
 
       resp = await fetch(directUrl, {
         method: "POST",
-        mode: "cors",                 // **must** be allowed by upstream
-        credentials: "omit",          // set to "include" if your gateway uses cookies
         headers,
-        body: JSON.stringify(payload),
+        body: JSON.stringify(directWirePayload),
         signal: controller.signal,
       });
 
@@ -305,7 +271,7 @@ export function AIEndpointTester() {
       appendLog(`[err] ${e?.message || String(e)}`);
       setHint(hintFromFetchError(e));
     }
-  }, [directUrl, headers, payload, parser, stream, appendLog]);
+  }, [directUrl, headers, directWirePayload, parser, stream, appendLog]);
 
   const abort = useCallback(() => { abortRef.current?.abort?.(); setState("aborted"); }, []);
 
@@ -323,12 +289,12 @@ export function AIEndpointTester() {
       <HeaderCard>
         <Badge>AI</Badge>
         <HeadText>
-          <Title>AI Endpoint Tester</Title>
-          <Sub>Direct upstream call • Dev server only stores settings/key</Sub>
+          <Title>AI Endpoint Tester (Direct)</Title>
+          <Sub>Send button == EXACT same request as the cURL shown</Sub>
         </HeadText>
       </HeaderCard>
 
-      {/* KEY PANEL — Save/Clear key */}
+      {/* KEY PANEL — Save/Clear key (localStorage) */}
       <KeyCard>
         <Field compact>
           <Label>Server Key / JWT (Authorization: Bearer)</Label>
@@ -336,31 +302,21 @@ export function AIEndpointTester() {
             <Input
               type="password"
               placeholder="<JWT or sk-...>"
-              value={openaiServerKey}
-              onChange={(e) => setOpenaiServerKey(e.target.value)}
+              value={openaiKey}
+              onChange={(e) => setOpenaiKey(e.target.value)}
             />
-            <BtnPrimary onClick={saveOpenAIServerKey} disabled={!openaiServerKey.trim()}>
+            <BtnPrimary onClick={saveKey} disabled={!openaiKey.trim()}>
               Save
             </BtnPrimary>
-            <BtnDanger onClick={clearOpenAIServerKey}>Clear</BtnDanger>
+            <BtnDanger onClick={clearKey}>Clear</BtnDanger>
           </div>
-          <MiniNote>{openaiServerKeySaved ? "Saved on server" : "No key saved"}</MiniNote>
-          <MiniNote>⚠️ When you click "Send", this key is sent from the browser to the upstream. Use only with a CORS-enabled gateway & non-sensitive token.</MiniNote>
+          <MiniNote>Stored in localStorage only.</MiniNote>
         </Field>
       </KeyCard>
 
-      {/* SETTINGS PANEL — includes Server Base and Save/Load */}
+      {/* SETTINGS PANEL — Save/Load/Reset (localStorage) */}
       <KeyCard>
         <Row4>
-          <Field>
-            <Label>Tester Server Base URL (for key/settings only)</Label>
-            <Input
-              value={serverBase}
-              onChange={(e) => setServerBase(e.target.value)}
-              placeholder={defaultServerBase}
-            />
-            <MiniNote>Effective: <code>{effectiveServerBase}</code></MiniNote>
-          </Field>
           <Field>
             <Label>Upstream Base URL</Label>
             <Input
@@ -368,6 +324,7 @@ export function AIEndpointTester() {
               onChange={(e) => setBaseUrl(e.target.value)}
               placeholder="https://api.openai.com/v1"
             />
+            <MiniNote>Final URL: <code>{joinUrl(baseUrl, "/chat/completions")}</code></MiniNote>
           </Field>
           <Field>
             <Label>Model</Label>
@@ -380,9 +337,6 @@ export function AIEndpointTester() {
               <SegBtn className={!stream ? "active" : ""} onClick={() => setStream(false)}>false</SegBtn>
             </Segmented>
           </Field>
-        </Row4>
-
-        <Row4>
           <Field>
             <Label>Parser</Label>
             <Segmented>
@@ -393,6 +347,9 @@ export function AIEndpointTester() {
               ))}
             </Segmented>
           </Field>
+        </Row4>
+
+        <Row3>
           <Field>
             <Label>Payload</Label>
             <Segmented>
@@ -405,20 +362,22 @@ export function AIEndpointTester() {
             </Segmented>
           </Field>
           <Field>
-            <Label>Save / Load Settings</Label>
-            <div style={{ display: "flex", gap: 8 }}>
+            <Label>Save / Load / Reset</Label>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <BtnPrimary onClick={saveAllSettings}>Save Settings</BtnPrimary>
               <BtnOutline onClick={loadAllSettings}>Load Settings</BtnOutline>
+              <BtnDanger onClick={resetToDefaults}>Reset Defaults</BtnDanger>
             </div>
-            <MiniNote>{settingsSaved ? "Settings saved on server" : "No saved settings"}</MiniNote>
+            <MiniNote>{settingsSaved ? "Settings saved in localStorage" : "No saved settings"}</MiniNote>
           </Field>
           <Field>
-            <Label>Corp example</Label>
-            <MiniNote><b>Base URL:</b> https://gateway.scaifactory.dev.azure.scbdev.net/v1</MiniNote>
-            <MiniNote><b>Model:</b> tradeexpress-gpt4o</MiniNote>
-            <MiniNote>Upstream must allow CORS for your app origin.</MiniNote>
+            <Label>Note</Label>
+            <MiniNote>
+              Clicking <b>Send</b> issues a direct <code>fetch</code> to the exact URL shown in cURL with the same headers and JSON body.
+              Many upstreams block browser calls via CORS; use for parity testing only.
+            </MiniNote>
           </Field>
-        </Row4>
+        </Row3>
       </KeyCard>
 
       {/* Controls */}
@@ -522,6 +481,7 @@ const HeadText = styled.div``;
 const Title = styled.div` font-size: 18px; font-weight: 800; `;
 const Sub = styled.div` font-size: 13px; color: ${theme.colors.light.dark}; `;
 
+/* layouts */
 const Row3 = styled.div`
   display: grid;
   grid-template-columns: repeat(3, minmax(240px, 1fr));
@@ -697,23 +657,21 @@ function extract(obj: any): string {
   return JSON.stringify(obj);
 }
 function truncate(s: string, max = 2000) { return s.length > max ? s.slice(0, max) + "\n…(truncated)…" : s; }
+async function safeText(r: Response): Promise<string> { try { const t = await r.text(); return t ?? ""; } catch { return ""; } }
 function hintFromHttp(status: number, ct: string, body: string): string {
   if (status === 401 || status === 403) return "Auth failed (key missing/invalid).";
-  if (status === 404) return "Wrong path — verify the endpoint.";
+  if (status === 404) return "Wrong path.";
   if (status === 405) return "Wrong method — should be POST.";
   if (status === 415) return "Unsupported Media Type — set 'Content-Type: application/json'.";
-  if (status === 413) return "Payload too large — trim request.";
-  if (status >= 500) return "Server error — upstream crashed or unavailable.";
-  if (ct.includes("html")) return "Got HTML (error page). Likely CORS/gateway issue.";
-  if (body && /cors|allow-origin|preflight/i.test(body)) return "CORS — enable CORS on the upstream or use a proxy.";
+  if (status === 413) return "Payload too large.";
+  if (status >= 500) return "Upstream server error.";
+  if (ct.includes("html")) return "Got HTML (likely a gateway or block page).";
+  if (body && /cors|allow-origin|preflight/i.test(body)) return "CORS block — browsers cannot call this upstream directly.";
   return "Non-OK HTTP status. Inspect logs and body above.";
 }
-async function safeText(r: Response): Promise<string> { try { const t = await r.text(); return t ?? ""; } catch { return ""; } }
 function hintFromFetchError(e: any): string {
   const msg = e?.message || "";
   if (/Failed to fetch/i.test(msg) || /NetworkError/i.test(msg)) return "Fetch failed — likely CORS or mixed content.";
-  if (/timeout/i.test(msg) || e?.name === "AbortError") return "Timed out — upstream slow or blocked.";
+  if (/timeout/i.test(msg) || e?.name === "AbortError") return "Timed out — server slow or blocked.";
   return `Unknown fetch error: ${msg}`;
 }
-
-export default AIEndpointTester;
