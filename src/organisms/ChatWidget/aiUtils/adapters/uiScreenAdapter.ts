@@ -707,12 +707,28 @@ export function makeUiScreenAdapter(
         } catch {}
       }
 
+      // Accept empty settings and also treat presence of module/screen as "form-like"
+      const hasModuleOrScreen =
+        !!firstString(
+          rawForm?.currentModule,
+          rawForm?.module,
+          rawForm?.meta?.currentModule,
+          context?.currentModule,
+          context?.form?.currentModule
+        ) ||
+        !!firstString(
+          rawForm?.currentScreen,
+          rawForm?.screen,
+          rawForm?.meta?.currentScreen,
+          context?.currentScreen,
+          context?.form?.currentScreen
+        );
+
       const isObjForm =
         isObj(rawForm) &&
-        ((Array.isArray(rawForm?.fieldSettings) &&
-          rawForm.fieldSettings.length > 0) ||
-          (Array.isArray(rawForm?.columnSettings) &&
-            rawForm.columnSettings.length > 0));
+        (Array.isArray(rawForm?.fieldSettings) ||
+        Array.isArray(rawForm?.columnSettings) ||
+        hasModuleOrScreen);
 
       // ---------- NO-FORM FALLBACK ----------
       if (!isObjForm) {
@@ -720,10 +736,22 @@ export function makeUiScreenAdapter(
           const mod = firstString(
             context?.currentModule,
             context?.form?.currentModule,
+            rawForm?.currentModule,
+            rawForm?.module,
+            rawForm?.meta?.currentModule
           );
           const scr = firstString(
             context?.currentScreen,
             context?.form?.currentScreen,
+            rawForm?.currentScreen,
+            rawForm?.screen,
+            rawForm?.meta?.currentScreen
+          );
+          const desc = firstString(
+            rawForm?.description,
+            rawForm?.meta?.description,
+            context?.description,
+            context?.form?.description
           );
 
           if (!mod || !scr) {
@@ -742,7 +770,10 @@ What I can do next:
             ];
           }
 
-          const msg = `You are currently in **${mod}** module and currently viewing **${scr}**.
+          const msg =
+            `You are currently in **${mod}** module and currently viewing **${scr}**.` +
+            (desc ? ` ${desc.trim()}` : "") +
+            `
 
 What I can do next:
 - List columns or preview rows (once table context is connected)
