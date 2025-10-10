@@ -4,9 +4,6 @@
 import 'dotenv/config';
 import express from "express";
 import cors from "cors";
-import { ProxyAgent, fetch as undiciFetch } from "undici";
-import { createAIStreamHandler, aiDownloadRoute } from "./src/common/server/ai/streamFactory.js";
-import { workdeskPlugin } from "./src/organisms/ChatWidget/aiUtils/workdeskPlugin.js";
 
 const PORT = Number(process.env.PORT ?? 4000);
 const BASE_DELAY = Number.isFinite(Number(process.env.DELAY_MS)) ? Number(process.env.DELAY_MS) : 100;
@@ -999,27 +996,120 @@ app.get("/txn/id/:id", (req, res) => {
   res.json(toPublicTxn(row));
 });
 
-// ------------------ /api/ai/stream (OpenAI proxy) ------------------
-app.post("/api/ai/stream", (req, res, next) => {
-  const handler = createAIStreamHandler({
-    plugin: workdeskPlugin,
-    openaiApiKey: req.get("x-openai-key") || req.app?.locals?.devOpenAIKey || process.env.OPENAI_API_KEY,
-    baseUrl: `http://localhost:${PORT}`,
-    cacheTtlMs: 15_000,
-  });
-  return handler(req, res, next);
-});
+// ------------------ Download ------------------------------------------
+// one shared in-memory registry
+// --- Ephemeral download registry (singleton across hot-reloads) ---
+// --- One-time download registry (process-local memory) ---
+const REG_KEY = "__AI_DOWNLOADS__";
+const downloads =
+  globalThis[REG_KEY] || (globalThis[REG_KEY] = new Map()); // token -> { buf, mime, name, expiresAt }
 
-// Serve one-time download links (used by CSV/XLSX exports)
-app.get("/__ai-download/:token", aiDownloadRoute);
-
-// (Optional) nicer error for 413s
-app.use((err, req, res, next) => {
-  if (err?.type === "entity.too.large") {
-    return res.status(413).send("Payload too large. Try a smaller file or compress it.");
+// Strong-ish token with crypto fallback
+function makeToken() {
+  try {
+    // Node 18+ usually has crypto.randomUUID
+    return require("crypto").randomUUID().replace(/-/g, "") + Date.now().toString(36);
+  } catch {
+    return Math.random().toString(36).slice(2) + Date.now().toString(36);
   }
-  next(err);
+}
+
+function registerDownload(buf, name, mime, ttlMs) {
+  const token = makeToken();
+  downloads.set(token, {
+    buf,
+    mime,
+    name,
+    expiresAt: Date.now() + (Number.isFinite(ttlMs) ? ttlMs : 10 * 60 * 1000),
+  });
+  return token;
+}
+
+// Build public origin that works behind proxies (x-forwarded-*), with env override
+function publicOrigin(req) {
+  if (process.env.PUBLIC_API_ORIGIN) return process.env.PUBLIC_API_ORIGIN;
+  const xfProto = (req.headers["x-forwarded-proto"] || "").toString().split(",")[0].trim();
+  const xfHost  = (req.headers["x-forwarded-host"]  || "").toString().split(",")[0].trim();
+  const proto = xfProto || req.protocol || "http";
+  const host  = xfHost  || req.get("host");
+  return `${proto}://${host}`;
+}
+
+// --- ROUTES ---
+// POST /__ai-register → returns JSON { url }
+app.post("/__ai-register", express.json({ limit: "25mb" }), (req, res) => {
+  try {
+    const { bytesB64, name = "download.bin", mime = "application/octet-stream", ttlMs } = req.body || {};
+    if (!bytesB64 || typeof bytesB64 !== "string") {
+      return res.status(400).json({ error: "bytesB64 (base64) is required" });
+    }
+
+    let buf;
+    try {
+      buf = Buffer.from(bytesB64, "base64");
+    } catch (e) {
+      return res.status(400).json({ error: "Invalid base64 payload" });
+    }
+    if (!buf || !buf.length) {
+      return res.status(400).json({ error: "Empty file buffer" });
+    }
+
+    const token = registerDownload(buf, String(name), String(mime), Number(ttlMs));
+    const origin = publicOrigin(req);
+    // Absolute URL so the client can be anywhere.
+    const url = `${origin}/__ai-download/${token}`;
+    return res.json({ url });
+  } catch (e) {
+    return res.status(500).json({ error: String(e && e.message ? e.message : e) });
+  }
 });
+
+// GET /__ai-download/:token → serves the file (attachment; single-use)
+app.get("/__ai-download/:token", (req, res) => {
+  const { token } = req.params || {};
+  const item = downloads.get(token);
+
+  // Not found or expired
+  if (!item || Date.now() > item.expiresAt) {
+    downloads.delete(token);
+    return res.status(404).end("Link expired or not found");
+  }
+
+  // Serve and delete (single-use link)
+  downloads.delete(token);
+  res.setHeader("Content-Type", item.mime || "application/octet-stream");
+  res.setHeader("Content-Disposition", `attachment; filename="${item.name || "download.bin"}"`);
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
+  res.setHeader("Content-Length", Buffer.byteLength(item.buf));
+  return res.end(item.buf);
+});
+
+// Optional: HEAD support (lets clients preflight file size/headers)
+app.head("/__ai-download/:token", (req, res) => {
+  const { token } = req.params || {};
+  const item = downloads.get(token);
+  if (!item || Date.now() > item.expiresAt) {
+    downloads.delete(token);
+    return res.status(404).end();
+  }
+  res.setHeader("Content-Type", item.mime || "application/octet-stream");
+  res.setHeader("Content-Disposition", `attachment; filename="${item.name || "download.bin"}"`);
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
+  res.setHeader("Content-Length", Buffer.byteLength(item.buf));
+  return res.end();
+});
+
+// Janitor: purge expired tokens periodically (in case they’re never downloaded)
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of downloads) {
+    if (!v || v.expiresAt < now) downloads.delete(k);
+  }
+}, 60_000);
+
+// ------------------ Download ------------------------------------------
 
 // ------------------ DEV storage ------------------
 app.get("/api/dev/openai-key", (req, res) => {
@@ -1030,22 +1120,7 @@ app.put("/api/dev/openai-key", (req, res) => {
   res.json({ ok: true, hasKey: !!req.app.locals.devOpenAIKey });
 });
 
-// Legacy minimal prefs (kept for back-compat)
-app.get("/api/dev/openai-prefs", (req, res) => {
-  const prefs = req.app.locals.devOpenAIPrefs || {};
-  res.json({ ok: true, prefs, hasPrefs: Object.keys(prefs).length > 0 });
-});
-app.put("/api/dev/openai-prefs", (req, res) => {
-  const b = req.body || {};
-  const next = {};
-  if (typeof b.baseUrl === "string" && b.baseUrl.trim()) next.baseUrl = b.baseUrl.trim();
-  if (typeof b.model === "string" && b.model.trim()) next.model = b.model.trim();
-  if (typeof b.stream === "boolean") next.stream = !!b.stream;
-  req.app.locals.devOpenAIPrefs = next;
-  res.json({ ok: true, prefs: next, hasPrefs: Object.keys(next).length > 0 });
-});
-
-// ------------------ NEW: full settings save/load ------------------
+// ------------------ full settings save/load ------------------
 app.get("/api/dev/openai-settings", (req, res) => {
   const s = req.app.locals.devOpenAISettings || null;
   res.json({ ok: true, settings: s, hasSettings: !!s });
@@ -1064,106 +1139,6 @@ app.put("/api/dev/openai-settings", (req, res) => {
   }
   req.app.locals.devOpenAISettings = next;
   res.json({ ok: true, settings: next, hasSettings: Object.keys(next).length > 0 });
-});
-
-// ------------------ Helpers ------------------
-function joinUrl(base, p) {
-  const left = (base || "").replace(/\/+$/, "");
-  const right = (p || "/").replace(/^\/+/, "");
-  return `${left}/${right}`;
-}
-
-// ------------------ /api/ai/openai (RAW passthrough) ------------------
-app.post("/api/ai/openai", async (req, res) => {
-  // Accept both X-OpenAI-Key and Authorization: Bearer
-  const headerKey = req.get("x-openai-key") || "";
-  const authz = req.get("authorization") || "";
-  const bearer = authz.toLowerCase().startsWith("bearer ") ? authz.slice(7) : "";
-  const apiKey = bearer || headerKey || req.app?.locals?.devOpenAIKey || process.env.OPENAI_API_KEY;
-  if (!apiKey) return res.status(400).send("Missing key: send Authorization: Bearer <token> or X-OpenAI-Key.");
-
-  const prefs = req.app.locals?.devOpenAIPrefs || {};
-  const body = req.body || {};
-  // Prefer request body; fallback to saved full settings; then legacy prefs; then defaults
-  const saved = req.app.locals.devOpenAISettings || {};
-
-  const model = body.model ?? saved.model ?? prefs.model ?? "gpt-4o-mini";
-  const baseURL = body.baseUrl ?? saved.baseUrl ?? prefs.baseUrl ?? process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1";
-  const stream = Object.prototype.hasOwnProperty.call(body, "stream")
-    ? !!body.stream
-    : Object.prototype.hasOwnProperty.call(saved, "stream")
-      ? !!saved.stream
-      : (typeof prefs.stream === "boolean" ? !!prefs.stream : true);
-
-  const temperature =
-    typeof body.temperature === "number" ? body.temperature
-    : (typeof saved.temperature === "number" ? saved.temperature : undefined);
-
-  const messages = Array.isArray(body.messages) ? body.messages : undefined;
-  const input = body.input != null ? String(body.input) : undefined;
-
-  // If client sends a path, use it; else use saved path if 'useRawPath' true; else default
-  const requestPath = typeof body.path === "string" && body.path.trim() ? body.path.trim() : null;
-  const savedPath = saved.useRawPath && typeof saved.rawPath === "string" && saved.rawPath.trim() ? saved.rawPath.trim() : null;
-  const path = requestPath || savedPath || "/chat/completions";
-
-  const url = joinUrl(baseURL, path);
-
-  // Corp proxy support (optional)
-  const HTTPS_PROXY = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
-  const dispatcher = HTTPS_PROXY ? new ProxyAgent(HTTPS_PROXY) : undefined;
-
-  // Upstream request
-  const upstreamHeaders = { "Content-Type": "application/json" };
-  if (stream) upstreamHeaders["Accept"] = "text/event-stream";
-  if (bearer) upstreamHeaders["Authorization"] = `Bearer ${bearer}`;
-  else if (headerKey) upstreamHeaders["X-OpenAI-Key"] = headerKey;
-
-  const upstreamBody = {
-    model,
-    ...(messages ? { messages } : input ? { input } : {}),
-    ...(stream ? { stream: true } : {}),
-    ...(temperature !== undefined ? { temperature } : {}),
-  };
-
-  let upstreamResp;
-  try {
-    upstreamResp = await undiciFetch(url, {
-      method: "POST",
-      headers: upstreamHeaders,
-      body: JSON.stringify(upstreamBody),
-      dispatcher,
-    });
-  } catch (e) {
-    return res.status(502).json({ error: { name: e?.name, message: e?.message, code: e?.code } });
-  }
-
-  // Stream passthrough or JSON forward
-  const ct = upstreamResp.headers.get("content-type") || "";
-  if (stream && ct.includes("text/event-stream")) {
-    res.writeHead(200, {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache, no-transform",
-      Connection: "keep-alive",
-      "X-Accel-Buffering": "no",
-    });
-    if (!upstreamResp.body) return res.end();
-
-    const reader = upstreamResp.body.getReader();
-    const dec = new TextDecoder();
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      res.write(dec.decode(value)); // raw SSE passthrough
-    }
-    return res.end();
-  }
-
-  // Non-SSE: forward status + body
-  const text = await upstreamResp.text();
-  res.status(upstreamResp.status);
-  res.setHeader("Content-Type", ct || "application/json");
-  return res.send(text);
 });
 
 app.listen(PORT, () => {

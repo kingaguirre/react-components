@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 
-// 🔧 adjust this import if your file lives elsewhere
+// 🔧 adjust if your file lives elsewhere
 import AIEndpointTester from "../AIEndpointTester";
 
 // Mock the theme module used by styled-components
@@ -20,12 +20,7 @@ vi.mock("../styles", () => ({
   },
 }));
 
-const API_BASE = "http://localhost:4000";
-const DEV_KEY_EP = `${API_BASE}/api/dev/openai-key`;
-const PREFS_EP = `${API_BASE}/api/dev/openai-prefs`;
-const TARGET = `${API_BASE}/api/ai/openai`;
-
-// Utilities
+// ==== helpers for streaming ====
 const enc = new TextEncoder();
 function rsFromStrings(chunks: string[]) {
   return new ReadableStream<Uint8Array>({
@@ -38,10 +33,11 @@ function rsFromStrings(chunks: string[]) {
 
 let fetchMock: ReturnType<typeof vi.fn>;
 
-// Clipboard mock
 beforeEach(() => {
+  localStorage.clear();
+
   fetchMock = vi.fn();
-  // @ts-expect-error override global fetch
+  // @ts-expect-error override global fetch for tests
   global.fetch = fetchMock;
 
   // minimal clipboard
@@ -54,77 +50,105 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function primeBootstrapGets({
+// ---- common responders for initial server loads ----
+function primeServerLoadResponses({
   key = "sk-test-123",
-  prefs = {
-    baseUrl: "https://custom.openai/v1",
-    model: "gpt-test",
-    stream: false,
+  settings = {
+    baseUrl: "https://api.openai.com/v1",
+    model: "gpt-4o-mini",
+    stream: true,
+    payloadMode: "messages",
+    parser: "auto",
   },
-}: { key?: string; prefs?: any } = {}) {
+  hasSettings = true,
+}: {
+  key?: string;
+  settings?: any;
+  hasSettings?: boolean;
+} = {}) {
   fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
     const method = (init?.method || "GET").toUpperCase();
-
-    if (url === DEV_KEY_EP && method === "GET") {
+    // same-origin by default; Dev API Base is empty unless user fills it
+    if (method === "GET" && url.endsWith("/api/dev/openai-key")) {
       return new Response(JSON.stringify({ key }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
     }
-    if (url === PREFS_EP && method === "GET") {
-      return new Response(
-        JSON.stringify({ hasPrefs: true, prefs }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      );
+    if (method === "GET" && url.endsWith("/api/dev/openai-settings")) {
+      return new Response(JSON.stringify({ settings, hasSettings }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
     }
-    // default fallback so tests can plug POST later
     return new Response("not found", { status: 404 });
   });
 }
 
-describe("AIEndpointTester", () => {
-  it("loads server key and defaults on mount", async () => {
-    primeBootstrapGets();
+describe("AIEndpointTester (Direct)", () => {
+  it("loads key and saved settings from the server on mount", async () => {
+    primeServerLoadResponses({
+      key: "sk-test-123",
+      settings: {
+        baseUrl: "https://custom.openai/v1",
+        model: "gpt-test",
+        stream: false,
+        payloadMode: "messages",
+        parser: "auto",
+      },
+      hasSettings: true,
+    });
 
     render(<AIEndpointTester />);
 
-    // baseUrl input should reflect server prefs
-    const baseUrlInput = await screen.findByLabelText("OpenAI Base URL") as HTMLInputElement;
+    // baseUrl input should reflect saved settings
+    const baseUrlInput = await screen.findByLabelText("Upstream Base URL") as HTMLInputElement;
     expect(baseUrlInput.value).toBe("https://custom.openai/v1");
 
-    // model input reflects prefs
+    // model input reflects saved settings
     const modelInput = screen.getByLabelText("Model") as HTMLInputElement;
     expect(modelInput.value).toBe("gpt-test");
 
     // server key field shows saved key
-    const keyInput = screen.getByPlaceholderText("sk-...") as HTMLInputElement;
+    const keyInput = screen.getByPlaceholderText("<JWT or sk-...>") as HTMLInputElement;
     expect(keyInput.value).toBe("sk-test-123");
   });
 
-  it("sends POST with server header and streams text chunks into Output", async () => {
-    // 2 GETs first, then POST returns text stream
-    primeBootstrapGets();
-    fetchMock.mockImplementationOnce(fetchMock.mock.calls[0]?.[0]) // keep the first GET behavior
-    fetchMock.mockImplementationOnce(fetchMock.mock.calls[1]?.[0]);
+  it("sends POST to {baseUrl}/chat/completions with Bearer auth and streams text", async () => {
+    const settings = {
+      baseUrl: "http://localhost:4000",
+      model: "gpt-4o-mini",
+      stream: true,
+      payloadMode: "messages",
+      parser: "auto",
+    };
+    const DIRECT = "http://localhost:4000/chat/completions";
 
+    // first stub the server loads…
+    primeServerLoadResponses({ key: "sk-test-123", settings });
+
+    // …then extend the mock for the direct POST
     fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
       const method = (init?.method || "GET").toUpperCase();
 
-      if (url === DEV_KEY_EP && method === "GET") {
+      if (method === "GET" && url.endsWith("/api/dev/openai-key")) {
         return new Response(JSON.stringify({ key: "sk-test-123" }), {
-          status: 200, headers: { "Content-Type": "application/json" },
+          status: 200,
+          headers: { "Content-Type": "application/json" },
         });
       }
-      if (url === PREFS_EP && method === "GET") {
-        return new Response(JSON.stringify({
-          hasPrefs: true,
-          prefs: { baseUrl: "https://api.openai.com/v1", model: "gpt-4o-mini", stream: true },
-        }), { status: 200, headers: { "Content-Type": "application/json" } });
+      if (method === "GET" && url.endsWith("/api/dev/openai-settings")) {
+        return new Response(JSON.stringify({ settings, hasSettings: true }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
       }
 
-      if (url === TARGET && method === "POST") {
-        // Assert headers include X-OpenAI-Key
-        expect((init!.headers as any)["X-OpenAI-Key"]).toBe("sk-test-123");
+      if (url === DIRECT && method === "POST") {
+        // Assert headers include Bearer authorization
+        const headers = (init!.headers as any) || {};
+        expect(headers["Content-Type"]).toBe("application/json");
+        expect(headers["Authorization"]).toBe("Bearer sk-test-123");
 
         // Return a text/plain stream
         const body = rsFromStrings(["hello", " ", "world"]);
@@ -133,13 +157,12 @@ describe("AIEndpointTester", () => {
           headers: { "Content-Type": "text/plain" },
         });
       }
-
       return new Response("not found", { status: 404 });
     });
 
     render(<AIEndpointTester />);
 
-    const send = await screen.findByRole("button", { name: /send/i });
+    const send = await screen.findByRole("button", { name: /^send$/i });
     fireEvent.click(send);
 
     // Output should accumulate streamed text
@@ -147,33 +170,41 @@ describe("AIEndpointTester", () => {
       expect(screen.getByText(/hello world/)).toBeInTheDocument();
     });
 
-    // The POST got hit
+    // The POST got hit with expected shape
     expect(fetchMock).toHaveBeenCalledWith(
-      TARGET,
+      DIRECT,
       expect.objectContaining({
         method: "POST",
         headers: expect.objectContaining({
           "Content-Type": "application/json",
-          "X-OpenAI-Key": "sk-test-123",
+          Authorization: "Bearer sk-test-123",
         }),
       }),
     );
   });
 
   it("shows auth hint on 401 error", async () => {
-    primeBootstrapGets();
+    const settings = { baseUrl: "http://localhost:4000" };
+    const DIRECT = "http://localhost:4000/chat/completions";
 
-    // After the two GETs, POST returns 401
     fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
       const method = (init?.method || "GET").toUpperCase();
 
-      if (url === DEV_KEY_EP && method === "GET") {
-        return new Response(JSON.stringify({ key: "" }), { status: 200, headers: { "Content-Type": "application/json" } });
+      if (method === "GET" && url.endsWith("/api/dev/openai-key")) {
+        // simulate missing key on server
+        return new Response(JSON.stringify({ key: "" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
       }
-      if (url === PREFS_EP && method === "GET") {
-        return new Response(JSON.stringify({ hasPrefs: false, prefs: {} }), { status: 200, headers: { "Content-Type": "application/json" } });
+      if (method === "GET" && url.endsWith("/api/dev/openai-settings")) {
+        return new Response(JSON.stringify({ settings, hasSettings: true }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
       }
-      if (url === TARGET && method === "POST") {
+
+      if (url === DIRECT && method === "POST") {
         return new Response(JSON.stringify({ error: "no auth" }), {
           status: 401,
           headers: { "Content-Type": "application/json" },
@@ -184,39 +215,49 @@ describe("AIEndpointTester", () => {
 
     render(<AIEndpointTester />);
 
-    const send = await screen.findByRole("button", { name: /send/i });
+    const send = await screen.findByRole("button", { name: /^send$/i });
     fireEvent.click(send);
 
     await waitFor(() => {
-      expect(screen.getByText(/Auth failed \(key missing\/invalid\)\./i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Auth failed \(key missing\/invalid\)\./i),
+      ).toBeInTheDocument();
     });
   });
 
   it("Abort sets state to 'aborted' even if fetch is still pending", async () => {
-    primeBootstrapGets();
+    const settings = { baseUrl: "http://localhost:4000" };
+    const DIRECT = "http://localhost:4000/chat/completions";
 
-    // POST never resolves (simulate a hanging request)
     fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
       const method = (init?.method || "GET").toUpperCase();
 
-      if (url === DEV_KEY_EP && method === "GET") {
-        return new Response(JSON.stringify({ key: "sk-test-123" }), { status: 200, headers: { "Content-Type": "application/json" } });
+      if (method === "GET" && url.endsWith("/api/dev/openai-key")) {
+        return new Response(JSON.stringify({ key: "sk-test-123" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
       }
-      if (url === PREFS_EP && method === "GET") {
-        return new Response(JSON.stringify({ hasPrefs: true, prefs: {} }), { status: 200, headers: { "Content-Type": "application/json" } });
+      if (method === "GET" && url.endsWith("/api/dev/openai-settings")) {
+        return new Response(JSON.stringify({ settings, hasSettings: true }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
       }
-      if (url === TARGET && method === "POST") {
-        return new Promise<Response>(() => { /* never resolve */ });
+
+      if (url === DIRECT && method === "POST") {
+        // never resolve to simulate a hanging request
+        return new Promise<Response>(() => {});
       }
       return new Response("not found", { status: 404 });
     });
 
     render(<AIEndpointTester />);
 
-    const send = await screen.findByRole("button", { name: /send/i });
+    const send = await screen.findByRole("button", { name: /^send$/i });
     fireEvent.click(send);
 
-    const abortBtn = screen.getByRole("button", { name: /abort/i });
+    const abortBtn = screen.getByRole("button", { name: /^abort$/i });
     fireEvent.click(abortBtn);
 
     // Status pill shows 'aborted'
@@ -224,7 +265,18 @@ describe("AIEndpointTester", () => {
   });
 
   it("copies cURL to clipboard", async () => {
-    primeBootstrapGets();
+    // Use defaults; server provides a key so Authorization appears in cURL
+    primeServerLoadResponses({
+      key: "sk-test-123",
+      settings: {
+        baseUrl: "https://api.openai.com/v1",
+        model: "gpt-4o-mini",
+        stream: true,
+        payloadMode: "messages",
+        parser: "auto",
+      },
+      hasSettings: true,
+    });
 
     render(<AIEndpointTester />);
 
@@ -239,7 +291,25 @@ describe("AIEndpointTester", () => {
     // Click and assert copy
     fireEvent.click(copyBtn);
     await waitFor(() =>
-      expect((navigator.clipboard as any).writeText).toHaveBeenCalledWith(curlText)
+      expect((navigator as any).clipboard.writeText).toHaveBeenCalledWith(curlText),
     );
+  });
+
+  // extra: ensures Parser segmented control toggles affects ctype/guess hinting path
+  it("lets you toggle Parser without crashing (UI-only sanity)", async () => {
+    primeServerLoadResponses();
+
+    render(<AIEndpointTester />);
+
+    // Click the 'ndjson' segmented button and then 'text'
+    const ndjsonBtn = await screen.findByRole("button", { name: /^ndjson$/i });
+    fireEvent.click(ndjsonBtn);
+
+    const textBtn = screen.getByRole("button", { name: /^text$/i });
+    fireEvent.click(textBtn);
+
+    // No assertion beyond "did not throw"; ensure buttons were found and clickable
+    expect(ndjsonBtn).toBeInTheDocument();
+    expect(textBtn).toBeInTheDocument();
   });
 });

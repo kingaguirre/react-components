@@ -715,4 +715,4 @@ export const Description = styled.div`
   color: ${theme.colors.default.base};
   margin-bottom: 6px;
   line-height: 1.2;
-`
+`;
