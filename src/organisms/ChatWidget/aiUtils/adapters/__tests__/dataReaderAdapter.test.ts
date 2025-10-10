@@ -282,4 +282,218 @@ describe("DataReaderAdapter (vitest)", () => {
     expect(last.content).toContain("DEEP_FETCH_JSON");
     expect(last.content).toContain('"totals":{"count":4}');
   });
+
+    it('augment("oldest"): returns the earliest item via fallback to /full', async () => {
+    const routes: FetchRoute[] = [
+      // Intentionally omit the /list?order=asc route to exercise the fallback
+      { matcher: (url) => url.startsWith(`${baseUrl}${endpoints.full}`), payload: { rows: rowsAll } },
+    ];
+    const adapter = makeAdapter(routes);
+
+    const systems = await adapter.augment({
+      text: "show me the oldest transaction",
+      messages: [],
+      context: { sessionId: "s8" },
+    } as any);
+
+    const deep = parseDeepFetchJSON(systems[systems.length - 1].content)!;
+    expect(deep.intent).toBe("oldest");
+    const keys = (deep.latestSample ?? []).map((r: any) => r.key);
+    expect(keys).toContain("TRN-A1"); // 2023-03-10
+  });
+
+  it('augment("monthly and use table"): buckets by Month and instructs table render', async () => {
+    const routes: FetchRoute[] = [
+      { matcher: (url) => url.startsWith(`${baseUrl}${endpoints.full}`), payload: { rows: rowsAll } },
+    ];
+    const adapter = makeAdapter(routes);
+
+    const systems = await adapter.augment({
+      text: "Monthly breakdown and use table",
+      messages: [],
+      context: { sessionId: "s9" },
+    } as any);
+
+    const last = systems[systems.length - 1];
+    expect(last.content).toContain("DEEP_FETCH_JSON");
+    expect(last.content).toMatch(/Render a compact table:\s*Month \| Total \| Registered \| Pending/i);
+  });
+
+  it('persisted table pref: "use table as default" -> later "per quarter" uses table render', async () => {
+    const routes: FetchRoute[] = [
+      { matcher: (url) => url.startsWith(`${baseUrl}${endpoints.full}`), payload: { rows: rowsAll } },
+    ];
+    const adapter = makeAdapter(routes);
+
+    const sys1 = await adapter.augment({
+      text: "use table as default",
+      messages: [],
+      context: { sessionId: "s10" },
+    } as any);
+    expect(sys1.some((m: any) => /I will use tables by default/i.test(m.content))).toBe(true);
+
+    const sys2 = await adapter.augment({
+      text: "show per quarter",
+      messages: [],
+      context: { sessionId: "s10" },
+    } as any);
+
+    const last = sys2[sys2.length - 1];
+    expect(last.content).toMatch(/Render a compact table:\s*Quarter \| Total \| Registered \| Pending/i);
+  });
+
+  it('augment("latest 3 pending"): filters by status before slicing', async () => {
+    const routes: FetchRoute[] = [
+      { matcher: (url) => url.startsWith(`${baseUrl}${endpoints.list}`), payload: { rows: rowsListDesc } },
+    ];
+    const adapter = makeAdapter(routes);
+
+    const systems = await adapter.augment({
+      text: "Give me the latest 3 pending transactions",
+      messages: [],
+      context: { sessionId: "s11" },
+    } as any);
+
+    const deep = parseDeepFetchJSON(systems[systems.length - 1].content)!;
+    expect(deep.intent).toBe("latestN");
+    expect(deep.request.n).toBe(3);
+
+    // Must be filtered down to exactly one pending
+    expect(deep.totals.count).toBe(1);
+
+    // Status mix must show PENDING: 1
+    const mix = new Map(deep.statusMix || []);
+    expect(mix.get("PENDING")).toBe(1);
+
+    // If a sample exists, it should include TRN-Z9
+    if (Array.isArray(deep.latestSample) && deep.latestSample.length) {
+      const keys = deep.latestSample.map((r: any) => r.key);
+      expect(keys).toContain("TRN-Z9");
+    }
+  });
+
+  it('export all as CSV falls back to data URL when linkMaker throws', async () => {
+    const routes: FetchRoute[] = [
+      { matcher: (url) => url.startsWith(`${baseUrl}${endpoints.full}`), payload: { rows: rowsAll } },
+    ];
+    (globalThis as any).fetch = makeFetchStub(routes);
+
+    // Adapter with a failing linkMaker to force data: URL embedding
+    const failingLink = vi.fn(async () => { throw new Error("register failed"); });
+    const adapter = makeDataReaderAdapter({
+      baseUrl,
+      endpoints,
+      memory: { datasetName: "Workdesk", itemSingular: "transaction", itemPlural: "transactions" },
+      shape,
+      alwaysDeepFetchAll: true,
+      hotsetLimit: 3,
+      kb: { title: "KB", brand: "Giftlyph" },
+      brandNames: ["Giftlyph"],
+      makeDownloadLink: failingLink,
+    });
+
+    const systems = await adapter.augment({
+      text: "export all as csv",
+      messages: [],
+      context: { sessionId: "s12" },
+    } as any);
+
+    const last = systems[systems.length - 1];
+    expect(last.role).toBe("system");
+    expect(last.content).toMatch(/📎 Download: \[workdesk-all-.*\.csv]\(data:/i);
+    expect(failingLink).toHaveBeenCalled();
+  });
+
+  it('export scoped: "export on 2025-01-14 registered as xlsx" builds scoped filename and calls link maker', async () => {
+    const routes: FetchRoute[] = [
+      { matcher: (url) => url.startsWith(`${baseUrl}${endpoints.full}`), payload: { rows: rowsAll } },
+    ];
+    const adapter = makeAdapter(routes);
+
+    const systems = await adapter.augment({
+      text: "export on 2025-01-14 registered as xlsx",
+      messages: [],
+      context: { sessionId: "s13" },
+    } as any);
+
+    const last = systems[systems.length - 1].content;
+    // label "on 2025-01-14" → safeSlug => "on_2025_01_14"
+    expect(last).toMatch(/📎 Download: \[workdesk-on_2025_01_14-.*\.xlsx]\(https:\/\/dl\.example\.test\/workdesk-on_2025_01_14-.*\.xlsx\)/i);
+    expect(makeDownloadLink).toHaveBeenCalled();
+  });
+
+  it('range-only "on 2025-01-14": filters to that day and returns one item in DEEP_FETCH_JSON', async () => {
+    const routes: FetchRoute[] = [
+      { matcher: (url) => url.startsWith(`${baseUrl}${endpoints.full}`), payload: { rows: rowsAll } },
+    ];
+    const adapter = makeAdapter(routes);
+
+    const systems = await adapter.augment({
+      text: "show transactions on 2025-01-14",
+      messages: [],
+      context: { sessionId: "s14" },
+    } as any);
+
+    const deep = parseDeepFetchJSON(systems[systems.length - 1].content)!;
+    expect(deep.intent).toBe("range");
+    expect(deep.totals.count).toBe(1);
+    const keys = (deep.latestSample ?? []).map((r: any) => r.key);
+    expect(keys).toContain("TRN-D4");
+  });
+
+  it('service ask respects table preference: with "use table default", weather prompt asks for a Markdown table', async () => {
+    const routes: FetchRoute[] = [
+      // harmless stub so the first call ("use table default") can fall through safely
+      { matcher: (url) => url.startsWith(`${baseUrl}${endpoints.full}`), payload: { rows: rowsAll } },
+    ];
+    const adapter = makeAdapter(routes);
+
+    // set the session-level pref
+    await adapter.augment({
+      text: "use table default",
+      messages: [],
+      context: { sessionId: "s15" },
+    } as any);
+
+    // now service-like ask should return the table instruction (no need to fetch)
+    const systems = await adapter.augment({
+      text: "weather in kuala lumpur?",
+      messages: [],
+      context: { sessionId: "s15" },
+    } as any);
+
+    const last = systems[systems.length - 1];
+    expect(last.role).toBe("system");
+    expect(last.content).toMatch(/present 3–5 in-scope ideas in a Markdown table/i);
+  });
+
+  it('augment("export it"): with no prior aggregation/range/top, exports ALL (CSV by default)', async () => {
+    const routes: FetchRoute[] = [
+      { matcher: (url) => url.startsWith(`${baseUrl}${endpoints.full}`), payload: { rows: rowsAll } },
+    ];
+    const adapter = makeAdapter(routes);
+
+    const systems = await adapter.augment({
+      text: "export it",
+      messages: [],
+      context: { sessionId: "s16" },
+    } as any);
+
+    const last = systems[systems.length - 1].content;
+    expect(last).toMatch(/📎 Download: \[workdesk-all-.*\.csv]\(https:\/\/dl\.example\.test\/workdesk-all-.*\.csv\)/i);
+  });
+
+  it('augment("brand token" with no KB fields): still answers via KB_JSON and does not fetch DEEP data', async () => {
+    // No routes at all: if it tries to fetch, this test would throw.
+    const adapter = makeAdapter([]);
+    const systems = await adapter.augment({
+      text: "Giftlyph warranty policy?",
+      messages: [],
+      context: { sessionId: "s17" },
+    } as any);
+    const last = systems[systems.length - 1];
+    expect(last.content).toContain("KB_JSON");
+    expect(last.content).toContain('"brand":"Giftlyph"');
+  });
+
 });

@@ -203,13 +203,13 @@ function smartTimestampMs(shape: Shape | undefined, row: any): number {
 
 function computeStatus(shape: Shape | undefined, row: any): string {
   const f = flatten(row);
-  if (shape?.statusAccessor) return shape.statusAccessor(f);
-  const raw = String(
-    f?.status ?? f?.workflowStatus ?? f?.workflowStage ?? f?.stage ?? "",
-  );
-  return /\b(pending|initiated|in[-\s]?progress|awaiting|on[-\s]?hold|review|draft)\b/i.test(
-    raw,
-  )
+
+  // Always normalize into the two buckets the adapter uses everywhere else.
+  const raw = shape?.statusAccessor
+    ? String(shape.statusAccessor(f) || "")
+    : String(f?.status ?? f?.workflowStatus ?? f?.workflowStage ?? f?.stage ?? "");
+
+  return /\b(pending|initiated|in[-\s]?progress|awaiting|on[-\s]?hold|review|draft)\b/i.test(raw)
     ? "PENDING"
     : "REGISTERED";
 }
