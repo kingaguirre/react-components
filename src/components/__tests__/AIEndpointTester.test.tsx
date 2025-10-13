@@ -312,4 +312,165 @@ describe("AIEndpointTester (Direct)", () => {
     expect(ndjsonBtn).toBeInTheDocument();
     expect(textBtn).toBeInTheDocument();
   });
+
+    it("uses prop defaults when localStorage is empty and server has no saved settings; /api/dev calls go to defaultDevApiBase", async () => {
+    const PROP_BASE = "https://upstream.example/v1";
+    const PROP_MODEL = "gpt-prop";
+    const PROP_DEV = "http://dev.local:4000";
+
+    // mock fetch to assert that /api/dev/* goes to PROP_DEV and that no server settings override occur
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+      const method = (init?.method || "GET").toUpperCase();
+
+      if (method === "GET" && url === `${PROP_DEV}/api/dev/openai-key`) {
+        return new Response(JSON.stringify({ key: "sk-prop-test" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      if (method === "GET" && url === `${PROP_DEV}/api/dev/openai-settings`) {
+        // No saved settings → props should remain visible
+        return new Response(JSON.stringify({ settings: {}, hasSettings: false }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return new Response("not found", { status: 404 });
+    });
+
+    render(
+      <AIEndpointTester
+        defaultBaseUrl={PROP_BASE}
+        defaultModel={PROP_MODEL}
+        defaultDevApiBase={PROP_DEV}
+      />,
+    );
+
+    // The server calls must have targeted the prop dev base
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        `${PROP_DEV}/api/dev/openai-key`,
+        expect.any(Object),
+      );
+      expect(fetchMock).toHaveBeenCalledWith(
+        `${PROP_DEV}/api/dev/openai-settings`,
+        expect.any(Object),
+      );
+    });
+
+    // UI should reflect prop defaults (no server overrides)
+    const baseUrlInput = await screen.findByLabelText("Upstream Base URL") as HTMLInputElement;
+    const modelInput = screen.getByLabelText("Model") as HTMLInputElement;
+    expect(baseUrlInput.value).toBe(PROP_BASE);
+    expect(modelInput.value).toBe(PROP_MODEL);
+  });
+
+  it("localStorage Dev API Base wins over prop defaultDevApiBase for /api/dev/* calls", async () => {
+    const LS_DEV = "http://ls.dev:5000";
+    const PROP_DEV = "http://prop.dev:4000";
+    // LS should win
+    localStorage.setItem("aiTester:devApiBase", LS_DEV);
+
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+      const method = (init?.method || "GET").toUpperCase();
+
+      // Should hit LS base, NOT prop base
+      if (method === "GET" && url === `${LS_DEV}/api/dev/openai-key`) {
+        return new Response(JSON.stringify({ key: "sk-ls-test" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      if (method === "GET" && url === `${LS_DEV}/api/dev/openai-settings`) {
+        return new Response(JSON.stringify({ settings: {}, hasSettings: false }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return new Response("not found", { status: 404 });
+    });
+
+    render(
+      <AIEndpointTester
+        defaultBaseUrl="https://api.openai.com/v1"
+        defaultModel="gpt-4o-mini"
+        defaultDevApiBase={PROP_DEV}
+      />,
+    );
+
+    // Verify fetch went to LS base
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        `${LS_DEV}/api/dev/openai-key`,
+        expect.any(Object),
+      );
+      expect(fetchMock).toHaveBeenCalledWith(
+        `${LS_DEV}/api/dev/openai-settings`,
+        expect.any(Object),
+      );
+    });
+
+    // Also verify the UI shows the LS base in the "Endpoint:" mini note
+    // (the note prints something like "http://ls.dev:5000/api/dev/openai-key")
+    expect(
+      await screen.findByText(/http:\/\/ls\.dev:5000\/api\/dev\/openai-key/i),
+    ).toBeInTheDocument();
+  });
+
+  it("Reset Defaults restores Upstream Base URL and Model from props even after server overrides", async () => {
+    const PROP_BASE = "https://props.example/v1";
+    const PROP_MODEL = "gpt-from-props";
+
+    // Server will override on load
+    const serverSettings = {
+      baseUrl: "https://server-override/v1",
+      model: "gpt-from-server",
+      stream: true,
+      payloadMode: "messages",
+      parser: "auto",
+    };
+
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+      const method = (init?.method || "GET").toUpperCase();
+
+      if (method === "GET" && url.endsWith("/api/dev/openai-key")) {
+        return new Response(JSON.stringify({ key: "sk-override" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      if (method === "GET" && url.endsWith("/api/dev/openai-settings")) {
+        return new Response(JSON.stringify({ settings: serverSettings, hasSettings: true }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return new Response("not found", { status: 404 });
+    });
+
+    render(
+      <AIEndpointTester
+        defaultBaseUrl={PROP_BASE}
+        defaultModel={PROP_MODEL}
+        defaultDevApiBase=""
+      />,
+    );
+
+    // After load, inputs reflect server overrides
+    const baseUrlInput = await screen.findByLabelText("Upstream Base URL") as HTMLInputElement;
+    const modelInput = screen.getByLabelText("Model") as HTMLInputElement;
+    expect(baseUrlInput.value).toBe("https://server-override/v1");
+    expect(modelInput.value).toBe("gpt-from-server");
+
+    // Click "Reset Defaults"
+    const resetBtn = screen.getByRole("button", { name: /reset defaults/i });
+    fireEvent.click(resetBtn);
+
+    // Should revert to prop defaults
+    await waitFor(() => {
+      expect((screen.getByLabelText("Upstream Base URL") as HTMLInputElement).value).toBe(PROP_BASE);
+      expect((screen.getByLabelText("Model") as HTMLInputElement).value).toBe(PROP_MODEL);
+    });
+  });
+
 });
