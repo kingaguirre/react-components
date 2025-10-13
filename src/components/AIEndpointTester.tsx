@@ -16,6 +16,14 @@ type UiState =
 
 type KeyResp = { key?: string; hasKey?: boolean; ok?: boolean };
 type SettingsResp = { ok?: boolean; settings?: any; hasSettings?: boolean };
+type AIEndpointTesterProps = {
+  /** Default OpenAI/Upstream base URL, e.g. "https://api.openai.com/v1" */
+  defaultBaseUrl?: string;
+  /** Default model, e.g. "gpt-4o-mini" */
+  defaultModel?: string;
+  /** Default Dev API Base used for /api/dev/* calls, e.g. "http://localhost:4000" */
+  defaultDevApiBase?: string;
+};
 
 /**
  * Direct fetch to upstream URL (cURL parity).
@@ -25,7 +33,11 @@ type SettingsResp = { ok?: boolean; settings?: any; hasSettings?: boolean };
 
 const LS_DEV_API_BASE = "aiTester:devApiBase";
 
-export function AIEndpointTester() {
+export function AIEndpointTester({
+  defaultBaseUrl = "https://api.openai.com/v1",
+  defaultModel = "gpt-4o-mini",
+  defaultDevApiBase = "http://localhost:4000",
+}: AIEndpointTesterProps = {}) {
   // ---------- Auth ----------
   const [openaiKey, setOpenaiKey] = useState("");
 
@@ -33,8 +45,9 @@ export function AIEndpointTester() {
   const [settingsSaved, setSettingsSaved] = useState(false);
 
   // ---------- Tester settings (persisted on server) ----------
-  const [baseUrl, setBaseUrl] = useState("https://api.openai.com/v1");
-  const [model, setModel] = useState("gpt-4o-mini");
+  const [baseUrl, setBaseUrl] = useState(defaultBaseUrl);
+  const [model, setModel] = useState(defaultModel);
+
   const [stream, setStream] = useState(true);
   const [payloadMode, setPayloadMode] = useState<"messages" | "input">(
     "messages",
@@ -42,8 +55,8 @@ export function AIEndpointTester() {
   const [parser, setParser] = useState<Parser>("auto");
 
   // ---------- Dev API Base (server.js) ----------
-  // Blank = same-origin; else e.g. http://localhost:4000
-  const [devApiBase, setDevApiBase] = useState<string>("");
+  // Dev API Base prefers localStorage; see effect below. Start with prop default.
+  const [devApiBase, setDevApiBase] = useState<string>(defaultDevApiBase);
   // Load this from localStorage first; only then fetch from server.
   const [devBaseReady, setDevBaseReady] = useState(false);
 
@@ -106,14 +119,21 @@ export function AIEndpointTester() {
     [apiUrl],
   );
 
-  // ---------- 0) Load Dev API Base from localStorage first ----------
+  // ---------- 0) Load Dev API Base from localStorage first (LS > props) ----------
   useEffect(() => {
     try {
       const v = localStorage.getItem(LS_DEV_API_BASE);
-      if (typeof v === "string") setDevApiBase(v);
-    } catch {}
-    setDevBaseReady(true);
-  }, []);
+      if (typeof v === "string" && v.trim()) {
+        setDevApiBase(v);                    // localStorage wins
+      } else {
+        setDevApiBase(defaultDevApiBase || ""); // else use prop default
+      }
+    } catch {
+      setDevApiBase(defaultDevApiBase || "");
+    } finally {
+      setDevBaseReady(true);
+    }
+  }, [defaultDevApiBase]);
 
   // Persist Dev API Base whenever it changes (and only this setting)
   useEffect(() => {
@@ -164,14 +184,14 @@ export function AIEndpointTester() {
 
   const DEFAULTS = useMemo(
     () => ({
-      baseUrl: "https://api.openai.com/v1",
-      model: "gpt-4o-mini",
+      baseUrl: defaultBaseUrl,
+      model: defaultModel,
       stream: true,
       payloadMode: "messages" as const,
       parser: "auto" as Parser,
       prompt: "What is earth",
     }),
-    [],
+    [defaultBaseUrl, defaultModel],
   );
 
   const applySettings = useCallback((s: any) => {
