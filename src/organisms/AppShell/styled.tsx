@@ -94,6 +94,7 @@ export const IconButton = styled.button<{
   padding: 0;
   padding-right: 12px;
   line-height: 1;
+  outline: none;
   &:hover {
     opacity: 1;
   }

@@ -57,6 +57,10 @@ export const Tabs: React.FC<TabsProps> = ({
   // Special handling for the very first reveal
   const firstRevealRef = useRef(true);
   const heightUnlockTimerRef = useRef<number | null>(null);
+  
+  const roRef = useRef<ResizeObserver | null>(null);
+  const lockedRef = useRef<number | null>(null);
+  useEffect(() => { lockedRef.current = lockedHeight; }, [lockedHeight]);
 
   const getWrapperPaddingY = (el: HTMLElement) => {
     const cs = getComputedStyle(el);
@@ -165,9 +169,7 @@ export const Tabs: React.FC<TabsProps> = ({
   useEffect(() => {
     if (!showContent) return;
 
-    let r1 = 0,
-      r2 = 0,
-      r3 = 0;
+    let r1 = 0, r2 = 0, r3 = 0;
 
     r1 = requestAnimationFrame(() => {
       const nextH = getContentBoxHeight(
@@ -177,7 +179,6 @@ export const Tabs: React.FC<TabsProps> = ({
 
       if (firstRevealRef.current) {
         // First-ever reveal:
-        // Start from 0 → animate to measured height → release
         setLockedHeight(0);
         r2 = requestAnimationFrame(() => {
           setLockedHeight(nextH);
@@ -189,7 +190,8 @@ export const Tabs: React.FC<TabsProps> = ({
       } else {
         // Subsequent tab switches: animate from previous locked → next
         setLockedHeight(nextH);
-        // Release handled by transitionend (with fallback timer)
+        // ✅ Always schedule a fallback release in case no transitionend fires
+        unlockHeightSoon(320);
       }
     });
 
@@ -199,6 +201,39 @@ export const Tabs: React.FC<TabsProps> = ({
       cancelAnimationFrame(r3);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showContent, selectedTab]);
+
+  // Keep wrapper height in sync while locked, even if content grows/shrinks later
+  useEffect(() => {
+    if (!showContent) return;
+    const inner = panelInnerRef.current;
+    if (!inner) return;
+
+    if (!('ResizeObserver' in window)) {
+      // Fallback: just unlock soon if we can’t observe
+      if (lockedRef.current != null) unlockHeightSoon(320);
+      return;
+    }
+
+    const ro = new ResizeObserver(() => {
+      // Measure current content-box height:
+      const nextH = getContentBoxHeight(panelOuterRef.current, panelInnerRef.current);
+      // Only adjust while we're locked; when unlocked, height:auto will flow naturally
+      if (lockedRef.current != null) {
+        // Smoothly animate to the new measured height
+        setLockedHeight(nextH);
+        // Ensure we eventually release to auto even if no transition fires
+        unlockHeightSoon(360);
+      }
+    });
+
+    ro.observe(inner);
+    roRef.current = ro;
+
+    return () => {
+      ro.disconnect();
+      roRef.current = null;
+    };
   }, [showContent, selectedTab]);
 
   // ---------------- keyboard nav ----------------

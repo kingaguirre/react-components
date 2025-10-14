@@ -276,7 +276,7 @@ export const TabContentWrapper = styled.div<{
   font-size: 14px;
   color: ${theme.colors.default.dark};
   outline: none;
-  transition: all 0.3s ease;
+  transition: height 0.3s ease;
   /* prevent bleed during height animation */
   overflow: hidden;
 

@@ -49,5 +49,11 @@ export interface CustomInputProps {
   /** Show disabled icon when input is disabled */
   showDisabledIcon?: boolean;
 
+  /**
+   * Display & output format (date-fns tokens).
+   * Controls the input rendering AND the string(s) passed via onChange.
+   */
+  dateFormat?: string; // default: "dd-MMM-yyyy"
+
   [key: string]: any;
 }

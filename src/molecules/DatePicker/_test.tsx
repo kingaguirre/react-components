@@ -127,4 +127,96 @@ describe("DatePicker Component", () => {
     await userEvent.click(input)
     expect(screen.queryByTestId('clear-icon')).toBeNull()
   })
+
+  test('applies custom dateFormat to single selection (display equals onChange)', async () => {
+    const handleChange = vi.fn();
+    render(<DatePicker onChange={handleChange} dateFormat="yyyy-MM-dd" />);
+
+    const input = screen.getByPlaceholderText('Select Date') as HTMLInputElement;
+    await userEvent.click(input);
+
+    const day = await screen.findByText('15');
+    await userEvent.click(day);
+
+    await waitFor(() => expect(handleChange).toHaveBeenCalled());
+    const payload = handleChange.mock.calls.at(-1)?.[0] as string;
+
+    // onChange payload matches the custom format
+    expect(payload).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+
+    // input display matches onChange exactly for single date
+    await waitFor(() => expect(input.value).toBe(payload));
+  });
+
+  test('applies custom dateFormat to range selection (display contains same formatted values)', async () => {
+    const handleChange = vi.fn();
+    render(<DatePicker range onChange={handleChange} dateFormat="dd/MM/yyyy" />);
+
+    const input = screen.getByPlaceholderText('Select Date') as HTMLInputElement;
+
+    await userEvent.click(input);
+    const start = await screen.findByText('10');
+    await userEvent.click(start);
+    const end = await screen.findByText('15');
+    await userEvent.click(end);
+
+    await waitFor(() => expect(handleChange).toHaveBeenCalled());
+    const payload = handleChange.mock.calls.at(-1)?.[0] as string;
+
+    // onChange payload is "start,end" using the custom format
+    expect(payload).toMatch(/^\d{2}\/\d{2}\/\d{4},\d{2}\/\d{2}\/\d{4}$/);
+
+    const [s, e] = payload.split(',');
+    // The input usually renders "start - end"; assert both tokens are present
+    await waitFor(() => {
+      expect(input.value).toContain(s);
+      expect(input.value).toContain(e);
+    });
+  });
+
+  test('parses incoming string value in given dateFormat (range)', async () => {
+    render(
+      <DatePicker
+        range
+        value="2024-02-10,2024-02-15"
+        dateFormat="yyyy-MM-dd"
+      />,
+    );
+
+    const input = screen.getByPlaceholderText('Select Date') as HTMLInputElement;
+
+    await waitFor(() => {
+      expect(input.value).toContain('2024-02-10');
+      expect(input.value).toContain('2024-02-15');
+    });
+  });
+
+  test('uses default dateFormat (dd-MMM-yyyy) when none provided', async () => {
+    // Months are 0-based; 9 = October
+    render(<DatePicker value={new Date(2024, 9, 5)} />);
+
+    const input = screen.getByPlaceholderText('Select Date') as HTMLInputElement;
+
+    await waitFor(() => {
+      // e.g., "05-Oct-2024"
+      expect(input.value).toMatch(/^\d{2}-[A-Za-z]{3}-\d{4}$/);
+    });
+  });
+
+  test('re-renders input when dateFormat prop changes', async () => {
+    const { rerender } = render(
+      <DatePicker value={new Date(2024, 1, 11)} dateFormat="yyyy-MM-dd" />,
+    );
+
+    const input = screen.getByPlaceholderText('Select Date') as HTMLInputElement;
+
+    await waitFor(() => expect(input.value).toBe('2024-02-11'));
+
+    rerender(
+      <DatePicker value={new Date(2024, 1, 11)} dateFormat="dd/MM/yyyy" />,
+    );
+
+    await waitFor(() => expect(input.value).toBe('11/02/2024'));
+  });
+
 });

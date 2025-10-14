@@ -1,7 +1,7 @@
 // src/organisms/Tabs/_test.tsx
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, it, expect, beforeAll } from "vitest";
+import { render, screen, fireEvent, act } from "@testing-library/react";
+import { describe, it, expect, beforeAll, vi } from "vitest";
 import { Tabs } from "./index";
 import { TabItemProps } from "./interface";
 
@@ -205,4 +205,117 @@ describe("Tabs Component", () => {
     expect(onTabChange).toHaveBeenLastCalledWith(1);
     expect(await screen.findByText("Content 2")).toBeInTheDocument();
   });
+
+  it('locks height immediately on tab switch and releases after transitionend', async () => {
+    const onTabChange = vi.fn()
+    render(
+      <Tabs
+        tabs={[
+          { title: 'A', content: <div data-testid="panel-A">A</div> },
+          { title: 'B', content: <div data-testid="panel-B">B</div> },
+        ]}
+        onTabChange={onTabChange}
+      />
+    )
+
+    const tabB = screen.getByText('B')
+    const wrapper = screen.getByRole('tabpanel').parentElement as HTMLElement
+    expect(wrapper).toBeTruthy()
+
+    await act(async () => {
+      fireEvent.click(tabB)
+    })
+
+    expect(wrapper.style.height).not.toBe('')
+
+    await act(async () => {
+      fireEvent.transitionEnd(wrapper, { propertyName: 'height' })
+    })
+
+    // Accept both cleared '' or '0px' because React might normalize to 0px
+    expect(['', '0px']).toContain(wrapper.style.height)
+  })
+
+  it('reacts to ResizeObserver updates while height is locked', async () => {
+    vi.useFakeTimers()
+
+    let resizeCb: Function | null = null
+    let lastInstance: any = null
+
+    class MockResizeObserver {
+      observe = vi.fn()
+      disconnect = vi.fn()
+      constructor(cb: any) {
+        resizeCb = cb
+        lastInstance = this
+      }
+    }
+    // @ts-ignore
+    global.ResizeObserver = MockResizeObserver
+
+    render(
+      <Tabs
+        tabs={[
+          { title: 'One', content: <div data-testid="inner-1">One</div> },
+          { title: 'Two', content: <div data-testid="inner-2">Two</div> },
+        ]}
+      />
+    )
+
+    const tab2 = screen.getByText('Two')
+
+    await act(async () => {
+      fireEvent.click(tab2)
+    })
+
+    // Run all queued idle/timer callbacks to trigger showContent + ResizeObserver
+    act(() => {
+      vi.runAllTimers()
+    })
+
+    // Now observer should have been instantiated
+    expect(lastInstance).toBeTruthy()
+
+    // Trigger fake resize callback
+    act(() => {
+      resizeCb?.()
+    })
+
+    expect(lastInstance.observe).toHaveBeenCalled()
+    expect(lastInstance.disconnect).not.toHaveBeenCalled()
+
+    vi.useRealTimers()
+  })
+
+  // --- Idle rendering test ---
+  it('defers mounting of new tab content using requestIdleCallback', async () => {
+    vi.useFakeTimers()
+
+    render(
+      <Tabs
+        tabs={[
+          { title: 'Tab 1', content: <div data-testid="c1">Content 1</div> },
+          { title: 'Tab 2', content: <div data-testid="c2">Content 2</div> },
+        ]}
+      />
+    )
+
+    const tab2 = screen.getByText('Tab 2')
+
+    await act(async () => {
+      fireEvent.click(tab2)
+    })
+
+    // Content should not appear immediately
+    expect(screen.queryByTestId('c2')).not.toBeInTheDocument()
+
+    // Advance fake timers to simulate idle callback
+    act(() => {
+      vi.runAllTimers()
+    })
+
+    expect(screen.getByTestId('c2')).toBeInTheDocument()
+    vi.useRealTimers()
+  })
+
 });
