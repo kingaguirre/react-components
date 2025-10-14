@@ -6,9 +6,10 @@ import "react-datepicker/dist/react-datepicker.css";
 import { DatePickerContainer, DatePickerGlobalStyles } from "./styled";
 import { DatePickerProps } from "./interface";
 import { CustomInput } from "./CustomInput";
-import { ifElse } from "../../utils/index";
 
-let globalStylesInjected = false; // Singleton flag
+type InternalDate = Date | [Date | null, Date | null] | null;
+
+let globalStylesInjected = false;
 
 export const DatePicker: React.FC<DatePickerProps> = ({
   label,
@@ -24,9 +25,10 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   maxDate,
   helpText,
   autoFocus,
+  dateFormat = "dd-MMM-yyyy",
   ...rest
 }) => {
-  const [date, setDate] = useState<DatePickerProps["value"]>(value || null);
+  const [date, setDate] = useState<InternalDate>(null);
   const [hasInjected, setHasInjected] = useState(false);
 
   useEffect(() => {
@@ -41,22 +43,21 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     };
   }, []);
 
-  // Sync with selectedDate prop if it changes dynamically
+  // + parse incoming value (string(s) or Date(s)) using the provided format
   useEffect(() => {
-    setDate(parseDateRange(value));
-  }, [value]);
+    setDate(parseDateRange(value, dateFormat));
+  }, [value, dateFormat]);
 
-  const handleChange = (newDate: DatePickerProps["value"]) => {
+  const handleChange = (newDate: Date | [Date | null, Date | null] | null) => {
     if (!!range && Array.isArray(newDate)) {
       const [start, end] = newDate;
-      setDate(newDate); // Keep partial selections in state
-
+      setDate(newDate); // keep partial selection
       if (start && end) {
-        onChange?.(formatDate(newDate)); // Only call onChange when both dates are selected
+        onChange?.(formatDate(newDate, dateFormat)); // emits "start,end" strings in your format
       }
     } else {
       setDate(newDate);
-      onChange?.(formatDate(newDate));
+      onChange?.(formatDate(newDate, dateFormat)); // emits single formatted string
     }
   };
 
@@ -66,24 +67,13 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     onChange?.(null);
   };
 
-  // Inside your DatePicker component, before the return statement:
-  const selectedDateValue = ifElse(
-    range,
-    Array.isArray(date) ? date[0] : null,
-    date,
-  );
+  // compute selected/start/end as Dates for react-datepicker
+  const selectedDateValue = range
+    ? (Array.isArray(date) ? date[0] : null)
+    : (date as Date | null);
 
-  const startDateValue = ifElse(
-    range,
-    Array.isArray(date) ? date[0] : null,
-    undefined,
-  );
-
-  const endDateValue = ifElse(
-    range,
-    Array.isArray(date) ? date[1] : null,
-    undefined,
-  );
+  const startDateValue = range ? (Array.isArray(date) ? date[0] : null) : undefined;
+  const endDateValue = range ? (Array.isArray(date) ? date[1] : null) : undefined;
 
   return (
     <DatePickerContainer className={`date-picker ${color}`}>
@@ -96,7 +86,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         disabled={disabled}
         portalId="date-picker-root"
         showMonthDropdown
-        dateFormat="dd-MMM-yyyy"
+        dateFormat={dateFormat}
         popperPlacement="bottom-start"
         showYearDropdown
         useWeekdaysShort

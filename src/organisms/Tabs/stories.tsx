@@ -54,34 +54,136 @@ export const Default: StoryObj<typeof meta> = {
   tags: ['!dev']
 }
 
-// Simulate real lazy modules (no skeleton; resolves after a short delay)
+// ---------- Lazy examples (dynamic height ready) ----------
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+const box = (h: number, label?: string) => (
+  <div
+    style={{
+      height: h,
+      borderRadius: 6,
+      background: '#f2f3f5',
+      boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.06)',
+      transition: 'height 200ms ease'
+    }}
+  >
+    {label && (
+      <div style={{ padding: 8, color: '#666' }}>
+        <small>{label}</small>
+      </div>
+    )}
+  </div>
+);
+
+// (1) Small panel resolves after ~600ms
 const LazySmall = React.lazy(async () => {
   await wait(600);
   return {
-    default: () => <p>Lazy Small Content (loaded after ~600ms)</p>,
+    default: () => <div><p><strong>Lazy Small Content</strong></p>{box(80)}</div>,
   };
 });
 
+// (2) Big panel resolves after ~900ms
 const LazyBig = React.lazy(async () => {
   await wait(900);
   return {
     default: () => (
       <div>
         <p><strong>Lazy Big Content</strong></p>
-        <div
-          style={{
-            height: 220,
-            borderRadius: 6,
-            background: "#f2f3f5",
-            boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.06)",
-          }}
-        />
+        {box(220)}
       </div>
     ),
   };
 });
+
+// ---------- Non-lazy dynamic height demo helpers ----------
+const Box: React.FC<{ h: number; label?: string }> = ({ h, label }) => (
+  <div
+    style={{
+      height: h,
+      borderRadius: 6,
+      background: '#f2f3f5',
+      boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.06)',
+      transition: 'height 200ms ease',
+    }}
+  >
+    {label && (
+      <div style={{ padding: 8, color: '#666' }}>
+        <small>{label}</small>
+      </div>
+    )}
+  </div>
+);
+
+const ImmediateSmall: React.FC = () => (
+  <div>
+    <p><strong>Immediate Small Content</strong></p>
+    <Box h={80} />
+  </div>
+);
+
+const ImmediateBig: React.FC = () => (
+  <div>
+    <p><strong>Immediate Big Content</strong></p>
+    <Box h={220} />
+  </div>
+);
+
+/** Simulates API batches: grows twice after mount */
+const AutoGrowPanel: React.FC = () => {
+  const [h, setH] = React.useState(90);
+  React.useEffect(() => {
+    const t1 = setTimeout(() => setH(220), 700);
+    const t2 = setTimeout(() => setH(420), 1400);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, []);
+  return (
+    <div>
+      <p><strong>Auto-Grow (API-like)</strong></p>
+      <p>Mounts small, then grows as “data” arrives.</p>
+      <Box h={h} label={`height → ${h}px`} />
+    </div>
+  );
+};
+
+/** Synchronous change: button toggles size immediately */
+const TogglePanel: React.FC = () => {
+  const [expanded, setExpanded] = React.useState(false);
+  return (
+    <div>
+      <p><strong>Manual Toggle Growth</strong></p>
+      <button onClick={() => setExpanded(v => !v)} style={{ marginBottom: 8 }}>
+        {expanded ? 'Shrink' : 'Expand'}
+      </button>
+      <Box h={expanded ? 360 : 110} label={expanded ? 'expanded' : 'collapsed'} />
+      <p style={{ marginTop: 12 }}>
+        Click to force an immediate height change (no lazy, no suspense).
+      </p>
+    </div>
+  );
+};
+
+/** Content reflow: list length changes without remounting the tab */
+const DataFeedPanel: React.FC = () => {
+  const [rows, setRows] = React.useState(4);
+  React.useEffect(() => {
+    const t1 = setTimeout(() => setRows(12), 600);
+    const t2 = setTimeout(() => setRows(24), 1200);
+    const t3 = setTimeout(() => setRows(8), 1800); // also test shrink
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+  }, []);
+  return (
+    <div>
+      <p><strong>Data Feed</strong></p>
+      <ul style={{ margin: 0, paddingLeft: 18 }}>
+        {Array.from({ length: rows }, (_, i) => (
+          <li key={i} style={{ padding: '6px 0' }}>Row {i + 1}</li>
+        ))}
+      </ul>
+      <p style={{ marginTop: 12 }}>Rows: {rows}</p>
+    </div>
+  );
+};
 
 export const Examples = {
   tags: ['!autodocs'],
@@ -177,11 +279,10 @@ export const Examples = {
         return <ControlledDemo />;
       })()}
 
-      <Title>Lazy-loaded Panels (React.lazy)</Title>
+      <Title>Lazy-loaded Panels (React.lazy) — Dynamic Height</Title>
       <p>
-        Pass <code>React.lazy</code> components as <code>content</code>. Tabs has built-in{' '}
-        <code>{'<Suspense/>'}</code> and deferred mounting, so there’s no API change. The active
-        tab mounts on an idle tick; if the panel is lazy, it renders when the chunk resolves (zero height in the meantime).
+        These tabs demonstrate deferred mounting and <strong>dynamic height changes</strong> after mount.
+        <code>Tabs</code> should smoothly resize when lazy content resolves, grows with “API” data, or changes synchronously.
       </p>
 
       <Tabs
@@ -189,12 +290,14 @@ export const Examples = {
           { title: 'Immediate', content: <p>Instant content</p> },
           { title: 'Lazy Small', content: <LazySmall /> },
           { title: 'Lazy Big', content: <LazyBig /> },
+          { title: 'Auto-Grow (API)', content: <AutoGrowPanel /> },
+          { title: 'Manual Toggle', content: <TogglePanel /> },
+          { title: 'Data Feed', content: <DataFeedPanel /> },
         ]}
-        // Try starting on a lazy tab to see the first-mount height animation
-        activeTab={1}
+        // Start on a lazy tab that grows to stress-test height updates
+        activeTab={3}
         variant="pill"
       />
-
     </StoryWrapper>
   )
 }
