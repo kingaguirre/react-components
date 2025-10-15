@@ -1,6 +1,6 @@
 // src/components/Modal/styled.tsx
 import styled, { css } from "styled-components";
-import { scrollStyle } from "../../styles/GlobalStyles";
+import { scrollStyle, theme } from "../../styles";
 import { ModalProps } from "./interface";
 
 const getModalWidth = (width: ModalProps["modalWidth"]) => {
@@ -77,7 +77,8 @@ export const ModalOverlay = styled.div<{
 export const ModalContainer = styled.div<{
   $modalWidth: ModalProps["modalWidth"];
   $show: boolean;
-  $keepMounted?: boolean; // NEW
+  $keepMounted?: boolean;
+  $color: ModalProps["color"];
 }>`
   width: ${({ $modalWidth }) => getModalWidth($modalWidth)};
   max-width: 90%;
@@ -92,6 +93,20 @@ export const ModalContainer = styled.div<{
     transform 300ms ease-in-out;
   will-change: opacity, transform;
   pointer-events: ${({ $show }) => ($show ? "auto" : "none")};
+
+  /* Remove the noisy default outline */
+  &:focus {
+    outline: none;
+  }
+
+  /* Provide an accessible, subtle ring only when focus is keyboard-driven */
+  &:focus-visible {
+    outline: 0;
+    transition: box-shadow 0.3s ease;
+    box-shadow: 0 0 0 4px
+      ${({ $color = "primary" }) => theme.colors[$color].light};
+    border-radius: 2px;
+  }
 
   ${({ $keepMounted }) =>
     $keepMounted &&

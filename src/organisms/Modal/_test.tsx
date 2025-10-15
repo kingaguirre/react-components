@@ -301,4 +301,108 @@ describe("Modal Component", () => {
     expect(overlay.scrollTop).toBe(123);
   });
 
+    it("focuses the element passed via initialFocusRef on open (not the container)", () => {
+    const onClose = vi.fn();
+    const confirmRef = React.createRef<HTMLButtonElement>();
+
+    // Ensure something outside had focus before open
+    const trigger = document.createElement("button");
+    trigger.textContent = "Trigger";
+    document.body.appendChild(trigger);
+    trigger.focus();
+    expect(document.activeElement).toBe(trigger);
+
+    render(
+      <Modal show={true} onClose={onClose} title="Initial Focus" initialFocusRef={confirmRef}>
+        <button ref={confirmRef} data-testid="confirm-btn">Confirm</button>
+      </Modal>
+    );
+
+    // Drive double-RAF + timers so open path runs
+    flushOpenCloseAnimations();
+
+    const container = screen.getByTestId("modal-container");
+    const confirmBtn = screen.getByTestId("confirm-btn");
+
+    // The provided initialFocusRef should receive focus (not the container)
+    expect(document.activeElement).toBe(confirmBtn);
+    expect(document.activeElement).not.toBe(container);
+
+    // Clean up trigger
+    document.body.removeChild(trigger);
+  });
+
+  it("restores focus to the previously focused trigger on overlay-close", () => {
+    const onClose = vi.fn();
+
+    // Set up an external trigger and focus it before opening
+    const trigger = document.createElement("button");
+    trigger.textContent = "Open Modal Trigger";
+    document.body.appendChild(trigger);
+    trigger.focus();
+    expect(document.activeElement).toBe(trigger);
+
+    render(
+      <Modal show={true} onClose={onClose} title="Restore Focus">
+        <div>Content</div>
+      </Modal>
+    );
+
+    // Let the open RAFs run (and any focus inside modal)
+    flushOpenCloseAnimations();
+
+    const overlay = screen.getByTestId("modal-overlay");
+    fireEvent.mouseDown(overlay, { bubbles: true });
+    fireEvent.mouseUp(overlay, { bubbles: true });
+
+    // onClose called and focus restored immediately by Modal
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).toBe(trigger);
+
+    document.body.removeChild(trigger);
+  });
+
+  it("restores focus to the trigger on Escape BEFORE closing", () => {
+    const onClose = vi.fn();
+
+    const trigger = document.createElement("button");
+    trigger.textContent = "Esc Trigger";
+    document.body.appendChild(trigger);
+    trigger.focus();
+
+    render(
+      <Modal show={true} onClose={onClose} title="Esc Close">
+        <div>Esc Content</div>
+      </Modal>
+    );
+
+    // No need to finish animations; Escape handler restores focus synchronously
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).toBe(trigger);
+
+    document.body.removeChild(trigger);
+  });
+
+  it("applies correct semantics and does not set aria-hidden on the overlay", () => {
+    render(
+      <Modal show={true} onClose={vi.fn()} title="Semantics">
+        <div>Semantic Content</div>
+      </Modal>
+    );
+
+    const overlay = screen.getByTestId("modal-overlay");
+    const container = screen.getByTestId("modal-container");
+
+    // Overlay is a backdrop, not the dialog
+    expect(overlay).toHaveAttribute("role", "presentation");
+    // No aria-hidden on the overlay anymore
+    expect(overlay).not.toHaveAttribute("aria-hidden");
+
+    // Dialog semantics must be on the focusable container
+    expect(container).toHaveAttribute("role", "dialog");
+    expect(container).toHaveAttribute("aria-modal", "true");
+  });
+
 });

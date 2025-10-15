@@ -69,11 +69,21 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 
   // compute selected/start/end as Dates for react-datepicker
   const selectedDateValue = range
-    ? (Array.isArray(date) ? date[0] : null)
+    ? Array.isArray(date)
+      ? date[0]
+      : null
     : (date as Date | null);
 
-  const startDateValue = range ? (Array.isArray(date) ? date[0] : null) : undefined;
-  const endDateValue = range ? (Array.isArray(date) ? date[1] : null) : undefined;
+  const startDateValue = range
+    ? Array.isArray(date)
+      ? date[0]
+      : null
+    : undefined;
+  const endDateValue = range
+    ? Array.isArray(date)
+      ? date[1]
+      : null
+    : undefined;
 
   return (
     <DatePickerContainer className={`date-picker ${color}`}>

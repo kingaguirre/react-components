@@ -513,8 +513,9 @@ describe("ChatWidget", () => {
     const items = await screen.findAllByRole("menuitem");
     fireEvent.click(within(items[0]).getByTitle("Delete"));
 
-    // confirm via the button (avoid ambiguous text match with modal title)
-    const confirmBtn = await screen.findByRole("button", { name: "Delete" });
+    // ✅ Scope to the modal container to avoid multiple "Delete" buttons elsewhere
+    const dialog = await screen.findByTestId("modal-container");
+    const confirmBtn = within(dialog).getByRole("button", { name: /^Delete$/i });
     fireEvent.click(confirmBtn);
 
     // ---- Scope to the real messages scroller (the element just above the footer form) ----

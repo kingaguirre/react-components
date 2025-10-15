@@ -207,9 +207,13 @@ function computeStatus(shape: Shape | undefined, row: any): string {
   // Always normalize into the two buckets the adapter uses everywhere else.
   const raw = shape?.statusAccessor
     ? String(shape.statusAccessor(f) || "")
-    : String(f?.status ?? f?.workflowStatus ?? f?.workflowStage ?? f?.stage ?? "");
+    : String(
+        f?.status ?? f?.workflowStatus ?? f?.workflowStage ?? f?.stage ?? "",
+      );
 
-  return /\b(pending|initiated|in[-\s]?progress|awaiting|on[-\s]?hold|review|draft)\b/i.test(raw)
+  return /\b(pending|initiated|in[-\s]?progress|awaiting|on[-\s]?hold|review|draft)\b/i.test(
+    raw,
+  )
     ? "PENDING"
     : "REGISTERED";
 }

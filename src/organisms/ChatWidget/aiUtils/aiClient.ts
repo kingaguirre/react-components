@@ -1,7 +1,7 @@
 // src/organisms/ChatWidget/server/aiClient.ts
 
 // NOTE: This module is safe in browser or server contexts (guarded access to window/localStorage).
-import { RunAdaptersFn } from './adapters/interfaces'
+import { RunAdaptersFn } from "./adapters/interfaces";
 type Msg = { role: "system" | "user" | "assistant"; content: string };
 
 const LS_DEV_API_BASE = "aiTester:devApiBase";

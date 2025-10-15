@@ -7,12 +7,11 @@ export interface ModalProps extends Omit<PanelProps, "className"> {
   showCloseIcon?: boolean;
   modalWidth?: "sm" | "md" | "lg" | "auto";
   zIndex?: number;
-
   unmountOnHide?: boolean;
   onOpening?: () => void;
   onClosing?: () => void;
   onOpened?: () => void;
   onClosed?: () => void;
-
   onClose?: () => void;
+  initialFocusRef?: React.RefObject<HTMLElement>;
 }

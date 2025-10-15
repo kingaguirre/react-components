@@ -35,7 +35,8 @@ export const Modal: React.FC<ModalProps> = (props) => {
   const visible = phase === "entering" || phase === "entered";
 
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const overlayRef = useRef<HTMLDivElement | null>(null); // NEW
+  const overlayRef = useRef<HTMLDivElement | null>(null);
+  const prevFocusRef = useRef<HTMLElement | null>(null);
 
   const timers = useRef<number[]>([]);
   const rafs = useRef<number[]>([]);
@@ -87,6 +88,18 @@ export const Modal: React.FC<ModalProps> = (props) => {
     };
   }, [visible]);
 
+  const restorePrevFocus = () => {
+    if (
+      prevFocusRef.current &&
+      typeof prevFocusRef.current.focus === "function"
+    ) {
+      prevFocusRef.current.focus();
+    } else {
+      // last-resort to avoid leaving focus inside a soon-to-be-hidden subtree
+      (document.body as any).focus?.();
+    }
+  };
+
   // OPEN/CLOSE transitions
   useLayoutEffect(() => {
     clearAsync();
@@ -95,29 +108,31 @@ export const Modal: React.FC<ModalProps> = (props) => {
       if (!mounted) setMounted(true);
       onOpening?.();
 
-      // Double RAF + forced reflow + scroll reset:
-      //  - ensure DOM is mounted
-      //  - reset overlay scrollTop to 0 (fix rare "stuck at bottom")
-      //  - force style calc so fade+slide always animates
+      // 1) capture previously focused element BEFORE moving focus
+      prevFocusRef.current = document.activeElement as HTMLElement | null;
+
       rafs.current.push(
         window.requestAnimationFrame(() => {
-          // Ensure node is there
           const overlay = overlayRef.current;
           const container = containerRef.current;
 
-          // Reset scroll position to top on every open (fix)
           if (overlay) {
-            // JSDOM-safe fallback if scrollTo is not implemented
             if (typeof overlay.scrollTo === "function") overlay.scrollTo(0, 0);
             else overlay.scrollTop = 0;
           }
 
-          // Force reflow so the browser commits initial hidden styles
+          // Force layout so transitions start from the hidden state
           void container?.getBoundingClientRect();
 
           rafs.current.push(
             window.requestAnimationFrame(() => {
               setPhase("entering");
+
+              // 2) Focus ONCE: prefer caller's target, else the container
+              const target =
+                props.initialFocusRef?.current ?? containerRef.current;
+              target?.focus();
+
               timers.current.push(
                 window.setTimeout(() => {
                   setPhase("entered");
@@ -130,6 +145,8 @@ export const Modal: React.FC<ModalProps> = (props) => {
       );
     } else {
       if (mounted) {
+        // Move focus OUT before hiding
+        restorePrevFocus();
         setPhase("exiting");
         onClosing?.();
         installClickShield();
@@ -147,7 +164,7 @@ export const Modal: React.FC<ModalProps> = (props) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [show]);
 
-  // TransitionEnd (robust if CSS duration changes)
+  // TransitionEnd fallback
   useEffect(() => {
     if (!mounted) return;
     const node = containerRef.current;
@@ -175,6 +192,8 @@ export const Modal: React.FC<ModalProps> = (props) => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape" && closeable) {
         installClickShield();
+        // move focus out BEFORE requesting close
+        restorePrevFocus();
         onClose?.();
       }
     };
@@ -191,6 +210,7 @@ export const Modal: React.FC<ModalProps> = (props) => {
     if (!closeable) return;
     if (downOnOverlayRef.current && e.target === e.currentTarget) {
       installClickShield();
+      restorePrevFocus(); // move focus out BEFORE request close
       onClose?.();
     }
     downOnOverlayRef.current = false;
@@ -202,20 +222,19 @@ export const Modal: React.FC<ModalProps> = (props) => {
 
   const requestClose = () => {
     installClickShield();
+    restorePrevFocus(); // move focus out BEFORE request close
     onClose?.();
   };
 
   return ReactDOM.createPortal(
     <ModalOverlay
       ref={overlayRef}
-      role="dialog"
-      aria-modal="true"
+      role="presentation"
       data-testid="modal-overlay"
       $zIndex={zIndex}
       $show={visible}
       $closeable={closeable}
       $keepMounted={!unmountOnHide}
-      aria-hidden={!visible}
       style={{ pointerEvents: visible ? "auto" : "none" }}
       onMouseDown={onOverlayMouseDown}
       onMouseUp={onOverlayMouseUp}
@@ -227,9 +246,12 @@ export const Modal: React.FC<ModalProps> = (props) => {
         $modalWidth={modalWidth}
         $show={visible}
         $keepMounted={!unmountOnHide}
+        $color={color}
         onClick={(e) => e.stopPropagation()}
         data-state={phase}
         tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
       >
         <Panel
           isSubHeader={props.isSubHeader}
