@@ -1,5 +1,9 @@
 // src/molecules/DatePicker/utils.tsx
-import { format as dfFormat, parse as dfParse, isValid as dfIsValid } from "date-fns";
+import {
+  format as dfFormat,
+  parse as dfParse,
+  isValid as dfIsValid,
+} from "date-fns";
 import type { DatePickerProps } from "./interface";
 
 /**
@@ -8,11 +12,12 @@ import type { DatePickerProps } from "./interface";
  */
 export const formatDate = (
   input: Date | [Date | null, Date | null] | null | undefined,
-  fmt: string
+  fmt: string,
 ): string | null => {
   if (!input) return null;
 
-  const fmtOne = (d: Date | null) => (d && dfIsValid(d) ? dfFormat(d, fmt) : null);
+  const fmtOne = (d: Date | null) =>
+    d && dfIsValid(d) ? dfFormat(d, fmt) : null;
 
   if (Array.isArray(input)) {
     const [s, e] = input;
@@ -31,7 +36,7 @@ export const formatDate = (
  */
 export const parseDateRange = (
   input?: DatePickerProps["value"],
-  fmt: string = "dd-MMM-yyyy"
+  fmt: string = "dd-MMM-yyyy",
 ): Date | [Date | null, Date | null] | null => {
   if (!input) return null;
 

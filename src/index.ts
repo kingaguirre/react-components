@@ -57,7 +57,7 @@ export * from "./organisms/ChatWidget/interfaces";
 
 // AI Utils
 export { AIEndpointTester } from "./components/AIEndpointTester";
-export * from './organisms/ChatWidget/aiUtils'
+export * from "./organisms/ChatWidget/aiUtils";
 
 // Components
 export { GradientText } from "./components/GradientText";

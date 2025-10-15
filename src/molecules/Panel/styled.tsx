@@ -17,6 +17,7 @@ export const PanelContainer = styled.div<{
   pointer-events: ${({ $disabled }) => ($disabled ? "none" : "auto")};
   font-family: ${theme.fontFamily};
   box-sizing: border-box;
+  outline: none;
 
   * {
     box-sizing: border-box;

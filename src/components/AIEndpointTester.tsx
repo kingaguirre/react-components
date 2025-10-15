@@ -124,7 +124,7 @@ export function AIEndpointTester({
     try {
       const v = localStorage.getItem(LS_DEV_API_BASE);
       if (typeof v === "string" && v.trim()) {
-        setDevApiBase(v);                    // localStorage wins
+        setDevApiBase(v); // localStorage wins
       } else {
         setDevApiBase(defaultDevApiBase || ""); // else use prop default
       }

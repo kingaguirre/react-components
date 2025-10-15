@@ -674,10 +674,7 @@ export function makeUiScreenAdapter(
     ];
   }
 
-  function sysShowJsonVerbatim(
-    title: string,
-    dataObj: any,
-  ): Msg[] {
+  function sysShowJsonVerbatim(title: string, dataObj: any): Msg[] {
     return [
       {
         role: "system",
@@ -714,21 +711,21 @@ export function makeUiScreenAdapter(
           rawForm?.module,
           rawForm?.meta?.currentModule,
           context?.currentModule,
-          context?.form?.currentModule
+          context?.form?.currentModule,
         ) ||
         !!firstString(
           rawForm?.currentScreen,
           rawForm?.screen,
           rawForm?.meta?.currentScreen,
           context?.currentScreen,
-          context?.form?.currentScreen
+          context?.form?.currentScreen,
         );
 
       const isObjForm =
         isObj(rawForm) &&
         (Array.isArray(rawForm?.fieldSettings) ||
-        Array.isArray(rawForm?.columnSettings) ||
-        hasModuleOrScreen);
+          Array.isArray(rawForm?.columnSettings) ||
+          hasModuleOrScreen);
 
       // ---------- NO-FORM FALLBACK ----------
       if (!isObjForm) {
@@ -738,20 +735,20 @@ export function makeUiScreenAdapter(
             context?.form?.currentModule,
             rawForm?.currentModule,
             rawForm?.module,
-            rawForm?.meta?.currentModule
+            rawForm?.meta?.currentModule,
           );
           const scr = firstString(
             context?.currentScreen,
             context?.form?.currentScreen,
             rawForm?.currentScreen,
             rawForm?.screen,
-            rawForm?.meta?.currentScreen
+            rawForm?.meta?.currentScreen,
           );
           const desc = firstString(
             rawForm?.description,
             rawForm?.meta?.description,
             context?.description,
-            context?.form?.description
+            context?.form?.description,
           );
 
           if (!mod || !scr) {
