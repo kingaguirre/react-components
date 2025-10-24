@@ -54,7 +54,6 @@ import { Footer } from "./components/Footer";
 import { transformColumnSettings } from "./utils/columnCreation";
 import { SelectColumn } from "./components/SelectColumn";
 import { RowActionsColumn } from "./components/RowActionsColumn";
-// import { CellSkeleton } from "./components/CellRenderer/CellGate";
 import { useRowActions } from "./hooks/useRowActions";
 import { useAutoScroll } from "./hooks/useAutoScroll";
 import { useDebouncedColumnSettingsChange } from "./hooks/useDebouncedColumnSettingsChange";
@@ -253,7 +252,6 @@ export const DataTable = <T extends object>({
   const [showSettingsPanel, setShowSettingsPanel] = useState<boolean>(false);
   const [selectedCell, setSelectedCell] = useState<SelectedCellType>(null);
   const [showAlert, setShowAlert] = useState(false);
-  const [columnError, setColumnError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<ExpandedState>({});
   const [cellLoading, setCellLoading] = useState(false);
   const [activeRowId, setActiveRowId] = useState<string | undefined>(
@@ -415,16 +413,6 @@ export const DataTable = <T extends object>({
   useEffect(() => {
     setActiveRowId(activeRow ?? undefined);
   }, [activeRow]);
-
-  // --- Sync column visibility and validate settings ---
-  useEffect(() => {
-    try {
-      UTILS.checkUniqueColumns(safeColumnSettings);
-      setColumnError(null);
-    } catch (err: any) {
-      setColumnError(err.message);
-    }
-  }, [safeColumnSettings]);
 
   // Wrap column sizing change so we can mark user changes
   type SizingUpdater =
@@ -1585,7 +1573,6 @@ export const DataTable = <T extends object>({
             />
             <Body
               table={table}
-              columnError={columnError}
               columnOrder={columnOrder}
               editingCell={editingCell}
               setEditingCell={setEditingCell}

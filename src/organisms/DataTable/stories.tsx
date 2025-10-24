@@ -33,104 +33,85 @@ const HeartbeatDisplay = React.memo(() => {
 /** ✅ Demo Story */
 export const Playground = {
   tags: ['!autodocs'],
-  render: () => (
-    <StoryWrapper
-      title='DataTable Playground'
-      subTitle='This interactive demonstration tool allows you to experiment with a variety of DataTable configurations in real time. Use the controls accessible via the gear icon at the top-right corner to adjust settings such as filtering, sorting, and more. The DataTable displayed below will update dynamically, enabling you to observe firsthand how each property influences its behavior and appearance.'
-    >
-      <Title>DataTable Feature Demo</Title>
-      {/* <HeartbeatDisplay/> */}
-      <DataTablePlayground>
+  render: () => {
+    const [data, setData] = React.useState<any[]>([
+      { id: '1', d: '2025-03-10', status: 'approve' },
+      { id: '2', d: '2025-03-12', status: 'reject' },
+      { id: '3', d: '2025-04-01', status: 'reject' },
+    ]);
+
+    const handleStatusChange = (rowId: string, value: 'approve' | 'reject') => {
+      setData((prev) =>
+        prev.map((item) =>
+          item.id === rowId ? { ...item, status: value } : item
+        )
+      );
+    };
+
+    return (
+      <StoryWrapper
+        title='DataTable Playground'
+        subTitle='This interactive demonstration tool allows you to experiment with a variety of DataTable configurations in real time. Use the controls accessible via the gear icon at the top-right corner to adjust settings such as filtering, sorting, and more. The DataTable displayed below will update dynamically, enabling you to observe firsthand how each property influences its behavior and appearance.'
+      >
+        <Title>DataTable Feature Demo</Title>
+        {/* <HeartbeatDisplay/> */}
+        <DataTablePlayground>
+          <DataTable
+            dataSource={dataSource()}
+            columnSettings={COLUMN_SETTINGS}
+            onChange={e => console.log(e)}
+            headerRightElements={HEADER_RIGHT_ELEMENTS}
+            selectedCell={[0, 2]} // todo move to playground
+            expandedRowContent={rowData => rowData.id !== 5 ? <div style={{ background: 'white' }}>{JSON.stringify(rowData)}</div> : null}
+          />
+        </DataTablePlayground>
         <DataTable
-          dataSource={dataSource()}
-          columnSettings={COLUMN_SETTINGS}
-          onChange={e => console.log(e)}
-          headerRightElements={HEADER_RIGHT_ELEMENTS}
-          selectedCell={[0, 2]} // todo move to playground
-          expandedRowContent={rowData => rowData.id !== 5 ? <div style={{ background: 'white' }}>{JSON.stringify(rowData)}</div> : null}
+          dataSource={data}
+          maxHeight="185px"
+          headerRightControls={false}
+          enableColumnDragging={false}
+          enableColumnPinning={false}
+          enableColumnResizing={false}
+          enableColumnSorting={false}
+          columnSettings={[
+            { title: 'ID', column: 'id' },
+            { title: 'Date', column: 'd' },
+            {
+              title: 'Approve',
+              column: 'status',
+              cell: ({rowValue}) => (
+                <FormControl
+                  type="radio"
+                  name={rowValue.id}
+                  checked={rowValue.status === 'approve'}
+                  onChange={() => handleStatusChange(rowValue.id, 'approve')}
+                  simple
+                />
+              )
+            },
+            {
+              title: 'Reject',
+              column: 'status',
+              cell: ({rowValue}) => (
+                <FormControl
+                  type="radio"
+                  name={rowValue.id}
+                  checked={rowValue.status === 'reject'}
+                  onChange={() => handleStatusChange(rowValue.id, 'reject')}
+                  simple
+                />
+              )
+            },
+            {
+              title: 'Sstatus',
+              column: 'status',
+            }
+          ]}
         />
-      </DataTablePlayground>
-      <DataTable
-      // enableDownload
-      // enableUpload
-      // enableRowSelection
-      // downloadControls={{
-      //   extraMenuItems: [{
-      //     label: 'tesst',
-      //     icon: 'info',
-      //     onClick: () => {}
-      //   }, {
-      //     label: 'tesst1',
-      //     icon: 'info',
-      //     onClick: () => {}
-      //   }, {
-      //     label: 'tesst2',
-      //     icon: 'info',
-      //     onClick: () => {}
-      //   }]
-      // }}
-        // enableCellEditing={false}
-        // enableRowSelection={false}
-        // headerRightControls={false}
-        // enableRowAdding={false}
-        // enableRowDeleting={false}
-        // enableGlobalFiltering={false}
-        // enableColumnFiltering={false}
-           dataSource={[
-          { id: '1', d: '2025-03-10' },
-          { id: '2', d: '2025-03-12' },
-          { id: '3', d: '2025-04-01' },
-          { id: '3', d: '2025-04-01' },
-          { id: '3', d: '2025-04-01' },
-          { id: '3', d: '2025-04-01' },
-          { id: '3', d: '2025-04-01' },
-          { id: '3', d: '2025-04-01' },
-          { id: '3', d: '2025-04-01' },
-          { id: '3', d: '2025-04-01' },
-          { id: '3', d: '2025-04-01' },
-          { id: '3', d: '2025-04-01' },
-        ]}
-        maxHeight='185px'
-        // enableColumnFiltering
-        headerRightControls={false}
-        enableColumnDragging={false}
-        enableColumnPinning={false}
-        enableColumnResizing={false}
-        enableColumnSorting={false}
-        columnSettings={[
-          { title: 'ID', column: 'id'},
-          { title: 'Date', column: 'd', filter: { type: 'date' } },
-          { title: 'Date1', column: '_d', filter: { type: 'date' } },
-          { title: 'Date2', column: '__d'},
-          { title: 'Date3', column: '___d'},
-        ]}
-        // enableGlobalFiltering
-        // headerLeftElements={[
-        //   { type: "button", icon: "filter-sc", color: 'default', variant: 'outlined' },
-        //   { type: "button", text: "Clear", color: 'default' },
-        // ]}
-        // headerRightElements={[
-        //   { 
-        //     type: "dropdown",
-        //     name: "status",
-        //     options: [
-        //       { value: "test", text: "Test" },
-        //       { value: "test1", text: "Test1" },
-        //     ]
-        //   },
-        //   { type: "button", text: "New", icon: "add" },
-        // ]}
-        // hideClearAllFiltersButton
-        // enableRowAdding
-        // addNewButtonText='Register'
-        // enableColumnFiltering
-        // hideFooter
-        // onRowClick={(row) => console.log('Row clicked:', row)}
-        // onChange={(e => console.log('Data changed:', e))}
-      />
-      {/* <GridExample /> */}
-    </StoryWrapper>
-  ),
+        {/* <GridExample /> */}
+      </StoryWrapper>
+    )
+  },
 }
 
 /** Test for playwright */

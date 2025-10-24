@@ -31,9 +31,9 @@ export const ColumnHeader: React.FC<Props> = ({
             items={columnOrder}
             strategy={horizontalListSortingStrategy}
           >
-            {headerGroup.headers.map((header: any) => (
+            {headerGroup.headers.map((header: any, idx: number) => (
               <Cell
-                key={header.id}
+                key={`${header.id}-${idx}`}
                 header={header}
                 table={table}
                 enableColumnDragging={enableColumnDragging}
