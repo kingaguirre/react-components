@@ -16,7 +16,6 @@ interface BodyProps<TData> {
   table: Table<TData>;
   activeRow?: string;
   setEditingCell: any;
-  columnError?: string | null;
   columnOrder: string[];
   disabledRows?: string[];
   enableCellEditing: boolean;
@@ -38,7 +37,6 @@ export const Body = <TData,>({
   table,
   activeRow,
   columnOrder,
-  columnError,
   editingCell,
   selectedCell,
   disabledRows,
@@ -132,14 +130,6 @@ export const Body = <TData,>({
         <NoDataContainer $hasError>
           No column settings configured.
         </NoDataContainer>
-      </BodyContainer>
-    );
-  }
-
-  if (columnError) {
-    return (
-      <BodyContainer className="data-table-body-container">
-        <NoDataContainer $hasError>{columnError}</NoDataContainer>
       </BodyContainer>
     );
   }

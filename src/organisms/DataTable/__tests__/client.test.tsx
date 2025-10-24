@@ -205,16 +205,6 @@ describe('DataTable Row Features and Events (Client Mode)', () => {
     expect(screen.queryByText(/No data to display/i)).toBeInTheDocument();
   });
 
-  test('renders duplicate column key', () => {
-    render(
-      <DataTable
-        dataSource={sampleData}
-        columnSettings={[...columnsSorting, { title: 'ID', column: 'id', sort: 'asc' }]}
-      />
-    );
-    expect(screen.queryByText(/Duplicate column key detected: id/i)).toBeInTheDocument();
-  });
-
   test('renders rows with correct pagination (pageSize and pageIndex)', () => {
     render(
       <DataTable
